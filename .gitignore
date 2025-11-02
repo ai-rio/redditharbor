@@ -357,6 +357,7 @@ reddit_data/
 research_outputs/
 collection_logs/
 error_logs/
+error_log/
 
 # Data export files
 reddit_export_*
@@ -414,6 +415,12 @@ study_*/
 generate_*
 process_*
 analyze_*
+
+# Claude AI assistant files
+.claude/
+
+# Git worktrees (for isolated development environments)
+worktrees/
 
 # =============================================================================
 # END OF .GITIGNORE
