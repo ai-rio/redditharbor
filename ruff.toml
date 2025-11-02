@@ -1,0 +1,21 @@
+[lint]
+# Allow star imports in specific files where we need them for configuration
+select = ["F", "E", "W", "I", "N", "B", "A", "C4", "UP", "RUF"]
+
+# Exclude certain rules that conflict with our use case
+ignore = [
+    "F403",  # star imports - we use these for configuration
+    "F405",  # star imports - we use these for configuration
+]
+
+[lint.per-file-ignores]
+# Allow star imports in configuration files
+"config/__init__.py" = ["F403", "F405"]
+"core/setup.py" = ["F403", "F405"]
+"scripts/*" = ["F403", "F405"]
+"tests/*" = ["F403", "F405"]
+
+[format]
+# Use Python's default formatting
+quote-style = "double"
+indent-style = "space"

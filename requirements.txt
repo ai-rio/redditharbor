@@ -1,0 +1,12 @@
+# RedditHarbor Dependencies
+redditharbor[pii]==0.3
+python-dotenv==1.2.1
+
+# Additional dependencies for full functionality
+spacy>=3.8.0
+
+# Development tools
+ruff>=0.14.0
+
+# Note: Install spaCy models separately after installing spacy
+# Run: python -m spacy download en_core_web_lg

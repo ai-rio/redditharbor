@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""
+RedditHarbor Project Templates for Different Research Types
+"""
+
+from redditharbor_config import ENABLE_PII_ANONYMIZATION
+from redditharbor_setup import setup_redditharbor
+
+
+def academic_research_project(pipeline, topic_subreddits, time_period="recent"):
+    """
+    Template for academic research projects
+    Focus: comprehensive data collection with strict privacy controls
+    """
+    print(f"🎓 Academic Research: {topic_subreddits}")
+
+    # Academic collection with PII anonymization
+    pipeline.subreddit_submission(
+        subreddits=topic_subreddits,
+        sort_types=["hot", "top", "new"],
+        limit=500,
+        mask_pii=True  # Always anonymize for academic research
+    )
+
+    pipeline.subreddit_comment(
+        subreddits=topic_subreddits,
+        limit=1000,
+        mask_pii=True
+    )
+
+def market_research_project(pipeline, industry_subreddits):
+    """
+    Template for market research
+    Focus: sentiment analysis and trend monitoring
+    """
+    print(f"💼 Market Research: {industry_subreddits}")
+
+    pipeline.subreddit_submission(
+        subreddits=industry_subreddits,
+        sort_types=["hot", "rising"],  # Focus on trending content
+        limit=300,
+        mask_pii=ENABLE_PII_ANONYMIZATION
+    )
+
+def trend_analysis_project(pipeline, trend_subreddits):
+    """
+    Template for trend analysis
+    Focus: tracking emerging topics and discussions
+    """
+    print(f"📈 Trend Analysis: {trend_subreddits}")
+
+    pipeline.subreddit_submission(
+        subreddits=trend_subreddits,
+        sort_types=["hot", "rising", "new"],
+        limit=200,
+        mask_pii=ENABLE_PII_ANONYMIZATION
+    )
+
+def community_analysis_project(pipeline, community_subreddits):
+    """
+    Template for community analysis
+    Focus: understanding community behavior and engagement
+    """
+    print(f"👥 Community Analysis: {community_subreddits}")
+
+    pipeline.subreddit_submission(
+        subreddits=community_subreddits,
+        sort_types=["hot", "top"],
+        limit=400,
+        mask_pii=ENABLE_PII_ANONYMIZATION
+    )
+
+    # More comments for community analysis
+    pipeline.subreddit_comment(
+        subreddits=community_subreddits,
+        limit=800,
+        mask_pii=ENABLE_PII_ANONYMIZATION
+    )
+
+def keyword_research_project(pipeline, keywords):
+    """
+    Template for keyword-based research
+    Focus: tracking specific topics across Reddit
+    """
+    print(f"🔍 Keyword Research: {keywords}")
+
+    # This requires the keyword collection method
+    # Note: You may need to implement this based on your specific needs
+    pass
+
+# Example usage configurations
+PROJECT_CONFIGS = {
+    "tech_research": {
+        "template": academic_research_project,
+        "subreddits": ["programming", "ComputerScience", "coding", "softwareengineering"],
+        "description": "Academic research on programming discussions"
+    },
+    "ai_ml_monitoring": {
+        "template": trend_analysis_project,
+        "subreddits": ["MachineLearning", "artificial", "deeplearning", "OpenAI"],
+        "description": "Monitoring AI/ML trends and discussions"
+    },
+    "startup_analysis": {
+        "template": market_research_project,
+        "subreddits": ["startups", "Entrepreneur", "SaaS", "SideProject"],
+        "description": "Market research for startup ecosystem"
+    },
+    "gaming_community": {
+        "template": community_analysis_project,
+        "subreddits": ["gaming", "GamingBuddies", "GameDevs", "IndieGaming"],
+        "description": "Community analysis for gaming trends"
+    }
+}
+
+def run_project(project_name, pipeline):
+    """
+    Run a predefined project template
+    """
+    if project_name not in PROJECT_CONFIGS:
+        print(f"❌ Unknown project: {project_name}")
+        print("Available projects:", list(PROJECT_CONFIGS.keys()))
+        return
+
+    config = PROJECT_CONFIGS[project_name]
+    print(f"\n🚀 Running: {config['description']}")
+
+    try:
+        config["template"](pipeline, config["subreddits"])
+        print(f"✅ Project '{project_name}' completed successfully!")
+    except Exception as e:
+        print(f"❌ Project '{project_name}' failed: {e}")
+
+if __name__ == "__main__":
+    print("📋 RedditHarbor Project Templates")
+    print("=" * 40)
+
+    # Setup
+    pipeline = setup_redditharbor()
+
+    if pipeline:
+        print("\n📁 Available Project Templates:")
+        for name, config in PROJECT_CONFIGS.items():
+            print(f"  • {name}: {config['description']}")
+
+        # Interactive project selection
+        project_name = input("\n🎯 Enter project name to run: ")
+        run_project(project_name, pipeline)
