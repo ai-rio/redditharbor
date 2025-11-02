@@ -17,18 +17,15 @@ def test_small_collection():
         reddit_client = reddit(
             public_key=REDDIT_PUBLIC,
             secret_key=REDDIT_SECRET,
-            user_agent=REDDIT_USER_AGENT
+            user_agent=REDDIT_USER_AGENT,
         )
 
-        supabase_client = supabase(
-            url=SUPABASE_URL,
-            private_key=SUPABASE_KEY
-        )
+        supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
         pipeline = collect(
             reddit_client=reddit_client,
             supabase_client=supabase_client,
-            db_config=DB_CONFIG
+            db_config=DB_CONFIG,
         )
 
         # Collect just 2 posts from r/python
@@ -37,18 +34,21 @@ def test_small_collection():
             subreddits=["python"],
             sort_types=["hot"],
             limit=2,
-            mask_pii=ENABLE_PII_ANONYMIZATION
+            mask_pii=ENABLE_PII_ANONYMIZATION,
         )
 
         print("✅ Collection successful!")
         print("📊 Check your data at: http://127.0.0.1:54323")
-        print("🔍 Go to Table Editor -> Select 'redditor', 'submission', or 'comment' tables")
+        print(
+            "🔍 Go to Table Editor -> Select 'redditor', 'submission', or 'comment' tables"
+        )
 
         return True
 
     except Exception as e:
         print(f"❌ Collection failed: {e}")
         return False
+
 
 if __name__ == "__main__":
     success = test_small_collection()

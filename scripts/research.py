@@ -25,8 +25,9 @@ except ImportError as e:
     # Try config fallback
     try:
         import redditharbor_config
+
         for key in dir(redditharbor_config):
-            if not key.startswith('_'):
+            if not key.startswith("_"):
                 globals()[key] = getattr(redditharbor_config, key)
     except ImportError:
         print("Warning: Could not import configuration")
@@ -42,26 +43,24 @@ except ImportError as e:
         DEFAULT_LIMIT = 100
         ENABLE_PII_ANONYMIZATION = True
 
+
 def initialize_pipeline():
     """Initialize the RedditHarbor pipeline"""
     reddit_client = reddit(
-        public_key=REDDIT_PUBLIC,
-        secret_key=REDDIT_SECRET,
-        user_agent=REDDIT_USER_AGENT
+        public_key=REDDIT_PUBLIC, secret_key=REDDIT_SECRET, user_agent=REDDIT_USER_AGENT
     )
 
-    supabase_client = supabase(
-        url=SUPABASE_URL,
-        private_key=SUPABASE_KEY
-    )
+    supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
     return collect(
         reddit_client=reddit_client,
         supabase_client=supabase_client,
-        db_config=DB_CONFIG
+        db_config=DB_CONFIG,
     )
 
+
 # ==================== RESEARCH PROJECT TEMPLATES ====================
+
 
 def project_1_programming_trends():
     """
@@ -74,24 +73,35 @@ def project_1_programming_trends():
     pipeline = initialize_pipeline()
 
     programming_subreddits = [
-        "python", "javascript", "java", "cpp", "rust",
-        "golang", "typescript", "csharp", "php", "ruby"
+        "python",
+        "javascript",
+        "java",
+        "cpp",
+        "rust",
+        "golang",
+        "typescript",
+        "csharp",
+        "php",
+        "ruby",
     ]
 
     sort_types = ["hot", "top"]  # Hot for current trends, Top for all-time
     limit = 50  # Collect 50 posts from each sort type
 
-    print(f"📊 Collecting data from {len(programming_subreddits)} programming subreddits...")
+    print(
+        f"📊 Collecting data from {len(programming_subreddits)} programming subreddits..."
+    )
 
     pipeline.subreddit_submission(
         subreddits=programming_subreddits,
         sort_types=sort_types,
         limit=limit,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     print("✅ Programming trends data collection complete!")
     print("📈 Analyze trends in Supabase Studio: http://127.0.0.1:54323")
+
 
 def project_2_tech_industry_sentiment():
     """
@@ -104,8 +114,15 @@ def project_2_tech_industry_sentiment():
     pipeline = initialize_pipeline()
 
     tech_subreddits = [
-        "technology", "programming", "startups", "gadgets",
-        "apple", "android", "windows", "linux", "Privacy"
+        "technology",
+        "programming",
+        "startups",
+        "gadgets",
+        "apple",
+        "android",
+        "windows",
+        "linux",
+        "Privacy",
     ]
 
     sort_types = ["hot", "new"]  # Recent discussions and trending topics
@@ -117,11 +134,12 @@ def project_2_tech_industry_sentiment():
         subreddits=tech_subreddits,
         sort_types=sort_types,
         limit=limit,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     print("✅ Tech sentiment data collection complete!")
     print("💡 Analyze company mentions and sentiment patterns in Supabase")
+
 
 def project_3_learning_community_analysis():
     """
@@ -134,8 +152,14 @@ def project_3_learning_community_analysis():
     pipeline = initialize_pipeline()
 
     learning_subreddits = [
-        "learnprogramming", "learnpython", "webdev", "datascience",
-        "learnmath", "AskComputerScience", "ComputerScience", "coding"
+        "learnprogramming",
+        "learnpython",
+        "webdev",
+        "datascience",
+        "learnmath",
+        "AskComputerScience",
+        "ComputerScience",
+        "coding",
     ]
 
     sort_types = ["hot", "new"]  # Recent questions and popular discussions
@@ -147,7 +171,7 @@ def project_3_learning_community_analysis():
         subreddits=learning_subreddits,
         sort_types=sort_types,
         limit=limit,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     # Also collect comments for interaction analysis
@@ -155,11 +179,12 @@ def project_3_learning_community_analysis():
     pipeline.subreddit_comment(
         subreddits=learning_subreddits,
         limit=200,  # More comments for interaction analysis
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     print("✅ Learning community data collection complete!")
     print("🔍 Analyze question patterns and response behaviors")
+
 
 def project_4_ai_ml_monitoring():
     """
@@ -172,8 +197,14 @@ def project_4_ai_ml_monitoring():
     pipeline = initialize_pipeline()
 
     ai_ml_subreddits = [
-        "MachineLearning", "artificial", "deeplearning", "OpenAI",
-        "ChatGPT", "singularity", "MLQuestions", "learnmachinelearning"
+        "MachineLearning",
+        "artificial",
+        "deeplearning",
+        "OpenAI",
+        "ChatGPT",
+        "singularity",
+        "MLQuestions",
+        "learnmachinelearning",
     ]
 
     sort_types = ["hot", "rising"]  # Focus on emerging and trending content
@@ -185,11 +216,12 @@ def project_4_ai_ml_monitoring():
         subreddits=ai_ml_subreddits,
         sort_types=sort_types,
         limit=limit,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     print("✅ AI/ML monitoring data collection complete!")
     print("📈 Track emerging AI topics and community concerns")
+
 
 def project_5_startup_ecosystem():
     """
@@ -202,8 +234,14 @@ def project_5_startup_ecosystem():
     pipeline = initialize_pipeline()
 
     startup_subreddits = [
-        "startups", "Entrepreneur", "SaaS", "smallbusiness",
-        "SideProject", "IndieHackers", "freelance", "sysadmin"
+        "startups",
+        "Entrepreneur",
+        "SaaS",
+        "smallbusiness",
+        "SideProject",
+        "IndieHackers",
+        "freelance",
+        "sysadmin",
     ]
 
     sort_types = ["hot", "top"]  # Popular and proven advice
@@ -215,11 +253,12 @@ def project_5_startup_ecosystem():
         subreddits=startup_subreddits,
         sort_types=sort_types,
         limit=limit,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     print("✅ Startup ecosystem data collection complete!")
     print("💼 Analyze entrepreneur challenges and success factors")
+
 
 def project_6_cross_community_viral_content():
     """
@@ -233,8 +272,16 @@ def project_6_cross_community_viral_content():
 
     # Mix of different community types
     diverse_subreddits = [
-        "programming", "gaming", "science", "technology", "AskReddit",
-        "todayilearned", "interestingasfuck", "news", "videos", "pics"
+        "programming",
+        "gaming",
+        "science",
+        "technology",
+        "AskReddit",
+        "todayilearned",
+        "interestingasfuck",
+        "news",
+        "videos",
+        "pics",
     ]
 
     sort_types = ["hot", "top"]  # Focus on popular content
@@ -246,13 +293,15 @@ def project_6_cross_community_viral_content():
         subreddits=diverse_subreddits,
         sort_types=sort_types,
         limit=limit,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     print("✅ Viral content data collection complete!")
     print("🔍 Analyze cross-community content patterns")
 
+
 # ==================== INTERACTIVE RESEARCH PROJECT SELECTOR ====================
+
 
 def run_research_project():
     """Interactive menu for selecting research projects"""
@@ -295,6 +344,7 @@ def run_research_project():
     except Exception as e:
         print(f"❌ Error: {e}")
 
+
 def custom_research_project():
     """Guide user through creating a custom research project"""
 
@@ -314,19 +364,22 @@ def custom_research_project():
 
         pipeline = initialize_pipeline()
 
-        print(f"\n📊 Collecting custom research data from {len(subreddits)} subreddits...")
+        print(
+            f"\n📊 Collecting custom research data from {len(subreddits)} subreddits..."
+        )
 
         pipeline.subreddit_submission(
             subreddits=subreddits,
             sort_types=sort_types,
             limit=limit,
-            mask_pii=ENABLE_PII_ANONYMIZATION
+            mask_pii=ENABLE_PII_ANONYMIZATION,
         )
 
         print("✅ Custom research data collection complete!")
 
     except Exception as e:
         print(f"❌ Error setting up custom project: {e}")
+
 
 def generate_research_report():
     """Generate a summary report of collected data"""
@@ -338,9 +391,15 @@ def generate_research_report():
         supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
         # Get counts from each table
-        redditor_result = supabase_client.table("redditor").select("count", count="exact").execute()
-        submission_result = supabase_client.table("submission").select("count", count="exact").execute()
-        comment_result = supabase_client.table("comment").select("count", count="exact").execute()
+        redditor_result = (
+            supabase_client.table("redditor").select("count", count="exact").execute()
+        )
+        submission_result = (
+            supabase_client.table("submission").select("count", count="exact").execute()
+        )
+        comment_result = (
+            supabase_client.table("comment").select("count", count="exact").execute()
+        )
 
         print("📊 Dataset Summary:")
         print(f"   👥 Redditors: {redditor_result.count}")
@@ -348,19 +407,31 @@ def generate_research_report():
         print(f"   💬 Comments: {comment_result.count}")
 
         # Get subreddit distribution
-        submission_data = supabase_client.table("submission").select("subreddit").execute()
+        submission_data = (
+            supabase_client.table("submission").select("subreddit").execute()
+        )
         subreddit_counts = {}
         for item in submission_data.data:
-            subreddit_counts[item['subreddit']] = subreddit_counts.get(item['subreddit'], 0) + 1
+            subreddit_counts[item["subreddit"]] = (
+                subreddit_counts.get(item["subreddit"], 0) + 1
+            )
 
         print("\n🏷️  Subreddit Distribution:")
-        for subreddit, count in sorted(subreddit_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
+        for subreddit, count in sorted(
+            subreddit_counts.items(), key=lambda x: x[1], reverse=True
+        )[:10]:
             print(f"   r/{subreddit}: {count} posts")
 
         # Get date range
-        date_result = supabase_client.table("submission").select("created_at").order("created_at", ascending=False).limit(1).execute()
+        date_result = (
+            supabase_client.table("submission")
+            .select("created_at")
+            .order("created_at", ascending=False)
+            .limit(1)
+            .execute()
+        )
         if date_result.data:
-            latest_date = date_result.data[0]['created_at']
+            latest_date = date_result.data[0]["created_at"]
             print(f"\n📅 Latest data: {latest_date}")
 
         print("\n🔗 Access your data:")
@@ -369,6 +440,7 @@ def generate_research_report():
 
     except Exception as e:
         print(f"❌ Error generating report: {e}")
+
 
 if __name__ == "__main__":
     print("🔬 RedditHarbor Research Platform")

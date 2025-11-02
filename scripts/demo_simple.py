@@ -3,6 +3,7 @@
 Simple Demo: Show RedditHarbor Research Structure
 """
 
+
 def demo_research_structure():
     """Demonstrate the RedditHarbor research structure"""
 
@@ -14,6 +15,7 @@ def demo_research_structure():
     print("-" * 30)
     try:
         from config import settings as config
+
         print("✅ Configuration loaded successfully!")
         print(f"   Target subreddits: {config.DEFAULT_SUBREDDITS}")
         print(f"   Collection limit: {config.DEFAULT_LIMIT}")
@@ -87,6 +89,7 @@ def demo_research_structure():
     print("\n✅ RedditHarbor structure is ready for research!")
     print("   All modules are properly organized and accessible.")
 
+
 def demo_configuration_test():
     """Test that all configuration is working"""
 
@@ -98,16 +101,16 @@ def demo_configuration_test():
 
         # Test each configuration item
         tests = [
-            ("Reddit Public Key", hasattr(config, 'REDDIT_PUBLIC')),
-            ("Reddit Secret Key", hasattr(config, 'REDDIT_SECRET')),
-            ("Reddit User Agent", hasattr(config, 'REDDIT_USER_AGENT')),
-            ("Supabase URL", hasattr(config, 'SUPABASE_URL')),
-            ("Supabase Key", hasattr(config, 'SUPABASE_KEY')),
-            ("Database Config", hasattr(config, 'DB_CONFIG')),
-            ("Default Subreddits", hasattr(config, 'DEFAULT_SUBREDDITS')),
-            ("Collection Limit", hasattr(config, 'DEFAULT_LIMIT')),
-            ("Sort Types", hasattr(config, 'DEFAULT_SORT_TYPES')),
-            ("PII Anonymization", hasattr(config, 'ENABLE_PII_ANONYMIZATION'))
+            ("Reddit Public Key", hasattr(config, "REDDIT_PUBLIC")),
+            ("Reddit Secret Key", hasattr(config, "REDDIT_SECRET")),
+            ("Reddit User Agent", hasattr(config, "REDDIT_USER_AGENT")),
+            ("Supabase URL", hasattr(config, "SUPABASE_URL")),
+            ("Supabase Key", hasattr(config, "SUPABASE_KEY")),
+            ("Database Config", hasattr(config, "DB_CONFIG")),
+            ("Default Subreddits", hasattr(config, "DEFAULT_SUBREDDITS")),
+            ("Collection Limit", hasattr(config, "DEFAULT_LIMIT")),
+            ("Sort Types", hasattr(config, "DEFAULT_SORT_TYPES")),
+            ("PII Anonymization", hasattr(config, "ENABLE_PII_ANONYMIZATION")),
         ]
 
         all_passed = True
@@ -124,6 +127,7 @@ def demo_configuration_test():
 
     except Exception as e:
         print(f"❌ Configuration test failed: {e}")
+
 
 if __name__ == "__main__":
     demo_research_structure()

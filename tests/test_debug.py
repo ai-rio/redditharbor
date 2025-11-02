@@ -43,7 +43,7 @@ def apply_fix():
         content = content.replace(original_code, fixed_code)
 
         # Write the fixed file
-        with open(pipeline_file, 'w') as f:
+        with open(pipeline_file, "w") as f:
             f.write(content)
 
         print("✅ Applied fix: Moved submission_id assignment before try block")
@@ -51,6 +51,7 @@ def apply_fix():
     else:
         print("❌ Could not find the exact code pattern to fix")
         return False
+
 
 def test_fix():
     """Test if the fix works"""
@@ -65,27 +66,21 @@ def test_fix():
         reddit_client = reddit(
             public_key=REDDIT_PUBLIC,
             secret_key=REDDIT_SECRET,
-            user_agent=REDDIT_USER_AGENT
+            user_agent=REDDIT_USER_AGENT,
         )
 
-        supabase_client = supabase(
-            url=SUPABASE_URL,
-            private_key=SUPABASE_KEY
-        )
+        supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
         pipeline = collect(
             reddit_client=reddit_client,
             supabase_client=supabase_client,
-            db_config=DB_CONFIG
+            db_config=DB_CONFIG,
         )
 
         # Test with PII disabled to avoid SpaCy issues for now
         print("📥 Testing with PII disabled...")
         pipeline.subreddit_submission(
-            subreddits=["python"],
-            sort_types=["hot"],
-            limit=1,
-            mask_pii=False
+            subreddits=["python"], sort_types=["hot"], limit=1, mask_pii=False
         )
 
         print("✅ Fix successful! No UnboundLocalError occurred.")
@@ -99,6 +94,7 @@ def test_fix():
             print("✅ But the UnboundLocalError is fixed!")
 
         return False
+
 
 if __name__ == "__main__":
     print("🔧 Applying minimal fix to RedditHarbor...")

@@ -21,12 +21,14 @@ except ImportError as e:
     # Try to import config directly if settings module doesn't work
     try:
         import sys
-        config_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config')
+
+        config_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config")
         sys.path.insert(0, config_dir)
         import settings as redditharbor_config
+
         # Import all config variables
         for key in dir(redditharbor_config):
-            if not key.startswith('_'):
+            if not key.startswith("_"):
                 globals()[key] = getattr(redditharbor_config, key)
     except ImportError:
         print("Warning: Could not import configuration")
@@ -38,6 +40,7 @@ except ImportError as e:
         SUPABASE_KEY = ""
         DB_CONFIG = {}
 
+
 def setup_redditharbor():
     """
     Initialize RedditHarbor with your local Supabase instance
@@ -45,7 +48,10 @@ def setup_redditharbor():
     print("🚀 Setting up RedditHarbor...")
 
     # Check if credentials are set
-    if REDDIT_PUBLIC == "<your-reddit-public-key>" or REDDIT_SECRET == "<your-reddit-secret-key>":
+    if (
+        REDDIT_PUBLIC == "<your-reddit-public-key>"
+        or REDDIT_SECRET == "<your-reddit-secret-key>"
+    ):
         print("❌ Reddit API credentials not configured!")
         print("Please edit redditharbor_config.py with your Reddit API credentials.")
         print("Get them from: https://www.reddit.com/prefs/apps")
@@ -62,22 +68,19 @@ def setup_redditharbor():
         reddit_client = reddit(
             public_key=REDDIT_PUBLIC,
             secret_key=REDDIT_SECRET,
-            user_agent=REDDIT_USER_AGENT
+            user_agent=REDDIT_USER_AGENT,
         )
 
         # Initialize Supabase client
         print("🗄️ Connecting to local Supabase...")
-        supabase_client = supabase(
-            url=SUPABASE_URL,
-            private_key=SUPABASE_KEY
-        )
+        supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
         # Initialize collection pipeline
         print("🔧 Initializing collection pipeline...")
         pipeline = collect(
             reddit_client=reddit_client,
             supabase_client=supabase_client,
-            db_config=DB_CONFIG
+            db_config=DB_CONFIG,
         )
 
         print("✅ RedditHarbor setup complete!")
@@ -86,6 +89,7 @@ def setup_redditharbor():
     except Exception as e:
         print(f"❌ Setup failed: {e}")
         return False
+
 
 def test_collection(pipeline, test_mode=True):
     """
@@ -103,7 +107,7 @@ def test_collection(pipeline, test_mode=True):
             subreddits=DEFAULT_SUBREDDITS[:2],  # Use only first 2 subreddits for test
             sort_types=["hot"],  # Only hot posts for test
             limit=3,  # Only 3 posts for test
-            mask_pii=ENABLE_PII_ANONYMIZATION
+            mask_pii=ENABLE_PII_ANONYMIZATION,
         )
 
         print("✅ Test collection successful!")
@@ -112,6 +116,7 @@ def test_collection(pipeline, test_mode=True):
 
     except Exception as e:
         print(f"❌ Test collection failed: {e}")
+
 
 def run_sample_collection(pipeline):
     """
@@ -129,21 +134,24 @@ def run_sample_collection(pipeline):
             subreddits=DEFAULT_SUBREDDITS,
             sort_types=DEFAULT_SORT_TYPES,
             limit=DEFAULT_LIMIT,
-            mask_pii=ENABLE_PII_ANONYMIZATION
+            mask_pii=ENABLE_PII_ANONYMIZATION,
         )
 
         # Collect comments
         pipeline.subreddit_comment(
             subreddits=DEFAULT_SUBREDDITS,
             limit=200,  # More comments than submissions
-            mask_pii=ENABLE_PII_ANONYMIZATION
+            mask_pii=ENABLE_PII_ANONYMIZATION,
         )
 
         print("✅ Sample collection complete!")
-        print("📈 Data has been saved to the 'redditharbor' schema in your local Supabase.")
+        print(
+            "📈 Data has been saved to the 'redditharbor' schema in your local Supabase."
+        )
 
     except Exception as e:
         print(f"❌ Sample collection failed: {e}")
+
 
 if __name__ == "__main__":
     print("🪛 RedditHarbor Multi-Project Setup")
@@ -158,7 +166,7 @@ if __name__ == "__main__":
 
         # Ask if user wants to run full sample
         response = input("\n📥 Run full sample collection? (y/n): ")
-        if response.lower() == 'y':
+        if response.lower() == "y":
             run_sample_collection(pipeline)
 
     print("\n📋 Next Steps:")

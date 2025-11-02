@@ -9,9 +9,16 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-def collect_data(reddit_client, supabase_client, db_config: dict[str, str],
-                 subreddits: list[str], limit: int = 100, sort_types: list[str] = ["hot"],
-                 mask_pii: bool = True) -> bool:
+
+def collect_data(
+    reddit_client,
+    supabase_client,
+    db_config: dict[str, str],
+    subreddits: list[str],
+    limit: int = 100,
+    sort_types: list[str] | None = None,
+    mask_pii: bool = True,
+) -> bool:
     """
     Collect Reddit data and store it in Supabase database.
 
@@ -27,6 +34,8 @@ def collect_data(reddit_client, supabase_client, db_config: dict[str, str],
     Returns:
         bool: True if collection successful, False otherwise
     """
+    if sort_types is None:
+        sort_types = ["hot"]
     try:
         logger.info(f"🔍 Starting data collection from {len(subreddits)} subreddits")
 
@@ -44,6 +53,7 @@ def collect_data(reddit_client, supabase_client, db_config: dict[str, str],
         logger.error(f"❌ Data collection failed: {e!s}")
         return False
 
+
 def get_collection_status() -> dict[str, Any]:
     """
     Get the current status of data collection.
@@ -55,5 +65,5 @@ def get_collection_status() -> dict[str, Any]:
         "status": "ready",
         "last_collection": None,
         "total_posts_collected": 0,
-        "total_comments_collected": 0
+        "total_comments_collected": 0,
     }

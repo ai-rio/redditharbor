@@ -18,15 +18,12 @@ def test_basic_setup():
         reddit_client = reddit(
             public_key=REDDIT_PUBLIC,
             secret_key=REDDIT_SECRET,
-            user_agent=REDDIT_USER_AGENT
+            user_agent=REDDIT_USER_AGENT,
         )
 
         # Initialize Supabase client
         print("🗄️ Connecting to local Supabase...")
-        supabase_client = supabase(
-            url=SUPABASE_URL,
-            private_key=SUPABASE_KEY
-        )
+        supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
         # Test Reddit connection
         print("🔍 Testing Reddit API access...")
@@ -34,11 +31,13 @@ def test_basic_setup():
         hot_posts = list(test_subreddit.hot(limit=1))
 
         if hot_posts:
-            print(f"✅ Successfully connected to Reddit! Found subreddit: r/{hot_posts[0].subreddit}")
+            print(
+                f"✅ Successfully connected to Reddit! Found subreddit: r/{hot_posts[0].subreddit}"
+            )
 
         # Test Supabase connection
         print("🔍 Testing Supabase connection...")
-        result = supabase_client.table("redditor").select("count", count="exact").execute()
+        supabase_client.table("redditor").select("count", count="exact").execute()
         print("✅ Successfully connected to Supabase!")
 
         # Initialize pipeline
@@ -46,7 +45,7 @@ def test_basic_setup():
         pipeline = collect(
             reddit_client=reddit_client,
             supabase_client=supabase_client,
-            db_config=DB_CONFIG
+            db_config=DB_CONFIG,
         )
 
         print("✅ All tests passed! RedditHarbor is ready to use.")
@@ -55,6 +54,7 @@ def test_basic_setup():
     except Exception as e:
         print(f"❌ Test failed: {e}")
         return None
+
 
 if __name__ == "__main__":
     pipeline = test_basic_setup()

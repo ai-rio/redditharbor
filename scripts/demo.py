@@ -18,6 +18,7 @@ except ImportError as e:
     # Try config fallback
     try:
         from config import settings as config
+
         REDDIT_PUBLIC = config.REDDIT_PUBLIC
         REDDIT_SECRET = config.REDDIT_SECRET
         REDDIT_USER_AGENT = config.REDDIT_USER_AGENT
@@ -28,7 +29,9 @@ except ImportError as e:
     except ImportError as e:
         print(f"Warning: Could not import configuration: {e}")
         import sys
+
         sys.exit(1)
+
 
 def demo_tech_trends_research():
     """Demonstrate a mini research project on tech trends"""
@@ -43,18 +46,15 @@ def demo_tech_trends_research():
         reddit_client = reddit(
             public_key=REDDIT_PUBLIC,
             secret_key=REDDIT_SECRET,
-            user_agent=REDDIT_USER_AGENT
+            user_agent=REDDIT_USER_AGENT,
         )
 
-        supabase_client = supabase(
-            url=SUPABASE_URL,
-            private_key=SUPABASE_KEY
-        )
+        supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
         pipeline = collect(
             reddit_client=reddit_client,
             supabase_client=supabase_client,
-            db_config=DB_CONFIG
+            db_config=DB_CONFIG,
         )
 
         # Mini research: Collect from 3 tech subreddits
@@ -69,7 +69,7 @@ def demo_tech_trends_research():
             subreddits=tech_subreddits,
             sort_types=["hot"],
             limit=5,
-            mask_pii=False  # Disable PII for demo
+            mask_pii=False,  # Disable PII for demo
         )
 
         print("✅ Demo research data collection complete!")
@@ -79,7 +79,11 @@ def demo_tech_trends_research():
         print("📋 Research Results Summary:")
 
         # Get the collected submissions
-        result = supabase_client.table("submission").select("submission_id, title, subreddit, score").execute()
+        result = (
+            supabase_client.table("submission")
+            .select("submission_id, title, subreddit, score")
+            .execute()
+        )
 
         if result.data:
             print(f"   📄 Collected {len(result.data)} submissions")
@@ -87,8 +91,14 @@ def demo_tech_trends_research():
             print("🔥 Current Hot Topics:")
 
             for i, post in enumerate(result.data, 1):
-                score_display = f"[{post.get('score', {}).get('initial', 0)} points]" if isinstance(post.get('score'), dict) else "[Score: N/A]"
-                print(f"   {i}. r/{post['subreddit']}: {post['title'][:60]}... {score_display}")
+                score_display = (
+                    f"[{post.get('score', {}).get('initial', 0)} points]"
+                    if isinstance(post.get("score"), dict)
+                    else "[Score: N/A]"
+                )
+                print(
+                    f"   {i}. r/{post['subreddit']}: {post['title'][:60]}... {score_display}"
+                )
 
         print()
         print("🎯 Research Insights Available:")
@@ -107,6 +117,7 @@ def demo_tech_trends_research():
     except Exception as e:
         print(f"❌ Demo research failed: {e}")
         return False
+
 
 if __name__ == "__main__":
     demo_tech_trends_research()

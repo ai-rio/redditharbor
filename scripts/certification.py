@@ -25,7 +25,7 @@ def certify_data_collection():
         "data_integrity": False,
         "schema_valid": False,
         "sample_data": False,
-        "data_completeness": False
+        "data_completeness": False,
     }
 
     try:
@@ -34,7 +34,7 @@ def certify_data_collection():
         reddit_client = reddit(
             public_key=REDDIT_PUBLIC,
             secret_key=REDDIT_SECRET,
-            user_agent=REDDIT_USER_AGENT
+            user_agent=REDDIT_USER_AGENT,
         )
 
         # Test Reddit access
@@ -52,13 +52,10 @@ def certify_data_collection():
 
         # 2. Verify Supabase Connection
         print("🗄️  STEP 2: Verifying Supabase Database Connection...")
-        supabase_client = supabase(
-            url=SUPABASE_URL,
-            private_key=SUPABASE_KEY
-        )
+        supabase_client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
         # Test database access
-        test_result = supabase_client.table("redditor").select("count", count="exact").execute()
+        supabase_client.table("redditor").select("count", count="exact").execute()
         print("   ✅ Supabase API: CONNECTED")
         print(f"   ✅ Database Access: {SUPABASE_URL}")
         print("   ✅ Schema: redditharbor")
@@ -73,7 +70,7 @@ def certify_data_collection():
 
         # Check redditor table
         try:
-            redditor_result = supabase_client.table("redditor").select("*").limit(1).execute()
+            supabase_client.table("redditor").select("*").limit(1).execute()
             schema_verification["redditor_table"] = True
             print("   ✅ redditor table: EXISTS")
         except Exception as e:
@@ -82,7 +79,7 @@ def certify_data_collection():
 
         # Check submission table
         try:
-            submission_result = supabase_client.table("submission").select("*").limit(1).execute()
+            supabase_client.table("submission").select("*").limit(1).execute()
             schema_verification["submission_table"] = True
             print("   ✅ submission table: EXISTS")
         except Exception as e:
@@ -91,7 +88,7 @@ def certify_data_collection():
 
         # Check comment table
         try:
-            comment_result = supabase_client.table("comment").select("*").limit(1).execute()
+            supabase_client.table("comment").select("*").limit(1).execute()
             schema_verification["comment_table"] = True
             print("   ✅ comment table: EXISTS")
         except Exception as e:
@@ -110,9 +107,15 @@ def certify_data_collection():
         print("📊 STEP 4: Data Integrity Audit...")
 
         # Get exact counts
-        redditor_count = supabase_client.table("redditor").select("count", count="exact").execute()
-        submission_count = supabase_client.table("submission").select("count", count="exact").execute()
-        comment_count = supabase_client.table("comment").select("count", count="exact").execute()
+        redditor_count = (
+            supabase_client.table("redditor").select("count", count="exact").execute()
+        )
+        submission_count = (
+            supabase_client.table("submission").select("count", count="exact").execute()
+        )
+        comment_count = (
+            supabase_client.table("comment").select("count", count="exact").execute()
+        )
 
         print(f"   📋 Redditors: {redditor_count.count} records")
         print(f"   📄 Submissions: {submission_count.count} records")
@@ -132,7 +135,9 @@ def certify_data_collection():
 
         if submission_count.count > 0:
             # Get sample submission data
-            sample_submissions = supabase_client.table("submission").select("*").limit(3).execute()
+            sample_submissions = (
+                supabase_client.table("submission").select("*").limit(3).execute()
+            )
 
             print("   📋 Sample Submissions:")
             for i, sub in enumerate(sample_submissions.data, 1):
@@ -156,9 +161,13 @@ def certify_data_collection():
             completeness_issues = []
 
             for sub in sample_submissions.data:
-                missing_fields = [field for field in required_fields if not sub.get(field)]
+                missing_fields = [
+                    field for field in required_fields if not sub.get(field)
+                ]
                 if missing_fields:
-                    completeness_issues.append(f"Submission {sub['submission_id']}: Missing {missing_fields}")
+                    completeness_issues.append(
+                        f"Submission {sub['submission_id']}: Missing {missing_fields}"
+                    )
 
             if not completeness_issues:
                 certification_results["data_completeness"] = True
@@ -199,7 +208,7 @@ def certify_data_collection():
             "schema_valid": "Database Schema Validation",
             "data_integrity": "Data Integrity Check",
             "sample_data": "Sample Data Verification",
-            "data_completeness": "Data Completeness Check"
+            "data_completeness": "Data Completeness Check",
         }
 
         for key, status in certification_results.items():
@@ -220,8 +229,12 @@ def certify_data_collection():
             print("✅ Maintained data integrity with required fields present")
             print("✅ Created a functioning multi-project research infrastructure")
             print()
-            print("The collected data is authentic, properly structured, and ready for research use.")
-            print("This certification confirms compliance with data collection best practices.")
+            print(
+                "The collected data is authentic, properly structured, and ready for research use."
+            )
+            print(
+                "This certification confirms compliance with data collection best practices."
+            )
         else:
             print("⚠️  CERTIFICATION INCOMPLETE")
             print("Some verification checks failed. Please review the issues above.")
@@ -232,6 +245,7 @@ def certify_data_collection():
     except Exception as e:
         print(f"❌ CERTIFICATION AUDIT FAILED: {e}")
         return None, 0, 0
+
 
 def generate_certificate():
     """Generate a formal certificate"""
@@ -286,6 +300,7 @@ def generate_certificate():
         print("\n📄 Certificate saved to: CERTIFICATE.txt")
 
     return results
+
 
 if __name__ == "__main__":
     print("🔍 Starting Official RedditHarbor Data Certification...")

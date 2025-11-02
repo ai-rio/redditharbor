@@ -19,14 +19,11 @@ def academic_research_project(pipeline, topic_subreddits, time_period="recent"):
         subreddits=topic_subreddits,
         sort_types=["hot", "top", "new"],
         limit=500,
-        mask_pii=True  # Always anonymize for academic research
+        mask_pii=True,  # Always anonymize for academic research
     )
 
-    pipeline.subreddit_comment(
-        subreddits=topic_subreddits,
-        limit=1000,
-        mask_pii=True
-    )
+    pipeline.subreddit_comment(subreddits=topic_subreddits, limit=1000, mask_pii=True)
+
 
 def market_research_project(pipeline, industry_subreddits):
     """
@@ -39,8 +36,9 @@ def market_research_project(pipeline, industry_subreddits):
         subreddits=industry_subreddits,
         sort_types=["hot", "rising"],  # Focus on trending content
         limit=300,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
+
 
 def trend_analysis_project(pipeline, trend_subreddits):
     """
@@ -53,8 +51,9 @@ def trend_analysis_project(pipeline, trend_subreddits):
         subreddits=trend_subreddits,
         sort_types=["hot", "rising", "new"],
         limit=200,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
+
 
 def community_analysis_project(pipeline, community_subreddits):
     """
@@ -67,15 +66,14 @@ def community_analysis_project(pipeline, community_subreddits):
         subreddits=community_subreddits,
         sort_types=["hot", "top"],
         limit=400,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        mask_pii=ENABLE_PII_ANONYMIZATION,
     )
 
     # More comments for community analysis
     pipeline.subreddit_comment(
-        subreddits=community_subreddits,
-        limit=800,
-        mask_pii=ENABLE_PII_ANONYMIZATION
+        subreddits=community_subreddits, limit=800, mask_pii=ENABLE_PII_ANONYMIZATION
     )
+
 
 def keyword_research_project(pipeline, keywords):
     """
@@ -88,29 +86,36 @@ def keyword_research_project(pipeline, keywords):
     # Note: You may need to implement this based on your specific needs
     pass
 
+
 # Example usage configurations
 PROJECT_CONFIGS = {
     "tech_research": {
         "template": academic_research_project,
-        "subreddits": ["programming", "ComputerScience", "coding", "softwareengineering"],
-        "description": "Academic research on programming discussions"
+        "subreddits": [
+            "programming",
+            "ComputerScience",
+            "coding",
+            "softwareengineering",
+        ],
+        "description": "Academic research on programming discussions",
     },
     "ai_ml_monitoring": {
         "template": trend_analysis_project,
         "subreddits": ["MachineLearning", "artificial", "deeplearning", "OpenAI"],
-        "description": "Monitoring AI/ML trends and discussions"
+        "description": "Monitoring AI/ML trends and discussions",
     },
     "startup_analysis": {
         "template": market_research_project,
         "subreddits": ["startups", "Entrepreneur", "SaaS", "SideProject"],
-        "description": "Market research for startup ecosystem"
+        "description": "Market research for startup ecosystem",
     },
     "gaming_community": {
         "template": community_analysis_project,
         "subreddits": ["gaming", "GamingBuddies", "GameDevs", "IndieGaming"],
-        "description": "Community analysis for gaming trends"
-    }
+        "description": "Community analysis for gaming trends",
+    },
 }
+
 
 def run_project(project_name, pipeline):
     """
@@ -129,6 +134,7 @@ def run_project(project_name, pipeline):
         print(f"✅ Project '{project_name}' completed successfully!")
     except Exception as e:
         print(f"❌ Project '{project_name}' failed: {e}")
+
 
 if __name__ == "__main__":
     print("📋 RedditHarbor Project Templates")
