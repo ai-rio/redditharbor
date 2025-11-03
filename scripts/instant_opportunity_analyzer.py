@@ -367,7 +367,7 @@ class InstantOpportunityAnalyzer:
     def save_analysis(self, domain_analysis, opportunities, recommendations):
         """Save analysis results"""
 
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
 
         analysis_data = {
             "generated_at": datetime.now().isoformat(),
@@ -376,13 +376,16 @@ class InstantOpportunityAnalyzer:
             "recommendations": recommendations
         }
 
+        # Create analysis directory if it doesn't exist
+        os.makedirs("analysis/opportunities", exist_ok=True)
+
         # Save JSON
-        json_filename = f"opportunity_analysis_{timestamp}.json"
+        json_filename = f"analysis/opportunities/opportunity-analysis-{timestamp}.json"
         with open(json_filename, 'w') as f:
             json.dump(analysis_data, f, indent=2)
 
         # Save markdown
-        md_filename = f"opportunity_analysis_{timestamp}.md"
+        md_filename = f"analysis/opportunities/opportunity-analysis-{timestamp}.md"
         with open(md_filename, 'w') as f:
             f.write("# RedditHarbor Opportunity Analysis\n\n")
             f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")

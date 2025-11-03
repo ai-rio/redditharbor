@@ -436,3 +436,11 @@ error_log/
 # When in doubt, add the pattern to this file rather than risk committing
 # sensitive information.
 # =============================================================================
+# AI Rules generated files
+.claude/agents/
+.cursor/rules/
+.github/copilot-instructions.md
+.windsurf/
+AGENTS.md
+CLAUDE.md
+GEMINI.md

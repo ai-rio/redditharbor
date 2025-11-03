@@ -1,0 +1,177 @@
+metadata:
+    name: RedditHarbor
+    version: 1.0.0
+    description: RedditHarbor is a comprehensive Reddit data collection and research platform built with Python that transforms Reddit discussions into research-ready datasets through automated collection and analysis tools with AI-agent friendly architecture and multiple research templates.
+outputs:
+    - path: .claude/agents/
+      type: agent
+      naming_scheme: '{name}.md'
+    - path: .cursor/rules/
+      type: rule
+      naming_scheme: '{name}.mdc'
+    - path: .gemini/settings.json
+      template:
+        type: builtin
+        value: gemini-mcp
+    - path: .github/copilot-instructions.md
+    - path: .mcp.json
+      template:
+        type: builtin
+        value: claude-code-mcp
+    - path: .windsurf/
+      type: rule
+      naming_scheme: '{name}.md'
+    - path: AGENTS.md
+    - path: CLAUDE.md
+    - path: GEMINI.md
+presets:
+    - popular
+rules:
+    - name: Ruff Code Quality
+      priority: critical
+      content: Always run 'ruff check .' and 'ruff format .' before commits. Use the lint.sh script for comprehensive checks. Follow the ruff.toml configuration which allows star imports in config/ and scripts/ directories.
+    - name: Configuration Management
+      priority: critical
+      content: Store all configuration in config/settings.py using REDDIT_PUBLIC, REDDIT_SECRET, SUPABASE_URL, SUPABASE_KEY constants. Never hardcode credentials in other files. Use DB_CONFIG for database table mappings.
+    - name: PII Anonymization
+      priority: high
+      content: Always respect ENABLE_PII_ANONYMIZATION setting. When enabled, use spaCy en_core_web_lg model for PII detection and anonymization. Handle PII masking at the collection pipeline level before data storage.
+    - name: Error Handling and Logging
+      priority: high
+      content: Use try-except blocks for all external API calls (Reddit, Supabase). Include proper logging with structured messages using logger.info(), logger.error(). Return boolean success status from core functions like collect_data().
+    - name: Import Structure
+      priority: medium
+      content: Use star imports (*) only in config/__init__.py, core/setup.py, scripts/, and tests/ directories as per ruff.toml exceptions. Standard Python imports elsewhere. Always add project root to sys.path for scripts.
+    - name: Testing with Fallbacks
+      priority: medium
+      content: Write tests with ImportError fallbacks for dependencies. Test Reddit API connectivity with simple subreddit queries. Test Supabase with count queries. Validate configuration loading with fallback defaults.
+    - name: Documentation Standards
+      priority: medium
+      content: 'Include comprehensive docstrings for all public functions. Use triple-quoted strings with Args:, Returns:, and Raises: sections. Document configuration constants with inline comments explaining their purpose.'
+    - name: Reddit Data Collection Error Handling
+      priority: high
+      content: All Reddit API calls in core/collection.py must include rate limiting handling and proper error recovery. Use try-except blocks with specific Reddit API exceptions and implement exponential backoff for failed requests.
+    - name: Template Configuration Management
+      priority: high
+      content: Use config/settings.py for all configuration values. Never hardcode credentials or API keys. Follow the fallback mechanism pattern established in the config module for environment variables.
+    - name: Pytest Testing Standards
+      priority: critical
+      content: Write unit tests for all functions in core/ and scripts/ modules. Use pytest for testing (configured in project). Test files must be in tests/ directory with test_ prefix. Aim for 80% coverage on Reddit data collection logic.
+    - name: Security and Privacy Handling
+      priority: high
+      content: All Reddit user data must be processed through PII anonymization. Never store raw user identifiers in the database. Use the established error_log/ pattern for handling collection failures without exposing sensitive data.
+    - name: Module Architecture Boundaries
+      priority: medium
+      content: 'Respect the clean architecture: core/ for essential functionality, config/ for settings, scripts/ for research workflows, and tests/ for test suites. Import restrictions: scripts may import from core, but core modules should not import from scripts.'
+    - name: UV Dependency Management
+      priority: medium
+      content: Use UV for Python package management (uv.lock present). All dependencies must be declared in requirements.txt. When adding new Reddit-related packages, verify compatibility with the existing data collection pipeline.
+    - name: Error Handling
+      priority: high
+      content: Implement comprehensive error handling in core/collection.py. Log errors to error_log/ directory with descriptive filenames. Always validate API responses from Reddit.
+    - name: Data Privacy and PII
+      priority: critical
+      content: Anonymize all Reddit user data before storage. Use PII detection and removal tools. Store only research-relevant data in compliance with Reddit's ToS and privacy regulations.
+    - name: Testing Standards
+      priority: high
+      content: Run pytest for all new functionality. Use tests/ directory for unit tests, integration tests for core modules, and test scripts/ with sample data. Maintain test coverage above 80%.
+    - name: Code Quality
+      priority: medium
+      content: Use ruff for linting and formatting. Run lint.sh before commits. Follow Python PEP 8 style guidelines. Use type hints for all function parameters and returns.
+    - name: Modular Architecture
+      priority: medium
+      content: Keep core/ modules focused and single-purpose. Use clear separation between collection logic, templates, and configuration. Import paths should be relative and explicit.
+    - name: Documentation and Research Templates
+      priority: low
+      content: Document all research templates in core/templates.py. Update docs/guides/ when adding new research capabilities. Maintain JSON structure for research briefs and findings.
+    - name: File Organization Standards
+      priority: high
+      content: Maintain clean root directory. Use analysis/ for research and license analysis files, generated/ for AI-produced content, docs/ for documentation. Follow kebab-case naming for all files except README.md, CHANGELOG.md, LICENSE. Keep core/ for essential functionality, config/ for settings, scripts/ for workflows, tests/ for test suites.
+    - name: Documentation Structure
+      priority: medium
+      content: 'Organize documentation in docs/ with subdirectories: api/ for API docs, guides/ for tutorials, architecture/ for design decisions, contributing/ for contribution guidelines, assets/ for images and diagrams. Use CueTimer brand colors (#FF6B35, #004E89, #F7B801) consistently in documentation.'
+sections:
+    - name: Reddit API Setup
+      priority: high
+      content: |-
+        ## Reddit API Configuration
+        1. Create Reddit App at https://www.reddit.com/prefs/apps
+        2. Select 'script' app type
+        3. Record client_id and client_secret
+        4. Add redirect URI: http://localhost:8080
+        5. Store credentials securely in .env file
+    - name: Database Schema
+      priority: medium
+      content: |-
+        ## RedditHarbor Database Schema
+
+        ### Core Tables
+        - **redditor**: Reddit user profiles and metadata
+        - **submission**: Posts and submissions data
+        - **comment**: Comments and replies hierarchy
+
+        ### Access Methods
+        - Supabase Studio: http://127.0.0.1:54323
+        - REST API: http://127.0.0.1:54321/rest/v1/
+        - Direct SQL: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
+    - name: Development Workflow
+      priority: high
+      content: |-
+        ## RedditHarbor Development Workflow
+
+        ### Environment Setup
+        1. Clone the repository and navigate to the project root
+        2. Install dependencies using UV: `uv sync`
+        3. Set up environment variables in `.env` file
+        4. Start Supabase locally: `supabase start`
+        5. Run database migrations: `supabase db push`
+
+        ### Code Quality Workflow
+        1. Make changes to core modules or scripts
+        2. Run linting: `./lint.sh` or `ruff check . && ruff format .`
+        3. Run tests: `pytest tests/`
+        4. Verify functionality with test scripts in `scripts/`
+        5. Commit changes with descriptive messages
+
+        ### Research Data Collection
+        1. Configure Reddit API credentials in config/settings.py
+        2. Select research template from core/templates.py
+        3. Run collection script: `python scripts/collect_research_data.py`
+        4. Monitor progress in error_log/ directory
+        5. Analyze results in Supabase Studio
+    - name: Core Architecture
+      priority: medium
+      content: |-
+        ## RedditHarbor Core Architecture
+
+        ### Module Structure
+        - **core/**: Essential functionality and business logic
+          - `collection.py`: Reddit API data collection with error handling
+          - `templates.py`: Research template definitions and configurations
+          - `setup.py`: Project initialization and environment setup
+        - **config/**: Configuration management and settings
+          - `settings.py`: Environment variables and database configuration
+          - `__init__.py`: Configuration exports and constants
+        - **scripts/**: Research workflow execution scripts
+        - **tests/**: Unit and integration tests
+
+        ### Data Flow
+        1. Reddit API → Collection Pipeline (core/collection.py)
+        2. PII Anonymization → Privacy Compliance Layer
+        3. Data Validation → Supabase Storage
+        4. Research Templates → Analysis Workflows
+
+        ### Key Components
+        - Rate limiting and error recovery for Reddit API
+        - Configurable PII anonymization using spaCy
+        - Template-based research workflows
+        - Comprehensive logging and error tracking
+        - Modular testing with dependency fallbacks
+mcp_servers:
+    - name: ai-rulez
+      description: AI-Rulez MCP server for configuration management
+      command: npx
+      args:
+        - -y
+        - ai-rulez@latest
+        - mcp
