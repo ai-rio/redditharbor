@@ -422,6 +422,9 @@ analyze_*
 # Git worktrees (for isolated development environments)
 worktrees/
 
+# Error Log
+error_log/
+
 # =============================================================================
 # END OF .GITIGNORE
 # =============================================================================

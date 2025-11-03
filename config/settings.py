@@ -23,4 +23,4 @@ DEFAULT_SORT_TYPES = ["hot", "top", "new"]
 DEFAULT_LIMIT = 100
 
 # Privacy Settings
-ENABLE_PII_ANONYMIZATION = True  # Recommended for research
+ENABLE_PII_ANONYMIZATION = False  # Temporarily disabled for testing research framework

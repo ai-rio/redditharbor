@@ -5,8 +5,9 @@ python-dotenv==1.2.1
 # Additional dependencies for full functionality
 spacy>=3.8.0
 
+# Self-contained spaCy model for PII anonymization
+# This makes en_core_web_lg available without manual download
+en_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.7.1/en_core_web_lg-3.7.1-py3-none-any.whl
+
 # Development tools
 ruff>=0.14.0
-
-# Note: Install spaCy models separately after installing spacy
-# Run: python -m spacy download en_core_web_lg
