@@ -17,10 +17,18 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1
 # RedditHarbor Database Configuration (using our dedicated schema)
 DB_CONFIG = {"user": "redditor", "submission": "submission", "comment": "comment"}
 
-# Collection Configuration
-DEFAULT_SUBREDDITS = ["python", "MachineLearning", "datascience", "learnprogramming"]
-DEFAULT_SORT_TYPES = ["hot", "top", "new"]
-DEFAULT_LIMIT = 100
+# Collection Configuration - Target Finance & Health Subreddits for Opportunity Analysis
+DEFAULT_SUBREDDITS = [
+    # Finance & Investing Subreddits
+    "personalfinance", "investing", "stocks", "Bogleheads", "financialindependence",
+    "CryptoCurrency", "tax", "Accounting", "RealEstateInvesting", "FinancialCareers",
+
+    # Health & Fitness Subreddits
+    "fitness", "loseit", "bodyweightfitness", "nutrition", "keto", "running",
+    "cycling", "yoga", "meditation", "mentalhealth", "fitness30plus", "homegym"
+]
+DEFAULT_SORT_TYPES = ["hot", "top", "new", "rising"]
+DEFAULT_LIMIT = 500  # Increased limit for better opportunity analysis
 
 # Privacy Settings
 ENABLE_PII_ANONYMIZATION = False  # Temporarily disabled for testing research framework

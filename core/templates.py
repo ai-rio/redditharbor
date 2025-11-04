@@ -87,6 +87,78 @@ def keyword_research_project(pipeline, keywords):
     pass
 
 
+def monetizable_opportunity_research(pipeline, industry_subreddits):
+    """
+    Template for identifying monetizable app opportunities
+    Focus: comprehensive problem analysis with scoring metrics
+    """
+    print(f"💰 Monetizable Opportunity Research: {industry_subreddits}")
+
+    # Enhanced data collection for opportunity analysis
+    pipeline.subreddit_submission(
+        subreddits=industry_subreddits,
+        sort_types=["hot", "rising", "top"],
+        limit=1000,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+    # Deep comment analysis for solution mentions
+    pipeline.subreddit_comment(
+        subreddits=industry_subreddits,
+        limit=2000,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+
+def market_segment_research(pipeline, segment_config):
+    """
+    Template for deep-dive research into specific market segments
+    Focus: comprehensive analysis of problems, solutions, and monetization potential
+    """
+    segment_name = segment_config.get("name", "Unknown Segment")
+    subreddits = segment_config.get("subreddits", [])
+
+    print(f"🎯 Market Segment Research: {segment_name}")
+
+    # Collect comprehensive data from segment-specific subreddits
+    pipeline.subreddit_submission(
+        subreddits=subreddits,
+        sort_types=["hot", "top", "rising", "new"],
+        limit=1500,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+    # Deep comment analysis for problem-solution patterns
+    pipeline.subreddit_comment(
+        subreddits=subreddits,
+        limit=3000,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+
+def validation_research(pipeline, opportunity_keywords, validation_subreddits):
+    """
+    Template for validating identified opportunities
+    Focus: cross-referencing opportunities and confirming market demand
+    """
+    print(f"✅ Validation Research: {opportunity_keywords}")
+
+    # Search for specific opportunity mentions across validation subreddits
+    pipeline.subreddit_submission(
+        subreddits=validation_subreddits,
+        sort_types=["hot", "new"],
+        limit=500,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+    # Comment analysis for validation signals
+    pipeline.subreddit_comment(
+        subreddits=validation_subreddits,
+        limit=1000,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+
 # Example usage configurations
 PROJECT_CONFIGS = {
     "tech_research": {
@@ -114,6 +186,92 @@ PROJECT_CONFIGS = {
         "subreddits": ["gaming", "GamingBuddies", "GameDevs", "IndieGaming"],
         "description": "Community analysis for gaming trends",
     },
+    # Monetizable App Opportunity Research Templates
+    "health_fitness_opportunities": {
+        "template": market_segment_research,
+        "config": {
+            "name": "Health & Fitness",
+            "subreddits": [
+                "fitness", "bodyweightfitness", "nutrition", "loseit", "gainit",
+                "keto", "running", "cycling", "yoga", "meditation", "mentalhealth",
+                "personaltraining", "homegym", "fitness30plus"
+            ]
+        },
+        "description": "Identifying monetizable app opportunities in health & fitness",
+    },
+    "finance_opportunities": {
+        "template": market_segment_research,
+        "config": {
+            "name": "Finance & Investing",
+            "subreddits": [
+                "personalfinance", "investing", "stocks", "Bogleheads", "financialindependence",
+                "CryptoCurrency", "cryptocurrencymemes", "Bitcoin", "ethfinance",
+                "FinancialCareers", "tax", "Accounting", "RealEstateInvesting"
+            ]
+        },
+        "description": "Identifying monetizable app opportunities in finance & investing",
+    },
+    "education_career_opportunities": {
+        "template": market_segment_research,
+        "config": {
+            "name": "Education & Career",
+            "subreddits": [
+                "learnprogramming", "cscareerquestions", "IWantToLearn",
+                "selfimprovement", "getdisciplined", "productivity", "study",
+                "careerguidance", "resumes", "jobs", "interviews"
+            ]
+        },
+        "description": "Identifying monetizable app opportunities in education & career",
+    },
+    "travel_opportunities": {
+        "template": market_segment_research,
+        "config": {
+            "name": "Travel & Experiences",
+            "subreddits": [
+                "travel", "solotravel", "backpacking", "digitalnomad",
+                "TravelHacks", "flights", "airbnb", "cruise", "roadtrips",
+                "AskTourism", "TravelTips", "Shoestring"
+            ]
+        },
+        "description": "Identifying monetizable app opportunities in travel & experiences",
+    },
+    "real_estate_opportunities": {
+        "template": market_segment_research,
+        "config": {
+            "name": "Real Estate",
+            "subreddits": [
+                "RealEstate", "realtors", "FirstTimeHomeBuyer", "HomeImprovement",
+                "landlord", "Renting", "PropertyManagement", "Homeowners",
+                "RealEstateTech", "houseflipper", "zillowgonewild"
+            ]
+        },
+        "description": "Identifying monetizable app opportunities in real estate",
+    },
+    "productivity_saaS_opportunities": {
+        "template": market_segment_research,
+        "config": {
+            "name": "Technology & SaaS Productivity",
+            "subreddits": [
+                "SaaS", "startups", "Entrepreneur", "SideProject",
+                "antiwork", "workreform", "productivity", "selfhosted",
+                "apphookup", "iosapps", "androidapps", "software"
+            ]
+        },
+        "description": "Identifying monetizable app opportunities in technology & SaaS",
+    },
+    "cross_industry_validation": {
+        "template": validation_research,
+        "subreddits": ["ProductHunt", "apps", "SaaSHat", "bootstrap"],
+        "description": "Validating identified opportunities across broader tech communities",
+    },
+    "general_opportunity_scan": {
+        "template": monetizable_opportunity_research,
+        "subreddits": [
+            "findareddit", "AskReddit", "LifeProTips", "YouShouldKnow",
+            "Damnthatsinteresting", "todayilearned"
+        ],
+        "description": "Broad scan for monetizable opportunities across popular subreddits",
+    },
 }
 
 
@@ -130,7 +288,18 @@ def run_project(project_name, pipeline):
     print(f"\n🚀 Running: {config['description']}")
 
     try:
-        config["template"](pipeline, config["subreddits"])
+        # Handle different template parameter structures
+        template = config["template"]
+        if "config" in config:
+            # For market_segment_research templates
+            template(pipeline, config["config"])
+        elif "keywords" in config:
+            # For validation_research templates (would have keywords)
+            template(pipeline, config["keywords"], config["subreddits"])
+        else:
+            # For standard templates with just subreddits
+            template(pipeline, config["subreddits"])
+
         print(f"✅ Project '{project_name}' completed successfully!")
     except Exception as e:
         print(f"❌ Project '{project_name}' failed: {e}")
