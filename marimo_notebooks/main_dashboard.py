@@ -498,5 +498,106 @@ def main_content_display(view_mode, display, table_display):
     return content,
 
 
+@app.cell
+def opportunity_selection_state(mo):
+    """Track which opportunity is currently selected"""
+
+    selected_opportunity_id = mo.ui.number(
+        value=None,
+        label="Selected Opportunity ID (internal)"
+    )
+
+    return selected_opportunity_id,
+
+
+@app.cell
+def ai_insights_panel(mo, selected_opportunity_id, confirmed_df, COLORS):
+    """Display AI insights for selected opportunity"""
+
+    # Find selected opportunity in dataframe
+    if selected_opportunity_id.value and len(confirmed_df) > 0:
+        opp = confirmed_df[confirmed_df['id'] == selected_opportunity_id.value]
+
+        if len(opp) > 0:
+            row = opp.iloc[0]
+
+            panel = mo.md(f"""
+            <div style="
+                background: white;
+                border: 2px solid {COLORS['primary']};
+                border-radius: 8px;
+                padding: 1.5rem;
+                position: sticky;
+                top: 20px;
+            ">
+                <h2 style="color: {COLORS['primary']}; margin-top: 0;">💡 AI Insights</h2>
+
+                <h3 style="color: {COLORS['text']};">{row['title']}</h3>
+
+                <div style="margin-bottom: 1rem; color: {COLORS['secondary']};">
+                    <strong>Score:</strong> {row['final_score']:.0f} |
+                    <strong>Sector:</strong> {row['sector']}
+                </div>
+
+                <h4 style="color: {COLORS['secondary']};">📱 App Concept</h4>
+                <p style="line-height: 1.6;">{row['app_concept']}</p>
+
+                <h4 style="color: {COLORS['secondary']};">⚙️ Core Functions</h4>
+                <pre style="background: {COLORS['light']}; padding: 1rem; border-radius: 4px; white-space: pre-wrap;">
+{row['core_functions']}
+                </pre>
+
+                <h4 style="color: {COLORS['secondary']};">📈 Growth Justification</h4>
+                <p style="line-height: 1.6;">{row['growth_justification']}</p>
+
+                <div style="
+                    background: {COLORS['accent']};
+                    color: {COLORS['text']};
+                    padding: 0.75rem;
+                    border-radius: 4px;
+                    margin-top: 1rem;
+                    font-weight: 600;
+                ">
+                    🎯 Simplicity Score: {row['simplicity_score']:.0f}/100
+                </div>
+            </div>
+            """)
+        else:
+            panel = mo.md("")
+    else:
+        # Empty state
+        panel = mo.md(f"""
+        <div style="
+            background: {COLORS['light']};
+            border: 2px dashed {COLORS['secondary']};
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            position: sticky;
+            top: 20px;
+        ">
+            <h2>💡 AI Insights</h2>
+            <p style="color: {COLORS['secondary']};">
+                Select an opportunity from the list<br/>
+                to view detailed AI analysis.
+            </p>
+        </div>
+        """)
+
+    return panel,
+
+
+@app.cell
+def main_layout(mo, main_content_display, panel):
+    """Combine main content and AI panel in two-column layout"""
+
+    layout = mo.hstack([
+        mo.vstack([main_content_display], justify="start", gap=1, widths=[7]),
+        mo.vstack([panel], justify="start", gap=1, widths=[3])
+    ], gap=2)
+
+    return layout,
+
+
 if __name__ == "__main__":
     app.run()
