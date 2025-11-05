@@ -445,5 +445,58 @@ def display_candidates_section(mo, candidates_df, COLORS):
     return display,
 
 
+@app.cell
+def create_table_view(mo, filtered_df, badge_for_score, view_mode, pd):
+    """Display opportunities in table format for sector comparison"""
+
+    if view_mode.value != "By Sector" or len(filtered_df) == 0:
+        table_display = mo.md("")
+    else:
+        # Prepare table data
+        table_data = []
+
+        for idx, row in filtered_df.iterrows():
+            emoji, color, priority = badge_for_score(row['final_score'])
+
+            # Truncate app concept for table display
+            concept_brief = row['app_concept'][:60] + "..." if pd.notna(row['app_concept']) and len(str(row['app_concept'])) > 60 else row['app_concept']
+
+            # Extract function count from core_functions
+            functions_text = str(row['core_functions']) if pd.notna(row['core_functions']) else ""
+            function_count = functions_text.count('\n') + 1 if functions_text else 0
+
+            table_data.append({
+                'Rank': f"#{idx + 1}",
+                'Title': row['title'][:50] + "..." if len(row['title']) > 50 else row['title'],
+                'Score': f"{emoji} {row['final_score']:.0f}",
+                'App Concept': concept_brief,
+                'Functions': function_count,
+                'Priority': priority
+            })
+
+        # Convert to DataFrame for marimo table
+        table_df = pd.DataFrame(table_data)
+
+        table_display = mo.ui.table(
+            table_df,
+            selection="single",
+            label="**Sector Opportunities Comparison**"
+        )
+
+    return table_display,
+
+
+@app.cell
+def main_content_display(view_mode, display, table_display):
+    """Show either card view or table view based on mode"""
+
+    if view_mode.value == "All":
+        content = display  # Card view
+    else:
+        content = table_display  # Table view
+
+    return content,
+
+
 if __name__ == "__main__":
     app.run()
