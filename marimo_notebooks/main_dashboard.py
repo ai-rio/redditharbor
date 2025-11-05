@@ -766,5 +766,77 @@ def processing_result_display(mo, btn_top_50, btn_all_high, btn_custom, COLORS):
     return result_display,
 
 
+@app.cell
+def error_boundary(mo, confirmed_df, candidates_df, COLORS):
+    """Display helpful error states"""
+
+    errors = []
+
+    # Check database connection
+    if len(confirmed_df) == 0 and len(candidates_df) == 0:
+        errors.append(mo.callout("""
+        ⚠️ **No Data Found**
+
+        The opportunity_analysis table appears to be empty.
+
+        **Next steps:**
+        1. Check Supabase is running: `supabase status`
+        2. Verify data was collected: Check Supabase Studio
+        3. Run batch scoring: `python scripts/batch_opportunity_scoring.py`
+        """, kind="warn"))
+
+    # Check AI insights availability
+    if len(confirmed_df) == 0:
+        errors.append(mo.callout("""
+        💡 **No AI Insights Yet**
+
+        No opportunities have been analyzed by AI.
+
+        **Action:** Use the processing controls below to analyze submissions.
+        """, kind="info"))
+
+    if errors:
+        error_display = mo.vstack(errors)
+    else:
+        error_display = mo.md("")
+
+    return error_display,
+
+
+@app.cell
+def final_dashboard_layout(
+    mo,
+    header,
+    connection_status,
+    summary,
+    filters,
+    sector_stats_display,
+    layout,
+    display_candidates_section,
+    processing_status,
+    buttons,
+    processing_result_display
+):
+    """Assemble complete dashboard layout"""
+
+    complete_dashboard = mo.vstack([
+        header,
+        connection_status,
+        summary,
+        mo.md("---"),
+        filters,
+        sector_stats_display,
+        mo.md("---"),
+        layout,  # Main content + AI panel
+        display_candidates_section,
+        mo.md("---"),
+        processing_status,
+        buttons,
+        processing_result_display
+    ], gap=1)
+
+    return complete_dashboard,
+
+
 if __name__ == "__main__":
     app.run()
