@@ -20,6 +20,11 @@
 - **[Verification Report](./verification-report.md)** - Manual verification and certification report
 - **[Security Guide](./security-guide.md)** - Comprehensive security and privacy protection
 
+#### Security Documentation (Subfolder)
+- **[Security Fix](./security/security-fix.md)** - Initial security vulnerability fix
+- **[Security Fix Complete](./security/security-fix-complete.md)** - Complete security hardening documentation
+- **[Security Verification](./security/security-verification.md)** - Security verification checklist
+
 ### Workflows & Tutorials
 
 - **[Workflow Guide](./workflow-guide.md)** - Simple 2-step workflow for data collection
