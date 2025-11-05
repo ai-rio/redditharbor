@@ -160,6 +160,24 @@ run_research_project(
 )
 ```
 
+### 5️⃣ Launch Dashboard
+
+View and analyze opportunities in the unified marimo dashboard:
+
+```bash
+marimo run marimo_notebooks/main_dashboard.py --port 8895
+```
+
+Access at http://localhost:8895
+
+**Dashboard Features:**
+- View AI-analyzed opportunities across 6 sectors
+- Compare similar opportunities side-by-side
+- Trigger AI analysis for high-scoring candidates
+- Filter by priority tier and sector
+
+See [Dashboard Guide](docs/guides/marimo-main-dashboard.md) for details.
+
 ---
 
 ## 🔧 Configuration
