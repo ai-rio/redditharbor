@@ -1,0 +1,562 @@
+#!/usr/bin/env python3
+"""
+Batch Opportunity Scoring Script
+Processes all Reddit submissions in the database and scores them using the 5-dimensional methodology.
+
+This script:
+- Fetches all submissions from the Supabase database
+- Maps subreddits to business sectors
+- Scores opportunities using OpportunityAnalyzerAgent
+- Stores results in opportunity_analysis table
+- Provides progress tracking and summary statistics
+"""
+
+import sys
+import json
+import time
+from pathlib import Path
+from typing import Dict, List, Any, Optional
+from datetime import datetime
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+# Load environment variables from .env.local
+from dotenv import load_dotenv
+load_dotenv(project_root / '.env.local')
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    print("Warning: tqdm not installed. Installing for progress bars...")
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
+    from tqdm import tqdm
+
+from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from config import SUPABASE_URL, SUPABASE_KEY
+from supabase import create_client
+
+
+# ============================================================================
+# SUBREDDIT TO SECTOR MAPPING
+# ============================================================================
+
+SECTOR_MAPPING = {
+    # Health & Fitness
+    "fitness": "Health & Fitness",
+    "loseit": "Health & Fitness",
+    "bodyweightfitness": "Health & Fitness",
+    "nutrition": "Health & Fitness",
+    "healthyfood": "Health & Fitness",
+    "yoga": "Health & Fitness",
+    "running": "Health & Fitness",
+    "weightlifting": "Health & Fitness",
+    "xxfitness": "Health & Fitness",
+    "progresspics": "Health & Fitness",
+    "gainit": "Health & Fitness",
+    "flexibility": "Health & Fitness",
+    "naturalbodybuilding": "Health & Fitness",
+    "eatcheapandhealthy": "Health & Fitness",
+    "keto": "Health & Fitness",
+    "cycling": "Health & Fitness",
+    "meditation": "Health & Fitness",
+    "mentalhealth": "Health & Fitness",
+    "fitness30plus": "Health & Fitness",
+    "homegym": "Health & Fitness",
+
+    # Finance & Investing
+    "personalfinance": "Finance & Investing",
+    "financialindependence": "Finance & Investing",
+    "investing": "Finance & Investing",
+    "stocks": "Finance & Investing",
+    "wallstreetbets": "Finance & Investing",
+    "realestateinvesting": "Finance & Investing",
+    "povertyfinance": "Finance & Investing",
+    "frugal": "Finance & Investing",
+    "fire": "Finance & Investing",
+    "bogleheads": "Finance & Investing",
+    "dividends": "Finance & Investing",
+    "options": "Finance & Investing",
+    "smallbusiness": "Finance & Investing",
+    "cryptocurrency": "Finance & Investing",
+    "tax": "Finance & Investing",
+    "accounting": "Finance & Investing",
+    "financialcareers": "Finance & Investing",
+
+    # Education & Career
+    "learnprogramming": "Education & Career",
+    "cscareerquestions": "Education & Career",
+    "careerguidance": "Education & Career",
+    "resumes": "Education & Career",
+    "jobs": "Education & Career",
+    "studentloans": "Education & Career",
+    "college": "Education & Career",
+    "gradschool": "Education & Career",
+    "teaching": "Education & Career",
+    "entrepreneurs": "Education & Career",
+    "startups": "Education & Career",
+
+    # Travel & Experiences
+    "travel": "Travel & Experiences",
+    "solotravel": "Travel & Experiences",
+    "digitalnomad": "Travel & Experiences",
+    "backpacking": "Travel & Experiences",
+    "roadtrip": "Travel & Experiences",
+    "travel_hacks": "Travel & Experiences",
+    "shoestring": "Travel & Experiences",
+    "expats": "Travel & Experiences",
+    "travelpartners": "Travel & Experiences",
+    "budgettravel": "Travel & Experiences",
+    "vagabond": "Travel & Experiences",
+
+    # Real Estate
+    "realestate": "Real Estate",
+    "firsttimehomebuyer": "Real Estate",
+    "homeimprovement": "Real Estate",
+    "diy": "Real Estate",
+    "homeowners": "Real Estate",
+    "renters": "Real Estate",
+    "mortgages": "Real Estate",
+    "landlord": "Real Estate",
+    "realestate_canada": "Real Estate",
+    "housingmarkets": "Real Estate",
+
+    # Technology & SaaS
+    "saas": "Technology & SaaS",
+    "indiehackers": "Technology & SaaS",
+    "sidehustle": "Technology & SaaS",
+    "juststart": "Technology & SaaS",
+    "roastmystartup": "Technology & SaaS",
+    "buildinpublic": "Technology & SaaS",
+    "microsaas": "Technology & SaaS",
+    "nocode": "Technology & SaaS",
+    "webdev": "Technology & SaaS",
+}
+
+
+def map_subreddit_to_sector(subreddit: str) -> str:
+    """
+    Map a subreddit to its corresponding business sector.
+
+    Args:
+        subreddit: Name of the subreddit (case-insensitive)
+
+    Returns:
+        Sector name as string, defaults to "Technology & SaaS" if not found
+    """
+    if not subreddit:
+        return "Technology & SaaS"
+
+    subreddit_lower = subreddit.lower()
+    return SECTOR_MAPPING.get(subreddit_lower, "Technology & SaaS")
+
+
+def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> List[Dict[str, Any]]:
+    """
+    Fetch all submissions from the Supabase database in batches.
+
+    Args:
+        supabase_client: Initialized Supabase client
+        batch_size: Number of submissions to fetch per batch (default 1000)
+
+    Returns:
+        List of all submission dictionaries
+
+    Raises:
+        Exception: If database query fails
+    """
+    try:
+        print("Fetching all submissions from database...")
+
+        all_submissions = []
+        offset = 0
+
+        while True:
+            # Build query with pagination
+            query = supabase_client.table("submissions").select(
+                "id, submission_id, title, text, content, subreddit, upvotes, "
+                "comments_count, sentiment_score, problem_keywords, solution_mentions, "
+                "created_at"
+            ).range(offset, offset + batch_size - 1)
+
+            response = query.execute()
+
+            if not response.data:
+                break  # No more submissions
+
+            all_submissions.extend(response.data)
+            print(f"Fetched {len(response.data)} submissions (total: {len(all_submissions)})")
+
+            # If we got fewer than batch_size, we've reached the end
+            if len(response.data) < batch_size:
+                break
+
+            offset += batch_size
+
+        print(f"Successfully fetched {len(all_submissions)} total submissions")
+        return all_submissions
+
+    except Exception as e:
+        print(f"Error fetching submissions: {e}")
+        raise
+
+
+def fetch_submissions(supabase_client: Any, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    """
+    Fetch submissions from the Supabase database.
+
+    Args:
+        supabase_client: Initialized Supabase client
+        limit: Optional limit on number of submissions to fetch
+
+    Returns:
+        List of submission dictionaries with all relevant fields
+
+    Raises:
+        Exception: If database query fails
+    """
+    try:
+        if limit:
+            # Use simple fetch for limited results
+            print("Fetching limited submissions from database...")
+            query = supabase_client.table("submissions").select(
+                "id, submission_id, title, text, content, subreddit, upvotes, "
+                "comments_count, sentiment_score, problem_keywords, solution_mentions, "
+                "created_at"
+            ).limit(limit)
+
+            response = query.execute()
+
+            if not response.data:
+                print("Warning: No submissions found in database")
+                return []
+
+            print(f"Successfully fetched {len(response.data)} submissions")
+            return response.data
+        else:
+            # Fetch all submissions in batches
+            return fetch_all_submissions(supabase_client)
+
+    except Exception as e:
+        print(f"Error fetching submissions: {e}")
+        raise
+
+
+def format_submission_for_agent(submission: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Format a database submission record for the OpportunityAnalyzerAgent.
+
+    Args:
+        submission: Raw submission data from database
+
+    Returns:
+        Formatted submission data for agent analysis
+    """
+    # Combine title and text/content for full text analysis
+    title = submission.get("title", "")
+    text = submission.get("text", "") or submission.get("content", "")
+    full_text = f"{title}\n\n{text}".strip()
+
+    # Format engagement data - use actual column names
+    engagement = {
+        "upvotes": submission.get("upvotes", 0) or 0,
+        "num_comments": submission.get("comments_count", 0) or 0,
+    }
+
+    # Extract comments from problem_keywords and solution_mentions if available
+    comments = []
+    problem_keywords = submission.get("problem_keywords")
+    solution_mentions = submission.get("solution_mentions")
+
+    if problem_keywords:
+        comments.append(f"Problem identified: {problem_keywords}")
+    if solution_mentions:
+        comments.append(f"Solution discussed: {solution_mentions}")
+
+    return {
+        "id": submission.get("submission_id", submission.get("id", "unknown")),
+        "title": title,
+        "text": full_text,
+        "subreddit": submission.get("subreddit", ""),
+        "engagement": engagement,
+        "comments": comments,
+        "sentiment_score": submission.get("sentiment_score", 0.0),
+        "db_id": submission.get("id")  # Keep reference to database UUID
+    }
+
+
+def store_analysis_result(
+    submission_id: str,
+    analysis: Dict[str, Any],
+    sector: str,
+    supabase_client: Any
+) -> bool:
+    """
+    Store opportunity analysis result in the opportunity_analysis table.
+
+    Args:
+        submission_id: ID of the submission from the submissions table
+        analysis: Analysis results from agent containing dimension scores
+        sector: Mapped business sector
+        supabase_client: Initialized Supabase client
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Generate opportunity_id from submission_id
+        opportunity_id = f"opp_{submission_id}"
+
+        # Extract dimension scores
+        scores = analysis.get("dimension_scores", {})
+
+        # Prepare data for opportunity_analysis table
+        analysis_data = {
+            "submission_id": submission_id,
+            "opportunity_id": opportunity_id,
+            "title": analysis.get("title", "")[:500],  # Truncate to reasonable length
+            "subreddit": analysis.get("subreddit", ""),
+            "sector": sector,
+            "market_demand": float(scores.get("market_demand", 0)),
+            "pain_intensity": float(scores.get("pain_intensity", 0)),
+            "monetization_potential": float(scores.get("monetization_potential", 0)),
+            "market_gap": float(scores.get("market_gap", 0)),
+            "technical_feasibility": float(scores.get("technical_feasibility", 0)),
+            "simplicity_score": float(scores.get("simplicity_score", 70)),  # Default neutral score
+            "final_score": float(analysis.get("final_score", 0)),
+            "priority": analysis.get("priority", ""),
+            "scored_at": datetime.now().isoformat(),
+        }
+
+        # Use upsert to handle duplicates based on opportunity_id
+        response = supabase_client.table("opportunity_analysis").upsert(
+            analysis_data,
+            on_conflict="opportunity_id"
+        ).execute()
+
+        return True
+
+    except Exception as e:
+        print(f"Error storing analysis result: {e}")
+        return False
+
+
+def process_batch(
+    submissions: List[Dict[str, Any]],
+    agent: OpportunityAnalyzerAgent,
+    supabase_client: Any,
+    batch_number: int
+) -> List[Dict[str, Any]]:
+    """
+    Process a batch of submissions through the opportunity analyzer.
+
+    Args:
+        submissions: List of submission dictionaries to process
+        agent: Initialized OpportunityAnalyzerAgent
+        supabase_client: Initialized Supabase client for storing results
+        batch_number: Current batch number for logging
+
+    Returns:
+        List of analysis results with scores and metadata
+    """
+    results = []
+
+    for submission in submissions:
+        try:
+            # Format submission for agent
+            formatted = format_submission_for_agent(submission)
+
+            # Analyze opportunity
+            analysis = agent.analyze_opportunity(formatted)
+
+            # Map subreddit to sector
+            sector = map_subreddit_to_sector(submission.get("subreddit", ""))
+            analysis["sector"] = sector
+
+            # Store the analysis result
+            success = store_analysis_result(
+                submission.get("id"),  # submission_id from database
+                analysis,
+                sector,
+                supabase_client
+            )
+
+            if success:
+                analysis["stored"] = True
+                analysis["opportunity_id"] = f"opp_{submission.get('id')}"
+            else:
+                analysis["stored"] = False
+                print(f"Warning: Failed to store analysis for submission {submission.get('id')}")
+
+            results.append(analysis)
+
+        except Exception as e:
+            print(f"Error processing submission {submission.get('id', 'unknown')}: {e}")
+            # Add error entry but continue processing
+            results.append({
+                "submission_id": submission.get("id", "unknown"),
+                "error": str(e),
+                "stored": False,
+                "final_score": 0
+            })
+            continue
+
+    return results
+
+
+def generate_summary_report(
+    all_results: List[Dict[str, Any]],
+    elapsed_time: float,
+    total_submissions: int
+) -> None:
+    """
+    Generate and print a comprehensive summary report.
+
+    Args:
+        all_results: List of all analysis results
+        elapsed_time: Total processing time in seconds
+        total_submissions: Total number of submissions processed
+    """
+    print("\n" + "="*80)
+    print("BATCH OPPORTUNITY SCORING - SUMMARY REPORT")
+    print("="*80)
+
+    # Basic statistics
+    successful = sum(1 for r in all_results if r.get("stored", False))
+    failed = len(all_results) - successful
+
+    print(f"\nProcessing Statistics:")
+    print(f"  Total Submissions:     {total_submissions:,}")
+    print(f"  Successfully Scored:   {successful:,}")
+    print(f"  Failed:                {failed:,}")
+    print(f"  Success Rate:          {(successful/total_submissions*100):.1f}%")
+    print(f"  Total Time:            {elapsed_time:.2f} seconds")
+    print(f"  Average Time/Item:     {(elapsed_time/total_submissions):.3f} seconds")
+    print(f"  Processing Rate:       {(total_submissions/elapsed_time):.1f} items/second")
+
+    # Score distribution
+    valid_results = [r for r in all_results if r.get("stored", False)]
+
+    if valid_results:
+        print(f"\nScore Distribution:")
+        high_priority = sum(1 for r in valid_results if r.get("final_score", 0) >= 85)
+        med_high = sum(1 for r in valid_results if 70 <= r.get("final_score", 0) < 85)
+        medium = sum(1 for r in valid_results if 55 <= r.get("final_score", 0) < 70)
+        low = sum(1 for r in valid_results if 40 <= r.get("final_score", 0) < 55)
+        not_recommended = sum(1 for r in valid_results if r.get("final_score", 0) < 40)
+
+        print(f"  High Priority (85+):   {high_priority:,} ({high_priority/len(valid_results)*100:.1f}%)")
+        print(f"  Med-High (70-84):      {med_high:,} ({med_high/len(valid_results)*100:.1f}%)")
+        print(f"  Medium (55-69):        {medium:,} ({medium/len(valid_results)*100:.1f}%)")
+        print(f"  Low (40-54):           {low:,} ({low/len(valid_results)*100:.1f}%)")
+        print(f"  Not Recommended (<40): {not_recommended:,} ({not_recommended/len(valid_results)*100:.1f}%)")
+
+        # Average scores by dimension
+        print(f"\nAverage Dimension Scores:")
+        avg_market = sum(r.get("dimension_scores", {}).get("market_demand", 0) for r in valid_results) / len(valid_results)
+        avg_pain = sum(r.get("dimension_scores", {}).get("pain_intensity", 0) for r in valid_results) / len(valid_results)
+        avg_monetization = sum(r.get("dimension_scores", {}).get("monetization_potential", 0) for r in valid_results) / len(valid_results)
+        avg_gap = sum(r.get("dimension_scores", {}).get("market_gap", 0) for r in valid_results) / len(valid_results)
+        avg_tech = sum(r.get("dimension_scores", {}).get("technical_feasibility", 0) for r in valid_results) / len(valid_results)
+        avg_final = sum(r.get("final_score", 0) for r in valid_results) / len(valid_results)
+
+        print(f"  Market Demand:         {avg_market:.1f}/100")
+        print(f"  Pain Intensity:        {avg_pain:.1f}/100")
+        print(f"  Monetization:          {avg_monetization:.1f}/100")
+        print(f"  Market Gap:            {avg_gap:.1f}/100")
+        print(f"  Technical Feasibility: {avg_tech:.1f}/100")
+        print(f"  Final Score:           {avg_final:.1f}/100")
+
+        # Sector breakdown
+        sector_counts = {}
+        for r in valid_results:
+            sector = r.get("sector", "Unknown")
+            sector_counts[sector] = sector_counts.get(sector, 0) + 1
+
+        print(f"\nOpportunities by Sector:")
+        for sector, count in sorted(sector_counts.items(), key=lambda x: x[1], reverse=True):
+            print(f"  {sector:25} {count:,} ({count/len(valid_results)*100:.1f}%)")
+
+        # Top opportunities
+        print(f"\nTop 10 Opportunities:")
+        top_opps = sorted(valid_results, key=lambda x: x.get("final_score", 0), reverse=True)[:10]
+        for i, opp in enumerate(top_opps, 1):
+            title = opp.get("title", "No title")[:60]
+            score = opp.get("final_score", 0)
+            sector = opp.get("sector", "Unknown")
+            subreddit = opp.get("subreddit", "Unknown")
+            print(f"  {i:2}. [{score:.1f}] r/{subreddit:20} {title}")
+
+    print("\n" + "="*80)
+    print("Report Complete!")
+    print("="*80 + "\n")
+
+
+def main():
+    """
+    Main execution function for batch opportunity scoring.
+    """
+    print("\n" + "="*80)
+    print("BATCH OPPORTUNITY SCORING - START")
+    print("="*80 + "\n")
+
+    start_time = time.time()
+
+    # Initialize clients
+    print("Initializing connections...")
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        agent = OpportunityAnalyzerAgent()
+        print("Connections initialized successfully")
+    except Exception as e:
+        print(f"Error initializing: {e}")
+        return
+
+    # Fetch submissions
+    print("\nFetching submissions from database...")
+    try:
+        submissions = fetch_submissions(supabase)
+        if not submissions:
+            print("No submissions to process. Exiting.")
+            return
+        print(f"Found {len(submissions):,} submissions to process")
+    except Exception as e:
+        print(f"Error fetching submissions: {e}")
+        return
+
+    # Process in batches
+    print(f"\nProcessing submissions in batches...")
+    all_results = []
+    batch_size = 100
+    num_batches = (len(submissions) + batch_size - 1) // batch_size
+
+    print(f"Total batches: {num_batches}")
+    print("Starting processing with progress bar...\n")
+
+    # Use tqdm for overall progress
+    for i in tqdm(range(0, len(submissions), batch_size), desc="Processing batches", unit="batch"):
+        batch = submissions[i:i+batch_size]
+        batch_num = (i // batch_size) + 1
+
+        try:
+            results = process_batch(batch, agent, supabase, batch_num)
+            all_results.extend(results)
+
+        except Exception as e:
+            print(f"\nError processing batch {batch_num}: {e}")
+            print("Continuing with next batch...\n")
+            continue
+
+    # Calculate elapsed time
+    elapsed_time = time.time() - start_time
+
+    # Generate summary report
+    generate_summary_report(all_results, elapsed_time, len(submissions))
+
+    print("Batch opportunity scoring completed successfully!")
+
+
+if __name__ == "__main__":
+    main()
