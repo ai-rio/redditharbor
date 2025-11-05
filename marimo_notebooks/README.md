@@ -24,45 +24,91 @@ pip install pandas sqlalchemy psycopg2-binary
 
 ## Available Notebooks
 
-### 📊 Research Dashboard (`research_dashboard.py`)
-**Purpose**: Main interactive dashboard for Reddit data exploration
+### 📊 Opportunity Dashboard (`opportunity_dashboard_reactive.py`)
+**Purpose**: Interactive dashboard for Reddit opportunity analysis
 **Features**:
-- Subreddit selection and filtering
-- Data type selection (submissions, comments, both)
-- Real-time data visualization
-- Interactive charts and tables
+- Real-time filtering and sorting
+- Opportunity scoring visualization
+- Interactive charts and data exploration
+- Subreddit analysis tools
 
-**Launch**: `python scripts/launch_marimo_notebook.py research_dashboard`
+**Launch**: `marimo run marimo_notebooks/opportunity_dashboard_reactive.py`
 
-### 🧠 Sentiment Analysis (`sentiment_analysis.py`)
-**Purpose**: Sentiment analysis of Reddit content with interactive controls
+### 🏆 Top Contenders Dashboard (`top_contenders_dashboard.py`)
+**Purpose**: Display top opportunities with AI-powered insights
 **Features**:
-- Sentiment score calculation and visualization
-- Adjustable sentiment thresholds
-- Subreddit-specific analysis
-- Sentiment distribution charts
+- Top 5 opportunity cards
+- AI insights (app concept, core functions, growth justification)
+- Sector and score filters
+- CSV export functionality
 
-**Launch**: `python scripts/launch_marimo_notebook.py sentiment_analysis`
+**Launch**: `marimo run marimo_notebooks/top_contenders_dashboard.py --port 8895`
 
-### 🔒 Privacy Explorer (`privacy_explorer.py`)
-**Purpose**: Privacy control and PII anonymization interface
+### 🔍 Opportunity Analysis (`opportunity_analysis_dashboard.py`)
+**Purpose**: Detailed analysis dashboard for opportunity research
 **Features**:
-- Three privacy levels (strict, moderate, permissive)
-- Real-time PII anonymization preview
-- Safe data exploration
-- Original vs. anonymized comparison
+- Comprehensive opportunity metrics
+- Market validation data
+- Competitive analysis tools
+- Technical feasibility assessment
 
-**Launch**: `python scripts/launch_marimo_notebook.py privacy_explorer`
+**Launch**: `marimo run marimo_notebooks/opportunity_analysis_dashboard.py`
 
-### 🔍 SQL Query Builder (`sql_query_builder.py`)
-**Purpose**: Interactive SQL query interface for RedditHarbor database
+### 💡 Opportunity Insights (`opportunity_insights_dashboard.py`)
+**Purpose**: AI-powered insights and recommendations
 **Features**:
-- Pre-built query templates
-- Custom SQL query editor
-- Real-time query execution
-- Results visualization
+- Z.AI GLM-4.6 integration for insights
+- Growth justification analysis
+- Monetization recommendations
+- Technical implementation suggestions
 
-**Launch**: `python scripts/launch_marimo_notebook.py sql_query_builder`
+**Launch**: `marimo run marimo_notebooks/opportunity_insights_dashboard.py`
+
+### ⚡ Simple Dashboard (`simple_opportunity_dashboard.py`)
+**Purpose**: Lightweight dashboard for quick exploration
+**Features**:
+- Basic filtering and visualization
+- Quick data overview
+- Minimal setup required
+
+**Launch**: `marimo run marimo_notebooks/simple_opportunity_dashboard.py`
+
+### 🎯 Database Dashboard (`db_dashboard.py`)
+**Purpose**: Database management and query interface
+**Features**:
+- Direct database queries
+- Table browsing
+- Query execution
+- Data export tools
+
+**Launch**: `marimo run marimo_notebooks/db_dashboard.py`
+
+### 📡 Live Dashboard (`live_dashboard.py`)
+**Purpose**: Real-time data monitoring dashboard
+**Features**:
+- Real-time updates
+- Live data collection monitoring
+- Active research tracking
+
+**Launch**: `marimo run marimo_notebooks/live_dashboard.py`
+
+### 🎮 Reddit Demo (`redditharbor_demo.py`)
+**Purpose**: Demo script showcasing RedditHarbor capabilities
+**Features**:
+- Basic data collection examples
+- Simple Reddit API integration
+- Quick start guide
+
+**Launch**: `python marimo_notebooks/redditharbor_demo.py`
+
+### 🚀 Marimo Dashboard (`redditharbor_marimo_dashboard.py`)
+**Purpose**: Main dashboard combining multiple features
+**Features**:
+- Comprehensive data visualization
+- Multiple analysis tools
+- Interactive controls
+
+**Launch**: `python marimo_notebooks/redditharbor_marimo_dashboard.py`
 
 ## Configuration
 
