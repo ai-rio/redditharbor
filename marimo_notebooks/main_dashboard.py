@@ -328,5 +328,122 @@ def sector_stats_display(mo, stats):
     return display,
 
 
+@app.cell
+def get_priority_badge(COLORS):
+    """Get priority badge emoji and color based on score"""
+
+    def badge_for_score(score):
+        if score >= 85:
+            return "🔥", COLORS['primary'], "High"
+        elif score >= 70:
+            return "⚡", COLORS['accent'], "Med-High"
+        elif score >= 55:
+            return "📊", COLORS['secondary'], "Medium"
+        else:
+            return "📋", COLORS['light'], "Low"
+
+    return badge_for_score,
+
+
+@app.cell
+def create_opportunity_card(mo, badge_for_score, COLORS):
+    """Generate HTML for a single opportunity card"""
+
+    def render_card(row, index):
+        emoji, color, priority = badge_for_score(row['final_score'])
+
+        card_html = f"""
+        <div style="
+            border: 2px solid {COLORS['light']};
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        "
+        data-id="{row['id']}">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <h3 style="margin: 0 0 0.5rem 0; color: {COLORS['text']};">
+                    #{index + 1}: {row['title'][:80]}...
+                </h3>
+                <div style="background: {color}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">
+                    {emoji} {priority}
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; color: {COLORS['secondary']}; font-size: 0.9rem;">
+                <span>📊 Score: <strong>{row['final_score']:.0f}</strong></span>
+                <span>🏢 {row['sector']}</span>
+                <span>📱 r/{row['subreddit']}</span>
+            </div>
+        </div>
+        """
+
+        return card_html
+
+    return render_card,
+
+
+@app.cell
+def display_confirmed_opportunities(mo, filtered_df, render_card):
+    """Show confirmed opportunities in card view"""
+
+    if len(filtered_df) == 0:
+        display = mo.md("""
+        ### ✅ Confirmed Opportunities
+
+        📭 No opportunities match your filters.
+        Try adjusting the priority tier or sector selection.
+        """)
+    else:
+        cards_html = "### ✅ Confirmed Opportunities\n\n"
+
+        for idx, row in filtered_df.iterrows():
+            cards_html += render_card(row, idx)
+
+        display = mo.Html(cards_html)
+
+    return display,
+
+
+@app.cell
+def display_candidates_section(mo, candidates_df, COLORS):
+    """Show high-scoring candidates awaiting AI analysis"""
+
+    if len(candidates_df) == 0:
+        display = mo.md("")
+    else:
+        candidates_html = f"""
+        <div style="margin-top: 2rem;">
+            <h3>🔍 High-Scoring Candidates</h3>
+            <p style="color: {COLORS['secondary']};">
+                These submissions scored ≥70 but haven't been analyzed by AI yet.
+            </p>
+        """
+
+        for idx, row in candidates_df.head(10).iterrows():
+            candidates_html += f"""
+            <div style="
+                border: 1px dashed {COLORS['light']};
+                border-radius: 6px;
+                padding: 0.75rem;
+                margin-bottom: 0.5rem;
+                background: {COLORS['light']};
+            ">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">
+                    {row['title'][:80]}...
+                </div>
+                <div style="font-size: 0.85rem; color: {COLORS['secondary']};">
+                    Score: {row['final_score']:.0f} | {row['sector']} | r/{row['subreddit']}
+                </div>
+            </div>
+            """
+
+        candidates_html += "</div>"
+        display = mo.Html(candidates_html)
+
+    return display,
+
+
 if __name__ == "__main__":
     app.run()
