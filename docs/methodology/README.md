@@ -5,7 +5,7 @@ This directory contains research methodologies and frameworks.
 ## Monetizable App Research
 
 - **[Simplicity Constraint Updates](simplicity-constraint-updates.md)** - Mandatory simplicity requirements for app opportunities
-- **[Monetizable App Research Methodology](../monetizable-app-research-methodology.md)** - Complete methodology for identifying monetizable opportunities
+- **[Monetizable App Research Methodology](monetizable-app-research-methodology.md)** - Complete methodology for identifying monetizable opportunities
 
 ## Research Framework
 

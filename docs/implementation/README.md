@@ -8,6 +8,7 @@ This directory contains implementation details and technical references.
 
 ## Code References
 
-- **[Implementation Code Reference](../implementation-code-reference.md)** - Detailed code implementation reference
+- **[Implementation Code Reference](implementation-code-reference.md)** - Detailed code implementation reference
+- **[Monetizable Collection Implementation](monetizable-collection-implementation.md)** - Implementation guide for monetizable app research
 
 For API documentation, see the [API documentation](../api/).

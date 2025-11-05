@@ -27,6 +27,13 @@
 - **[Opportunity Research](./opportunity-research-readme.md)** - Finding app opportunities from Reddit data
 - **[Research Guide](./research-guide.md)** - How to conduct research with RedditHarbor
 
+### Integrations & Assessments
+
+- **[Agent SDK Integration](./agent-sdk-integration-summary.md)** - Integration guide for AI agent SDKs
+- **[Opportunity Dashboard Assessment](./opportunity-dashboard-assessment.md)** - Dashboard performance and feature assessment
+- **[spaCy Dependency Solution](./spacy-dependency-solution.md)** - Resolving spaCy dependency issues
+- **[Error Analysis Report](./error_analysis_report.md)** - Comprehensive error analysis and solutions
+
 ### Additional Resources
 
 - **[Installation Guide](./installation.md)** - Detailed installation instructions *(Coming Soon)*
@@ -127,6 +134,10 @@ Comprehensive security and privacy protection:
 - **[Marimo Notebook Enhancements](./marimo-notebook-enhancements.md)** - Marimo integration guide
 - **[Opportunity Research](./opportunity-research-readme.md)** - Finding app opportunities
 - **[Research Guide](./research-guide.md)** - Research methodology guide
+- **[Agent SDK Integration](./agent-sdk-integration-summary.md)** - AI agent SDK integration
+- **[Opportunity Dashboard Assessment](./opportunity-dashboard-assessment.md)** - Dashboard assessment
+- **[spaCy Dependency Solution](./spacy-dependency-solution.md)** - Dependency troubleshooting
+- **[Error Analysis Report](./error_analysis_report.md)** - Error analysis guide
 
 ### 🚧 Coming Soon
 
