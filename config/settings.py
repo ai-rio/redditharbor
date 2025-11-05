@@ -15,7 +15,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1
 # SUPABASE_KEY = "<your-supabase-service-role-key>"
 
 # RedditHarbor Database Configuration (using our dedicated schema)
-DB_CONFIG = {"user": "redditor", "submission": "submission", "comment": "comment"}
+DB_CONFIG = {"user": "redditors", "submission": "submissions", "comment": "comments"}
 
 # Collection Configuration - Target Finance & Health Subreddits for Opportunity Analysis
 DEFAULT_SUBREDDITS = [
