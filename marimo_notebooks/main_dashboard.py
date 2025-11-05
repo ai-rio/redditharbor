@@ -286,19 +286,19 @@ def calculate_sector_stats(filtered_df, candidates_df, view_mode, sector_dropdow
         sector_name = sector_dropdown.value
 
         # Stats for confirmed opportunities
-        confirmed_count = len(filtered_df)
-        avg_score = filtered_df['final_score'].mean() if confirmed_count > 0 else 0
+        sector_confirmed_count = len(filtered_df)
+        avg_score = filtered_df['final_score'].mean() if sector_confirmed_count > 0 else 0
         score_range = (
             filtered_df['final_score'].min(),
             filtered_df['final_score'].max()
-        ) if confirmed_count > 0 else (0, 0)
+        ) if sector_confirmed_count > 0 else (0, 0)
 
         # Count candidates in this sector
         sector_candidates = len(candidates_df[candidates_df['sector'] == sector_name]) if len(candidates_df) > 0 else 0
 
         stats = {
             'sector': sector_name,
-            'confirmed_count': confirmed_count,
+            'confirmed_count': sector_confirmed_count,
             'candidates_count': sector_candidates,
             'avg_score': avg_score,
             'score_range': score_range
@@ -314,7 +314,7 @@ def sector_stats_display(mo, stats):
     """Show sector overview stats in By Sector mode"""
 
     if stats:
-        display = mo.md(f"""
+        sector_display = mo.md(f"""
         ### 📊 {stats['sector']} Overview
 
         - **{stats['confirmed_count']}** Confirmed Opportunities
@@ -323,9 +323,9 @@ def sector_stats_display(mo, stats):
         - **Score Range:** {stats['score_range'][0]:.0f} - {stats['score_range'][1]:.0f}
         """)
     else:
-        display = mo.md("")
+        sector_display = mo.md("")
 
-    return display,
+    return sector_display,
 
 
 @app.cell
@@ -405,37 +405,37 @@ def display_confirmed_opportunities_clickable(mo, filtered_df, render_card_click
     """Show confirmed opportunities with click handling"""
 
     if len(filtered_df) == 0:
-        display = mo.md("""
+        opportunities_display = mo.md("""
         ### ✅ Confirmed Opportunities
 
         📭 No opportunities match your filters.
         """)
-        buttons = []
+        opportunity_buttons = []
     else:
         cards = [mo.md("### ✅ Confirmed Opportunities")]
-        buttons = []
+        opportunity_buttons = []
 
-        for idx, row in filtered_df.iterrows():
-            card_stack = render_card_clickable(row, idx)
+        for _idx, _row in filtered_df.iterrows():
+            card_stack = render_card_clickable(_row, _idx)
             cards.append(card_stack)
 
             # Extract button from vstack for tracking
             if hasattr(card_stack, '_children') and len(card_stack._children) > 1:
-                buttons.append(card_stack._children[1])
+                opportunity_buttons.append(card_stack._children[1])
 
-        display = mo.vstack(cards)
+        opportunities_display = mo.vstack(cards)
 
-    return display, buttons
+    return opportunities_display, opportunity_buttons
 
 
 @app.cell
-def handle_card_clicks(buttons, selected_opportunity_id):
+def handle_card_clicks(opportunity_buttons, selected_opportunity_id):
     """Update selection state when a card button is clicked"""
 
-    for button in buttons:
-        if hasattr(button, 'value') and button.value is not None:
+    for _button in opportunity_buttons:
+        if hasattr(_button, 'value') and _button.value is not None:
             # Button was clicked, update selection
-            selected_opportunity_id.value = button.value
+            selected_opportunity_id.value = _button.value
 
     return
 
@@ -445,7 +445,7 @@ def display_candidates_section(mo, candidates_df, COLORS):
     """Show high-scoring candidates awaiting AI analysis"""
 
     if len(candidates_df) == 0:
-        display = mo.md("")
+        candidates_display = mo.md("")
     else:
         candidates_html = f"""
         <div style="margin-top: 2rem;">
@@ -455,7 +455,7 @@ def display_candidates_section(mo, candidates_df, COLORS):
             </p>
         """
 
-        for idx, row in candidates_df.head(10).iterrows():
+        for _idx, _row in candidates_df.head(10).iterrows():
             candidates_html += f"""
             <div style="
                 border: 1px dashed {COLORS['light']};
@@ -465,18 +465,18 @@ def display_candidates_section(mo, candidates_df, COLORS):
                 background: {COLORS['light']};
             ">
                 <div style="font-weight: 600; margin-bottom: 0.25rem;">
-                    {row['title'][:80]}...
+                    {_row['title'][:80]}...
                 </div>
                 <div style="font-size: 0.85rem; color: {COLORS['secondary']};">
-                    Score: {row['final_score']:.0f} | {row['sector']} | r/{row['subreddit']}
+                    Score: {_row['final_score']:.0f} | {_row['sector']} | r/{_row['subreddit']}
                 </div>
             </div>
             """
 
         candidates_html += "</div>"
-        display = mo.Html(candidates_html)
+        candidates_display = mo.Html(candidates_html)
 
-    return display,
+    return candidates_display,
 
 
 @app.cell
@@ -490,22 +490,22 @@ def create_table_view_with_selection(mo, filtered_df, badge_for_score, view_mode
         table_data = []
         id_map = []  # Map row index to opportunity ID
 
-        for idx, row in filtered_df.iterrows():
-            emoji, color, priority = badge_for_score(row['final_score'])
+        for _idx, _row in filtered_df.iterrows():
+            emoji, color, priority = badge_for_score(_row['final_score'])
 
-            concept_brief = row['app_concept'][:60] + "..." if pd.notna(row['app_concept']) and len(str(row['app_concept'])) > 60 else row['app_concept']
-            functions_text = str(row['core_functions']) if pd.notna(row['core_functions']) else ""
+            concept_brief = _row['app_concept'][:60] + "..." if pd.notna(_row['app_concept']) and len(str(_row['app_concept'])) > 60 else _row['app_concept']
+            functions_text = str(_row['core_functions']) if pd.notna(_row['core_functions']) else ""
             function_count = functions_text.count('\n') + 1 if functions_text else 0
 
             table_data.append({
                 'Rank': f"#{len(table_data) + 1}",
-                'Title': row['title'][:50] + "..." if len(row['title']) > 50 else row['title'],
-                'Score': f"{emoji} {row['final_score']:.0f}",
+                'Title': _row['title'][:50] + "..." if len(_row['title']) > 50 else _row['title'],
+                'Score': f"{emoji} {_row['final_score']:.0f}",
                 'App Concept': concept_brief,
                 'Functions': function_count,
                 'Priority': priority
             })
-            id_map.append(row['id'])
+            id_map.append(_row['id'])
 
         table_df = pd.DataFrame(table_data)
 
@@ -527,11 +527,11 @@ def create_table_view_with_selection(mo, filtered_df, badge_for_score, view_mode
 
 
 @app.cell
-def main_content_display(view_mode, display, table_display):
+def main_content_display(view_mode, opportunities_display, table_display):
     """Show either card view or table view based on mode"""
 
     if view_mode.value == "All":
-        content = display  # Card view
+        content = opportunities_display  # Card view
     else:
         content = table_display  # Table view
 
@@ -643,9 +643,9 @@ def main_layout(mo, main_content_display, panel):
 def processing_status(mo, confirmed_df, candidates_df, datetime):
     """Display AI processing status"""
 
-    confirmed_count = len(confirmed_df)
+    processing_confirmed_count = len(confirmed_df)
     total_submissions = 6127  # From database
-    awaiting = total_submissions - confirmed_count
+    awaiting = total_submissions - processing_confirmed_count
 
     # Mock last run time (would come from database in production)
     last_run = "2 hours ago"
@@ -655,7 +655,7 @@ def processing_status(mo, confirmed_df, candidates_df, datetime):
 
     ### 📊 Processing Status
 
-    - **{confirmed_count}** opportunities analyzed (AI insights complete)
+    - **{processing_confirmed_count}** opportunities analyzed (AI insights complete)
     - **{awaiting:,}** submissions awaiting analysis
     - **Last run:** {last_run}
     """)
@@ -728,14 +728,14 @@ def processing_buttons(mo, trigger_analysis):
         kind="neutral"
     )
 
-    buttons = mo.vstack([
+    processing_buttons_display = mo.vstack([
         mo.md("### ⚡ Quick Actions"),
         btn_top_50,
         btn_all_high,
         mo.hstack([custom_count, btn_custom])
     ])
 
-    return buttons, btn_top_50, btn_all_high, btn_custom, custom_count
+    return processing_buttons_display, btn_top_50, btn_all_high, btn_custom, custom_count
 
 
 @app.cell
@@ -810,11 +810,11 @@ def final_dashboard_layout(
     connection_status,
     summary,
     filters,
-    sector_stats_display,
+    sector_display,
     layout,
-    display_candidates_section,
+    candidates_display,
     processing_status,
-    buttons,
+    processing_buttons_display,
     processing_result_display
 ):
     """Assemble complete dashboard layout"""
@@ -825,13 +825,13 @@ def final_dashboard_layout(
         summary,
         mo.md("---"),
         filters,
-        sector_stats_display,
+        sector_display,
         mo.md("---"),
         layout,  # Main content + AI panel
-        display_candidates_section,
+        candidates_display,
         mo.md("---"),
         processing_status,
-        buttons,
+        processing_buttons_display,
         processing_result_display
     ], gap=1)
 
