@@ -313,8 +313,7 @@ redditharbor/
 ├── requirements.txt           # 📦 Python dependencies
 ├── ruff.toml                  # 🔍 Code quality configuration
 ├── lint.sh                    # 🔧 Linting script
-├── QUICKSTART.md              # ⚡ Quick reference guide
-├── RESEARCH_GUIDE.md          # 📊 Research workflow guide
+├── marimo_notebooks/          # 📊 Marimo dashboard notebooks
 └── README.md                  # 📖 This file
 ```
 
@@ -324,9 +323,10 @@ redditharbor/
 
 ### 🎯 Essential Guides
 
-- **[QUICKSTART.md](./QUICKSTART.md)** - Quick reference for common operations
-- **[RESEARCH_GUIDE.md](./RESEARCH_GUIDE.md)** - Complete research workflow guide
-- **[docs/guides/setup-guide.md](./docs/guides/setup-guide.md)** - Detailed setup instructions
+- **[docs/guides/quickstart.md](./docs/guides/quickstart.md)** - Quick reference for common operations
+- **[docs/guides/research-guide.md](./docs/guides/research-guide.md)** - Complete research workflow guide
+- **[docs/guides/setup-guide-root.md](./docs/guides/setup-guide-root.md)** - Detailed setup instructions
+- **[docs/guides/integration-complete.md](./docs/guides/integration-complete.md)** - Marimo integration documentation
 
 ### 🔧 Technical Documentation
 

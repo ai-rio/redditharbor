@@ -1,14 +1,21 @@
 # RedditHarbor Configuration
-# Replace with your actual Reddit API credentials
+# Load environment variables
+import os
+from dotenv import load_dotenv
+
+# Load from .env.local if it exists
+load_dotenv('.env.local')
 
 # Reddit API Configuration
-REDDIT_PUBLIC = "jEAmLlbzr0TvxbR1W0ziBQ"
-REDDIT_SECRET = "g2r7vhtAB_kEmCeGcXXEM_KIzDh8iQ"
-REDDIT_USER_AGENT = "project:Guz-Harbor (u/carlos-dev)"
+# Get from environment or use placeholders
+REDDIT_PUBLIC = os.getenv("REDDIT_PUBLIC", "your_reddit_public_key_here")
+REDDIT_SECRET = os.getenv("REDDIT_SECRET", "your_reddit_secret_key_here")
+REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "project:RedditHarbor (by /u/your_username)")
 
-# Local Supabase Configuration (for multi-project setup)
-SUPABASE_URL = "http://127.0.0.1:54321"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+# Supabase Configuration
+# Get from environment or use defaults
+SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your_supabase_service_role_key_here")
 
 # Remote Supabase (if needed for production/deployment)
 # SUPABASE_URL = "https://<your-supabase-project>.supabase.co"

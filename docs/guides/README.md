@@ -10,7 +10,8 @@
 ### Getting Started
 
 - **[Quick Start](./quickstart.md)** - Quick start guide for RedditHarbor
-- **[Setup Guide](./setup-guide.md)** - Complete multi-project setup instructions
+- **[Setup Guide Root](./setup-guide-root.md)** - Complete multi-project setup instructions from root level
+- **[Integration Complete](./integration-complete.md)** - Marimo integration and dashboard documentation
 - **[Research Types](./research-types.md)** - Comprehensive research capabilities overview
 - **[Setup Checklist](./setup-checklist.md)** - Verification checklist for complete setup
 
@@ -18,6 +19,11 @@
 
 - **[Verification Report](./verification-report.md)** - Manual verification and certification report
 - **[Security Guide](./security-guide.md)** - Comprehensive security and privacy protection
+
+#### Security Documentation (Subfolder)
+- **[Security Fix](./security/security-fix.md)** - Initial security vulnerability fix
+- **[Security Fix Complete](./security/security-fix-complete.md)** - Complete security hardening documentation
+- **[Security Verification](./security/security-verification.md)** - Security verification checklist
 
 ### Workflows & Tutorials
 
@@ -52,7 +58,7 @@
   <h3 style="color: #1A1A1A; margin-top: 0;">🚀 Beginner</h3>
   <p style="color: #666; margin-bottom: 15px;">New to RedditHarbor or Reddit data collection?</p>
   <ol style="color: #1A1A1A; padding-left: 20px;">
-    <li><a href="./setup-guide.md" style="color: #004E89;">Setup Guide</a></li>
+    <li><a href="./setup-guide-root.md" style="color: #004E89;">Setup Guide</a></li>
     <li><a href="./setup-checklist.md" style="color: #004E89;">Setup Checklist</a></li>
     <li><a href="./verification-report.md" style="color: #004E89;">Verification Report</a></li>
   </ol>
@@ -72,7 +78,7 @@
   <h3 style="color: #1A1A1A; margin-top: 0;">⚡ Developer</h3>
   <p style="color: #666; margin-bottom: 15px;">Building applications or analytics pipelines?</p>
   <ol style="color: #1A1A1A; padding-left: 20px;">
-    <li><a href="./setup-guide.md" style="color: #004E89;">Setup Guide</a></li>
+    <li><a href="./setup-guide-root.md" style="color: #004E89;">Setup Guide</a></li>
     <li><a href="./verification-report.md" style="color: #004E89;">System Verification</a></li>
     <li><a href="../api/README.md" style="color: #004E89;">API Reference</a></li>
   </ol>
