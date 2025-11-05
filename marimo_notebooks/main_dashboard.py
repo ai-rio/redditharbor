@@ -639,5 +639,132 @@ def main_layout(mo, main_content_display, panel):
     return layout,
 
 
+@app.cell
+def processing_status(mo, confirmed_df, candidates_df, datetime):
+    """Display AI processing status"""
+
+    confirmed_count = len(confirmed_df)
+    total_submissions = 6127  # From database
+    awaiting = total_submissions - confirmed_count
+
+    # Mock last run time (would come from database in production)
+    last_run = "2 hours ago"
+
+    status = mo.md(f"""
+    ## 🤖 AI Processing Controls
+
+    ### 📊 Processing Status
+
+    - **{confirmed_count}** opportunities analyzed (AI insights complete)
+    - **{awaiting:,}** submissions awaiting analysis
+    - **Last run:** {last_run}
+    """)
+
+    return status,
+
+
+@app.cell
+def ai_processing_trigger(subprocess):
+    """Function to trigger AI analysis via subprocess"""
+
+    def trigger_analysis(count: int):
+        """Run AI analysis script for top N submissions"""
+        try:
+            result = subprocess.run(
+                [
+                    "python",
+                    "scripts/generate_opportunity_insights_openrouter.py",
+                    "--limit",
+                    str(count)
+                ],
+                capture_output=True,
+                text=True,
+                timeout=600  # 10 minute timeout
+            )
+
+            if result.returncode == 0:
+                return f"✅ Analysis complete! Processed {count} submissions."
+            else:
+                return f"❌ Analysis failed: {result.stderr}"
+
+        except subprocess.TimeoutExpired:
+            return f"⏱️ Analysis timed out after 10 minutes"
+        except Exception as e:
+            return f"❌ Error: {e}"
+
+    return trigger_analysis,
+
+
+@app.cell
+def processing_buttons(mo, trigger_analysis):
+    """Create buttons for AI processing actions"""
+
+    # Top 50 button
+    btn_top_50 = mo.ui.button(
+        label="Analyze Top 50 by Score (~5 min, $0.005)",
+        on_click=lambda: trigger_analysis(50),
+        kind="success"
+    )
+
+    # All high priority button
+    btn_all_high = mo.ui.button(
+        label="Analyze All High Priority (~1 hr, $0.61)",
+        on_click=lambda: trigger_analysis(1000),
+        kind="warn"
+    )
+
+    # Custom count input
+    custom_count = mo.ui.number(
+        value=100,
+        start=1,
+        stop=1000,
+        step=10,
+        label="Custom count:"
+    )
+
+    btn_custom = mo.ui.button(
+        label="Analyze Custom Count",
+        on_click=lambda: trigger_analysis(custom_count.value),
+        kind="neutral"
+    )
+
+    buttons = mo.vstack([
+        mo.md("### ⚡ Quick Actions"),
+        btn_top_50,
+        btn_all_high,
+        mo.hstack([custom_count, btn_custom])
+    ])
+
+    return buttons, btn_top_50, btn_all_high, btn_custom, custom_count
+
+
+@app.cell
+def processing_result_display(mo, btn_top_50, btn_all_high, btn_custom, COLORS):
+    """Show result of AI processing"""
+
+    # Check which button was clicked
+    if btn_top_50.value:
+        result = btn_top_50.value
+    elif btn_all_high.value:
+        result = btn_all_high.value
+    elif btn_custom.value:
+        result = btn_custom.value
+    else:
+        result = None
+
+    if result:
+        if "✅" in result:
+            result_display = mo.callout(result, kind="success")
+        else:
+            result_display = mo.callout(result, kind="danger")
+    else:
+        result_display = mo.md(f"""
+        💡 **Tip:** Start with top 50 to discover new opportunities quickly.
+        Costs are estimates based on Claude Haiku 4.5.
+        """)
+
+    return result_display,
+
+
 if __name__ == "__main__":
     app.run()
