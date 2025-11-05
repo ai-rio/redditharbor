@@ -346,15 +346,29 @@ def get_priority_badge(COLORS):
 
 
 @app.cell
-def create_opportunity_card(mo, badge_for_score, COLORS):
-    """Generate HTML for a single opportunity card"""
+def create_opportunity_card_with_click(mo, badge_for_score, COLORS, selected_opportunity_id):
+    """Generate HTML for a single opportunity card with click handling"""
 
-    def render_card(row, index):
+    def render_card_clickable(row, index):
         emoji, color, priority = badge_for_score(row['final_score'])
 
-        card_html = f"""
+        is_selected = selected_opportunity_id.value == row['id']
+        border_color = COLORS['primary'] if is_selected else COLORS['light']
+        border_width = "3px" if is_selected else "2px"
+
+        # Create button with unique ID
+        button = mo.ui.button(
+            label="",
+            kind="neutral",
+            value=row['id']
+        )
+
+        # Manually set ID for the button
+        button_id = f"opp-btn-{row['id']}"
+
+        card = mo.Html(f"""
         <div style="
-            border: 2px solid {COLORS['light']};
+            border: {border_width} solid {border_color};
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1rem;
@@ -362,7 +376,7 @@ def create_opportunity_card(mo, badge_for_score, COLORS):
             transition: all 0.2s;
             background: white;
         "
-        data-id="{row['id']}">
+        onclick="document.getElementById('{button_id}').click()">
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <h3 style="margin: 0 0 0.5rem 0; color: {COLORS['text']};">
                     #{index + 1}: {row['title'][:80]}...
@@ -377,33 +391,53 @@ def create_opportunity_card(mo, badge_for_score, COLORS):
                 <span>📱 r/{row['subreddit']}</span>
             </div>
         </div>
-        """
+        <div id="{button_id}" style="display: none;">
+        </div>
+        """)
 
-        return card_html
+        return mo.vstack([card, button], align="start")
 
-    return render_card,
+    return render_card_clickable,
 
 
 @app.cell
-def display_confirmed_opportunities(mo, filtered_df, render_card):
-    """Show confirmed opportunities in card view"""
+def display_confirmed_opportunities_clickable(mo, filtered_df, render_card_clickable):
+    """Show confirmed opportunities with click handling"""
 
     if len(filtered_df) == 0:
         display = mo.md("""
         ### ✅ Confirmed Opportunities
 
         📭 No opportunities match your filters.
-        Try adjusting the priority tier or sector selection.
         """)
+        buttons = []
     else:
-        cards_html = "### ✅ Confirmed Opportunities\n\n"
+        cards = [mo.md("### ✅ Confirmed Opportunities")]
+        buttons = []
 
         for idx, row in filtered_df.iterrows():
-            cards_html += render_card(row, idx)
+            card_stack = render_card_clickable(row, idx)
+            cards.append(card_stack)
 
-        display = mo.Html(cards_html)
+            # Extract button from vstack for tracking
+            if hasattr(card_stack, '_children') and len(card_stack._children) > 1:
+                buttons.append(card_stack._children[1])
 
-    return display,
+        display = mo.vstack(cards)
+
+    return display, buttons
+
+
+@app.cell
+def handle_card_clicks(buttons, selected_opportunity_id):
+    """Update selection state when a card button is clicked"""
+
+    for button in buttons:
+        if hasattr(button, 'value') and button.value is not None:
+            # Button was clicked, update selection
+            selected_opportunity_id.value = button.value
+
+    return
 
 
 @app.cell
@@ -446,42 +480,48 @@ def display_candidates_section(mo, candidates_df, COLORS):
 
 
 @app.cell
-def create_table_view(mo, filtered_df, badge_for_score, view_mode, pd):
-    """Display opportunities in table format for sector comparison"""
+def create_table_view_with_selection(mo, filtered_df, badge_for_score, view_mode, selected_opportunity_id, pd):
+    """Display opportunities in table format with selection handling"""
 
     if view_mode.value != "By Sector" or len(filtered_df) == 0:
         table_display = mo.md("")
     else:
-        # Prepare table data
+        # Build table (same as before)
         table_data = []
+        id_map = []  # Map row index to opportunity ID
 
         for idx, row in filtered_df.iterrows():
             emoji, color, priority = badge_for_score(row['final_score'])
 
-            # Truncate app concept for table display
             concept_brief = row['app_concept'][:60] + "..." if pd.notna(row['app_concept']) and len(str(row['app_concept'])) > 60 else row['app_concept']
-
-            # Extract function count from core_functions
             functions_text = str(row['core_functions']) if pd.notna(row['core_functions']) else ""
             function_count = functions_text.count('\n') + 1 if functions_text else 0
 
             table_data.append({
-                'Rank': f"#{idx + 1}",
+                'Rank': f"#{len(table_data) + 1}",
                 'Title': row['title'][:50] + "..." if len(row['title']) > 50 else row['title'],
                 'Score': f"{emoji} {row['final_score']:.0f}",
                 'App Concept': concept_brief,
                 'Functions': function_count,
                 'Priority': priority
             })
+            id_map.append(row['id'])
 
-        # Convert to DataFrame for marimo table
         table_df = pd.DataFrame(table_data)
 
-        table_display = mo.ui.table(
+        table_widget = mo.ui.table(
             table_df,
             selection="single",
             label="**Sector Opportunities Comparison**"
         )
+
+        # Update selected opportunity when table row is clicked
+        if table_widget.value and len(table_widget.value) > 0:
+            selected_row_idx = table_widget.value[0]
+            if selected_row_idx < len(id_map):
+                selected_opportunity_id.value = id_map[selected_row_idx]
+
+        table_display = table_widget
 
     return table_display,
 
