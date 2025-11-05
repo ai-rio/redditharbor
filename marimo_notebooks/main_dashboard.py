@@ -246,5 +246,87 @@ def filter_panel(mo, view_mode, priority_filter, sector_dropdown):
     return filters,
 
 
+@app.cell
+def apply_filters_to_data(confirmed_df, priority_filter, sector_dropdown, view_mode):
+    """Apply selected filters to opportunities data"""
+
+    filtered_df = confirmed_df.copy()
+
+    # Apply priority tier filter
+    priority_selected = priority_filter.value
+
+    priority_ranges = {
+        "high": (85, 100),
+        "med-high": (70, 84),
+        "medium": (55, 69)
+    }
+
+    # Filter by selected priority tiers
+    if priority_selected:
+        mask = False
+        for tier in priority_selected:
+            if tier in priority_ranges:
+                low, high = priority_ranges[tier]
+                mask |= (filtered_df['final_score'] >= low) & (filtered_df['final_score'] <= high)
+
+        filtered_df = filtered_df[mask]
+
+    # Apply sector filter (only in "By Sector" mode)
+    if view_mode.value == "By Sector" and sector_dropdown.value != "All":
+        filtered_df = filtered_df[filtered_df['sector'] == sector_dropdown.value]
+
+    return filtered_df,
+
+
+@app.cell
+def calculate_sector_stats(filtered_df, candidates_df, view_mode, sector_dropdown):
+    """Calculate statistics for sector view"""
+
+    if view_mode.value == "By Sector" and sector_dropdown.value != "All":
+        sector_name = sector_dropdown.value
+
+        # Stats for confirmed opportunities
+        confirmed_count = len(filtered_df)
+        avg_score = filtered_df['final_score'].mean() if confirmed_count > 0 else 0
+        score_range = (
+            filtered_df['final_score'].min(),
+            filtered_df['final_score'].max()
+        ) if confirmed_count > 0 else (0, 0)
+
+        # Count candidates in this sector
+        sector_candidates = len(candidates_df[candidates_df['sector'] == sector_name]) if len(candidates_df) > 0 else 0
+
+        stats = {
+            'sector': sector_name,
+            'confirmed_count': confirmed_count,
+            'candidates_count': sector_candidates,
+            'avg_score': avg_score,
+            'score_range': score_range
+        }
+    else:
+        stats = None
+
+    return stats,
+
+
+@app.cell
+def sector_stats_display(mo, stats):
+    """Show sector overview stats in By Sector mode"""
+
+    if stats:
+        display = mo.md(f"""
+        ### 📊 {stats['sector']} Overview
+
+        - **{stats['confirmed_count']}** Confirmed Opportunities
+        - **{stats['candidates_count']}** High-Scoring Candidates
+        - **Average Score:** {stats['avg_score']:.1f}
+        - **Score Range:** {stats['score_range'][0]:.0f} - {stats['score_range'][1]:.0f}
+        """)
+    else:
+        display = mo.md("")
+
+    return display,
+
+
 if __name__ == "__main__":
     app.run()
