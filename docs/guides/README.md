@@ -9,6 +9,7 @@
 
 ### Getting Started
 
+- **[Quick Start](./quickstart.md)** - Quick start guide for RedditHarbor
 - **[Setup Guide](./setup-guide.md)** - Complete multi-project setup instructions
 - **[Research Types](./research-types.md)** - Comprehensive research capabilities overview
 - **[Setup Checklist](./setup-checklist.md)** - Verification checklist for complete setup
@@ -17,6 +18,14 @@
 
 - **[Verification Report](./verification-report.md)** - Manual verification and certification report
 - **[Security Guide](./security-guide.md)** - Comprehensive security and privacy protection
+
+### Workflows & Tutorials
+
+- **[Workflow Guide](./workflow-guide.md)** - Simple 2-step workflow for data collection
+- **[Worktree Setup](./worktree-setup.md)** - Git worktree configuration guide
+- **[Marimo Notebook Enhancements](./marimo-notebook-enhancements.md)** - Guide for working with Marimo notebooks
+- **[Opportunity Research](./opportunity-research-readme.md)** - Finding app opportunities from Reddit data
+- **[Research Guide](./research-guide.md)** - How to conduct research with RedditHarbor
 
 ### Additional Resources
 
@@ -107,11 +116,17 @@ Comprehensive security and privacy protection:
 
 ### ✅ Available
 
+- **[Quick Start](./quickstart.md)** - Quick start guide
 - **[Setup Guide](./setup-guide.md)** - Complete setup instructions
 - **[Research Types](./research-types.md)** - Research capabilities overview
 - **[Setup Checklist](./setup-checklist.md)** - Verification checklist
 - **[Verification Report](./verification-report.md)** - System certification
 - **[Security Guide](./security-guide.md)** - Security and privacy guide
+- **[Workflow Guide](./workflow-guide.md)** - Simple 2-step workflow
+- **[Worktree Setup](./worktree-setup.md)** - Git worktree configuration
+- **[Marimo Notebook Enhancements](./marimo-notebook-enhancements.md)** - Marimo integration guide
+- **[Opportunity Research](./opportunity-research-readme.md)** - Finding app opportunities
+- **[Research Guide](./research-guide.md)** - Research methodology guide
 
 ### 🚧 Coming Soon
 
