@@ -160,6 +160,24 @@ run_research_project(
 )
 ```
 
+### 5️⃣ Launch Dashboard
+
+View and analyze opportunities in the unified marimo dashboard:
+
+```bash
+marimo run marimo_notebooks/main_dashboard.py --port 8895
+```
+
+Access at http://localhost:8895
+
+**Dashboard Features:**
+- View AI-analyzed opportunities across 6 sectors
+- Compare similar opportunities side-by-side
+- Trigger AI analysis for high-scoring candidates
+- Filter by priority tier and sector
+
+See [Dashboard Guide](docs/guides/marimo-main-dashboard.md) for details.
+
 ---
 
 ## 🔧 Configuration
@@ -321,6 +339,10 @@ redditharbor/
 
 ## 📚 Documentation
 
+### 📂 Documentation Navigation
+
+See **[docs/README.md](./docs/README.md)** for complete documentation index and navigation.
+
 ### 🎯 Essential Guides
 
 - **[docs/guides/quickstart.md](./docs/guides/quickstart.md)** - Quick reference for common operations
@@ -332,7 +354,14 @@ redditharbor/
 
 - **[docs/api/README.md](./docs/api/README.md)** - Complete API reference
 - **[docs/architecture/README.md](./docs/architecture/README.md)** - System architecture overview
+- **[docs/architecture/requirements.txt](./docs/architecture/requirements.txt)** - Project dependencies
 - **[docs/guides/research-types.md](./docs/guides/research-types.md)** - Research capabilities
+
+### 📊 Implementation & Research
+
+- **[docs/implementation/IMPLEMENTATION_SUCCESS.md](./docs/implementation/IMPLEMENTATION_SUCCESS.md)** - AI insight generation implementation details
+- **[docs/research/active-work-notes.md](./docs/research/active-work-notes.md)** - Active development work log
+- **[docs/research/project-overview.md](./docs/research/project-overview.md)** - Project overview and history
 
 ### 🤝 Development
 

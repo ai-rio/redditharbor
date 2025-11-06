@@ -118,6 +118,8 @@ def main():
                 logger.info(f"\n🔍 Processing r/{subreddit}...")
 
                 try:
+                    # Step 1: Collect submissions (posts)
+                    logger.info(f"   📝 Collecting submissions...")
                     result = pipeline.subreddit_submission(
                         subreddits=[subreddit],
                         sort_types=sort_types,
@@ -131,10 +133,24 @@ def main():
                         segment_redditors += users_count
                         total_submissions += subs_count
                         total_redditors += users_count
-
-                        logger.info(f"   ✅ r/{subreddit}: {subs_count} submissions, {users_count} users")
+                        logger.info(f"      ✅ {subs_count} submissions, {users_count} users")
                     else:
-                        logger.warning(f"   ⚠️  r/{subreddit}: No data collected")
+                        logger.warning(f"      ⚠️  No submissions collected")
+
+                    # Step 2: Collect comments (CRITICAL for AI insights!)
+                    logger.info(f"   💬 Collecting comments...")
+                    comment_limit = 20  # Collect comments from top 20 posts per subreddit
+                    try:
+                        pipeline.subreddit_comment(
+                            subreddits=[subreddit],
+                            sort_types=sort_types,
+                            limit=comment_limit,
+                            level=1,  # Only top-level comments (faster)
+                            mask_pii=mask_pii
+                        )
+                        logger.info(f"      ✅ Comments collected from top {comment_limit} posts")
+                    except Exception as comment_e:
+                        logger.warning(f"      ⚠️  Comment collection failed: {str(comment_e)}")
 
                 except Exception as e:
                     logger.error(f"   ❌ r/{subreddit}: Error - {str(e)}")
@@ -158,9 +174,17 @@ def main():
         redditors_result = supabase_client.table('redditors').select('count', count='exact').execute()
 
         logger.info(f"✅ Database verified:")
-        logger.info(f"   📝 Submissions in DB: {subs_result.count}")
-        logger.info(f"   💬 Comments in DB: {comments_result.count}")
-        logger.info(f"   👥 Redditors in DB: {redditors_result.count}")
+        logger.info(f"   📝 Submissions: {subs_result.count}")
+        logger.info(f"   💬 Comments: {comments_result.count}")
+        logger.info(f"   👥 Redditors: {redditors_result.count}")
+
+        # Verify comment coverage
+        if comments_result.count > 0:
+            avg_comments = comments_result.count / subs_result.count if subs_result.count > 0 else 0
+            logger.info(f"   📊 Avg comments per submission: {avg_comments:.1f}")
+            logger.info(f"   ✅ Comments successfully collected!")
+        else:
+            logger.warning(f"   ⚠️  No comments found in database!")
 
         return True
 
