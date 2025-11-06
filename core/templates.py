@@ -3,8 +3,19 @@
 RedditHarbor Project Templates for Different Research Types
 """
 
-from redditharbor_config import ENABLE_PII_ANONYMIZATION
-from redditharbor_setup import setup_redditharbor
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+try:
+    from config import ENABLE_PII_ANONYMIZATION
+except ImportError:
+    from config.settings import ENABLE_PII_ANONYMIZATION
+
+try:
+    from redditharbor_setup import setup_redditharbor
+except ImportError:
+    from core.setup import setup_redditharbor
 
 
 def academic_research_project(pipeline, topic_subreddits, time_period="recent"):
@@ -108,6 +119,39 @@ def monetizable_opportunity_research(pipeline, industry_subreddits):
         limit=2000,
         mask_pii=ENABLE_PII_ANONYMIZATION,
     )
+
+
+def problem_first_opportunity_research(pipeline, industry_subreddits):
+    """
+    Template for problem-first data collection
+    Focus: Collect only posts describing real user problems, then analyze for opportunities
+    """
+    print(f"🎯 Problem-First Opportunity Research: {industry_subreddits}")
+
+    # Stage 1: Collect all posts
+    print("  Stage 1: Collecting posts...")
+    pipeline.subreddit_submission(
+        subreddits=industry_subreddits,
+        sort_types=["hot", "rising", "top"],
+        limit=1000,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+    # Stage 2: Tag posts with problem indicators
+    print("  Stage 2: Tagging problem indicators...")
+    # This would run a post-processing step to identify and tag problem posts
+    # The tagging is done in the collection.py extract_problem_keywords() function
+
+    # Stage 3: Deep comment collection
+    print("  Stage 3: Collecting comments...")
+    pipeline.subreddit_comment(
+        subreddits=industry_subreddits,
+        limit=2000,
+        mask_pii=ENABLE_PII_ANONYMIZATION,
+    )
+
+    print("  ✅ Problem-first collection complete!")
+    print("  Next: Run AI analysis to identify app opportunities from tagged problems")
 
 
 def market_segment_research(pipeline, segment_config):

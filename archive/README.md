@@ -87,9 +87,34 @@ Miscellaneous scripts.
 - `test_env.py` - Environment test
 - `collect_real_reddit_data.py` - Duplicate collection
 
+### recent_cleanup/ (10 files)
+Files moved during project organization (2025-11-06). Non-essential test scripts, logs, and utilities that were cluttering the root directory.
+
+**Test scripts:**
+- `certify_problem_first.py` - Problem-first approach certification
+- `find_test_candidates.py` - Test candidate finder
+- `problem_first_test.py` - Problem-first testing utility
+- `test_47_demos.py` - Demo post tester
+
+**Log files:**
+- `batch_scoring.log` - Batch scoring output log
+- `batch_scoring_all.log` - Full batch scoring log
+- `dashboard8081.log` - Dashboard service log
+- `marimo.log` - Marimo notebook log
+
+**Utility scripts:**
+- `check_comments.py` - Comment checking utility
+- `check_commercial_data.py` - Commercial data validation
+- `fix_comment_linkage.py` - Comment linkage fix
+- `fix_linkage.py` - General linkage fix
+- `collect_problem_posts.py` - Problem posts collector (moved to inactive)
+- `filter_problems.py` - Problem filtering utility (moved to inactive)
+- `test_commercial_insights.py` - Commercial insights test
+- `test_specific_post.py` - Specific post tester
+
 ## Summary
 
-- **Total Archived:** 43 scripts
+- **Total Archived:** 53 files (43 previous + 10 new)
 - **Reason for Archival:**
   - Hung/stuck: 5 scripts
   - Old versions: 5 scripts

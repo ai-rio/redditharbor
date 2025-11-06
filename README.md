@@ -339,6 +339,10 @@ redditharbor/
 
 ## 📚 Documentation
 
+### 📂 Documentation Navigation
+
+See **[docs/README.md](./docs/README.md)** for complete documentation index and navigation.
+
 ### 🎯 Essential Guides
 
 - **[docs/guides/quickstart.md](./docs/guides/quickstart.md)** - Quick reference for common operations
@@ -350,7 +354,14 @@ redditharbor/
 
 - **[docs/api/README.md](./docs/api/README.md)** - Complete API reference
 - **[docs/architecture/README.md](./docs/architecture/README.md)** - System architecture overview
+- **[docs/architecture/requirements.txt](./docs/architecture/requirements.txt)** - Project dependencies
 - **[docs/guides/research-types.md](./docs/guides/research-types.md)** - Research capabilities
+
+### 📊 Implementation & Research
+
+- **[docs/implementation/IMPLEMENTATION_SUCCESS.md](./docs/implementation/IMPLEMENTATION_SUCCESS.md)** - AI insight generation implementation details
+- **[docs/research/active-work-notes.md](./docs/research/active-work-notes.md)** - Active development work log
+- **[docs/research/project-overview.md](./docs/research/project-overview.md)** - Project overview and history
 
 ### 🤝 Development
 
