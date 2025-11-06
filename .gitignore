@@ -444,3 +444,4 @@ error_log/
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+.dlt/
