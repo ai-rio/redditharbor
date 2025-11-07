@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """
-Batch Opportunity Scoring Script
+Batch Opportunity Scoring Script (DLT-Powered)
 Processes all Reddit submissions in the database and scores them using the 5-dimensional methodology.
 
 This script:
 - Fetches all submissions from the Supabase database
 - Maps subreddits to business sectors
 - Scores opportunities using OpportunityAnalyzerAgent
-- Stores results in opportunity_analysis table
+- Stores results in opportunity_scores table via DLT pipeline (merge disposition)
 - Provides progress tracking and summary statistics
+
+DLT Migration Benefits:
+- Automatic deduplication (merge write disposition)
+- Schema evolution support (automatic table updates)
+- Production-ready deployment (Airflow integration)
+- Consistent data loading pattern across all scripts
 """
 
 import sys
@@ -37,6 +43,9 @@ except ImportError:
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from config import SUPABASE_URL, SUPABASE_KEY
 from supabase import create_client
+
+# DLT imports for pipeline-based loading
+from core.dlt_collection import create_dlt_pipeline
 
 
 # ============================================================================
@@ -287,81 +296,126 @@ def format_submission_for_agent(submission: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def store_analysis_result(
+def prepare_analysis_for_storage(
     submission_id: str,
     analysis: Dict[str, Any],
-    sector: str,
-    supabase_client: Any
-) -> bool:
+    sector: str
+) -> Dict[str, Any]:
     """
-    Store opportunity analysis result in the opportunity_analysis table.
+    Prepare opportunity analysis result for DLT pipeline storage.
 
     Args:
         submission_id: ID of the submission from the submissions table
         analysis: Analysis results from agent containing dimension scores
         sector: Mapped business sector
-        supabase_client: Initialized Supabase client
+
+    Returns:
+        Dictionary formatted for opportunity_scores table
+    """
+    # Generate opportunity_id from submission_id (unique identifier for merge)
+    opportunity_id = f"opp_{submission_id}"
+
+    # Extract dimension scores
+    scores = analysis.get("dimension_scores", {})
+
+    # Prepare data for opportunity_scores table
+    analysis_data = {
+        "submission_id": submission_id,
+        "opportunity_id": opportunity_id,
+        "title": analysis.get("title", "")[:500],  # Truncate to reasonable length
+        "subreddit": analysis.get("subreddit", ""),
+        "sector": sector,
+        "market_demand": float(scores.get("market_demand", 0)),
+        "pain_intensity": float(scores.get("pain_intensity", 0)),
+        "monetization_potential": float(scores.get("monetization_potential", 0)),
+        "market_gap": float(scores.get("market_gap", 0)),
+        "technical_feasibility": float(scores.get("technical_feasibility", 0)),
+        "simplicity_score": float(scores.get("simplicity_score", 70)),  # Default neutral score
+        "final_score": float(analysis.get("final_score", 0)),
+        "priority": analysis.get("priority", ""),
+        "scored_at": datetime.now().isoformat(),
+    }
+
+    return analysis_data
+
+
+def load_scores_to_supabase_via_dlt(
+    scored_opportunities: List[Dict[str, Any]]
+) -> bool:
+    """
+    Load scored opportunities to Supabase using DLT pipeline.
+
+    This function uses DLT's merge write disposition to automatically handle
+    deduplication based on opportunity_id. If a score already exists, it will
+    be updated with the new values.
+
+    Args:
+        scored_opportunities: List of scored opportunity dictionaries
 
     Returns:
         True if successful, False otherwise
     """
+    if not scored_opportunities:
+        print("⚠️  No scored opportunities to load")
+        return False
+
     try:
-        # Generate opportunity_id from submission_id
-        opportunity_id = f"opp_{submission_id}"
+        print(f"\n{'='*80}")
+        print("LOADING SCORES TO SUPABASE VIA DLT PIPELINE")
+        print(f"{'='*80}")
+        print(f"Opportunities to load: {len(scored_opportunities)}")
 
-        # Extract dimension scores
-        scores = analysis.get("dimension_scores", {})
+        # Create DLT pipeline
+        pipeline = create_dlt_pipeline()
 
-        # Prepare data for opportunity_analysis table
-        analysis_data = {
-            "submission_id": submission_id,
-            "opportunity_id": opportunity_id,
-            "title": analysis.get("title", "")[:500],  # Truncate to reasonable length
-            "subreddit": analysis.get("subreddit", ""),
-            "sector": sector,
-            "market_demand": float(scores.get("market_demand", 0)),
-            "pain_intensity": float(scores.get("pain_intensity", 0)),
-            "monetization_potential": float(scores.get("monetization_potential", 0)),
-            "market_gap": float(scores.get("market_gap", 0)),
-            "technical_feasibility": float(scores.get("technical_feasibility", 0)),
-            "simplicity_score": float(scores.get("simplicity_score", 70)),  # Default neutral score
-            "final_score": float(analysis.get("final_score", 0)),
-            "priority": analysis.get("priority", ""),
-            "scored_at": datetime.now().isoformat(),
-        }
+        # Load with merge disposition to prevent duplicates
+        load_info = pipeline.run(
+            scored_opportunities,
+            table_name="opportunity_scores",
+            write_disposition="merge",
+            primary_key="opportunity_id"  # Deduplication key
+        )
 
-        # Use upsert to handle duplicates based on opportunity_id
-        response = supabase_client.table("opportunity_analysis").upsert(
-            analysis_data,
-            on_conflict="opportunity_id"
-        ).execute()
+        print(f"\n✓ Successfully loaded {len(scored_opportunities)} opportunity scores")
+        print(f"  - Table: opportunity_scores")
+        print(f"  - Write mode: merge (deduplication enabled)")
+        print(f"  - Primary key: opportunity_id")
+        print(f"  - Started at: {load_info.started_at}")
+        print(f"{'='*80}\n")
 
         return True
 
     except Exception as e:
-        print(f"Error storing analysis result: {e}")
+        print(f"\n✗ Error loading scores via DLT: {e}")
+        print(f"  - Opportunities affected: {len(scored_opportunities)}")
+        print(f"  - Recommendation: Check DLT configuration and Supabase connection")
+        print(f"{'='*80}\n")
         return False
 
 
 def process_batch(
     submissions: List[Dict[str, Any]],
     agent: OpportunityAnalyzerAgent,
-    supabase_client: Any,
     batch_number: int
-) -> List[Dict[str, Any]]:
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Process a batch of submissions through the opportunity analyzer.
+
+    This function scores submissions but does NOT store them directly.
+    Instead, it returns scored opportunities for batch DLT loading.
 
     Args:
         submissions: List of submission dictionaries to process
         agent: Initialized OpportunityAnalyzerAgent
-        supabase_client: Initialized Supabase client for storing results
         batch_number: Current batch number for logging
 
     Returns:
-        List of analysis results with scores and metadata
+        Tuple of (analysis_results, scored_opportunities_for_dlt)
+        - analysis_results: List with full analysis metadata
+        - scored_opportunities_for_dlt: List formatted for DLT pipeline
     """
-    results = []
+    analysis_results = []
+    scored_opportunities = []
 
     for submission in submissions:
         try:
@@ -375,27 +429,26 @@ def process_batch(
             sector = map_subreddit_to_sector(submission.get("subreddit", ""))
             analysis["sector"] = sector
 
-            # Store the analysis result
-            success = store_analysis_result(
-                submission.get("id"),  # submission_id from database
+            # Prepare for DLT storage
+            submission_id = submission.get("id")
+            scored_opp = prepare_analysis_for_storage(
+                submission_id,
                 analysis,
-                sector,
-                supabase_client
+                sector
             )
 
-            if success:
-                analysis["stored"] = True
-                analysis["opportunity_id"] = f"opp_{submission.get('id')}"
-            else:
-                analysis["stored"] = False
-                print(f"Warning: Failed to store analysis for submission {submission.get('id')}")
+            # Track for batch loading
+            scored_opportunities.append(scored_opp)
 
-            results.append(analysis)
+            # Add metadata for reporting
+            analysis["stored"] = False  # Will be updated after DLT load
+            analysis["opportunity_id"] = f"opp_{submission_id}"
+            analysis_results.append(analysis)
 
         except Exception as e:
             print(f"Error processing submission {submission.get('id', 'unknown')}: {e}")
             # Add error entry but continue processing
-            results.append({
+            analysis_results.append({
                 "submission_id": submission.get("id", "unknown"),
                 "error": str(e),
                 "stored": False,
@@ -403,7 +456,7 @@ def process_batch(
             })
             continue
 
-    return results
+    return analysis_results, scored_opportunities
 
 
 def generate_summary_report(
@@ -496,10 +549,10 @@ def generate_summary_report(
 
 def main():
     """
-    Main execution function for batch opportunity scoring.
+    Main execution function for batch opportunity scoring (DLT-powered).
     """
     print("\n" + "="*80)
-    print("BATCH OPPORTUNITY SCORING - START")
+    print("BATCH OPPORTUNITY SCORING - DLT-POWERED")
     print("="*80 + "\n")
 
     start_time = time.time()
@@ -509,9 +562,12 @@ def main():
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         agent = OpportunityAnalyzerAgent()
-        print("Connections initialized successfully")
+        print("✓ Connections initialized successfully")
+        print("  - Supabase: Connected")
+        print("  - OpportunityAnalyzerAgent: Ready")
+        print("  - DLT Pipeline: Available")
     except Exception as e:
-        print(f"Error initializing: {e}")
+        print(f"✗ Error initializing: {e}")
         return
 
     # Fetch submissions
@@ -521,18 +577,22 @@ def main():
         if not submissions:
             print("No submissions to process. Exiting.")
             return
-        print(f"Found {len(submissions):,} submissions to process")
+        print(f"✓ Found {len(submissions):,} submissions to process")
     except Exception as e:
-        print(f"Error fetching submissions: {e}")
+        print(f"✗ Error fetching submissions: {e}")
         return
 
     # Process in batches
-    print(f"\nProcessing submissions in batches...")
+    print(f"\n{'='*80}")
+    print("PROCESSING SUBMISSIONS IN BATCHES")
+    print(f"{'='*80}")
     all_results = []
+    all_scored_opportunities = []
     batch_size = 100
     num_batches = (len(submissions) + batch_size - 1) // batch_size
 
     print(f"Total batches: {num_batches}")
+    print(f"Batch size: {batch_size} submissions")
     print("Starting processing with progress bar...\n")
 
     # Use tqdm for overall progress
@@ -541,21 +601,61 @@ def main():
         batch_num = (i // batch_size) + 1
 
         try:
-            results = process_batch(batch, agent, supabase, batch_num)
+            # Process batch (returns analysis results and scored opportunities)
+            results, scored_opps = process_batch(batch, agent, batch_num)
             all_results.extend(results)
+            all_scored_opportunities.extend(scored_opps)
 
         except Exception as e:
-            print(f"\nError processing batch {batch_num}: {e}")
-            print("Continuing with next batch...\n")
+            print(f"\n✗ Error processing batch {batch_num}: {e}")
+            print("   Continuing with next batch...\n")
             continue
 
-    # Calculate elapsed time
+    # Calculate processing time
+    processing_time = time.time() - start_time
+
+    # Load all scored opportunities to Supabase via DLT (batch operation)
+    print(f"\n{'='*80}")
+    print("LOADING SCORED OPPORTUNITIES TO SUPABASE")
+    print(f"{'='*80}")
+    print(f"Total opportunities to load: {len(all_scored_opportunities):,}")
+
+    dlt_load_start = time.time()
+    load_success = load_scores_to_supabase_via_dlt(all_scored_opportunities)
+    dlt_load_time = time.time() - dlt_load_start
+
+    # Update stored status in results
+    if load_success:
+        for result in all_results:
+            if "error" not in result:
+                result["stored"] = True
+
+    # Calculate total elapsed time
     elapsed_time = time.time() - start_time
 
     # Generate summary report
+    print(f"\n{'='*80}")
+    print("GENERATING SUMMARY REPORT")
+    print(f"{'='*80}")
     generate_summary_report(all_results, elapsed_time, len(submissions))
 
-    print("Batch opportunity scoring completed successfully!")
+    # Print DLT-specific metrics
+    print(f"\n{'='*80}")
+    print("DLT PIPELINE METRICS")
+    print(f"{'='*80}")
+    print(f"Processing time:       {processing_time:.2f}s")
+    print(f"DLT load time:         {dlt_load_time:.2f}s")
+    print(f"Total time:            {elapsed_time:.2f}s")
+    print(f"Load success:          {'✓ Yes' if load_success else '✗ No'}")
+    print(f"Deduplication:         Enabled (merge disposition)")
+    print(f"Primary key:           opportunity_id")
+    print(f"Target table:          opportunity_scores")
+    print(f"{'='*80}\n")
+
+    if load_success:
+        print("✓ Batch opportunity scoring completed successfully!")
+    else:
+        print("⚠️  Batch opportunity scoring completed with warnings (DLT load failed)")
 
 
 if __name__ == "__main__":
