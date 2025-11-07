@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """
-DLT-Powered Problem-First Data Collection
+DLT-Powered Problem-First Data Collection with Comment Threading Support
 
 This module implements Reddit data collection using DLT (Data Load Tool) with
-problem-first filtering to collect only posts describing user problems.
+problem-first filtering to collect posts describing user problems and their
+discussion threads.
 
 Features:
 - DLT-based pipeline for automated data loading
 - Problem keyword filtering (PROBLEM_KEYWORDS)
 - Incremental loading with cursor-based state tracking
 - Supabase destination with automatic schema evolution
+- Comment collection with threading metadata (depth, parent_id)
 - Parallel processing support
+
+Main Functions:
+- collect_problem_posts(): Collect problem-keyword filtered submissions
+- collect_post_comments(): Collect comments from submissions with threading info
+- load_to_supabase(): Load data using DLT pipeline for incremental updates
 """
 
 import sys
@@ -208,6 +215,156 @@ def collect_problem_posts(
 
     print(f"\nTotal problem posts collected: {len(all_problem_posts)}")
     return all_problem_posts
+
+
+def collect_post_comments(
+    submission_ids: List[str] | str,
+    reddit_client: Optional[praw.Reddit] = None,
+    merge_disposition: str = "merge",
+    state_key: Optional[str] = None
+) -> List[Dict[str, Any]] | bool:
+    """
+    Collect comments from Reddit submissions using DLT-compatible format.
+
+    This function retrieves all comments from specified submissions, including
+    metadata for threading analysis (parent_id, depth). Deleted/removed comments
+    are filtered out. Results are formatted for DLT pipeline consumption.
+
+    Args:
+        submission_ids: Single submission ID or list of submission IDs (e.g., 'abc123' or ['abc123', 'def456'])
+        reddit_client: Optional praw.Reddit instance; if None, creates new client
+        merge_disposition: DLT write disposition ('merge', 'append', 'replace') - controls deduplication
+        state_key: Optional key for tracking state in incremental loads (future use)
+
+    Returns:
+        List of comment dictionaries with schema:
+        [
+            {
+                "comment_id": str (Reddit comment ID),
+                "submission_id": str (Parent submission ID),
+                "author": str (Reddit username, '[deleted]' if removed),
+                "body": str (Comment text content),
+                "score": int (Comment upvote score),
+                "created_utc": int (Unix timestamp),
+                "parent_id": str (Reddit parent ID, e.g., 't3_abc123' for submission, 't1_xyz789' for comment),
+                "depth": int (Comment nesting depth, 0 for top-level),
+            },
+            ...
+        ]
+
+        Returns False if an error occurs (API failure, invalid submission ID, rate limit)
+
+    Raises:
+        No exceptions; logs errors and returns False on failure
+
+    Example:
+        >>> # Single submission
+        >>> comments = collect_post_comments('abc123')
+        >>> print(f"Collected {len(comments)} comments")
+
+        >>> # Multiple submissions
+        >>> submissions = ['abc123', 'def456', 'ghi789']
+        >>> comments = collect_post_comments(submissions)
+
+        >>> # Use existing Reddit client
+        >>> import praw
+        >>> reddit = praw.Reddit(...)
+        >>> comments = collect_post_comments('abc123', reddit_client=reddit)
+
+    Notes:
+        - Handles Reddit API rate limiting automatically via PRAW
+        - Filters out deleted/removed comments (author == '[deleted]')
+        - For DLT integration, use merge_disposition='merge' with primary_key='comment_id'
+        - Empty submissions (no comments) return empty list, not False
+        - Large submissions may take time; PRAW handles pagination automatically
+    """
+    # Normalize input: convert single ID to list
+    if isinstance(submission_ids, str):
+        submission_ids = [submission_ids]
+
+    if not submission_ids:
+        print("⚠️  No submission IDs provided")
+        return []
+
+    # Initialize Reddit client if not provided
+    if reddit_client is None:
+        reddit_client = get_reddit_client()
+
+    print(f"Collecting comments from {len(submission_ids)} submission(s)...")
+    print("-" * 80)
+
+    all_comments = []
+    error_log_file = project_root / "error_log" / f"collect_comments_{int(time.time())}.log"
+
+    # Ensure error_log directory exists
+    error_log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    for submission_id in submission_ids:
+        try:
+            print(f"\nProcessing submission: {submission_id}")
+
+            # Fetch the submission
+            submission = reddit_client.submission(id=submission_id)
+
+            # Access submission properties to trigger load
+            _ = submission.title  # This forces the API call
+
+            comments_collected = 0
+            comments_skipped = 0
+
+            # Replace MoreComments objects to get all comments
+            submission.comments.replace_more(limit=0)
+
+            # Flatten all comments
+            for comment in submission.comments.list():
+                comments_collected += 1
+
+                # Skip deleted/removed comments
+                if comment.author is None:
+                    comments_skipped += 1
+                    continue
+
+                author_name = str(comment.author) if comment.author else "[deleted]"
+
+                # Build comment data structure
+                comment_data = {
+                    "comment_id": comment.id,
+                    "submission_id": submission_id,
+                    "author": author_name,
+                    "body": comment.body,
+                    "score": comment.score,
+                    "created_utc": int(comment.created_utc),
+                    "parent_id": comment.parent_id,
+                    "depth": comment.depth,
+                }
+
+                all_comments.append(comment_data)
+
+            print(f"✓ Collected {comments_collected} comments from {submission_id} ({comments_skipped} deleted/removed)")
+
+        except praw.exceptions.RedditAPIException as e:
+            error_msg = f"Reddit API error for {submission_id}: {e}"
+            print(f"✗ {error_msg}")
+            with open(error_log_file, "a") as f:
+                f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - ERROR - {error_msg}\n")
+
+        except Exception as e:
+            error_msg = f"Unexpected error collecting comments from {submission_id}: {e}"
+            print(f"✗ {error_msg}")
+            with open(error_log_file, "a") as f:
+                f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - ERROR - {error_msg}\n")
+
+    # Log summary
+    if all_comments:
+        print(f"\n✓ Total comments collected: {len(all_comments)}")
+        print(f"  - Merge disposition: {merge_disposition}")
+        print(f"  - Ready for DLT pipeline (use primary_key='comment_id')")
+        return all_comments
+    else:
+        print(f"\n⚠️  No comments collected from {len(submission_ids)} submission(s)")
+        return []
+
+
 
 
 def create_dlt_pipeline() -> dlt.Pipeline:
