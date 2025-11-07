@@ -70,7 +70,7 @@ collector.store_to_database(data, database_url="your_db_url")
 
 ### Implementation & Research
 
-- **[Implementation Success](./implementation/IMPLEMENTATION_SUCCESS.md)** - AI insight generation implementation details
+- **[Implementation Success](./implementation/implementation-success.md)** - AI insight generation implementation details
 - **[Active Work Notes](./research/active-work-notes.md)** - Active development work log
 - **[Project Overview](./research/project-overview.md)** - Project overview and history
 - **[Requirements](./architecture/requirements.txt)** - Project dependencies

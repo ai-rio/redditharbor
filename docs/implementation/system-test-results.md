@@ -416,7 +416,7 @@ Total Addressable Market (TAM):
 ✅ docs/dlt-integration-summary.md
    └── DLT implementation documentation
 
-✅ docs/methodology/monetizable_app_research_methodology.md
+✅ docs/methodology/monetizable-app-research-methodology.md
    └── Complete research methodology & validation framework
 ```
 

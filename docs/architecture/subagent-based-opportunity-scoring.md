@@ -289,7 +289,7 @@ CREATE TABLE opportunity_analysis (
 
 ## References
 
-- [Monetizable App Research Methodology](../methodology/monetizable_app_research_methodology.md)
+- [Monetizable App Research Methodology](../methodology/monetizable-app-research-methodology.md)
 - [OpportunityAnalyzerAgent](../../agent_tools/opportunity_analyzer_agent.py)
 - [Marimo Integration Complete](../../.serena/memories/redditharbor_marimo_integration_complete.md)
 - [Enhanced Collection Results](../implementation/monetizable-collection-implementation.md)

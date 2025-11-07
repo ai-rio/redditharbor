@@ -1238,7 +1238,7 @@ The design supports the complete research workflow from Reddit data collection t
 ## References
 
 - [RedditHarbor Project Documentation](../README.md)
-- [Monetizable App Research Methodology](./monetizable_app_research_methodology.md)
+- [Monetizable App Research Methodology](./monetizable-app-research-methodology.md)
 - [Database Schema Documentation](./database_schema/)
 - [Supabase Documentation](https://supabase.com/docs)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)

@@ -7,7 +7,7 @@ This implementation provides a comprehensive methodology for systematically iden
 ## Components
 
 ### 1. Research Methodology Documentation
-- **File**: `/home/carlos/projects/redditharbor/docs/monetizable_app_research_methodology.md`
+- **File**: `/home/carlos/projects/redditharbor/docs/monetizable-app-research-methodology.md`
 - **Purpose**: Complete methodology framework with scoring system and validation approach
 - **Key Features**:
   - Multi-dimensional scoring framework (5 dimensions)

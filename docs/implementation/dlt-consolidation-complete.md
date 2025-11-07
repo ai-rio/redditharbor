@@ -579,7 +579,7 @@ pytest tests/ --cov=scripts --cov=core --cov-report=html
    - Common pitfalls and solutions
    - Testing strategies
 
-2. **`docs/DLT_CONSOLIDATION_COMPLETE.md`** (This document)
+2. **`docs/dlt-consolidation-complete.md`** (This document)
    - Project summary
    - All patterns catalog
    - Deployment guide

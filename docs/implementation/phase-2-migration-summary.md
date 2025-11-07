@@ -414,7 +414,7 @@ Modified:
 
 Added:
   tests/test_full_scale_collection_migration.py  (630 lines, comprehensive tests)
-  PHASE_2_MIGRATION_SUMMARY.md                   (this file)
+  phase-2-migration-summary.md                   (this file)
 
 Validated:
   ✅ Syntax check: PASSED

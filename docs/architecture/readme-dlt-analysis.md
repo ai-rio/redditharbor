@@ -49,7 +49,7 @@ This directory contains the comprehensive DLT (Data Load Tool) module analysis f
 ---
 
 ### 3. Task Summary
-**File:** `../TASK_2_ANALYSIS_SUMMARY.md`
+**File:** `../task-2-analysis-summary.md`
 **Size:** 13 KB
 **Purpose:** Executive summary and recommendations
 
@@ -114,7 +114,7 @@ Location: `/home/carlos/projects/redditharbor/core/dlt_collection.py`
 ## How to Use This Analysis
 
 ### For Architects/Leads
-1. Read: TASK_2_ANALYSIS_SUMMARY.md
+1. Read: task-2-analysis-summary.md
 2. Review: Architecture Decision Matrix in dlt-module-analysis.md
 3. Decide: Which extensions to implement first
 
@@ -125,7 +125,7 @@ Location: `/home/carlos/projects/redditharbor/core/dlt_collection.py`
 4. Use: File paths and code examples provided
 
 ### For Project Planning
-1. Review: Effort Estimation tables in TASK_2_ANALYSIS_SUMMARY.md
+1. Review: Effort Estimation tables in task-2-analysis-summary.md
 2. Check: Migration Readiness Assessment in dlt-module-analysis.md
 3. Plan: Phase-by-phase rollout using timeline
 
@@ -207,7 +207,7 @@ Implement Extension 1.1 TODAY to unblock all Phase 1 scripts and enable Phase 2+
 ## Next Steps
 
 ### Immediate (Today)
-1. Read TASK_2_ANALYSIS_SUMMARY.md (10 minutes)
+1. Read task-2-analysis-summary.md (10 minutes)
 2. Review Extension 1.1 specification in quick reference (5 minutes)
 3. Decide: Proceed with implementation? (5 minutes)
 
@@ -230,7 +230,7 @@ Implement Extension 1.1 TODAY to unblock all Phase 1 scripts and enable Phase 2+
 For questions about:
 - **Extension specifications:** See dlt-extension-quick-reference.md
 - **Technical details:** See dlt-module-analysis.md Part 1
-- **Migration approach:** See TASK_2_ANALYSIS_SUMMARY.md
+- **Migration approach:** See task-2-analysis-summary.md
 - **Specific functions:** See dlt-module-analysis.md Part 4
 
 ---

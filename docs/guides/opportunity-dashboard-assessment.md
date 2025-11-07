@@ -329,7 +329,7 @@ mo.md("📊 **Using demo data** (No database connection)")
 
 ## Appendix: Files Referenced
 
-- `/home/carlos/projects/redditharbor/docs/monetizable_app_research_methodology.md` - Methodology requirements
+- `/home/carlos/projects/redditharbor/docs/monetizable-app-research-methodology.md` - Methodology requirements
 - `/home/carlos/projects/redditharbor/marimo_notebooks/opportunity_analysis_dashboard.py` - Dashboard implementation
 - `/home/carlos/projects/redditharbor/redditharbor_marimo_dashboard.py` - Main dashboard (reference)
 - `/home/carlos/projects/redditharbor/scripts/verify_opportunity_data.py` - Data verification script

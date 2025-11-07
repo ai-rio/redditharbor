@@ -9,13 +9,13 @@
 ## Navigation Guide
 
 ### 🎯 Start Here
-**If you have 5 minutes:** Read `MIGRATION_QUICK_REFERENCE.md`
+**If you have 5 minutes:** Read `migration-quick-reference.md`
 - Phase overview
 - Key patterns
 - Decision trees
 - Immediate next steps
 
-**If you have 30 minutes:** Read `DLT_TASK1_SUMMARY.md`
+**If you have 30 minutes:** Read `dlt-task1-summary.md`
 - Executive summary
 - 5 key patterns explained
 - Migration strategy
@@ -58,7 +58,7 @@
 
 ---
 
-### 📄 DLT_TASK1_SUMMARY.md (Executive Summary)
+### 📄 dlt-task1-summary.md (Executive Summary)
 **Size:** 12 KB | 343 lines  
 **Audience:** Project managers, team leads, decision makers
 
@@ -80,7 +80,7 @@
 
 ---
 
-### 📄 MIGRATION_QUICK_REFERENCE.md (Quick Lookup)
+### 📄 migration-quick-reference.md (Quick Lookup)
 **Size:** 5 KB | 200 lines  
 **Audience:** Developers, QA, operations
 
@@ -104,13 +104,13 @@
 ## How to Use This Analysis
 
 ### For Implementation Teams
-1. Start with `MIGRATION_QUICK_REFERENCE.md` for phase structure
-2. Reference `DLT_TASK1_SUMMARY.md` for blocking dependencies
+1. Start with `migration-quick-reference.md` for phase structure
+2. Reference `dlt-task1-summary.md` for blocking dependencies
 3. Use `dlt_migration_task1_analysis.md` for technical details
 4. Bookmark the decision tree for ambiguous situations
 
 ### For Project Managers
-1. Review `DLT_TASK1_SUMMARY.md` for timeline and phases
+1. Review `dlt-task1-summary.md` for timeline and phases
 2. Use Phase 1/2/3 sections for resource planning
 3. Reference success criteria for progress tracking
 4. Check blocking dependencies for risk management
@@ -122,7 +122,7 @@
 4. Validate assumptions with team
 
 ### For QA/Testing
-1. Review `MIGRATION_QUICK_REFERENCE.md` success metrics
+1. Review `migration-quick-reference.md` success metrics
 2. Use phase breakdown for test planning
 3. Reference script analysis table for coverage planning
 4. Check dependencies for test environment setup
@@ -169,19 +169,19 @@
 → Go to `dlt_migration_task1_summary.md`, "Blocking Dependencies" section
 
 ### "What should we do first?"
-→ Go to `MIGRATION_QUICK_REFERENCE.md`, "Phase 1" section
+→ Go to `migration-quick-reference.md`, "Phase 1" section
 
 ### "How do we handle duplicates?"
 → Search all documents for "Pattern 2: No Duplicate Prevention"
 
 ### "What's the timeline?"
-→ Go to `DLT_TASK1_SUMMARY.md`, "Migration Order Recommendation" section
+→ Go to `dlt-task1-summary.md`, "Migration Order Recommendation" section
 
 ### "What are success criteria?"
-→ Go to `DLT_TASK1_SUMMARY.md`, "Success Criteria by Phase" section
+→ Go to `dlt-task1-summary.md`, "Success Criteria by Phase" section
 
 ### "Which script should we migrate first?"
-→ Go to `MIGRATION_QUICK_REFERENCE.md`, "Phase 1: Foundation" section
+→ Go to `migration-quick-reference.md`, "Phase 1: Foundation" section
 
 ### "What are the dependencies?"
 → Go to `dlt_migration_task1_analysis.md`, "Dependency Graph" section
@@ -190,7 +190,7 @@
 → Go to `dlt_migration_task1_analysis.md`, "Scripts Analysis Table" (summary) or detailed profiles
 
 ### "What technical decisions need to be made?"
-→ Go to `DLT_TASK1_SUMMARY.md`, "Technical Architecture Decisions" section
+→ Go to `dlt-task1-summary.md`, "Technical Architecture Decisions" section
 
 ---
 
@@ -208,7 +208,7 @@
 - **Line 610-650:** Metrics & success criteria
 - **Line 660-680:** Open questions
 
-### DLT_TASK1_SUMMARY.md
+### dlt-task1-summary.md
 - **Lines 1-15:** Deliverables overview
 - **Lines 25-55:** Key patterns
 - **Lines 65-85:** Blocking dependencies
@@ -217,7 +217,7 @@
 - **Lines 210-250:** Technical architecture
 - **Lines 260-290:** Immediate next steps
 
-### MIGRATION_QUICK_REFERENCE.md
+### migration-quick-reference.md
 - **Lines 1-40:** Phase overview
 - **Lines 50-90:** Key patterns
 - **Lines 100-130:** Blocking dependencies
@@ -316,9 +316,9 @@
 ## Contact & Questions
 
 For clarification on:
-- **Overall strategy:** See `DLT_TASK1_SUMMARY.md`
+- **Overall strategy:** See `dlt-task1-summary.md`
 - **Technical details:** See `dlt_migration_task1_analysis.md`
-- **Quick reference:** See `MIGRATION_QUICK_REFERENCE.md`
+- **Quick reference:** See `migration-quick-reference.md`
 - **Specific script:** Search for script name in all documents
 
 ---

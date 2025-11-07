@@ -66,6 +66,6 @@ ruff check . && ruff format .
 
 ## Key Files
 - `/docs/README.md` - Comprehensive documentation
-- `/docs/methodology/monetizable_app_research_methodology.md` - Full methodology
+- `/docs/methodology/monetizable-app-research-methodology.md` - Full methodology
 - `scripts/generate_opportunity_insights_openrouter.py` - AI generation script (UPDATED)
 - `config/settings.py` - Configuration

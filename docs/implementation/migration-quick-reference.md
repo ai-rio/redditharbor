@@ -195,14 +195,14 @@ pipeline.run(
 - Detailed migration specs
 
 ### Executive Summary
-📄 `/home/carlos/projects/redditharbor/DLT_TASK1_SUMMARY.md`
+📄 `/home/carlos/projects/redditharbor/dlt-task1-summary.md`
 - 343 lines, 12 KB
 - Key findings
 - Phase breakdown
 - Immediate next steps
 
 ### Quick Reference (this file)
-📄 `/home/carlos/projects/redditharbor/MIGRATION_QUICK_REFERENCE.md`
+📄 `/home/carlos/projects/redditharbor/migration-quick-reference.md`
 - Visual overview
 - Decision trees
 - Quick lookup tables
@@ -234,8 +234,8 @@ pipeline.run(
 
 Refer to:
 - Detailed analysis: `/home/carlos/projects/redditharbor/analysis/dlt_migration_task1_analysis.md`
-- Summary: `/home/carlos/projects/redditharbor/DLT_TASK1_SUMMARY.md`
-- This guide: `/home/carlos/projects/redditharbor/MIGRATION_QUICK_REFERENCE.md`
+- Summary: `/home/carlos/projects/redditharbor/dlt-task1-summary.md`
+- This guide: `/home/carlos/projects/redditharbor/migration-quick-reference.md`
 
 ---
 
