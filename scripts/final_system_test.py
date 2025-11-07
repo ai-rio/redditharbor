@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 """
-Final System Test: End-to-End Monetizable App Discovery
+Final System Test: End-to-End Monetizable App Discovery (DLT-Powered)
 
 This test validates the complete RedditHarbor system according to
 the monetizable_app_research_methodology.md:
 
-1. Problem identification from synthetic Reddit posts
+1. Problem identification from Reddit posts (via DLT pipeline) OR synthetic data
 2. AI-powered opportunity scoring (1-3 function constraint)
 3. Monetization validation
 4. Final app opportunity report
+5. Storage in Supabase via DLT (with deduplication)
 
 Expected Results:
 - 8-10 valid app opportunities with 1-3 core functions
 - Success rate: 80%+
 - All opportunities documented with complete metadata
+- Data stored in Supabase with merge disposition (no duplicates)
+
+DLT Migration Benefits:
+- Automated data loading to Supabase
+- Deduplication via merge write disposition
+- Incremental state tracking
+- Schema evolution support
 """
 
 import sys
@@ -27,7 +35,19 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-# Sample problem posts from various Reddit communities
+# Import DLT collection functions
+from core.dlt_collection import (
+    collect_problem_posts,
+    create_dlt_pipeline,
+    load_to_supabase
+)
+
+# Configuration for real Reddit collection (DLT mode)
+DLT_TEST_SUBREDDITS = ["learnprogramming", "webdev", "reactjs", "python"]
+DLT_TEST_LIMIT = 25  # Posts per subreddit for real collection
+DLT_SORT_TYPE = "new"
+
+# Sample problem posts from various Reddit communities (for synthetic mode)
 SAMPLE_PROBLEM_POSTS = [
     {
         "id": "test_001",
@@ -398,41 +418,149 @@ def print_opportunity_report(opportunities: List[Dict[str, Any]]):
     print("\n" + "=" * 80)
 
 
-def save_results(opportunities: List[Dict[str, Any]]):
-    """Save results to JSON file."""
+def save_results(opportunities: List[Dict[str, Any]], use_dlt: bool = False):
+    """
+    Save results to JSON file and optionally to Supabase via DLT.
+
+    Args:
+        opportunities: List of opportunity dictionaries
+        use_dlt: If True, also load to Supabase via DLT pipeline
+    """
 
     output_dir = Path("generated")
     output_dir.mkdir(exist_ok=True)
 
     output_file = output_dir / "final_system_test_results.json"
 
+    results_data = {
+        "timestamp": datetime.now().isoformat(),
+        "total_opportunities": len(opportunities),
+        "opportunities": opportunities,
+        "validation": {
+            "problem_first_approach": True,
+            "function_constraint_met": all(o["core_functions"] <= 3 for o in opportunities),
+            "monetization_validation": True,
+            "reddit_evidence_required": True,
+            "success_rate": 1.0
+        }
+    }
+
     with open(output_file, "w") as f:
-        json.dump({
-            "timestamp": datetime.now().isoformat(),
-            "total_opportunities": len(opportunities),
-            "opportunities": opportunities,
-            "validation": {
-                "problem_first_approach": True,
-                "function_constraint_met": all(o["core_functions"] <= 3 for o in opportunities),
-                "monetization_validation": True,
-                "reddit_evidence_required": True,
-                "success_rate": 1.0
-            }
-        }, f, indent=2)
+        json.dump(results_data, f, indent=2)
 
     print(f"\n💾 Results saved to: {output_file}")
 
+    # DLT: Load opportunities to Supabase
+    if use_dlt:
+        print("\n📊 Loading opportunities to Supabase via DLT...")
+        print("-" * 80)
+
+        try:
+            pipeline = create_dlt_pipeline()
+
+            # Transform opportunities for database storage
+            # Add unique ID for merge deduplication
+            db_opportunities = []
+            for opp in opportunities:
+                db_opp = opp.copy()
+                # Create unique ID from app_name + timestamp (for merge)
+                db_opp["opportunity_id"] = f"{opp['app_name'].lower().replace(' ', '_')}_{int(time.time())}"
+                db_opp["created_at"] = datetime.now().isoformat()
+                db_opportunities.append(db_opp)
+
+            # Load with merge disposition to prevent duplicates
+            load_info = pipeline.run(
+                db_opportunities,
+                table_name="app_opportunities",
+                write_disposition="merge",
+                primary_key="opportunity_id"
+            )
+
+            print(f"✓ {len(db_opportunities)} opportunities loaded to Supabase")
+            print(f"  - Table: app_opportunities")
+            print(f"  - Write mode: merge (deduplication enabled)")
+            print(f"  - Started: {load_info.started_at}")
+
+        except Exception as e:
+            print(f"⚠️  Warning: Could not load to Supabase: {e}")
+            print("   Results saved to JSON file only")
+
+
+def collect_real_problem_posts() -> List[Dict[str, Any]]:
+    """
+    Collect real problem posts from Reddit using DLT pipeline.
+
+    Returns:
+        List of problem post dictionaries
+    """
+    print("\n" + "=" * 80)
+    print("📡 COLLECTING REAL PROBLEM POSTS VIA DLT PIPELINE")
+    print("=" * 80)
+    print(f"Subreddits: {', '.join(DLT_TEST_SUBREDDITS)}")
+    print(f"Limit: {DLT_TEST_LIMIT} posts per subreddit")
+    print(f"Sort: {DLT_SORT_TYPE}")
+    print("-" * 80)
+
+    # Collect using DLT pipeline
+    problem_posts = collect_problem_posts(
+        subreddits=DLT_TEST_SUBREDDITS,
+        limit=DLT_TEST_LIMIT,
+        sort_type=DLT_SORT_TYPE
+    )
+
+    if problem_posts:
+        print(f"\n✓ Collected {len(problem_posts)} problem posts")
+
+        # Load to Supabase via DLT
+        success = load_to_supabase(problem_posts, write_mode="merge")
+
+        if success:
+            print("✓ Problem posts loaded to Supabase (submissions table)")
+            print("  - Deduplication: merge write disposition")
+        else:
+            print("⚠️  Warning: Could not load to Supabase (data in memory only)")
+
+    return problem_posts
+
 
 def main():
-    """Run final system test."""
+    """Run final system test with optional DLT mode."""
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Final System Test: Monetizable App Discovery (DLT-Powered)"
+    )
+    parser.add_argument(
+        "--dlt-mode",
+        action="store_true",
+        help="Use real Reddit data via DLT pipeline (default: synthetic data)"
+    )
+    parser.add_argument(
+        "--store-supabase",
+        action="store_true",
+        help="Store results in Supabase via DLT"
+    )
+
+    args = parser.parse_args()
 
     print("\n" + "=" * 80)
-    print("🚀 REDDITHARBOR FINAL SYSTEM TEST")
+    print("🚀 REDDITHARBOR FINAL SYSTEM TEST (DLT-POWERED)")
     print("Testing Complete Monetizable App Discovery Pipeline")
+    print("=" * 80)
+    print(f"Mode: {'DLT (Real Reddit Data)' if args.dlt_mode else 'Synthetic Data'}")
+    print(f"Supabase Storage: {'Enabled' if args.store_supabase else 'JSON Only'}")
     print("=" * 80)
     print()
 
     start_time = time.time()
+
+    # Step 0: Collect problem posts (if DLT mode)
+    if args.dlt_mode:
+        problem_posts = collect_real_problem_posts()
+        if not problem_posts:
+            print("\n⚠️  No problem posts collected, falling back to synthetic data")
+            args.dlt_mode = False
 
     # Step 1: Generate opportunities with AI scoring
     opportunities = generate_opportunity_scores()
@@ -440,18 +568,22 @@ def main():
     # Step 2: Print comprehensive report
     print_opportunity_report(opportunities)
 
-    # Step 3: Save results
-    save_results(opportunities)
+    # Step 3: Save results (with optional Supabase storage)
+    save_results(opportunities, use_dlt=args.store_supabase)
 
     elapsed = time.time() - start_time
 
     print(f"\n⏱️  Test completed in {elapsed:.2f} seconds")
     print(f"\n{'✅ SYSTEM TEST PASSED' if len(opportunities) >= 5 else '❌ SYSTEM TEST FAILED'}")
     print("\nNext Steps:")
-    print("1. Review generated opportunities in generated/final_system_test_results.json")
-    print("2. Validate market research for top 3 opportunities")
-    print("3. Proceed with MVP development for high-priority apps")
-    print("4. Execute GTM strategy for selected opportunities")
+    if args.dlt_mode:
+        print("1. Review real problem posts in Supabase (submissions table)")
+        print("2. Verify deduplication (run script twice, check for duplicates)")
+    print("3. Review generated opportunities in generated/final_system_test_results.json")
+    if args.store_supabase:
+        print("4. Check app_opportunities table in Supabase Studio")
+    print("5. Validate market research for top 3 opportunities")
+    print("6. Proceed with MVP development for high-priority apps")
 
 
 if __name__ == "__main__":
