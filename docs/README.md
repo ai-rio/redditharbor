@@ -68,9 +68,16 @@ collector.store_to_database(data, database_url="your_db_url")
 - **[Project Setup](./guides/setup-guide.md)** - Development environment setup
 - **[Testing Guide](./guides/testing.md)** - Testing procedures and best practices *(Coming Soon)*
 
+### DLT Integration & Pipeline
+
+- **[DLT Consolidation Complete](./architecture/dlt-consolidation-complete.md)** - All 6 scripts migrated to DLT pipeline
+- **[DLT Migration Guide](./guides/dlt-migration-guide.md)** - 7 validated DLT patterns and implementation examples
+- **[DLT Deployment & Operations](./guides/dlt-deployment-operations.md)** - Production deployment and monitoring guide
+- **[DLT Architecture](./architecture/dlt-consolidated-architecture.md)** - System design and data flow documentation
+
 ### Implementation & Research
 
-- **[Implementation Success](./implementation/IMPLEMENTATION_SUCCESS.md)** - AI insight generation implementation details
+- **[Implementation Success](./implementation/implementation-success.md)** - AI insight generation implementation details
 - **[Active Work Notes](./research/active-work-notes.md)** - Active development work log
 - **[Project Overview](./research/project-overview.md)** - Project overview and history
 - **[Requirements](./architecture/requirements.txt)** - Project dependencies

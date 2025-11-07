@@ -4,16 +4,39 @@ This directory contains archived scripts that are no longer actively used in the
 
 ## Directory Structure
 
-### hung_stuck/ (5 scripts)
-Scripts that were hanging or had rate-limiting issues. Replaced by `manual_subreddit_test.py`.
+### test_infrastructure/ (6 scripts) - NEW
+DLT integration and pipeline testing scripts used during development.
 
-- `fast_subreddit_scanner.py` - Hangs on Reddit API calls
-- `robust_scanner.py` - PRAW version incompatibility issues
-- `subreddit_monetization_scanner.py` - Complex scanner, hung during execution
-- `test_comment_collection.py` - Duplicate test, multiple instances running
-- `quick_collection_test.py` - Duplicate test, replaced by `collect_commercial_data.py`
+- `test_dlt_connection.py` - DLT connection validation
+- `test_dlt_pipeline.py` - End-to-end DLT pipeline testing
+- `parallel_test_dlt.py` - Parallel DLT operations testing
+- `test_dlt_with_praw.py` - PRAW-DLT integration testing
+- `test_incremental_loading.py` - Incremental loading validation
+- `test_scanner.py` - Subreddit scanner testing
 
-### old_versions/ (5 scripts)
+### utilities/ (4 scripts) - NEW
+Development and monitoring utilities from DLT cutover phase.
+
+- `check_cutover_status.py` - DLT traffic cutover monitoring (0%→50%→100%)
+- `check_database_schema.py` - Database schema validation
+- `verify_monetizable_implementation.py` - Implementation verification
+- `monitor_collection.sh` - Collection process monitoring
+
+### pipeline_management/ (3 scripts) - NEW
+DLT integration and traffic cutover orchestration scripts.
+
+- `dlt_opportunity_pipeline.py` - DLT opportunity discovery pipeline
+- `dlt_traffic_cuttover.py` - Traffic cutover orchestration (0%→100%)
+- `run_monetizable_collection.py` - Monetizable opportunity orchestrator
+
+### research/ (3 scripts) - NEW
+Legacy research framework scripts superseded by DLT-based workflows.
+
+- `research.py` - Core research framework with templates
+- `research_monetizable_opportunities.py` - Monetizable opportunity research
+- `intelligent_research_analyzer.py` - AI-powered research analyzer
+
+### old_versions/ (7 scripts) - UPDATED
 Old versions of current scripts. Kept for reference.
 
 - `generate_opportunity_insights.py` - Old version, use `generate_opportunity_insights_openrouter.py`
@@ -21,11 +44,22 @@ Old versions of current scripts. Kept for reference.
 - `enhanced_full_scale_collection.py` - Duplicate of `full_scale_collection.py`
 - `enhanced_monetizable_collection.py` - Legacy implementation
 - `example_monetizable_collection.py` - Example/draft only
+- `real_system_test.py` - Superseded by `final_system_test.py`
+- `manual_subreddit_test.py` - Legacy scanner, replaced by production collectors
+
+### hung_stuck/ (5 scripts)
+Scripts that were hanging or had rate-limiting issues.
+
+- `fast_subreddit_scanner.py` - Hangs on Reddit API calls
+- `robust_scanner.py` - PRAW version incompatibility issues
+- `subreddit_monetization_scanner.py` - Complex scanner, hung during execution
+- `test_comment_collection.py` - Duplicate test, multiple instances running
+- `quick_collection_test.py` - Duplicate test, replaced by `collect_commercial_data.py`
 
 ### duplicate_tests/ (7 scripts)
 Duplicate or temporary test scripts.
 
-- `test_simple_collection.py` - Simple test (use `test_scanner.py` instead)
+- `test_simple_collection.py` - Simple test
 - `minimal_test.py` - Minimal test
 - `test_enhanced_collection.py` - Enhanced collection test
 - `test_batch_scoring.py` - Batch scoring test
@@ -87,79 +121,92 @@ Miscellaneous scripts.
 - `test_env.py` - Environment test
 - `collect_real_reddit_data.py` - Duplicate collection
 
-### recent_cleanup/ (10 files)
-Files moved during project organization (2025-11-06). Non-essential test scripts, logs, and utilities that were cluttering the root directory.
-
-**Test scripts:**
-- `certify_problem_first.py` - Problem-first approach certification
-- `find_test_candidates.py` - Test candidate finder
-- `problem_first_test.py` - Problem-first testing utility
-- `test_47_demos.py` - Demo post tester
-
-**Log files:**
-- `batch_scoring.log` - Batch scoring output log
-- `batch_scoring_all.log` - Full batch scoring log
-- `dashboard8081.log` - Dashboard service log
-- `marimo.log` - Marimo notebook log
-
-**Utility scripts:**
-- `check_comments.py` - Comment checking utility
-- `check_commercial_data.py` - Commercial data validation
-- `fix_comment_linkage.py` - Comment linkage fix
-- `fix_linkage.py` - General linkage fix
-- `collect_problem_posts.py` - Problem posts collector (moved to inactive)
-- `filter_problems.py` - Problem filtering utility (moved to inactive)
-- `test_commercial_insights.py` - Commercial insights test
-- `test_specific_post.py` - Specific post tester
-
 ## Summary
 
-- **Total Archived:** 53 files (43 previous + 10 new)
-- **Reason for Archival:**
-  - Hung/stuck: 5 scripts
-  - Old versions: 5 scripts
-  - Duplicates: 7 scripts
-  - Temporary fixes: 3 scripts
-  - Demos/examples: 3 scripts
-  - Domain-specific: 4 scripts
-  - Replaced by main pipeline: 6 scripts
-  - Not core functionality: 10 scripts
+- **Total Archived:** 72 scripts
+- **Categories:** 14 directories
+- **New Categories (Nov 7, 2025):** 4 (test_infrastructure, utilities, pipeline_management, research)
+
+### Archival Breakdown
+- **Test infrastructure:** 6 scripts (DLT integration testing)
+- **Utilities:** 4 scripts (development and monitoring tools)
+- **Pipeline management:** 3 scripts (DLT cutover orchestration)
+- **Research:** 3 scripts (legacy research framework)
+- **Old versions:** 7 scripts (superseded implementations)
+- **Hung/stuck:** 5 scripts (performance issues)
+- **Duplicates:** 7 scripts (redundant tests)
+- **Temporary fixes:** 3 scripts (resolved issues)
+- **Demos/examples:** 3 scripts (reference only)
+- **Domain-specific:** 4 scripts (research examples)
+- **Data analysis:** 6 scripts (replaced by pipeline)
+- **Agent SDK:** 2 scripts (demonstrations)
+- **Dashboard UI:** 2 scripts (UI components)
+- **Other:** 6 scripts (miscellaneous)
 
 ## Current Active Scripts
 
-The following scripts remain in `/home/carlos/projects/redditharbor/scripts/`:
+Following the DLT consolidation (Week 2 Days 11-12), only **6 production scripts** remain in `/home/carlos/projects/redditharbor/scripts/`:
 
-1. **Collection:**
-   - `full_scale_collection.py` - Main production collection
-   - `collect_commercial_data.py` - Commercial subreddit collection
+### Core Production Scripts (6)
+1. **final_system_test.py** - Comprehensive system validation with live Reddit data
+2. **batch_opportunity_scoring.py** - Batch opportunity scoring and ranking
+3. **collect_commercial_data.py** - Commercial subreddit data collection
+4. **full_scale_collection.py** - Full-scale data collection pipeline
+5. **automated_opportunity_collector.py** - Automated opportunity discovery
+6. **generate_opportunity_insights_openrouter.py** - AI-powered insights generation
 
-2. **Scanning:**
-   - `manual_subreddit_test.py` - Subreddit monetization scanner
-   - `test_scanner.py` - Simple scanner test
+Plus: `__init__.py` (module initialization)
 
-3. **Analysis:**
-   - `batch_opportunity_scoring.py` - Opportunity scoring
-   - `generate_opportunity_insights_openrouter.py` - AI insights
+**Total Active:** 7 files (6 scripts + 1 init)
 
-4. **Research:**
-   - `research_monetizable_opportunities.py` - Research workflow
-   - `research.py` - Research framework
-   - `intelligent_research_analyzer.py` - Research analyzer
+## DLT Integration Timeline
 
-5. **Utilities:**
-   - `run_monetizable_collection.py` - Collection orchestrator
-   - `automated_opportunity_collector.py` - Automation
-   - `check_database_schema.py` - Schema validation
-   - `verify_monetizable_implementation.py` - Verification
+**Week 2 Days 11-12 (Nov 7, 2025):**
+- ✅ DLT traffic cutover: 0% → 50% → 100%
+- ✅ Dual-write validation successful
+- ✅ Legacy pipeline decommissioned
+- ✅ 19 scripts archived, 6 production scripts active
 
-Total: 14 scripts (13 + __init__.py)
+## Production Pipeline Architecture
+
+```
+automated_opportunity_collector.py
+    ↓
+collect_commercial_data.py / full_scale_collection.py
+    ↓
+DLT Pipeline (Supabase)
+    ↓
+batch_opportunity_scoring.py
+    ↓
+generate_opportunity_insights_openrouter.py
+    ↓
+Insights & Reports
+```
 
 ## Reactivating Archived Scripts
 
 If you need to restore an archived script:
 ```bash
-# Example: restore hung scanner
-cp archive/hung_stuck/manual_subreddit_test.py ../scripts/
+# Example: restore test infrastructure script
+cp /home/carlos/projects/redditharbor/archive/archive/test_infrastructure/test_dlt_pipeline.py /home/carlos/projects/redditharbor/scripts/
 ```
 
-However, the active scripts are the recommended and tested versions.
+However, the **6 active production scripts** are the recommended and tested versions.
+
+## Documentation
+
+Each archive category has its own README with detailed information about the scripts, their purpose, and why they were archived. See:
+
+- `test_infrastructure/README.md`
+- `utilities/README.md`
+- `pipeline_management/README.md`
+- `research/README.md`
+
+## Archive Organization Standards
+
+This archive follows the doc-organizer pattern with:
+- Clear categorization by purpose
+- Individual README files per category
+- Detailed archival rationale
+- Production replacement guidance
+- Reactivation instructions

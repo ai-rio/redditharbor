@@ -432,7 +432,7 @@ python -c "from agent_tools.opportunity_analyzer_agent import OpportunityAnalyze
 ## Related Documentation
 
 - [Architecture Decision](../architecture/subagent-based-opportunity-scoring.md)
-- [Monetizable App Methodology](../methodology/monetizable_app_research_methodology.md)
+- [Monetizable App Methodology](../methodology/monetizable-app-research-methodology.md)
 - [OpportunityAnalyzerAgent Reference](../../agent_tools/opportunity_analyzer_agent.py)
 - [Marimo Integration](../../.serena/memories/redditharbor_marimo_integration_complete.md)
 - [Enhanced Collection Implementation](../implementation/monetizable-collection-implementation.md)

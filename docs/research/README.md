@@ -1,13 +1,9 @@
-# Research Findings
+# Research & Analysis Documentation
 
-This directory contains research findings and analysis results from RedditHarbor data collection.
+This directory contains research findings, analysis reports, and data exploration documents.
 
-## Contents
+## Analysis Reports
 
-- **[Research Findings and App Opportunities](research-findings-and-app-opportunities.md)** - Analysis results identifying app opportunities from Reddit data
-
-## Research Process
-
-For information on the research methodology, see [Methodology Documentation](../methodology/).
-
-For guides on conducting research, see the [Research Guide](../guides/research-guide.md).
+- **[analysis-index.md](./analysis-index.md)** - Index of all analysis documents
+- **[task-2-analysis-summary.md](./task-2-analysis-summary.md)** - Task 2 analysis results
+- **[dlt-task1-summary.md](../architecture/dlt-task1-summary.md)** - DLT Task 1 analysis (in architecture/)

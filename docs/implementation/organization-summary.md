@@ -46,7 +46,7 @@
 **Files Moved to docs/ subdirectories:**
 
 **Implementation Documentation:**
-- `IMPLEMENTATION_SUCCESS.md` → `docs/implementation/IMPLEMENTATION_SUCCESS.md`
+- `implementation-success.md` → `docs/implementation/implementation-success.md`
   - Contains AI insight generation implementation details
   - Documents problem-first approach success
 
@@ -80,7 +80,7 @@ Added new section: `### recent_cleanup/ (16 files)`
 - Added documentation navigation section pointing to `docs/README.md`
 - Added new "Implementation & Research" subsection
 - References newly organized files:
-  - `docs/implementation/IMPLEMENTATION_SUCCESS.md`
+  - `docs/implementation/implementation-success.md`
   - `docs/research/active-work-notes.md`
   - `docs/research/project-overview.md`
   - `docs/architecture/requirements.txt`
@@ -185,7 +185,7 @@ docs/
 │   ├── research-types.md        ✅
 │   └── [other guides]           ✅
 ├── implementation/
-│   └── IMPLEMENTATION_SUCCESS.md ✅ (MOVED)
+│   └── implementation-success.md ✅ (MOVED)
 ├── research/
 │   ├── active-work-notes.md     ✅ (MOVED)
 │   └── project-overview.md      ✅ (MOVED)

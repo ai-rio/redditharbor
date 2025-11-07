@@ -131,7 +131,7 @@ Complaints about existing tools + feature requests = competitive advantage oppor
 
 ### Documentation
 
-- `docs/monetizable_app_research_methodology.md` - Full methodology (reference)
+- `docs/monetizable-app-research-methodology.md` - Full methodology (reference)
 - `WORKFLOW.md` - This guide
 
 ### Archive (Ignore These for Now)

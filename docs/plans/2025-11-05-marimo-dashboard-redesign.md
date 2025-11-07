@@ -596,7 +596,7 @@ ls marimo_notebooks/*.py
 ## References
 
 - [Marimo Documentation](/.claude/skills/marimo/references/)
-- [Methodology](docs/methodology/monetizable_app_research_methodology.md)
+- [Methodology](docs/methodology/monetizable-app-research-methodology.md)
 - [Integration Complete Memory](memory: redditharbor_marimo_integration_complete)
 - [Dashboard Assessment](docs/guides/opportunity-dashboard-assessment.md)
 

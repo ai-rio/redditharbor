@@ -3,8 +3,8 @@
 import os
 from dotenv import load_dotenv
 
-# Load from .env.local if it exists
-load_dotenv('.env.local')
+# Load from .env if it exists
+load_dotenv('.env')
 
 # Reddit API Configuration
 # Get from environment or use placeholders
