@@ -1,37 +1,62 @@
 #!/usr/bin/env python3
 """
-Full-Scale RedditHarbor Data Collection
-Collects from all 73 target subreddits across 6 market segments
+Full-Scale RedditHarbor Data Collection (DLT-Powered)
+
+Collects from all 73 target subreddits across 6 market segments using DLT pipeline
+with automatic deduplication, problem keyword filtering, and comprehensive error recovery.
+
+DLT Migration Benefits:
+- Automatic deduplication (merge write disposition)
+- Problem-first filtering (PROBLEM_KEYWORDS)
+- Batch loading optimization
+- Schema evolution support
+- Production-ready deployment
+
+Original functionality preserved:
+- 73 subreddits across 6 market segments
+- Per-segment and per-subreddit error handling
+- Comprehensive logging with statistics
+- Both submissions and comments collection
 """
 
 import sys
 from pathlib import Path
 import logging
 from datetime import datetime
+from typing import List, Dict, Any, Tuple
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from redditharbor.login import reddit, supabase
-from redditharbor.dock.pipeline import collect
+# DLT imports
+from core.dlt_collection import (
+    collect_problem_posts,
+    collect_post_comments,
+    create_dlt_pipeline,
+    get_reddit_client
+)
+
+# Import configuration
 from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT,
-    SUPABASE_URL, SUPABASE_KEY, DB_CONFIG
+    SUPABASE_URL, SUPABASE_KEY
 )
 
 # Setup logging
+error_log_dir = project_root / "error_log"
+error_log_dir.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('error_log/full_scale_collection.log'),
+        logging.FileHandler(error_log_dir / 'full_scale_collection.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-# Target subreddits by market segment
+# Target subreddits by market segment (73 total)
 TARGET_SUBREDDITS = {
     "finance_investing": [
         "personalfinance", "investing", "stocks", "Bogleheads",
@@ -66,131 +91,405 @@ ALL_SUBREDDITS = []
 for segment in TARGET_SUBREDDITS.values():
     ALL_SUBREDDITS.extend(segment)
 
-logger.info(f"🎯 Starting Full-Scale Collection from {len(ALL_SUBREDDITS)} subreddits")
+logger.info(f"🎯 Starting Full-Scale DLT Collection from {len(ALL_SUBREDDITS)} subreddits")
 logger.info(f"📊 Market segments: {list(TARGET_SUBREDDITS.keys())}")
 
-def main():
+
+def collect_segment_submissions(
+    segment_name: str,
+    subreddits: List[str],
+    sort_types: List[str],
+    limit_per_sort: int
+) -> Tuple[List[Dict[str, Any]], int, int]:
+    """
+    Collect submissions from a market segment using DLT pipeline.
+
+    Args:
+        segment_name: Market segment name
+        subreddits: List of subreddit names in this segment
+        sort_types: Reddit sort types to use
+        limit_per_sort: Posts to collect per sort type
+
+    Returns:
+        Tuple of (all_submissions, total_submissions, total_errors)
+    """
+    logger.info(f"\n{'='*80}")
+    logger.info(f"📈 Collecting from {segment_name.upper()} segment ({len(subreddits)} subreddits)")
+    logger.info(f"{'='*80}")
+
+    all_segment_submissions = []
+    segment_submissions = 0
+    segment_errors = 0
+
+    for subreddit in subreddits:
+        logger.info(f"\n🔍 Processing r/{subreddit}...")
+
+        try:
+            # Collect from each sort type
+            subreddit_submissions = []
+
+            for sort_type in sort_types:
+                logger.info(f"   📝 Collecting {sort_type} submissions...")
+
+                try:
+                    # Collect using DLT with problem keyword filtering
+                    posts = collect_problem_posts(
+                        subreddits=[subreddit],
+                        limit=limit_per_sort,
+                        sort_type=sort_type,
+                        test_mode=False
+                    )
+
+                    if posts:
+                        subreddit_submissions.extend(posts)
+                        logger.info(f"      ✅ {len(posts)} {sort_type} submissions collected")
+                    else:
+                        logger.warning(f"      ⚠️  No {sort_type} submissions found")
+
+                except Exception as sort_e:
+                    logger.error(f"      ❌ Error collecting {sort_type} submissions: {str(sort_e)}")
+                    segment_errors += 1
+
+            # Add to segment total
+            if subreddit_submissions:
+                all_segment_submissions.extend(subreddit_submissions)
+                segment_submissions += len(subreddit_submissions)
+                logger.info(f"   ✅ Total: {len(subreddit_submissions)} submissions from r/{subreddit}")
+            else:
+                logger.warning(f"   ⚠️  No submissions collected from r/{subreddit}")
+
+        except Exception as e:
+            logger.error(f"   ❌ r/{subreddit}: Error - {str(e)}")
+            segment_errors += 1
+
+    logger.info(f"\n✅ {segment_name} segment complete:")
+    logger.info(f"   📊 Submissions: {segment_submissions}")
+    logger.info(f"   ❌ Errors: {segment_errors}")
+
+    return all_segment_submissions, segment_submissions, segment_errors
+
+
+def load_submissions_to_supabase(submissions: List[Dict[str, Any]]) -> bool:
+    """
+    Load collected submissions to Supabase using DLT pipeline.
+
+    Args:
+        submissions: List of submission dictionaries
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if not submissions:
+        logger.warning("⚠️  No submissions to load")
+        return False
+
+    logger.info(f"\n{'='*80}")
+    logger.info(f"💾 Loading {len(submissions)} submissions to Supabase via DLT")
+    logger.info(f"{'='*80}")
+
     try:
-        # Create clients
-        logger.info("🔑 Creating Reddit and Supabase clients...")
-        reddit_client = reddit(
-            public_key=REDDIT_PUBLIC,
-            secret_key=REDDIT_SECRET,
-            user_agent=REDDIT_USER_AGENT
-        )
-        supabase_client = supabase(
-            url=SUPABASE_URL,
-            private_key=SUPABASE_KEY
+        pipeline = create_dlt_pipeline()
+
+        # Load with merge disposition for deduplication
+        load_info = pipeline.run(
+            submissions,
+            table_name="submissions",
+            write_disposition="merge",
+            primary_key="id"
         )
 
-        # Create pipeline
-        logger.info("🔄 Initializing RedditHarbor pipeline...")
-        pipeline = collect(
-            reddit_client=reddit_client,
-            supabase_client=supabase_client,
-            db_config=DB_CONFIG
+        logger.info(f"✅ Submissions loaded successfully!")
+        logger.info(f"   - Table: submissions")
+        logger.info(f"   - Write mode: merge (deduplication enabled)")
+        logger.info(f"   - Primary key: id")
+
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to load submissions: {str(e)}")
+        return False
+
+
+def collect_segment_comments(
+    segment_name: str,
+    subreddits: List[str],
+    sort_types: List[str],
+    comment_limit: int
+) -> Tuple[List[Dict[str, Any]], int]:
+    """
+    Collect comments from top posts in a market segment.
+
+    Args:
+        segment_name: Market segment name
+        subreddits: List of subreddit names
+        sort_types: Reddit sort types used for submissions
+        comment_limit: Number of top posts to collect comments from
+
+    Returns:
+        Tuple of (all_comments, total_comments_collected)
+    """
+    logger.info(f"\n{'='*80}")
+    logger.info(f"💬 Collecting comments from {segment_name.upper()} segment")
+    logger.info(f"{'='*80}")
+
+    all_comments = []
+    reddit_client = get_reddit_client()
+
+    for subreddit in subreddits:
+        logger.info(f"\n🔍 Processing comments from r/{subreddit}...")
+
+        try:
+            # Collect top posts to get their IDs
+            posts = collect_problem_posts(
+                subreddits=[subreddit],
+                limit=comment_limit,
+                sort_type="hot",  # Use hot for comment collection
+                test_mode=False
+            )
+
+            if not posts:
+                logger.warning(f"   ⚠️  No posts found for comment collection")
+                continue
+
+            # Extract submission IDs
+            submission_ids = [post["id"] for post in posts]
+
+            logger.info(f"   💬 Collecting comments from {len(submission_ids)} posts...")
+
+            # Collect comments using DLT function
+            comments = collect_post_comments(
+                submission_ids=submission_ids,
+                reddit_client=reddit_client,
+                merge_disposition="merge"
+            )
+
+            if comments:
+                all_comments.extend(comments)
+                logger.info(f"   ✅ {len(comments)} comments collected from r/{subreddit}")
+            else:
+                logger.warning(f"   ⚠️  No comments collected from r/{subreddit}")
+
+        except Exception as e:
+            logger.error(f"   ❌ Error collecting comments from r/{subreddit}: {str(e)}")
+
+    logger.info(f"\n✅ Comment collection complete:")
+    logger.info(f"   💬 Total comments: {len(all_comments)}")
+
+    return all_comments, len(all_comments)
+
+
+def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
+    """
+    Load collected comments to Supabase using DLT pipeline.
+
+    Args:
+        comments: List of comment dictionaries
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if not comments:
+        logger.warning("⚠️  No comments to load")
+        return False
+
+    logger.info(f"\n{'='*80}")
+    logger.info(f"💾 Loading {len(comments)} comments to Supabase via DLT")
+    logger.info(f"{'='*80}")
+
+    try:
+        pipeline = create_dlt_pipeline()
+
+        # Load with merge disposition for deduplication
+        load_info = pipeline.run(
+            comments,
+            table_name="comments",
+            write_disposition="merge",
+            primary_key="comment_id"
         )
 
+        logger.info(f"✅ Comments loaded successfully!")
+        logger.info(f"   - Table: comments")
+        logger.info(f"   - Write mode: merge (deduplication enabled)")
+        logger.info(f"   - Primary key: comment_id")
+
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to load comments: {str(e)}")
+        return False
+
+
+def verify_database_results():
+    """
+    Verify final results in Supabase database.
+
+    Returns:
+        Dict with verification metrics
+    """
+    logger.info(f"\n{'='*80}")
+    logger.info(f"🔍 Verifying database results...")
+    logger.info(f"{'='*80}")
+
+    try:
+        from supabase import create_client
+
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+        # Count submissions
+        subs_result = supabase_client.table('submissions').select('id', count='exact').execute()
+        subs_count = subs_result.count if subs_result.count else 0
+
+        # Count comments
+        comments_result = supabase_client.table('comments').select('comment_id', count='exact').execute()
+        comments_count = comments_result.count if comments_result.count else 0
+
+        # Count redditors
+        redditors_result = supabase_client.table('redditors').select('username', count='exact').execute()
+        redditors_count = redditors_result.count if redditors_result.count else 0
+
+        logger.info(f"✅ Database verified:")
+        logger.info(f"   📝 Submissions: {subs_count}")
+        logger.info(f"   💬 Comments: {comments_count}")
+        logger.info(f"   👥 Redditors: {redditors_count}")
+
+        # Calculate comment coverage
+        if subs_count > 0 and comments_count > 0:
+            avg_comments = comments_count / subs_count
+            logger.info(f"   📊 Avg comments per submission: {avg_comments:.1f}")
+            logger.info(f"   ✅ Comments successfully collected!")
+        elif comments_count == 0:
+            logger.warning(f"   ⚠️  No comments found in database!")
+
+        return {
+            "submissions": subs_count,
+            "comments": comments_count,
+            "redditors": redditors_count,
+            "avg_comments_per_sub": avg_comments if subs_count > 0 else 0
+        }
+
+    except Exception as e:
+        logger.error(f"⚠️  Database verification failed: {str(e)}")
+        return {
+            "submissions": 0,
+            "comments": 0,
+            "redditors": 0,
+            "avg_comments_per_sub": 0
+        }
+
+
+def main():
+    """Main execution function with DLT pipeline."""
+    try:
         # Collection parameters
         sort_types = ["hot", "top", "new"]
         limit_per_sort = 50  # 50 posts per sort type
-        mask_pii = False
+        comment_limit = 20  # Collect comments from top 20 posts per subreddit
 
         logger.info(f"📝 Collection parameters:")
         logger.info(f"   - Subreddits: {len(ALL_SUBREDDITS)}")
         logger.info(f"   - Sort types: {sort_types}")
         logger.info(f"   - Limit per sort: {limit_per_sort}")
-        logger.info(f"   - Total expected: ~{len(ALL_SUBREDDITS) * len(sort_types) * limit_per_sort} submissions")
+        logger.info(f"   - Comment limit: {comment_limit}")
+        logger.info(f"   - Expected submissions: ~{len(ALL_SUBREDDITS) * len(sort_types) * limit_per_sort}")
+
+        # Track totals
+        all_submissions = []
+        total_submissions = 0
+        total_errors = 0
+        total_comments = 0
 
         # Collect from each market segment
-        total_submissions = 0
-        total_redditors = 0
+        for segment_name, subreddits in TARGET_SUBREDDITS.items():
+            # Collect submissions
+            segment_subs, seg_count, seg_errors = collect_segment_submissions(
+                segment_name,
+                subreddits,
+                sort_types,
+                limit_per_sort
+            )
+
+            all_submissions.extend(segment_subs)
+            total_submissions += seg_count
+            total_errors += seg_errors
+
+        # Load all submissions to Supabase (batch operation)
+        logger.info(f"\n{'='*80}")
+        logger.info(f"📊 SUBMISSION COLLECTION COMPLETE")
+        logger.info(f"{'='*80}")
+        logger.info(f"   Total submissions collected: {len(all_submissions)}")
+        logger.info(f"   Total errors: {total_errors}")
+
+        if all_submissions:
+            submission_load_success = load_submissions_to_supabase(all_submissions)
+
+            if not submission_load_success:
+                logger.error("❌ Failed to load submissions to Supabase")
+                return False
+        else:
+            logger.warning("⚠️  No submissions collected - skipping load")
+
+        # Collect comments from each segment
+        all_comments = []
 
         for segment_name, subreddits in TARGET_SUBREDDITS.items():
-            logger.info(f"\n{'='*80}")
-            logger.info(f"📈 Collecting from {segment_name.upper()} segment ({len(subreddits)} subreddits)")
-            logger.info(f"{'='*80}")
+            segment_comments, seg_comment_count = collect_segment_comments(
+                segment_name,
+                subreddits,
+                sort_types,
+                comment_limit
+            )
 
-            segment_submissions = 0
-            segment_redditors = 0
+            all_comments.extend(segment_comments)
+            total_comments += seg_comment_count
 
-            for subreddit in subreddits:
-                logger.info(f"\n🔍 Processing r/{subreddit}...")
+        # Load all comments to Supabase (batch operation)
+        logger.info(f"\n{'='*80}")
+        logger.info(f"💬 COMMENT COLLECTION COMPLETE")
+        logger.info(f"{'='*80}")
+        logger.info(f"   Total comments collected: {len(all_comments)}")
 
-                try:
-                    # Step 1: Collect submissions (posts)
-                    logger.info(f"   📝 Collecting submissions...")
-                    result = pipeline.subreddit_submission(
-                        subreddits=[subreddit],
-                        sort_types=sort_types,
-                        limit=limit_per_sort,
-                        mask_pii=mask_pii
-                    )
+        if all_comments:
+            comment_load_success = load_comments_to_supabase(all_comments)
 
-                    if result:
-                        subs_count, users_count = result
-                        segment_submissions += subs_count
-                        segment_redditors += users_count
-                        total_submissions += subs_count
-                        total_redditors += users_count
-                        logger.info(f"      ✅ {subs_count} submissions, {users_count} users")
-                    else:
-                        logger.warning(f"      ⚠️  No submissions collected")
-
-                    # Step 2: Collect comments (CRITICAL for AI insights!)
-                    logger.info(f"   💬 Collecting comments...")
-                    comment_limit = 20  # Collect comments from top 20 posts per subreddit
-                    try:
-                        pipeline.subreddit_comment(
-                            subreddits=[subreddit],
-                            sort_types=sort_types,
-                            limit=comment_limit,
-                            level=1,  # Only top-level comments (faster)
-                            mask_pii=mask_pii
-                        )
-                        logger.info(f"      ✅ Comments collected from top {comment_limit} posts")
-                    except Exception as comment_e:
-                        logger.warning(f"      ⚠️  Comment collection failed: {str(comment_e)}")
-
-                except Exception as e:
-                    logger.error(f"   ❌ r/{subreddit}: Error - {str(e)}")
-
-            logger.info(f"\n✅ {segment_name} segment complete:")
-            logger.info(f"   📊 Submissions: {segment_submissions}")
-            logger.info(f"   👥 Redditors: {segment_redditors}")
+            if not comment_load_success:
+                logger.error("❌ Failed to load comments to Supabase")
+                return False
+        else:
+            logger.warning("⚠️  No comments collected - skipping load")
 
         # Final summary
         logger.info(f"\n{'='*80}")
-        logger.info(f"🎉 FULL-SCALE COLLECTION COMPLETE")
+        logger.info(f"🎉 FULL-SCALE DLT COLLECTION COMPLETE")
         logger.info(f"{'='*80}")
         logger.info(f"📊 Total Submissions: {total_submissions}")
-        logger.info(f"👥 Total Redditors: {total_redditors}")
+        logger.info(f"💬 Total Comments: {total_comments}")
+        logger.info(f"❌ Total Errors: {total_errors}")
         logger.info(f"🏆 Success! Data collected from {len(ALL_SUBREDDITS)} subreddits")
 
-        # Verify in database
-        logger.info(f"\n🔍 Verifying database...")
-        subs_result = supabase_client.table('submissions').select('count', count='exact').execute()
-        comments_result = supabase_client.table('comments').select('count', count='exact').execute()
-        redditors_result = supabase_client.table('redditors').select('count', count='exact').execute()
+        # Verify database results
+        db_stats = verify_database_results()
 
-        logger.info(f"✅ Database verified:")
-        logger.info(f"   📝 Submissions: {subs_result.count}")
-        logger.info(f"   💬 Comments: {comments_result.count}")
-        logger.info(f"   👥 Redditors: {redditors_result.count}")
+        # Success criteria
+        success = (
+            total_submissions > 0 and
+            db_stats["submissions"] > 0
+        )
 
-        # Verify comment coverage
-        if comments_result.count > 0:
-            avg_comments = comments_result.count / subs_result.count if subs_result.count > 0 else 0
-            logger.info(f"   📊 Avg comments per submission: {avg_comments:.1f}")
-            logger.info(f"   ✅ Comments successfully collected!")
+        if success:
+            logger.info(f"\n{'='*80}")
+            logger.info("✅ COLLECTION SUCCESS")
+            logger.info(f"{'='*80}")
         else:
-            logger.warning(f"   ⚠️  No comments found in database!")
+            logger.warning(f"\n{'='*80}")
+            logger.warning("⚠️  COLLECTION INCOMPLETE - Check logs for details")
+            logger.warning(f"{'='*80}")
 
-        return True
+        return success
 
     except Exception as e:
         logger.error(f"❌ Collection failed: {str(e)}", exc_info=True)
         return False
+
 
 if __name__ == "__main__":
     success = main()
