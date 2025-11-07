@@ -23,8 +23,25 @@ import time
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+# Load environment variables manually
+import os
+
+# Manually read .env file
+env_file = project_root / '.env'
+if env_file.exists():
+    with open(env_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if '=' in line and not line.startswith('#'):
+                key, val = line.split('=', 1)
+                os.environ[key] = val
+
+# Get credentials from environment
+REDDIT_PUBLIC = os.getenv("REDDIT_PUBLIC")
+REDDIT_SECRET = os.getenv("REDDIT_SECRET")
+REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
+
 # Import Reddit client
-from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 import praw
 
 # Import problem keywords from existing collection
