@@ -1,0 +1,176 @@
+================================================================================
+DIMENSION SCORES STORAGE - STRATEGY COMPARISON
+================================================================================
+
+PROBLEM: OpportunityAnalyzerAgent calculates 5 dimensions but only stores final_score
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CURRENT STATE (5 Dimensions Calculated, NOT Stored)                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+OpportunityAnalyzerAgent
+  ├── market_demand (0-100) ────────┐
+  ├── pain_intensity (0-100) ───────┤
+  ├── monetization_potential (0-100) ├──> WEIGHTED CALCULATION
+  ├── market_gap (0-100) ───────────┤        ↓
+  └── technical_feasibility (0-100) ┘   final_score (0-100)
+                                              ↓
+                                    workflow_results table
+                                    ┌──────────────────────┐
+                                    │ ✅ final_score       │
+                                    │ ❌ market_demand     │
+                                    │ ❌ pain_intensity    │
+                                    │ ❌ monetization      │
+                                    │ ❌ market_gap        │
+                                    │ ❌ technical_feas    │
+                                    └──────────────────────┘
+                                    DIMENSION SCORES LOST!
+
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OPTION 1: Add Columns to workflow_results (RECOMMENDED ✅)                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Schema Change:
+  workflow_results
+  ├── [existing] opportunity_id, app_name, final_score, status...
+  ├── [NEW] market_demand DECIMAL(5,2)
+  ├── [NEW] pain_intensity DECIMAL(5,2)
+  ├── [NEW] monetization_potential DECIMAL(5,2)
+  ├── [NEW] market_gap DECIMAL(5,2)
+  └── [NEW] technical_feasibility DECIMAL(5,2)
+
+Pros:
+  ✅ ZERO disruption (additive migration only)
+  ✅ ZERO breaking changes (NULL-safe, backward compatible)
+  ✅ Minimal code changes (2 files, 8 lines)
+  ✅ Single table access (no JOINs needed)
+  ✅ All workflow context in one place
+  ✅ Type-safe with CHECK constraints (0-100)
+  ✅ Simple rollback (DROP COLUMN)
+  ✅ Existing 10 records preserved unchanged
+
+Cons:
+  ⚠️ Wider table (5 new columns, ~25 bytes/row)
+  ⚠️ Existing 10 records have NULL dimensions
+
+Effort: 12 minutes
+Disruption: ZERO
+Risk: MINIMAL
+
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OPTION 2: Use opportunity_scores Table (NOT RECOMMENDED ❌)                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Current Schema:
+  opportunity_scores
+  ├── submission_id (UUID) ────────┐ MISMATCH: opportunity_id is VARCHAR
+  ├── market_demand (0-10) ────────┤ MISMATCH: Agent uses 0-100 scale
+  ├── pain_intensity (0-10) ───────┤ MISMATCH: Agent uses 0-100 scale
+  ├── monetization_potential (0-10) MISMATCH: Agent uses 0-100 scale
+  ├── simplicity_score (0-10) ─────┤ NOT CALCULATED by agent
+  ├── [MISSING] market_gap ────────┘ Agent calculates but schema missing
+  └── [MISSING] technical_feasibility Agent calculates but schema missing
+
+Problems:
+  ❌ Scale mismatch (0-10 vs 0-100) - BREAKING CHANGE needed
+  ❌ Missing 2 dimensions (market_gap, technical_feasibility)
+  ❌ Foreign key mismatch (submission_id vs opportunity_id)
+  ❌ Empty table (0 records) - no existing data
+  ❌ Designed for Reddit submissions, not opportunities
+
+Required Changes:
+  - ALTER 3 columns to change scale (0-10 → 0-100)
+  - ADD 2 missing dimension columns
+  - CHANGE foreign key from submission_id to opportunity_id
+  - UPDATE all existing code to use new schema
+  - MIGRATE 10 workflow_results records
+
+Effort: 30+ minutes
+Disruption: HIGH
+Risk: HIGH (schema-breaking changes)
+
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OPTION 3: Create New Table workflow_dimension_scores (NOT RECOMMENDED ❌)   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+New Schema:
+  workflow_results                workflow_dimension_scores
+  ├── opportunity_id ──────────┬──> opportunity_id (FK)
+  ├── final_score              │    ├── market_demand
+  └── ... metadata             │    ├── pain_intensity
+                                │    ├── monetization_potential
+                                │    ├── market_gap
+                                │    └── technical_feasibility
+                                
+Problems:
+  ❌ Requires JOINs for all queries
+  ❌ Two tables to maintain (complexity)
+  ❌ Split workflow context across tables
+  ❌ More code changes (3+ files)
+  ❌ Violates DRY principle
+
+Required Changes:
+  - CREATE new table with foreign key
+  - UPDATE batch_opportunity_scoring.py to insert into 2 tables
+  - UPDATE all queries to JOIN tables
+  - MIGRATE existing 10 records to split storage
+
+Effort: 20+ minutes
+Disruption: MODERATE
+Risk: MODERATE (query complexity, JOIN overhead)
+
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ DECISION MATRIX                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Criteria                  Option 1        Option 2         Option 3
+                         (Add Columns)   (opp_scores)    (New Table)
+────────────────────────────────────────────────────────────────────────────
+Schema Changes           Additive        Breaking         New Table
+Disruption Level         ZERO            HIGH             MODERATE
+Backward Compatible      YES (100%)      NO               PARTIAL
+Code Changes (files)     2               5+               3+
+Code Changes (lines)     8               50+              30+
+Migration Complexity     LOW             HIGH             MEDIUM
+Query Performance        BEST            GOOD             FAIR (JOINs)
+Data Integrity          BEST            POOR             GOOD
+Rollback Difficulty     EASY            HARD             MEDIUM
+Effort (minutes)        12              30+              20+
+Risk Level              MINIMAL         HIGH             MODERATE
+────────────────────────────────────────────────────────────────────────────
+RECOMMENDATION          ✅ GO           ❌ NO-GO         ❌ NO-GO
+
+================================================================================
+
+FINAL RECOMMENDATION: OPTION 1 (Add Columns to workflow_results)
+
+Rationale:
+  1. ZERO disruption - Existing code continues to work unchanged
+  2. ZERO breaking changes - All columns nullable, backward compatible
+  3. Minimal effort - 12 minutes total implementation time
+  4. Best performance - Single table access, no JOINs
+  5. Simple rollback - DROP COLUMN if needed
+  6. Data integrity - All workflow context in one place
+
+Implementation Files:
+  ✅ /home/carlos/projects/redditharbor/dimension_storage_analysis.json
+  ✅ /home/carlos/projects/redditharbor/DIMENSION_SCORES_IMPLEMENTATION_PLAN.md
+  ✅ /home/carlos/projects/redditharbor/DIMENSION_SCORES_COMPARISON.txt
+
+Next Steps:
+  1. Create migration: supabase/migrations/20251108000002_add_dimension_scores_to_workflow.sql
+  2. Run: supabase db push
+  3. Update: scripts/batch_opportunity_scoring.py (5 lines)
+  4. Update: scripts/stage4_workflow_verification.py (5 lines)
+  5. Test: python3 scripts/batch_opportunity_scoring.py --limit 5
+  6. Verify: SELECT * FROM workflow_results WHERE market_demand IS NOT NULL;
+
+================================================================================

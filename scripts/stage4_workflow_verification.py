@@ -127,6 +127,24 @@ class WorkflowVerifier:
 
             for opp in opportunities:
                 try:
+                    # Fetch dimension scores from opportunity_scores table (if UUID format)
+                    dimension_scores = None
+                    try:
+                        # Try to fetch dimension scores (only works if opportunity_id is UUID)
+                        cur.execute(
+                            """
+                            SELECT market_demand_score, pain_intensity_score, monetization_potential_score,
+                                   market_gap_score, technical_feasibility_score
+                            FROM opportunity_scores
+                            WHERE opportunity_id::text = %s
+                            """,
+                            (opp["opportunity_id"],),
+                        )
+                        dimension_scores = cur.fetchone()
+                    except Exception:
+                        # Skip dimension scores if not found or ID format mismatch
+                        pass
+
                     # Map workflow data to consolidated schema
                     insert_data = {
                         "opportunity_id": opp["opportunity_id"],
@@ -139,6 +157,12 @@ class WorkflowVerifier:
                         "constraint_applied": opp["constraint_applied"],
                         "ai_insight": opp["ai_insight"],
                         "processed_at": opp["processed_at"],
+                        # Add dimension scores if available
+                        "market_demand": dimension_scores["market_demand_score"] if dimension_scores else None,
+                        "pain_intensity": dimension_scores["pain_intensity_score"] if dimension_scores else None,
+                        "monetization_potential": dimension_scores["monetization_potential_score"] if dimension_scores else None,
+                        "market_gap": dimension_scores["market_gap_score"] if dimension_scores else None,
+                        "technical_feasibility": dimension_scores["technical_feasibility_score"] if dimension_scores else None,
                     }
 
                     # Check if opportunity already exists
@@ -162,6 +186,11 @@ class WorkflowVerifier:
                                 constraint_applied = %s,
                                 ai_insight = %s,
                                 processed_at = %s,
+                                market_demand = %s,
+                                pain_intensity = %s,
+                                monetization_potential = %s,
+                                market_gap = %s,
+                                technical_feasibility = %s,
                                 updated_at = NOW()
                             WHERE opportunity_id = %s
                             """,
@@ -175,6 +204,11 @@ class WorkflowVerifier:
                                 insert_data["constraint_applied"],
                                 insert_data["ai_insight"],
                                 insert_data["processed_at"],
+                                insert_data["market_demand"],
+                                insert_data["pain_intensity"],
+                                insert_data["monetization_potential"],
+                                insert_data["market_gap"],
+                                insert_data["technical_feasibility"],
                                 insert_data["opportunity_id"],
                             ),
                         )
@@ -186,8 +220,10 @@ class WorkflowVerifier:
                             INSERT INTO workflow_results (
                                 opportunity_id, app_name, function_count, function_list,
                                 original_score, final_score, status, constraint_applied,
-                                ai_insight, processed_at
-                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                ai_insight, processed_at,
+                                market_demand, pain_intensity, monetization_potential,
+                                market_gap, technical_feasibility
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                             """,
                             (
                                 insert_data["opportunity_id"],
@@ -200,6 +236,11 @@ class WorkflowVerifier:
                                 insert_data["constraint_applied"],
                                 insert_data["ai_insight"],
                                 insert_data["processed_at"],
+                                insert_data["market_demand"],
+                                insert_data["pain_intensity"],
+                                insert_data["monetization_potential"],
+                                insert_data["market_gap"],
+                                insert_data["technical_feasibility"],
                             ),
                         )
                         action = "INSERTED"
@@ -642,7 +683,7 @@ class WorkflowVerifier:
         conn = None
         try:
             conn = self.get_db_connection()
-            cur = cur.cursor()
+            cur = conn.cursor()
 
             # Test 1: Verify core tables exist
             self.log("Verifying core tables exist...")
