@@ -368,14 +368,14 @@ def collect_post_comments(
 
 
 def create_dlt_pipeline() -> dlt.Pipeline:
-    """Create and configure DLT pipeline with proper destination setup."""
-    # Use explicit destination configuration with credentials
+    """Create and configure DLT pipeline with explicit Postgres connection string."""
+    # Use connection string for Postgres destination
+    # Format: postgresql://username:password@host:port/database
+    connection_string = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
-        destination=dlt.destinations.postgres(
-            # Credentials will be loaded from .dlt/secrets.toml
-            # Format: [reddit_harbor_problem_collection.destination.postgres.credentials]
-        ),
+        destination=dlt.destinations.postgres(connection_string),
         dataset_name=DATASET_NAME
     )
     return pipeline
