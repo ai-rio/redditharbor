@@ -8,12 +8,17 @@ constraint during the data normalization process, automatically disqualifying
 Uses DLT's NormalizeHandler for constraint enforcement at the normalization layer,
 ensuring all data passes through constraint validation before being written to
 the destination.
+
+Uses centralized score_calculator module to ensure consistency across the system.
 """
 
 import dlt
 from typing import List, Dict, Any, Generator, Optional
 from datetime import datetime
 import uuid
+
+# Import centralized score calculation functions
+from core.dlt.score_calculator import calculate_simplicity_score
 
 
 class SimplicityConstraintNormalizeHandler:
@@ -220,14 +225,21 @@ class SimplicityConstraintNormalizeHandler:
         """
         row["is_disqualified"] = False
         row["core_functions"] = function_count
-        row["simplicity_score"] = self._calculate_simplicity_score(function_count)
+        # Use centralized score calculation (single source of truth)
+        row["simplicity_score"] = calculate_simplicity_score(function_count)
         row["validation_status"] = f"APPROVED ({function_count} functions)"
         row["constraint_version"] = row.get("constraint_version", 1)
         row["validation_timestamp"] = datetime.now().isoformat()
 
+    # NOTE: _calculate_simplicity_score has been replaced by centralized
+    # score_calculator.calculate_simplicity_score for consistency.
+    # Kept as a method wrapper for backward compatibility.
     def _calculate_simplicity_score(self, function_count: int) -> float:
         """
         Calculate simplicity score using methodology formula.
+
+        DEPRECATED: Use core.dlt.score_calculator.calculate_simplicity_score instead.
+        This wrapper is maintained for backward compatibility.
 
         Scoring:
         - 1 function = 100 points (maximum)
@@ -241,14 +253,7 @@ class SimplicityConstraintNormalizeHandler:
         Returns:
             float: Simplicity score (0-100)
         """
-        if function_count == 1:
-            return 100.0
-        elif function_count == 2:
-            return 85.0
-        elif function_count == 3:
-            return 70.0
-        else:
-            return 0.0
+        return calculate_simplicity_score(function_count)
 
     def generate_violations(
         self,

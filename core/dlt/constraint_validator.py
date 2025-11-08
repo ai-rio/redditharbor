@@ -3,12 +3,20 @@ DLT Constraint Validation Resource for Simplicity Constraint Enforcement.
 
 This module implements DLT-native validation for the 1-3 core function constraint,
 automatically disqualifying apps with 4+ functions and tracking constraint metadata.
+
+Uses centralized score_calculator module to ensure consistency across the system.
 """
 
 import dlt
 from typing import List, Dict, Any
 import re
 from datetime import datetime
+
+# Import centralized score calculation functions
+from core.dlt.score_calculator import (
+    calculate_simplicity_score,
+    apply_constraint_to_score
+)
 
 
 @dlt.resource(table_name="app_opportunities", write_disposition="merge")
@@ -31,8 +39,8 @@ def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
         core_functions = _extract_core_functions(opportunity)
         function_count = len(core_functions)
 
-        # Calculate simplicity score using methodology formula
-        simplicity_score = _calculate_simplicity_score(function_count)
+        # Use centralized score calculation (single source of truth)
+        simplicity_score = calculate_simplicity_score(function_count)
 
         # Add constraint metadata
         opportunity["core_functions"] = function_count
@@ -44,7 +52,8 @@ def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
         # Add constraint violation details if disqualified
         if function_count >= 4:
             opportunity["violation_reason"] = f"{function_count} core functions exceed maximum of 3"
-            opportunity["total_score"] = 0
+            # Apply constraint with audit trail (centralized function)
+            opportunity = apply_constraint_to_score(opportunity, function_count)
             opportunity["validation_status"] = f"DISQUALIFIED ({function_count} functions)"
         else:
             opportunity["validation_status"] = f"APPROVED ({function_count} functions)"
@@ -79,9 +88,15 @@ def _extract_core_functions(opportunity: Dict[str, Any]) -> List[str]:
         return _parse_functions_from_text(text)
 
 
+# NOTE: _calculate_simplicity_score has been replaced by centralized
+# score_calculator.calculate_simplicity_score for consistency.
+# Kept as a wrapper for backward compatibility with existing tests.
 def _calculate_simplicity_score(function_count: int) -> float:
     """
     Calculate simplicity score using methodology formula.
+
+    DEPRECATED: Use core.dlt.score_calculator.calculate_simplicity_score instead.
+    This wrapper is maintained for backward compatibility with existing tests.
 
     Scoring:
     - 1 function = 100 points (maximum)
@@ -95,14 +110,7 @@ def _calculate_simplicity_score(function_count: int) -> float:
     Returns:
         float: Simplicity score (0-100)
     """
-    if function_count == 1:
-        return 100.0
-    elif function_count == 2:
-        return 85.0
-    elif function_count == 3:
-        return 70.0
-    else:
-        return 0.0  # Automatic disqualification for 4+ functions
+    return calculate_simplicity_score(function_count)
 
 
 def _parse_functions_from_text(text: str) -> List[str]:

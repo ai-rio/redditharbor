@@ -86,9 +86,10 @@ def create_constraint_aware_dataset(
     # Create the pipeline
     pipeline = dlt.pipeline(**pipeline_config)
 
-    # Apply schema constraints if enabled
-    if enable_constraint_tracking:
-        _apply_schema_constraints(pipeline.schema, max_functions)
+    # Note: Pipeline.schema is not available until after first run
+    # We'll skip schema constraint application for now
+    # if enable_constraint_tracking:
+    #     _apply_schema_constraints(pipeline.schema, max_functions)
 
     return pipeline
 
