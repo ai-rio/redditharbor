@@ -123,9 +123,10 @@ Miscellaneous scripts.
 
 ## Summary
 
-- **Total Archived:** 72 scripts
-- **Categories:** 14 directories
-- **New Categories (Nov 7, 2025):** 4 (test_infrastructure, utilities, pipeline_management, research)
+- **Total Archived:** 78+ scripts
+- **Categories:** 15 directories
+- **New Categories (Nov 7, 2025):** 5 (test_infrastructure, utilities, pipeline_management, research, recent_cleanup)
+- **Recent Cleanup (Nov 8, 2025):** 8 files newly archived from root directory
 
 ### Archival Breakdown
 - **Test infrastructure:** 6 scripts (DLT integration testing)
@@ -142,6 +143,7 @@ Miscellaneous scripts.
 - **Agent SDK:** 2 scripts (demonstrations)
 - **Dashboard UI:** 2 scripts (UI components)
 - **Other:** 6 scripts (miscellaneous)
+- **Recent cleanup:** 8 files (from root directory organization)
 
 ## Current Active Scripts
 
@@ -158,6 +160,32 @@ Following the DLT consolidation (Week 2 Days 11-12), only **6 production scripts
 Plus: `__init__.py` (module initialization)
 
 **Total Active:** 7 files (6 scripts + 1 init)
+
+### Recent Cleanup (Nov 8, 2025)
+
+Files moved from root directory to `archive/recent_cleanup/`:
+
+#### Utility Scripts (7)
+- `test_full_pipeline_workflow.py` - Pipeline testing utility
+- `generate_workflow_analysis.py` - Workflow analysis tool
+- `dlt_cli.py` - DLT command-line interface
+- `run_full_workflow.py` - Full workflow execution script
+- `verify_migration_schema.py` - Migration schema verification
+
+#### Documentation (2)
+- `migration_archival_log.txt` - Log of migration activities
+- `MIGRATION_SUCCESS_SUMMARY.txt` - Migration success documentation
+
+#### Text Reports (6)
+- `WORKFLOW_COMPLETION_REPORT.txt` - Workflow completion report
+- `STAGE4_RESULTS_SUMMARY.txt` - Stage 4 results
+- `ARCHIVAL_SUCCESS_REPORT.txt` - Archival success documentation
+- `QUICK_START_WORKFLOW.md` - Quick start workflow guide
+- `STAGE4_SUMMARY.md` - Stage 4 summary
+- `STAGE4_COMPLETE.md` - Stage 4 completion report
+
+#### Processed and Archived
+All files successfully categorized and archived with proper documentation.
 
 ## DLT Integration Timeline
 

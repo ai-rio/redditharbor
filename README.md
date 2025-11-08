@@ -359,9 +359,13 @@ See **[docs/README.md](./docs/README.md)** for complete documentation index and 
 
 ### 📊 Implementation & Research
 
-- **[docs/implementation/IMPLEMENTATION_SUCCESS.md](./docs/implementation/IMPLEMENTATION_SUCCESS.md)** - AI insight generation implementation details
-- **[docs/research/active-work-notes.md](./docs/research/active-work-notes.md)** - Active development work log
-- **[docs/research/project-overview.md](./docs/research/project-overview.md)** - Project overview and history
+- **[docs/implementation/DLT_CONSOLIDATION_PROJECT_COMPLETE.md](./docs/implementation/DLT_CONSOLIDATION_PROJECT_COMPLETE.md)** - DLT integration and consolidation project completion
+- **[docs/implementation/MIGRATION_EXECUTION_REPORT.md](./docs/implementation/MIGRATION_EXECUTION_REPORT.md)** - Migration execution report
+- **[docs/implementation/WORKFLOW_EXECUTION_SUMMARY.md](./docs/implementation/WORKFLOW_EXECUTION_SUMMARY.md)** - Workflow execution summary
+- **[docs/implementation/STAGE4_SUMMARY.md](./docs/implementation/STAGE4_SUMMARY.md)** - Stage 4 implementation summary
+- **[docs/implementation/PHASE_3_DLT_CLI_COMPLETION.md](./docs/implementation/PHASE_3_DLT_CLI_COMPLETION.md)** - DLT CLI completion report
+- **[docs/implementation/SCRIPTS_ORGANIZATION_SUMMARY.md](./docs/implementation/SCRIPTS_ORGANIZATION_SUMMARY.md)** - Scripts organization summary
+- **[docs/implementation/SCRIPTS_QUICK_REFERENCE.md](./docs/implementation/SCRIPTS_QUICK_REFERENCE.md)** - Scripts quick reference guide
 
 ### 🤝 Development
 
