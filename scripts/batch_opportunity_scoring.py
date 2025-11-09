@@ -452,7 +452,7 @@ def process_batch(
     agent: OpportunityAnalyzerAgent,
     batch_number: int,
     llm_profiler: Optional[LLMProfiler] = None,
-    high_score_threshold: float = 70.0
+    high_score_threshold: float = 4.0
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Process a batch of submissions through the opportunity analyzer.
@@ -468,7 +468,7 @@ def process_batch(
         agent: Initialized OpportunityAnalyzerAgent
         batch_number: Current batch number for logging
         llm_profiler: Optional LLM profiler for high-score opportunities
-        high_score_threshold: Score threshold for LLM profiling (default: 70.0)
+        high_score_threshold: Score threshold for LLM profiling (default: 4.0)
 
     Returns:
         Tuple of (analysis_results, scored_opportunities_for_dlt)
