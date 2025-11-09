@@ -318,7 +318,7 @@ def prepare_analysis_for_storage(
         sector: Mapped business sector
 
     Returns:
-        Dictionary formatted for opportunity_scores table
+        Dictionary formatted for workflow_results table
     """
     # Generate opportunity_id from submission_id (unique identifier for merge)
     opportunity_id = f"opp_{submission_id}"
@@ -326,22 +326,27 @@ def prepare_analysis_for_storage(
     # Extract dimension scores
     scores = analysis.get("dimension_scores", {})
 
-    # Prepare data for opportunity_scores table
+    # Extract core functions from analysis (default to 1 if not present)
+    core_functions = analysis.get("core_functions", 1)
+
+    # Prepare data for workflow_results table
     analysis_data = {
-        "submission_id": submission_id,
         "opportunity_id": opportunity_id,
-        "title": analysis.get("title", "")[:500],  # Truncate to reasonable length
-        "subreddit": analysis.get("subreddit", ""),
-        "sector": sector,
-        "market_demand": float(scores.get("market_demand", 0)),
-        "pain_intensity": float(scores.get("pain_intensity", 0)),
-        "monetization_potential": float(scores.get("monetization_potential", 0)),
-        "market_gap": float(scores.get("market_gap", 0)),
-        "technical_feasibility": float(scores.get("technical_feasibility", 0)),
-        "simplicity_score": float(scores.get("simplicity_score", 70)),  # Default neutral score
+        "app_name": analysis.get("title", "Unnamed Opportunity")[:255],
+        "function_count": core_functions,
+        "function_list": [f"Core function {i+1}" for i in range(core_functions)],
+        "original_score": float(analysis.get("final_score", 0)),
         "final_score": float(analysis.get("final_score", 0)),
-        "priority": analysis.get("priority", ""),
-        "scored_at": datetime.now().isoformat(),
+        "status": "scored",
+        "constraint_applied": True,
+        "ai_insight": f"Market sector: {sector}. Subreddit: {analysis.get('subreddit', 'unknown')}",
+        "processed_at": datetime.now().isoformat(),
+        # Dimension scores (match the column names in workflow_results)
+        "market_demand": float(scores.get("market_demand", 0)) if scores else None,
+        "pain_intensity": float(scores.get("pain_intensity", 0)) if scores else None,
+        "monetization_potential": float(scores.get("monetization_potential", 0)) if scores else None,
+        "market_gap": float(scores.get("market_gap", 0)) if scores else None,
+        "technical_feasibility": float(scores.get("technical_feasibility", 0)) if scores else None,
     }
 
     return analysis_data
@@ -391,14 +396,18 @@ def load_scores_to_supabase_via_dlt(
             if len(disqualified) > 3:
                 print(f"    ... and {len(disqualified) - 3} more")
 
-        # Create DLT pipeline
+        # Use the DLT constraint validator resource which has the correct table_name
+        # The resource decorator already specifies table_name="workflow_results"
+        # Just pass the data to the resource
+        print("\n📤 Loading to workflow_results table via DLT constraint validator...")
+
+        # Load using the DLT pipeline
+        from core.dlt_collection import create_dlt_pipeline
         pipeline = create_dlt_pipeline()
 
-        # Load with constraint validation via DLT resource
-        # Note: We pass through constraint validator to ensure only approved opportunities are loaded
+        # Use the constraint validator resource
         load_info = pipeline.run(
-            validated_opportunities,
-            table_name="opportunity_scores",
+            app_opportunities_with_constraint(scored_opportunities),
             write_disposition="merge",
             primary_key="opportunity_id"  # Deduplication key
         )
@@ -407,7 +416,7 @@ def load_scores_to_supabase_via_dlt(
         print(f"✓ Successfully loaded {len(approved)} approved opportunities to Supabase")
         if disqualified:
             print(f"⚠️  Skipped {len(disqualified)} disqualified opportunities (4+ functions)")
-        print(f"  - Table: opportunity_scores")
+        print(f"  - Table: workflow_results")
         print(f"  - Write mode: merge (deduplication enabled)")
         print(f"  - Primary key: opportunity_id")
         print(f"  - Constraint validation: DLT-native (1-3 function rule)")

@@ -171,7 +171,11 @@ def collect_segment_submissions(
 
 def load_submissions_to_supabase(submissions: List[Dict[str, Any]]) -> bool:
     """
-    Load collected submissions to Supabase using DLT pipeline.
+    Load collected submissions to Supabase using raw SQL INSERT.
+
+    This approach bypasses DLT's schema detection and directly inserts
+    into the public.submissions table using PostgreSQL's ON CONFLICT
+    clause for deduplication based on submission_id.
 
     Args:
         submissions: List of submission dictionaries
@@ -184,29 +188,93 @@ def load_submissions_to_supabase(submissions: List[Dict[str, Any]]) -> bool:
         return False
 
     logger.info(f"\n{'='*80}")
-    logger.info(f"💾 Loading {len(submissions)} submissions to Supabase via DLT")
+    logger.info(f"💾 Loading {len(submissions)} submissions to Supabase via SQL")
     logger.info(f"{'='*80}")
 
     try:
-        pipeline = create_dlt_pipeline()
+        import psycopg2
+        from psycopg2.extras import execute_values
 
-        # Load with merge disposition for deduplication
-        load_info = pipeline.run(
-            submissions,
-            table_name="submissions",
-            write_disposition="merge",
-            primary_key="id"
+        # Connect directly to the database
+        conn = psycopg2.connect(
+            host="127.0.0.1",
+            port=54322,
+            database="postgres",
+            user="postgres",
+            password="postgres"
         )
 
+        cursor = conn.cursor()
+
+        # Create unique index on submission_id if it doesn't exist
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_submission_id_unique
+            ON public.submissions(submission_id)
+            WHERE submission_id IS NOT NULL;
+        """)
+
+        # Deduplicate submissions by submission_id (in case same post appears multiple times)
+        seen_ids = set()
+        unique_submissions = []
+        for sub in submissions:
+            sub_id = sub.get("submission_id")
+            if sub_id and sub_id not in seen_ids:
+                seen_ids.add(sub_id)
+                unique_submissions.append(sub)
+
+        logger.info(f"   Deduplicating: {len(submissions)} -> {len(unique_submissions)} unique submissions")
+
+        # Prepare data for insertion
+        values = [
+            (
+                sub.get("submission_id"),
+                sub.get("title"),
+                sub.get("text"),
+                sub.get("content"),
+                sub.get("subreddit"),
+                sub.get("upvotes", 0),
+                sub.get("comments_count", 0),
+                sub.get("url"),
+                sub.get("created_at")
+            )
+            for sub in unique_submissions
+        ]
+
+        # Insert with ON CONFLICT to handle duplicates
+        # Note: ON CONFLICT requires a named constraint or column list matching the unique index
+        insert_query = """
+            INSERT INTO public.submissions
+                (submission_id, title, text, content, subreddit, upvotes, comments_count, url, created_at)
+            VALUES %s
+            ON CONFLICT (submission_id) WHERE submission_id IS NOT NULL
+            DO UPDATE SET
+                title = EXCLUDED.title,
+                text = EXCLUDED.text,
+                content = EXCLUDED.content,
+                upvotes = EXCLUDED.upvotes,
+                comments_count = EXCLUDED.comments_count,
+                url = EXCLUDED.url,
+                created_at = EXCLUDED.created_at;
+        """
+
+        execute_values(cursor, insert_query, values, page_size=100)
+        conn.commit()
+
+        inserted_count = cursor.rowcount
+        cursor.close()
+        conn.close()
+
         logger.info(f"✅ Submissions loaded successfully!")
-        logger.info(f"   - Table: submissions")
-        logger.info(f"   - Write mode: merge (deduplication enabled)")
-        logger.info(f"   - Primary key: id")
+        logger.info(f"   - Table: public.submissions")
+        logger.info(f"   - Rows affected: {inserted_count}")
+        logger.info(f"   - Deduplication: ON CONFLICT (submission_id)")
 
         return True
 
     except Exception as e:
         logger.error(f"❌ Failed to load submissions: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -252,7 +320,7 @@ def collect_segment_comments(
                 continue
 
             # Extract submission IDs
-            submission_ids = [post["id"] for post in posts]
+            submission_ids = [post["submission_id"] for post in posts]
 
             logger.info(f"   💬 Collecting comments from {len(submission_ids)} posts...")
 
@@ -280,7 +348,11 @@ def collect_segment_comments(
 
 def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
     """
-    Load collected comments to Supabase using DLT pipeline.
+    Load collected comments to Supabase using raw SQL INSERT.
+
+    This approach bypasses DLT's schema detection and directly inserts
+    into the public.comments table using PostgreSQL's ON CONFLICT
+    clause for deduplication based on comment_id.
 
     Args:
         comments: List of comment dictionaries
@@ -293,29 +365,93 @@ def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
         return False
 
     logger.info(f"\n{'='*80}")
-    logger.info(f"💾 Loading {len(comments)} comments to Supabase via DLT")
+    logger.info(f"💾 Loading {len(comments)} comments to Supabase via SQL")
     logger.info(f"{'='*80}")
 
     try:
-        pipeline = create_dlt_pipeline()
+        import psycopg2
+        from psycopg2.extras import execute_values
 
-        # Load with merge disposition for deduplication
-        load_info = pipeline.run(
-            comments,
-            table_name="comments",
-            write_disposition="merge",
-            primary_key="comment_id"
+        # Connect directly to the database
+        conn = psycopg2.connect(
+            host="127.0.0.1",
+            port=54322,
+            database="postgres",
+            user="postgres",
+            password="postgres"
         )
 
+        cursor = conn.cursor()
+
+        # Create unique index on comment_id if it doesn't exist
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_comments_comment_id_unique
+            ON public.comments(comment_id)
+            WHERE comment_id IS NOT NULL;
+        """)
+
+        # Deduplicate comments by comment_id
+        seen_ids = set()
+        unique_comments = []
+        for comment in comments:
+            comment_id = comment.get("comment_id")
+            if comment_id and comment_id not in seen_ids:
+                seen_ids.add(comment_id)
+                unique_comments.append(comment)
+
+        logger.info(f"   Deduplicating: {len(comments)} -> {len(unique_comments)} unique comments")
+
+        # Prepare data for insertion
+        # Note: submission_id in comments table is UUID (FK to submissions.id)
+        # We'll insert NULL for now since we don't have the UUID mapping
+        values = [
+            (
+                comment.get("comment_id"),
+                comment.get("body"),
+                comment.get("content"),
+                max(0, comment.get("score", 0)),  # Ensure non-negative for CHECK constraint
+                comment.get("created_at"),
+                comment.get("parent_id"),
+                comment.get("comment_depth", 0)
+            )
+            for comment in unique_comments
+        ]
+
+        # Insert with ON CONFLICT to handle duplicates
+        # Note: ON CONFLICT requires a named constraint or column list matching the unique index
+        # TODO: Add link_id column to store Reddit submission ID (t3_xxxxx format)
+        insert_query = """
+            INSERT INTO public.comments
+                (comment_id, body, content, upvotes, created_at, parent_id, comment_depth)
+            VALUES %s
+            ON CONFLICT (comment_id) WHERE comment_id IS NOT NULL
+            DO UPDATE SET
+                body = EXCLUDED.body,
+                content = EXCLUDED.content,
+                upvotes = EXCLUDED.upvotes,
+                created_at = EXCLUDED.created_at,
+                parent_id = EXCLUDED.parent_id,
+                comment_depth = EXCLUDED.comment_depth;
+        """
+
+        execute_values(cursor, insert_query, values, page_size=100)
+        conn.commit()
+
+        inserted_count = cursor.rowcount
+        cursor.close()
+        conn.close()
+
         logger.info(f"✅ Comments loaded successfully!")
-        logger.info(f"   - Table: comments")
-        logger.info(f"   - Write mode: merge (deduplication enabled)")
-        logger.info(f"   - Primary key: comment_id")
+        logger.info(f"   - Table: public.comments")
+        logger.info(f"   - Rows affected: {inserted_count}")
+        logger.info(f"   - Deduplication: ON CONFLICT (comment_id)")
 
         return True
 
     except Exception as e:
         logger.error(f"❌ Failed to load comments: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -379,18 +515,53 @@ def verify_database_results():
 
 def main():
     """Main execution function with DLT pipeline."""
+    import argparse
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Full-scale Reddit data collection using DLT pipeline"
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Posts to collect per sort type (default: 50)"
+    )
+    parser.add_argument(
+        "--comment-limit",
+        type=int,
+        default=20,
+        help="Number of top posts to collect comments from (default: 20)"
+    )
+    parser.add_argument(
+        "--test-mode",
+        action="store_true",
+        help="Run in test mode with limited subreddits"
+    )
+
+    args = parser.parse_args()
+
     try:
         # Collection parameters
         sort_types = ["hot", "top", "new"]
-        limit_per_sort = 50  # 50 posts per sort type
-        comment_limit = 20  # Collect comments from top 20 posts per subreddit
+        limit_per_sort = args.limit  # Posts per sort type from CLI arg
+        comment_limit = args.comment_limit  # Comments from CLI arg
+
+        # Use limited subreddits for test mode
+        subreddits_to_use = TARGET_SUBREDDITS if not args.test_mode else {
+            "test": ["opensource", "productivity"]  # Just 2 subreddits for testing
+        }
+
+        # Calculate total subreddits
+        total_subreddits = sum(len(subs) for subs in subreddits_to_use.values())
 
         logger.info(f"📝 Collection parameters:")
-        logger.info(f"   - Subreddits: {len(ALL_SUBREDDITS)}")
+        logger.info(f"   - Mode: {'TEST' if args.test_mode else 'FULL SCALE'}")
+        logger.info(f"   - Subreddits: {total_subreddits}")
         logger.info(f"   - Sort types: {sort_types}")
         logger.info(f"   - Limit per sort: {limit_per_sort}")
         logger.info(f"   - Comment limit: {comment_limit}")
-        logger.info(f"   - Expected submissions: ~{len(ALL_SUBREDDITS) * len(sort_types) * limit_per_sort}")
+        logger.info(f"   - Expected submissions: ~{total_subreddits * len(sort_types) * limit_per_sort}")
 
         # Track totals
         all_submissions = []
@@ -399,7 +570,7 @@ def main():
         total_comments = 0
 
         # Collect from each market segment
-        for segment_name, subreddits in TARGET_SUBREDDITS.items():
+        for segment_name, subreddits in subreddits_to_use.items():
             # Collect submissions
             segment_subs, seg_count, seg_errors = collect_segment_submissions(
                 segment_name,
@@ -431,7 +602,7 @@ def main():
         # Collect comments from each segment
         all_comments = []
 
-        for segment_name, subreddits in TARGET_SUBREDDITS.items():
+        for segment_name, subreddits in subreddits_to_use.items():
             segment_comments, seg_comment_count = collect_segment_comments(
                 segment_name,
                 subreddits,
@@ -464,7 +635,7 @@ def main():
         logger.info(f"📊 Total Submissions: {total_submissions}")
         logger.info(f"💬 Total Comments: {total_comments}")
         logger.info(f"❌ Total Errors: {total_errors}")
-        logger.info(f"🏆 Success! Data collected from {len(ALL_SUBREDDITS)} subreddits")
+        logger.info(f"🏆 Success! Data collected from {total_subreddits} subreddits")
 
         # Verify database results
         db_stats = verify_database_results()

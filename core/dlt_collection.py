@@ -57,7 +57,7 @@ from core.collection import PROBLEM_KEYWORDS
 # DLT pipeline configuration
 PIPELINE_NAME = "reddit_harbor_problem_collection"
 DESTINATION = "postgres"
-DATASET_NAME = "reddit_harbor"
+DATASET_NAME = "public"  # Use public schema to match existing Supabase tables
 
 # Problem-first filtering: minimum keywords required
 MIN_PROBLEM_KEYWORDS = 1
@@ -101,6 +101,45 @@ def contains_problem_keywords(text: str, min_keywords: int = MIN_PROBLEM_KEYWORD
     return len(found_keywords) >= min_keywords
 
 
+def transform_submission_to_schema(submission_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Transform Reddit API submission data to match Supabase schema.
+
+    Mapping:
+    - id → submission_id (Reddit API ID)
+    - selftext → text and content (post body content)
+    - created_utc → created_at (Unix timestamp to ISO datetime)
+    - Keep: title, subreddit, score, url, num_comments
+    - Drop: author, problem_keyword_count, _dlt_* metadata
+
+    Args:
+        submission_data: Raw submission dict from Reddit API
+
+    Returns:
+        Transformed submission dict matching Supabase schema
+    """
+    from datetime import datetime
+
+    selftext = submission_data.get("selftext", "")
+    score_value = submission_data.get("score", 0)
+    comments_count = submission_data.get("num_comments", 0)
+
+    transformed = {
+        "submission_id": submission_data.get("id"),
+        "title": submission_data.get("title"),
+        "text": selftext,
+        "content": selftext,  # Also store as content for public schema
+        "subreddit": submission_data.get("subreddit"),
+        "upvotes": score_value,  # Store score as upvotes (integer column)
+        "comments_count": comments_count,  # Store as comments_count (integer column)
+        "url": submission_data.get("url"),
+        "created_at": datetime.fromtimestamp(submission_data.get("created_utc", 0)).isoformat(),
+    }
+
+    # Remove None values to avoid schema issues
+    return {k: v for k, v in transformed.items() if v is not None}
+
+
 def collect_problem_posts(
     subreddits: List[str],
     limit: int = 50,
@@ -117,7 +156,7 @@ def collect_problem_posts(
         test_mode: If True, return test data instead of real API calls
 
     Returns:
-        List of problem post dictionaries
+        List of problem post dictionaries (transformed to Supabase schema)
     """
     if test_mode:
         # Return mock data for testing
@@ -131,7 +170,7 @@ def collect_problem_posts(
         ]
         # Use first subreddit for mock data
         first_subreddit = subreddits[0] if subreddits else "test"
-        return [{
+        mock_submissions = [{
             "id": f"test_{i}",
             "title": problem_titles[i % len(problem_titles)],
             "selftext": "This is frustrating and time consuming. I wish there was a better tool.",
@@ -143,6 +182,9 @@ def collect_problem_posts(
             "num_comments": 5,
             "problem_keywords_found": ["struggle", "frustrating", "time consuming", "wish"]
         } for i in range(limit)]
+
+        # Transform to schema format
+        return [transform_submission_to_schema(sub) for sub in mock_submissions]
 
     print(f"Collecting problem posts from {len(subreddits)} subreddits...")
     print(f"Limit: {limit} posts per subreddit")
@@ -182,14 +224,15 @@ def collect_problem_posts(
 
                 # Check for problem keywords
                 if contains_problem_keywords(full_text):
-                    # Extract found keywords
+                    # Extract found keywords (for logging/debugging)
                     full_text_lower = full_text.lower()
                     found_keywords = [
                         kw for kw in PROBLEM_KEYWORDS
                         if kw in full_text_lower
                     ]
 
-                    problem_post = {
+                    # Collect raw Reddit data first
+                    raw_submission = {
                         "id": submission.id,
                         "title": submission.title,
                         "selftext": submission.selftext,
@@ -199,9 +242,10 @@ def collect_problem_posts(
                         "score": submission.score,
                         "url": submission.url,
                         "num_comments": submission.num_comments,
-                        "problem_keywords_found": found_keywords,
-                        "problem_keyword_count": len(found_keywords)
                     }
+
+                    # Transform to Supabase schema
+                    problem_post = transform_submission_to_schema(raw_submission)
 
                     all_problem_posts.append(problem_post)
                     subreddit_problems += 1
@@ -215,6 +259,44 @@ def collect_problem_posts(
 
     print(f"\nTotal problem posts collected: {len(all_problem_posts)}")
     return all_problem_posts
+
+
+def transform_comment_to_schema(comment_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Transform Reddit API comment data to match Supabase schema.
+
+    Mapping:
+    - comment_id → comment_id (already correct)
+    - submission_id → submission_id (already correct)
+    - body → content (store as both body and content for compatibility)
+    - created_utc → created_at (Unix timestamp to ISO datetime)
+    - Keep: score, parent_id, depth
+    - Drop: author, _dlt_* metadata
+
+    Args:
+        comment_data: Raw comment dict from Reddit API
+
+    Returns:
+        Transformed comment dict matching Supabase schema
+    """
+    from datetime import datetime
+
+    body_text = comment_data.get("body", "")
+
+    transformed = {
+        "comment_id": comment_data.get("comment_id"),
+        "submission_id": comment_data.get("submission_id"),
+        "body": body_text,
+        "content": body_text,  # Also store as content for public schema
+        "score": comment_data.get("score"),
+        "created_at": datetime.fromtimestamp(comment_data.get("created_utc", 0)).isoformat(),
+        "parent_id": comment_data.get("parent_id"),
+        "depth": comment_data.get("depth"),
+        "comment_depth": comment_data.get("depth", 0),  # Also store as comment_depth
+    }
+
+    # Remove None values to avoid schema issues
+    return {k: v for k, v in transformed.items() if v is not None}
 
 
 def collect_post_comments(
@@ -324,13 +406,11 @@ def collect_post_comments(
                     comments_skipped += 1
                     continue
 
-                author_name = str(comment.author) if comment.author else "[deleted]"
-
-                # Build comment data structure
-                comment_data = {
+                # Build raw comment data structure
+                raw_comment = {
                     "comment_id": comment.id,
                     "submission_id": submission_id,
-                    "author": author_name,
+                    "author": str(comment.author) if comment.author else "[deleted]",
                     "body": comment.body,
                     "score": comment.score,
                     "created_utc": int(comment.created_utc),
@@ -338,7 +418,10 @@ def collect_post_comments(
                     "depth": comment.depth,
                 }
 
-                all_comments.append(comment_data)
+                # Transform to Supabase schema
+                transformed_comment = transform_comment_to_schema(raw_comment)
+
+                all_comments.append(transformed_comment)
 
             print(f"✓ Collected {comments_collected} comments from {submission_id} ({comments_skipped} deleted/removed)")
 
@@ -386,7 +469,7 @@ def load_to_supabase(problem_posts: List[Dict[str, Any]], write_mode: str = "mer
     Load problem posts to Supabase using DLT.
 
     Args:
-        problem_posts: List of problem post dictionaries
+        problem_posts: List of problem post dictionaries (transformed to schema)
         write_mode: DLT write disposition ('replace', 'merge', 'append')
 
     Returns:
@@ -402,23 +485,43 @@ def load_to_supabase(problem_posts: List[Dict[str, Any]], write_mode: str = "mer
     pipeline = create_dlt_pipeline()
 
     try:
-        # Run DLT pipeline with merge disposition for incremental loading
-        load_info = pipeline.run(
-            problem_posts,
-            table_name="submissions",
+        # Create DLT resource with schema hints for proper column handling
+        @dlt.resource(
+            name="submissions",
             write_disposition=write_mode,
-            primary_key="id" if write_mode == "merge" else None
+            columns={
+                "submission_id": {"data_type": "text", "nullable": True, "unique": True},
+                "title": {"data_type": "text", "nullable": True},
+                "text": {"data_type": "text", "nullable": True},
+                "content": {"data_type": "text", "nullable": True},
+                "subreddit": {"data_type": "text", "nullable": True},
+                "score": {"data_type": "bigint", "nullable": True},
+                "url": {"data_type": "text", "nullable": True},
+                "num_comments": {"data_type": "bigint", "nullable": True},
+                "created_at": {"data_type": "timestamp", "nullable": True},
+            }
+        )
+        def submission_resource():
+            yield problem_posts
+
+        # Run DLT pipeline with merge disposition for incremental loading
+        # Use submission_id for deduplication (unique constraint)
+        load_info = pipeline.run(
+            submission_resource(),
+            primary_key="submission_id" if write_mode == "merge" else None
         )
 
         print("✓ Data loaded successfully!")
         print(f"  - Started: {load_info.started_at}")
         print(f"  - Write mode: {write_mode}")
+        print(f"  - Deduplication key: submission_id")
 
         return True
 
     except Exception as e:
         print(f"✗ Data load failed: {e}")
-        # Don't print full traceback, just the error message
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -511,8 +614,9 @@ def main():
         for i, post in enumerate(problem_posts[:3], 1):
             print(f"\n[{i}] r/{post['subreddit']} | Score: {post['score']}")
             print(f"Title: {post['title'][:100]}")
-            print(f"Keywords: {', '.join(post['problem_keywords_found'])}")
-            print(f"Text: {post['selftext'][:150]}...")
+            print(f"ID: {post['submission_id']}")
+            text_preview = post.get('text', '')[:150] if post.get('text') else '[No text]'
+            print(f"Text: {text_preview}...")
 
         return 0
     else:

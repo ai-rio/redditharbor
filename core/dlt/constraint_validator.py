@@ -11,7 +11,34 @@ import re
 from datetime import datetime
 
 
-@dlt.resource(table_name="app_opportunities", write_disposition="merge")
+@dlt.resource(
+    table_name="workflow_results",
+    write_disposition="merge",
+    columns={
+        "opportunity_id": {"data_type": "text", "nullable": False, "unique": True},
+        "app_name": {"data_type": "text", "nullable": False},
+        "function_count": {"data_type": "bigint", "nullable": False},
+        "function_list": {"data_type": "json", "nullable": True},
+        "original_score": {"data_type": "double", "nullable": False},
+        "final_score": {"data_type": "double", "nullable": False},
+        "status": {"data_type": "text", "nullable": False},
+        "constraint_applied": {"data_type": "bool", "nullable": True},
+        "ai_insight": {"data_type": "text", "nullable": True},
+        "processed_at": {"data_type": "timestamp", "nullable": True},
+        "market_demand": {"data_type": "decimal", "precision": 5, "scale": 2, "nullable": True},
+        "pain_intensity": {"data_type": "decimal", "precision": 5, "scale": 2, "nullable": True},
+        "monetization_potential": {"data_type": "decimal", "precision": 5, "scale": 2, "nullable": True},
+        "market_gap": {"data_type": "decimal", "precision": 5, "scale": 2, "nullable": True},
+        "technical_feasibility": {"data_type": "decimal", "precision": 5, "scale": 2, "nullable": True},
+        "core_functions": {"data_type": "bigint", "nullable": True},
+        "simplicity_score": {"data_type": "double", "nullable": True},
+        "is_disqualified": {"data_type": "bool", "nullable": True},
+        "constraint_version": {"data_type": "bigint", "nullable": True},
+        "validation_timestamp": {"data_type": "timestamp", "nullable": True},
+        "violation_reason": {"data_type": "text", "nullable": True},
+        "validation_status": {"data_type": "text", "nullable": True},
+    }
+)
 def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
     """
     DLT resource that validates simplicity constraint before loading.
