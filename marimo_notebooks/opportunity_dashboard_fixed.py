@@ -41,10 +41,10 @@ def _():
 # Cell 3: Fetch data
 @app.cell
 def _():
-    # Fetch opportunities data
-    result = supabase.table('workflow_results').select(
-        'opportunity_id, final_score, problem_description, app_concept, function_list, target_user'
-    ).gte('final_score', 40.0).order('final_score', desc=True).execute()
+    # Fetch opportunities data from app_opportunities table
+    result = supabase.table('app_opportunities').select(
+        'submission_id, opportunity_score, problem_description, app_concept, core_functions, target_user, subreddit, title'
+    ).gte('opportunity_score', 40.0).order('opportunity_score', desc=True).execute()
 
     data = result.data
     return data
@@ -58,7 +58,7 @@ def _(data):
         # Convert to display format
         display_data = []
         for opp in data:
-            functions = opp.get('function_list', [])
+            functions = opp.get('core_functions', [])
             if isinstance(functions, str):
                 try:
                     functions = eval(functions)
@@ -66,9 +66,10 @@ def _(data):
                     functions = [functions]
 
             display_data.append({
-                'Score': f"{opp.get('final_score', 0):.1f}",
-                'Problem': opp.get('problem_description', 'N/A')[:80] + "...",
-                'App Concept': opp.get('app_concept', 'N/A')[:80] + "...",
+                'Score': f"{opp.get('opportunity_score', 0):.1f}",
+                'Subreddit': opp.get('subreddit', 'N/A'),
+                'Problem': opp.get('problem_description', 'N/A')[:60] + "...",
+                'App Concept': opp.get('app_concept', 'N/A')[:60] + "...",
                 'Target': opp.get('target_user', 'N/A')[:30],
                 'Functions': f"{len(functions)}"
             })
@@ -80,8 +81,8 @@ def _(data):
 @app.cell
 def _(data):
     total = len(data)
-    avg_score = sum(opp.get('final_score', 0) for opp in data) / total if total > 0 else 0
-    high_score_count = len([o for o in data if o.get('final_score', 0) >= 45])
+    avg_score = sum(opp.get('opportunity_score', 0) for opp in data) / total if total > 0 else 0
+    high_score_count = len([o for o in data if o.get('opportunity_score', 0) >= 45])
 
     mo.md(f"""
     ## Summary

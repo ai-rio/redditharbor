@@ -447,6 +447,56 @@ def load_scores_to_supabase_via_dlt(
         return False
 
 
+def store_ai_profiles_to_app_opportunities(
+    scored_opportunities: List[Dict[str, Any]],
+    supabase
+) -> int:
+    """
+    Store opportunities with AI profiles to app_opportunities table.
+    Only stores opportunities that have LLM-generated profiles.
+
+    Args:
+        scored_opportunities: List of scored opportunities (some with AI profiles)
+        supabase: Supabase client instance
+
+    Returns:
+        Number of AI profiles stored
+    """
+    stored_count = 0
+
+    for opp in scored_opportunities:
+        # Only store if it has AI-generated fields
+        if not opp.get("problem_description"):
+            continue
+
+        try:
+            # Prepare data for app_opportunities table
+            app_opp = {
+                "submission_id": opp.get("opportunity_id", ""),
+                "problem_description": opp.get("problem_description", ""),
+                "app_concept": opp.get("app_concept", ""),
+                "core_functions": opp.get("function_list", []),  # Already a list
+                "value_proposition": opp.get("value_proposition", ""),
+                "target_user": opp.get("target_user", ""),
+                "monetization_model": opp.get("monetization_model", ""),
+                "opportunity_score": float(opp.get("final_score", 0)),
+                "title": opp.get("app_name", ""),
+                "subreddit": opp.get("opportunity_id", "").split("_")[0] if "_" in opp.get("opportunity_id", "") else "",
+                "reddit_score": int(opp.get("original_score", 0)),
+                "status": "discovered"
+            }
+
+            # Insert into app_opportunities
+            supabase.table("app_opportunities").insert(app_opp).execute()
+            stored_count += 1
+
+        except Exception as e:
+            print(f"  ⚠️  Failed to store AI profile for {opp.get('opportunity_id')}: {e}")
+            continue
+
+    return stored_count
+
+
 def process_batch(
     submissions: List[Dict[str, Any]],
     agent: OpportunityAnalyzerAgent,
@@ -727,6 +777,14 @@ def main():
     dlt_load_start = time.time()
     load_success = load_scores_to_supabase_via_dlt(all_scored_opportunities)
     dlt_load_time = time.time() - dlt_load_start
+
+    # Also store AI profiles to app_opportunities table
+    print(f"\n📤 Storing AI-generated profiles to app_opportunities table...")
+    ai_stored_count = store_ai_profiles_to_app_opportunities(all_scored_opportunities, supabase)
+    if ai_stored_count > 0:
+        print(f"✓ Stored {ai_stored_count} AI-generated app profiles to app_opportunities")
+    else:
+        print(f"  No AI profiles to store (score threshold not met)")
 
     # Update stored status in results
     if load_success:
