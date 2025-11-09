@@ -43,6 +43,7 @@ except ImportError:
     from tqdm import tqdm
 
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from agent_tools.llm_profiler import LLMProfiler
 from config import SUPABASE_URL, SUPABASE_KEY
 from supabase import create_client
 
@@ -326,27 +327,40 @@ def prepare_analysis_for_storage(
     # Extract dimension scores
     scores = analysis.get("dimension_scores", {})
 
-    # Extract core functions from analysis (default to 1 if not present)
-    core_functions = analysis.get("core_functions", 1)
+    # Extract core functions from analysis
+    core_functions = analysis.get("core_functions", [])
+    if isinstance(core_functions, list):
+        function_count = len(core_functions)
+        function_list = core_functions
+    else:
+        # Fallback for old format
+        function_count = core_functions if isinstance(core_functions, int) else 1
+        function_list = [f"Core function {i+1}" for i in range(function_count)]
 
     # Prepare data for workflow_results table
     analysis_data = {
         "opportunity_id": opportunity_id,
         "app_name": analysis.get("title", "Unnamed Opportunity")[:255],
-        "function_count": core_functions,
-        "function_list": [f"Core function {i+1}" for i in range(core_functions)],
+        "function_count": function_count,
+        "function_list": function_list,
         "original_score": float(analysis.get("final_score", 0)),
         "final_score": float(analysis.get("final_score", 0)),
         "status": "scored",
         "constraint_applied": True,
         "ai_insight": f"Market sector: {sector}. Subreddit: {analysis.get('subreddit', 'unknown')}",
         "processed_at": datetime.now().isoformat(),
-        # Dimension scores (match the column names in workflow_results)
+        # Dimension scores
         "market_demand": float(scores.get("market_demand", 0)) if scores else None,
         "pain_intensity": float(scores.get("pain_intensity", 0)) if scores else None,
         "monetization_potential": float(scores.get("monetization_potential", 0)) if scores else None,
         "market_gap": float(scores.get("market_gap", 0)) if scores else None,
         "technical_feasibility": float(scores.get("technical_feasibility", 0)) if scores else None,
+        # App profile fields (from LLM if available)
+        "problem_description": analysis.get("problem_description", "")[:500],
+        "app_concept": analysis.get("app_concept", "")[:500],
+        "value_proposition": analysis.get("value_proposition", "")[:500],
+        "target_user": analysis.get("target_user", "")[:255],
+        "monetization_model": analysis.get("monetization_model", "")[:255],
     }
 
     return analysis_data
@@ -436,7 +450,9 @@ def load_scores_to_supabase_via_dlt(
 def process_batch(
     submissions: List[Dict[str, Any]],
     agent: OpportunityAnalyzerAgent,
-    batch_number: int
+    batch_number: int,
+    llm_profiler: Optional[LLMProfiler] = None,
+    high_score_threshold: float = 70.0
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Process a batch of submissions through the opportunity analyzer.
@@ -444,10 +460,15 @@ def process_batch(
     This function scores submissions but does NOT store them directly.
     Instead, it returns scored opportunities for batch DLT loading.
 
+    For high-scoring opportunities (>= threshold), generates real AI app profiles
+    using Claude Haiku via OpenRouter.
+
     Args:
         submissions: List of submission dictionaries to process
         agent: Initialized OpportunityAnalyzerAgent
         batch_number: Current batch number for logging
+        llm_profiler: Optional LLM profiler for high-score opportunities
+        high_score_threshold: Score threshold for LLM profiling (default: 70.0)
 
     Returns:
         Tuple of (analysis_results, scored_opportunities_for_dlt)
@@ -456,14 +477,35 @@ def process_batch(
     """
     analysis_results = []
     scored_opportunities = []
+    high_score_count = 0
 
     for submission in submissions:
         try:
             # Format submission for agent
             formatted = format_submission_for_agent(submission)
 
-            # Analyze opportunity
+            # Analyze opportunity (scoring only, no AI profiling yet)
             analysis = agent.analyze_opportunity(formatted)
+
+            # Check if this is a high-scoring opportunity
+            final_score = analysis.get("final_score", 0)
+            if llm_profiler and final_score >= high_score_threshold:
+                high_score_count += 1
+                print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
+
+                # Generate real AI app profile
+                try:
+                    ai_profile = llm_profiler.generate_app_profile(
+                        text=formatted["text"],
+                        title=formatted["title"],
+                        subreddit=formatted["subreddit"],
+                        score=final_score
+                    )
+                    # Merge AI profile into analysis
+                    analysis.update(ai_profile)
+                except Exception as e:
+                    print(f"  ⚠️  LLM profiling failed: {e}")
+                    # Continue with basic scoring
 
             # Map subreddit to sector
             sector = map_subreddit_to_sector(submission.get("subreddit", ""))
@@ -495,6 +537,9 @@ def process_batch(
                 "final_score": 0
             })
             continue
+
+    if high_score_count > 0:
+        print(f"\n  ✨ Generated {high_score_count} AI profiles for high-scoring opportunities")
 
     return analysis_results, scored_opportunities
 
@@ -608,10 +653,23 @@ def main():
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         agent = OpportunityAnalyzerAgent()
-        print("✓ Connections initialized successfully")
-        print("  - Supabase: Connected")
-        print("  - OpportunityAnalyzerAgent: Ready")
-        print("  - DLT Pipeline: Available")
+
+        # Initialize LLM profiler for high-score opportunities
+        llm_profiler = None
+        try:
+            llm_profiler = LLMProfiler()
+            print("✓ Connections initialized successfully")
+            print("  - Supabase: Connected")
+            print("  - OpportunityAnalyzerAgent: Ready")
+            print("  - LLM Profiler: Ready (Claude Haiku via OpenRouter)")
+            print("  - DLT Pipeline: Available")
+        except Exception as e:
+            print(f"⚠️  LLM Profiler unavailable ({e})")
+            print("  - Continuing with scoring only (no AI profiles)")
+            print("✓ Connections initialized successfully")
+            print("  - Supabase: Connected")
+            print("  - OpportunityAnalyzerAgent: Ready")
+            print("  - DLT Pipeline: Available")
     except Exception as e:
         print(f"✗ Error initializing: {e}")
         return
@@ -648,7 +706,7 @@ def main():
 
         try:
             # Process batch (returns analysis results and scored opportunities)
-            results, scored_opps = process_batch(batch, agent, batch_num)
+            results, scored_opps = process_batch(batch, agent, batch_num, llm_profiler)
             all_results.extend(results)
             all_scored_opportunities.extend(scored_opps)
 
