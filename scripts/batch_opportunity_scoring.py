@@ -278,9 +278,10 @@ def format_submission_for_agent(submission: Dict[str, Any]) -> Dict[str, Any]:
     full_text = f"{title}\n\n{text}".strip()
 
     # Format engagement data - use actual column names
+    # Note: 'score' field may contain upvotes, use as fallback
     engagement = {
-        "upvotes": submission.get("upvotes", 0) or 0,
-        "num_comments": submission.get("comments_count", 0) or 0,
+        "upvotes": submission.get("upvotes", submission.get("score", 0)) or 0,
+        "num_comments": submission.get("num_comments", submission.get("comments_count", 0)) or 0,
     }
 
     # Extract comments from problem_keywords and solution_mentions if available
@@ -563,6 +564,7 @@ def process_batch(
 
             # Check if this is a high-scoring opportunity
             final_score = analysis.get("final_score", 0)
+            print(f"  📊 {formatted['title'][:60]}... Score: {final_score:.1f}")
             if llm_profiler and final_score >= high_score_threshold:
                 high_score_count += 1
                 print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
@@ -710,6 +712,10 @@ def main():
     """
     Main execution function for batch opportunity scoring (DLT-powered).
     """
+    # Read score threshold from environment variable (default: 40.0)
+    import os
+    score_threshold = float(os.getenv("SCORE_THRESHOLD", "40.0"))
+
     print("\n" + "="*80)
     print("BATCH OPPORTUNITY SCORING - DLT-POWERED")
     print("="*80 + "\n")
@@ -718,6 +724,7 @@ def main():
     print("  ✓ Incremental Loading: Automatic")
     print("  ✓ Constraint Validation: DLT-Native (1-3 Function Rule)")
     print("  ✓ Deduplication: Merge disposition")
+    print(f"  ✓ AI Profile Threshold: {score_threshold}")
     print("")
 
     start_time = time.time()
@@ -780,7 +787,7 @@ def main():
 
         try:
             # Process batch (returns analysis results and scored opportunities)
-            results, scored_opps = process_batch(batch, agent, batch_num, llm_profiler)
+            results, scored_opps = process_batch(batch, agent, batch_num, llm_profiler, score_threshold)
             all_results.extend(results)
             all_scored_opportunities.extend(scored_opps)
 
@@ -796,10 +803,19 @@ def main():
     print(f"\n{'='*80}")
     print("LOADING SCORED OPPORTUNITIES TO SUPABASE")
     print(f"{'='*80}")
-    print(f"Total opportunities to load: {len(all_scored_opportunities):,}")
+
+    # Filter to only include opportunities with function_list (i.e., those with AI profiles)
+    opportunities_with_functions = [
+        opp for opp in all_scored_opportunities
+        if opp.get("function_list") and len(opp.get("function_list", [])) > 0
+    ]
+
+    print(f"Total opportunities analyzed: {len(all_scored_opportunities):,}")
+    print(f"Opportunities with AI profiles (function_list): {len(opportunities_with_functions):,}")
+    print(f"Filtered out (no AI profile): {len(all_scored_opportunities) - len(opportunities_with_functions):,}")
 
     dlt_load_start = time.time()
-    load_success = load_scores_to_supabase_via_dlt(all_scored_opportunities)
+    load_success = load_scores_to_supabase_via_dlt(opportunities_with_functions)
     dlt_load_time = time.time() - dlt_load_start
 
     # Also store AI profiles to app_opportunities table via DLT (with deduplication)
