@@ -388,6 +388,33 @@ def load_scores_to_supabase_via_dlt(
         print("⚠️  No scored opportunities to load")
         return False
 
+    # Phase 1: Pre-flight checks for function consistency
+    print("\n🔍 Pre-flight checks (Phase 1)...")
+
+    # Check: Every opportunity has function_list
+    missing_functions = [
+        o["opportunity_id"] for o in scored_opportunities
+        if not o.get("function_list")
+    ]
+    if missing_functions:
+        print(f"❌ ERROR: {len(missing_functions)} opportunities missing function_list:")
+        for opp_id in missing_functions[:5]:
+            print(f"  - {opp_id}")
+        raise ValueError(f"Cannot load: {len(missing_functions)} missing function_list")
+
+    # Check: function_count matches function_list length
+    mismatches = [
+        o for o in scored_opportunities
+        if len(o.get("function_list", [])) != o.get("function_count")
+    ]
+    if mismatches:
+        print(f"⚠️  WARNING: {len(mismatches)} opportunities have count/list mismatch")
+        for opp in mismatches[:3]:
+            print(f"  - {opp['opportunity_id']}: count={opp.get('function_count')}, "
+                  f"actual={len(opp.get('function_list', []))}")
+
+    print(f"✓ Pre-flight checks passed ({len(scored_opportunities)} opportunities)")
+
     try:
         print(f"\n{'='*80}")
         print("LOADING SCORES TO SUPABASE VIA DLT PIPELINE")
