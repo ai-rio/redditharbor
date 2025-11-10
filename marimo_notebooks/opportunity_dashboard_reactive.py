@@ -51,22 +51,30 @@ def __(mo):
 
 @app.cell
 def __(supabase):
-    # Fetch AI-generated opportunities
-    result = supabase.table('app_opportunities').select(
-        'submission_id, opportunity_score, problem_description, app_concept, core_functions, target_user, monetization_model, subreddit, title'
-    ).gte('opportunity_score', 40.0).order('opportunity_score', desc=True).execute()
+    # Fetch AI-generated opportunities with credibility metrics
+    try:
+        result = supabase.rpc(
+            'get_opportunities_with_metrics',
+            {}
+        ).execute()
+        opportunities = result.data if result.data else []
+    except:
+        # Fallback: fetch from app_opportunities only
+        result = supabase.table('app_opportunities').select(
+            'submission_id, opportunity_score, problem_description, app_concept, core_functions, target_user, monetization_model, subreddit, title'
+        ).gte('opportunity_score', 40.0).order('opportunity_score', desc=True).execute()
+        opportunities = result.data if result.data else []
 
-    opportunities = result.data if result.data else []
     return opportunities, result
 
 
 @app.cell
 def __(mo, opportunities):
     if not opportunities:
-        no_data_msg = mo.md("### No opportunities found with score >= 40.0")
+        no_data_msg = mo.md("### No opportunities found with score >= 25.0")
         no_data_msg
     else:
-        # Build table data
+        # Build table data with optional credibility metrics
         table_data = []
         for table_opp in opportunities:
             table_functions = table_opp.get('core_functions', [])
@@ -84,18 +92,30 @@ def __(mo, opportunities):
                 functions_text = str(table_functions)
                 functions_count = "1 function"
 
-            table_data.append({
+            row = {
                 'Score': f"{table_opp.get('opportunity_score', 0):.1f}",
                 'Functions': functions_count,
                 'Subreddit': table_opp.get('subreddit', 'N/A') or 'N/A',
                 'Problem': table_opp.get('problem_description', 'N/A'),
                 'App Concept': table_opp.get('app_concept', 'N/A'),
+            }
+
+            # Add credibility metrics if available
+            if table_opp.get('comment_count') is not None:
+                row.update({
+                    'Comments': table_opp.get('comment_count', 0),
+                    'Trending': f"{table_opp.get('trending_score', 0):.0f}%",
+                })
+
+            row.update({
                 'Core Functions': functions_text,
                 'Target User': table_opp.get('target_user', 'N/A'),
                 'Monetization': table_opp.get('monetization_model', 'N/A')
             })
 
-        opportunities_table = mo.ui.table(table_data, label=f"Top {len(table_data)} AI-Generated Opportunities")
+            table_data.append(row)
+
+        opportunities_table = mo.ui.table(table_data, label=f"Top {len(table_data)} AI-Generated Opportunities (with Credibility)")
         opportunities_table
     return table_opp, table_data
 

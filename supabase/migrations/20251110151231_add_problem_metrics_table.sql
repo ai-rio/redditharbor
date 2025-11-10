@@ -350,6 +350,53 @@ COMMENT ON VIEW v_validated_problems IS
 'Problems with strong validation signals sorted by composite score (engagement + reach + intent)';
 
 -- ============================================================================
+-- PART 5B: HELPER FUNCTION FOR DASHBOARD
+-- ============================================================================
+
+-- Function to get opportunities with metrics joined for dashboard display
+CREATE OR REPLACE FUNCTION get_opportunities_with_metrics()
+RETURNS TABLE (
+    submission_id UUID,
+    opportunity_score FLOAT,
+    problem_description TEXT,
+    app_concept TEXT,
+    core_functions JSONB,
+    target_user TEXT,
+    monetization_model TEXT,
+    subreddit TEXT,
+    title TEXT,
+    comment_count INTEGER,
+    trending_score FLOAT,
+    subreddit_spread INTEGER,
+    intent_signal_count INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        ao.submission_id,
+        ao.opportunity_score,
+        ao.problem_description,
+        ao.app_concept,
+        ao.core_functions,
+        ao.target_user,
+        ao.monetization_model,
+        ao.subreddit,
+        ao.title,
+        COALESCE(pm.comment_count, 0)::INTEGER,
+        COALESCE(pm.trending_score, 0)::FLOAT,
+        COALESCE(pm.subreddit_spread, 0)::INTEGER,
+        COALESCE(pm.intent_signal_count, 0)::INTEGER
+    FROM app_opportunities ao
+    LEFT JOIN problem_metrics pm ON ao.submission_id = pm.problem_id
+    WHERE ao.opportunity_score >= 25.0
+    ORDER BY ao.opportunity_score DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION get_opportunities_with_metrics IS
+'Fetch opportunities with credibility metrics for dashboard display. Joins app_opportunities with problem_metrics for comprehensive view.';
+
+-- ============================================================================
 -- PART 6: DATA GOVERNANCE
 -- ============================================================================
 

@@ -37,16 +37,26 @@ def __(mo):
 
 @app.cell
 def __(supabase):
-    # Fetch ultra-rare opportunities (60+ scores)
+    # Fetch ultra-rare opportunities (60+ scores) with optional metrics
     try:
-        result = supabase.table('app_opportunities').select(
-            'submission_id, opportunity_score, problem_description, app_concept, core_functions, target_user, monetization_model, subreddit, title, created_at'
-        ).gte('opportunity_score', 60.0).order('opportunity_score', desc=True).limit(20).execute()
+        # Try to fetch with metrics first
+        result = supabase.rpc(
+            'get_opportunities_with_metrics',
+            {}
+        ).execute()
+        # Filter for 60+ scores
+        ultra_rare_opportunities = [o for o in result.data if o.get('opportunity_score', 0) >= 60.0][:20] if result.data else []
+    except:
+        # Fallback: fetch from app_opportunities only
+        try:
+            result = supabase.table('app_opportunities').select(
+                'submission_id, opportunity_score, problem_description, app_concept, core_functions, target_user, monetization_model, subreddit, title, created_at'
+            ).gte('opportunity_score', 60.0).order('opportunity_score', desc=True).limit(20).execute()
 
-        ultra_rare_opportunities = result.data if result.data else []
-    except Exception as e:
-        # Fallback if table doesn't exist
-        ultra_rare_opportunities = []
+            ultra_rare_opportunities = result.data if result.data else []
+        except Exception as e:
+            # Fallback if table doesn't exist
+            ultra_rare_opportunities = []
 
     # Fetch regular opportunities (40-59 scores) for comparison
     try:

@@ -708,6 +708,48 @@ def generate_summary_report(
     print("="*80 + "\n")
 
 
+def refresh_problem_metrics(supabase, submission_ids: List[str]) -> None:
+    """
+    Refresh problem metrics for the given submissions.
+
+    This function is called after opportunities are loaded to calculate and store
+    Reddit validation signals (comment count, trending score, intent signals, etc.)
+    in the problem_metrics table.
+
+    Args:
+        supabase: Supabase client
+        submission_ids: List of submission UUIDs to refresh metrics for
+    """
+    if not submission_ids:
+        print("  No submissions to refresh metrics for")
+        return
+
+    print(f"\n📊 Refreshing problem metrics for {len(submission_ids)} submissions...")
+
+    try:
+        # Call the refresh_problem_metrics function for each submission
+        # This function is defined in the problem_metrics migration
+        for submission_id in submission_ids:
+            try:
+                # Execute the stored function to refresh metrics
+                response = supabase.rpc(
+                    "refresh_problem_metrics",
+                    {"p_problem_id": submission_id}
+                ).execute()
+
+            except Exception as e:
+                # Log but don't fail - metrics are secondary to scoring
+                print(f"  ⚠️  Could not refresh metrics for {submission_id[:8]}...: {str(e)[:50]}")
+                continue
+
+        print(f"✓ Problem metrics refreshed for {len(submission_ids)} submissions")
+
+    except Exception as e:
+        print(f"⚠️  Metrics refresh unavailable: {str(e)[:100]}")
+        print("  (This is expected if problem_metrics table hasn't been created yet)")
+        print("  Run: psql -f supabase/migrations/20251110151231_add_problem_metrics_table.sql")
+
+
 def main():
     """
     Main execution function for batch opportunity scoring (DLT-powered).
@@ -825,6 +867,10 @@ def main():
         print(f"✓ Stored {ai_stored_count} AI-generated app profiles (deduplicated on submission_id)")
     else:
         print(f"  No AI profiles to store (score threshold not met)")
+
+    # Refresh problem metrics for credibility tracking
+    submission_ids = [sub.get("id") for sub in submissions if sub.get("id")]
+    refresh_problem_metrics(supabase, submission_ids)
 
     # Update stored status in results
     if load_success:
