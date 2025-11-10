@@ -43,7 +43,7 @@ def _(mo):
     2. AI analysis using Claude Haiku via OpenRouter
     3. Multi-dimensional scoring (Market, Pain, Monetization, Feasibility, Simplicity)
 
-    **Showing opportunities with score >= 40.0 (Methodology-Compliant 1-3 Function Apps)**
+    **Showing opportunities with score >= 25.0 (1-3 Function Apps per Methodology)**
     """)
     return
 
@@ -53,7 +53,7 @@ def _(supabase):
     # Fetch AI-generated opportunities from app_opportunities table
     result = supabase.table('app_opportunities').select(
         'submission_id, opportunity_score, problem_description, app_concept, core_functions, target_user, monetization_model, subreddit, title'
-    ).gte('opportunity_score', 40.0).order('opportunity_score', desc=True).execute()
+    ).gte('opportunity_score', 25.0).order('opportunity_score', desc=True).execute()
 
     data = result.data if result.data else []
     return (data,)
@@ -63,7 +63,7 @@ def _(supabase):
 def _(data, mo):
     # Convert to display format
     if not data:
-        table_output = mo.md("No opportunities found with score >= 40.0")
+        table_output = mo.md("No opportunities found with score >= 25.0")
     else:
         display_data = []
         for opp_data in data:
@@ -103,7 +103,7 @@ def _(data, mo):
 def _(data, mo):
     total = len(data)
     avg_score = sum(summary_opp.get('opportunity_score', 0) for summary_opp in data) / total if total > 0 else 0
-    high_score_count = len([o for o in data if o.get('opportunity_score', 0) >= 45])
+    high_score_count = len([o for o in data if o.get('opportunity_score', 0) >= 30])
 
     # Calculate function distribution
     one_func = 0
@@ -128,12 +128,12 @@ def _(data, mo):
     summary_md = mo.md(f"""
     ## Summary
 
-    - **Total AI Profiles (≥40):** {total}
+    - **Total AI Profiles (≥25):** {total}
     - **Average Score:** {avg_score:.1f}
-    - **High-Score (≥45):** {high_score_count}
+    - **High-Score (≥30):** {high_score_count}
     - **Function Distribution:** {one_func} function | {two_func} functions | {three_func} functions
     - **Cost per Profile:** ~$0.001 (Claude Haiku via OpenRouter)
-    - **Methodology:** 1-2 function apps prioritized with simplicity scoring
+    - **Methodology:** 1-3 function apps (1=100pts, 2=85pts, 3=70pts) with unbiased LLM selection
     """)
     return summary_md
 
