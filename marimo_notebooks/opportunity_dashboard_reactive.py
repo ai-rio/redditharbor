@@ -42,9 +42,9 @@ def __(mo):
     This dashboard displays app development opportunities identified through:
     1. Reddit data collection from high-signal subreddits
     2. AI analysis using Claude Haiku via OpenRouter
-    3. Multi-dimensional scoring (Market, Pain, Monetization, Feasibility)
+    3. Multi-dimensional scoring (Market, Pain, Monetization, Feasibility, Simplicity)
 
-    **Showing opportunities with score >= 20.0**
+    **Showing opportunities with score >= 40.0 (Methodology-Compliant 1-3 Function Apps)**
     """)
     return
 
@@ -54,7 +54,7 @@ def __(supabase):
     # Fetch AI-generated opportunities
     result = supabase.table('app_opportunities').select(
         'submission_id, opportunity_score, problem_description, app_concept, core_functions, target_user, monetization_model, subreddit, title'
-    ).gte('opportunity_score', 20.0).order('opportunity_score', desc=True).execute()
+    ).gte('opportunity_score', 40.0).order('opportunity_score', desc=True).execute()
 
     opportunities = result.data if result.data else []
     return opportunities, result
@@ -63,24 +63,41 @@ def __(supabase):
 @app.cell
 def __(mo, opportunities):
     if not opportunities:
-        mo.md("### No opportunities found with score >= 20.0")
+        no_data_msg = mo.md("### No opportunities found with score >= 40.0")
+        no_data_msg
     else:
         # Build table data
         table_data = []
-        for opp in opportunities:
-            functions = opp.get('core_functions', [])
+        for table_opp in opportunities:
+            table_functions = table_opp.get('core_functions', [])
+            if isinstance(table_functions, str):
+                try:
+                    table_functions = eval(table_functions)
+                except:
+                    table_functions = [str(table_functions)]
+
+            # Format functions as readable list
+            if isinstance(table_functions, list) and table_functions:
+                functions_text = "\n".join([f"• {func}" for func in table_functions])
+                functions_count = f"{len(table_functions)} functions"
+            else:
+                functions_text = str(table_functions)
+                functions_count = "1 function"
 
             table_data.append({
-                'Score': f"{opp.get('opportunity_score', 0):.1f}",
-                'Subreddit': opp.get('subreddit', 'N/A') or 'N/A',
-                'Problem': opp.get('problem_description', 'N/A')[:80] + "...",
-                'App Concept': opp.get('app_concept', 'N/A')[:80] + "...",
-                'Target': opp.get('target_user', 'N/A')[:40] + "...",
-                'Functions': str(len(functions)) if isinstance(functions, list) else "1"
+                'Score': f"{table_opp.get('opportunity_score', 0):.1f}",
+                'Functions': functions_count,
+                'Subreddit': table_opp.get('subreddit', 'N/A') or 'N/A',
+                'Problem': table_opp.get('problem_description', 'N/A'),
+                'App Concept': table_opp.get('app_concept', 'N/A'),
+                'Core Functions': functions_text,
+                'Target User': table_opp.get('target_user', 'N/A'),
+                'Monetization': table_opp.get('monetization_model', 'N/A')
             })
 
-        mo.ui.table(table_data, label=f"Top {len(table_data)} AI-Generated Opportunities")
-    return opp, table_data
+        opportunities_table = mo.ui.table(table_data, label=f"Top {len(table_data)} AI-Generated Opportunities")
+        opportunities_table
+    return table_opp, table_data
 
 
 @app.cell
@@ -89,15 +106,37 @@ def __(mo, opportunities):
     avg_score = sum(o.get('opportunity_score', 0) for o in opportunities) / total if total > 0 else 0
     high_score = len([o for o in opportunities if o.get('opportunity_score', 0) >= 45])
 
-    mo.md(f"""
+    # Calculate function distribution
+    one_func = 0
+    two_func = 0
+    three_func = 0
+
+    for summary_opp in opportunities:
+        summary_functions = summary_opp.get('core_functions', [])
+        if isinstance(summary_functions, str):
+            try:
+                summary_functions = eval(summary_functions)
+            except:
+                summary_functions = [summary_functions]
+
+        if len(summary_functions) == 1:
+            one_func += 1
+        elif len(summary_functions) == 2:
+            two_func += 1
+        elif len(summary_functions) == 3:
+            three_func += 1
+
+    summary_md = mo.md(f"""
     ## Summary
 
-    - **Total AI Profiles:** {total}
+    - **Total AI Profiles (≥40):** {total}
     - **Average Score:** {avg_score:.1f}
     - **High-Score (≥45):** {high_score}
+    - **Function Distribution:** {one_func} function | {two_func} functions | {three_func} functions
     - **Cost per Profile:** ~$0.001 (Claude Haiku via OpenRouter)
+    - **Methodology:** 1-2 function apps prioritized with simplicity scoring
     """)
-    return avg_score, high_score, total
+    return avg_score, high_score, one_func, summary_md, three_func, total, two_func
 
 
 @app.cell
