@@ -60,3 +60,15 @@ The `implementation/` directory contains comprehensive documentation of RedditHa
 #### DLT Integration
 - **[dlt-integration-summary.md](./dlt-integration-summary.md)** - DLT integration complete summary
 - **[dlt-consolidation-complete.md](./dlt-consolidation-complete.md)** - DLT consolidation completion report
+
+### 🐛 Bug Fixes & Critical Updates
+
+- **[Critical Bug Fix Deduplication](./critical-bug-fix-deduplication.md)** - Critical bug fix for data deduplication issues
+- **[DLT Deduplication Implementation](./dlt-deduplication-implementation.md)** - DLT-based deduplication system implementation
+- **[DLT Type Mismatch Fix Report](./dlt-type-mismatch-fix-report.md)** - Fix report for DLT type mismatch issues
+- **[Dimension Scores Implementation Plan](./dimension-scores-implementation-plan.md)** - Implementation plan for dimension scoring system
+
+### 📊 System Implementation
+
+- **[Complete DLT Implementation Summary](./complete-dlt-implementation-summary.md)** - Comprehensive DLT implementation summary
+- **[Phase2 Implementation Summary](./phase2-implementation-summary.md)** - Phase 2 implementation completion report

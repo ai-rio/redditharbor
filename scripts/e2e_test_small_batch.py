@@ -151,45 +151,48 @@ def run_scoring(supabase, llm_profiler, test_uuids):
 
 
 def store_opportunities(supabase, scored_opportunities):
-    """Store opportunities in both tables"""
+    """Store opportunities using DLT with deduplication"""
 
     print("="*80)
-    print("STEP 3: Storing Results")
+    print("STEP 3: Storing Results via DLT")
     print("="*80)
 
     # Skip workflow_results (DLT-managed table) for this test
     print("\n📤 Skipping workflow_results (DLT-managed table)")
 
-    # Store AI profiles to app_opportunities
-    print("\n📤 Storing AI profiles to app_opportunities...")
-    ai_count = 0
+    # Store AI profiles to app_opportunities via DLT (with deduplication)
+    print("\n📤 Storing AI profiles to app_opportunities via DLT...")
+
+    # Transform to app_opportunities format
+    ai_profiles = []
     for opp in scored_opportunities:
         if not opp.get("problem_description"):
             continue
 
-        try:
-            app_opp = {
-                "submission_id": opp.get("opportunity_id"),
-                "problem_description": opp.get("problem_description"),
-                "app_concept": opp.get("app_concept"),
-                "core_functions": opp.get("function_list", []),
-                "value_proposition": opp.get("value_proposition"),
-                "target_user": opp.get("target_user"),
-                "monetization_model": opp.get("monetization_model"),
-                "opportunity_score": float(opp.get("final_score", 0)),
-                "title": opp.get("app_name", ""),
-                "subreddit": opp.get("opportunity_id", "").split("_")[0] if "_" in opp.get("opportunity_id", "") else "",
-                "reddit_score": int(opp.get("original_score", 0)),
-                "status": "discovered"
-            }
+        ai_profiles.append({
+            "submission_id": opp.get("opportunity_id"),
+            "problem_description": opp.get("problem_description"),
+            "app_concept": opp.get("app_concept"),
+            "core_functions": opp.get("function_list", []),
+            "value_proposition": opp.get("value_proposition"),
+            "target_user": opp.get("target_user"),
+            "monetization_model": opp.get("monetization_model"),
+            "opportunity_score": float(opp.get("final_score", 0)),
+            "title": opp.get("app_name", ""),
+            "subreddit": opp.get("opportunity_id", "").split("_")[0] if "_" in opp.get("opportunity_id", "") else "",
+            "reddit_score": int(opp.get("original_score", 0)),
+            "status": "discovered"
+        })
 
-            supabase.table("app_opportunities").insert(app_opp).execute()
-            ai_count += 1
-            print(f"  ✓ {opp['opportunity_id']}: AI profile stored")
-        except Exception as e:
-            print(f"  ⚠️  {opp['opportunity_id']}: {str(e)[:60]}")
-
-    print(f"\n✓ Stored {ai_count} AI profiles to app_opportunities")
+    if ai_profiles:
+        from core.dlt_app_opportunities import load_app_opportunities
+        success = load_app_opportunities(ai_profiles)
+        if success:
+            print(f"\n✓ Stored {len(ai_profiles)} AI profiles (deduplicated on submission_id)")
+        else:
+            print(f"\n⚠️  Failed to store AI profiles via DLT")
+    else:
+        print(f"\n  No AI profiles to store (score threshold not met)")
 
 
 def verify_results(supabase):
