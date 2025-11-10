@@ -55,9 +55,10 @@ class OpportunityAnalyzerAgent:
         self.methodology_weights = {
             "market_demand": 0.20,
             "pain_intensity": 0.25,
-            "monetization_potential": 0.30,
-            "market_gap": 0.15,
-            "technical_feasibility": 0.10
+            "monetization_potential": 0.20,
+            "market_gap": 0.10,
+            "technical_feasibility": 0.05,
+            "simplicity_score": 0.20  # Methodology requirement: 1-3 function constraint
         }
 
     def _calculate_final_score(self, scores: Dict[str, float]) -> float:
@@ -67,7 +68,8 @@ class OpportunityAnalyzerAgent:
             scores["pain_intensity"] * self.methodology_weights["pain_intensity"] +
             scores["monetization_potential"] * self.methodology_weights["monetization_potential"] +
             scores["market_gap"] * self.methodology_weights["market_gap"] +
-            scores["technical_feasibility"] * self.methodology_weights["technical_feasibility"]
+            scores["technical_feasibility"] * self.methodology_weights["technical_feasibility"] +
+            scores.get("simplicity_score", 70.0) * self.methodology_weights["simplicity_score"]  # Default to 3 functions (70 points)
         )
         return round(final, 2)
 
@@ -120,7 +122,8 @@ class OpportunityAnalyzerAgent:
             "pain_intensity": pain_intensity,
             "monetization_potential": monetization_potential,
             "market_gap": market_gap,
-            "technical_feasibility": technical_feasibility
+            "technical_feasibility": technical_feasibility,
+            "simplicity_score": 70.0  # Default: Will be updated by constraint validator after LLM profiling
         }
 
         final_score = self._calculate_final_score(scores)

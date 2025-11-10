@@ -83,7 +83,7 @@ Generate a JSON response with exactly these fields:
 
 1. **problem_description** (1-2 sentences): The core problem or pain point expressed
 2. **app_concept** (2-3 sentences): Specific app idea that solves this problem
-3. **core_functions** (array of 1-3 strings): Specific, actionable functions (NOT generic)
+3. **core_functions** (array of 1-2 strings, maximum 3): Specific, actionable functions (NOT generic)
 4. **value_proposition** (1-2 sentences): Why users need this, what benefit they get
 5. **target_user** (1 sentence): Primary user persona
 6. **monetization_model** (1 sentence): Recommended revenue model with pricing
@@ -94,6 +94,13 @@ Generate a JSON response with exactly these fields:
 - App concept must directly solve the stated problem
 - Functions must be actionable and implementable
 - Keep all fields concise
+
+**Simplicity Priority (Methodology Requirement):**
+- 1 function apps get 100 simplicity points (PREFERRED)
+- 2 function apps get 85 simplicity points (GOOD)
+- 3 function apps get 70 simplicity points (ACCEPTABLE)
+- ALWAYS prefer 1-2 functions over 3 when possible
+- Focus on SINGLE-PURPOSE solutions that do one thing exceptionally well
 
 Return ONLY valid JSON, no markdown, no explanation."""
 
