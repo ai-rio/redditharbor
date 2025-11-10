@@ -3,15 +3,24 @@
 -- Risk: LOW | Duration: ~3 hours
 -- Purpose: Unify function data representation between workflow_results and app_opportunities
 
--- Step 1: Add function_list column to workflow_results
+-- Step 1: Convert function_list column from TEXT[] to JSONB
+-- Note: The column was created as TEXT[] in the initial migration but we need JSONB for DLT compatibility
 ALTER TABLE workflow_results
-ADD COLUMN IF NOT EXISTS function_list JSONB DEFAULT NULL;
+ALTER COLUMN function_list DROP DEFAULT,
+ALTER COLUMN function_list TYPE JSONB USING
+  CASE
+    WHEN function_list IS NULL THEN NULL
+    WHEN function_list = '{}' THEN '[]'::JSONB
+    ELSE to_jsonb(function_list)
+  END,
+ALTER COLUMN function_list SET DEFAULT NULL;
 
 -- Step 2: Add comment for documentation
 COMMENT ON COLUMN workflow_results.function_list IS 'Array of core function names (Phase 2: function-count bias fix)';
 
--- Step 3: Create GIN index for efficient JSONB queries
-CREATE INDEX IF NOT EXISTS idx_workflow_results_function_list
+-- Step 3: Recreate GIN index for efficient JSONB queries (drop old index if exists)
+DROP INDEX IF EXISTS idx_workflow_results_function_list;
+CREATE INDEX idx_workflow_results_function_list
 ON workflow_results USING gin(function_list);
 
 -- Step 4: Backfill function_list from app_opportunities where possible
