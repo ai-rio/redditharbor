@@ -96,6 +96,14 @@ collector.store_to_database(data, database_url="your_db_url")
 - **[DLT Integration](./implementation/#-dlt-integration-documentation)** - Complete DLT pipeline implementation
 - **[Migration Reports](./implementation/#-migration--workflow-documentation)** - Migration execution and workflow summaries
 
+### Archive & Historical Documentation
+
+- **[Documentation Archive](./archive/README.md)** - Historical documentation and completed projects
+  - **[Implementation Archive](./archive/old_versions/)** - Completed implementation phases and migration reports
+  - **[Research Archive](./archive/research_notes/)** - Historical research documentation and findings
+  - **[Agent Archive](./archive/agents/)** - AI agent specifications and configurations
+  - **[Methodology Archive](./archive/methodology/)** - Previous research approaches and frameworks
+
 ### Resources
 
 - **[Images & Diagrams](./assets/images/)** - Visual assets and diagrams
