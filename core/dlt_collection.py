@@ -266,11 +266,12 @@ def transform_comment_to_schema(comment_data: Dict[str, Any]) -> Dict[str, Any]:
     Transform Reddit API comment data to match Supabase schema.
 
     Mapping:
-    - comment_id → comment_id (already correct)
-    - submission_id → submission_id (already correct)
-    - body → content (store as both body and content for compatibility)
+    - comment_id → comment_id (Reddit comment ID)
+    - submission_id → submission_id (Reddit submission ID string, will be backfilled to UUID)
+    - link_id → link_id (Reddit submission ID for foreign key linkage)
+    - body → body and content (store as both for compatibility)
     - created_utc → created_at (Unix timestamp to ISO datetime)
-    - Keep: score, parent_id, depth
+    - Keep: score, parent_id, depth, subreddit
     - Drop: author, _dlt_* metadata
 
     Args:
@@ -285,7 +286,8 @@ def transform_comment_to_schema(comment_data: Dict[str, Any]) -> Dict[str, Any]:
 
     transformed = {
         "comment_id": comment_data.get("comment_id"),
-        "submission_id": comment_data.get("submission_id"),
+        "submission_id": comment_data.get("submission_id"),  # Reddit submission ID (string)
+        "link_id": comment_data.get("link_id"),  # Same as submission_id, for FK backfill
         "body": body_text,
         "content": body_text,  # Also store as content for public schema
         "score": comment_data.get("score"),
@@ -293,6 +295,7 @@ def transform_comment_to_schema(comment_data: Dict[str, Any]) -> Dict[str, Any]:
         "parent_id": comment_data.get("parent_id"),
         "depth": comment_data.get("depth"),
         "comment_depth": comment_data.get("depth", 0),  # Also store as comment_depth
+        "subreddit": comment_data.get("subreddit"),  # Denormalized subreddit name
     }
 
     # Remove None values to avoid schema issues
@@ -410,12 +413,14 @@ def collect_post_comments(
                 raw_comment = {
                     "comment_id": comment.id,
                     "submission_id": submission_id,
+                    "link_id": submission_id,  # Store link_id for foreign key backfill
                     "author": str(comment.author) if comment.author else "[deleted]",
                     "body": comment.body,
                     "score": comment.score,
                     "created_utc": int(comment.created_utc),
                     "parent_id": comment.parent_id,
                     "depth": comment.depth,
+                    "subreddit": submission.subreddit.display_name,  # Add subreddit for denormalized access
                 }
 
                 # Transform to Supabase schema

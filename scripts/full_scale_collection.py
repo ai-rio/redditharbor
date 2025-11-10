@@ -402,27 +402,28 @@ def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
         logger.info(f"   Deduplicating: {len(comments)} -> {len(unique_comments)} unique comments")
 
         # Prepare data for insertion
-        # Note: submission_id in comments table is UUID (FK to submissions.id)
-        # We'll insert NULL for now since we don't have the UUID mapping
+        # Note: We populate link_id (Reddit submission ID string) which will be used to backfill submission_id (UUID)
+        # submission_id (UUID) will be backfilled after INSERT via the UPDATE query below
         values = [
             (
                 comment.get("comment_id"),
+                comment.get("link_id"),  # Reddit submission ID string (e.g., "1opmkio")
                 comment.get("body"),
                 comment.get("content"),
                 max(0, comment.get("score", 0)),  # Ensure non-negative for CHECK constraint
                 comment.get("created_at"),
                 comment.get("parent_id"),
-                comment.get("comment_depth", 0)
+                comment.get("comment_depth", 0),
+                comment.get("subreddit")  # Add subreddit for denormalized access
             )
             for comment in unique_comments
         ]
 
         # Insert with ON CONFLICT to handle duplicates
         # Note: ON CONFLICT requires a named constraint or column list matching the unique index
-        # TODO: Add link_id column to store Reddit submission ID (t3_xxxxx format)
         insert_query = """
             INSERT INTO public.comments
-                (comment_id, body, content, upvotes, created_at, parent_id, comment_depth)
+                (comment_id, link_id, body, content, upvotes, created_at, parent_id, comment_depth, subreddit)
             VALUES %s
             ON CONFLICT (comment_id) WHERE comment_id IS NOT NULL
             DO UPDATE SET
@@ -431,11 +432,31 @@ def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
                 upvotes = EXCLUDED.upvotes,
                 created_at = EXCLUDED.created_at,
                 parent_id = EXCLUDED.parent_id,
-                comment_depth = EXCLUDED.comment_depth;
+                comment_depth = EXCLUDED.comment_depth,
+                subreddit = EXCLUDED.subreddit;
         """
 
         execute_values(cursor, insert_query, values, page_size=100)
         conn.commit()
+
+        # CRITICAL: Backfill submission_id (UUID) by linking via link_id
+        # This is the key fix - without this, comments are orphaned with NULL submission_id
+        logger.info("   Backfilling submission_id UUID foreign key...")
+
+        # Update comments.submission_id (UUID) from submissions.id (UUID)
+        # Join on: comments.link_id = submissions.submission_id (both are Reddit ID strings)
+        cursor.execute("""
+            UPDATE public.comments
+            SET submission_id = s.id
+            FROM public.submissions s
+            WHERE public.comments.link_id = s.submission_id
+              AND public.comments.submission_id IS NULL
+              AND s.submission_id IS NOT NULL;
+        """)
+
+        conn.commit()
+        backfill_count = cursor.rowcount
+        logger.info(f"   ✓ Backfilled {backfill_count} comments with submission_id UUID")
 
         inserted_count = cursor.rowcount
         cursor.close()
