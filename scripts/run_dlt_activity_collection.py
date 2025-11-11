@@ -243,6 +243,7 @@ def run_dlt_collection(
     subreddits: list[str],
     time_filter: str = "day",
     min_activity_score: float = 50.0,
+    min_opportunity_score: float = 30.0,
     dry_run: bool = False,
     pipeline_name: str = "reddit_harbor_activity_collection"
 ) -> dict[str, Any]:
@@ -253,6 +254,7 @@ def run_dlt_collection(
         subreddits: List of subreddit names to collect from
         time_filter: Time period for activity analysis
         min_activity_score: Minimum activity score threshold
+        min_opportunity_score: Minimum opportunity score for pre-filtering
         dry_run: If True, only validate without executing
         pipeline_name: Name for the DLT pipeline
 
@@ -266,6 +268,7 @@ def run_dlt_collection(
         logger.info(f"🎯 Target subreddits: {len(subreddits)}")
         logger.info(f"⏰ Time filter: {time_filter}")
         logger.info(f"📊 Minimum activity score: {min_activity_score}")
+        logger.info(f"🎯 Minimum opportunity score: {min_opportunity_score} (pre-filtering)")
 
         # Initialize Reddit client
         reddit_client = get_reddit_client()
@@ -278,7 +281,8 @@ def run_dlt_collection(
             reddit_client=reddit_client,
             subreddits=subreddits,
             time_filter=time_filter,
-            min_activity_score=min_activity_score
+            min_activity_score=min_activity_score,
+            min_opportunity_score=min_opportunity_score
         )
 
         filtered_source = apply_quality_filters(source_data, min_activity_score)
@@ -399,6 +403,12 @@ Examples:
         default=50.0,
         help="Minimum activity score threshold (0-100, default: 50)"
     )
+    parser.add_argument(
+        "--min-opportunity-score",
+        type=float,
+        default=30.0,
+        help="Minimum opportunity score for pre-filtering (0-100, default: 30)"
+    )
 
     # Execution options
     parser.add_argument(
@@ -444,6 +454,7 @@ Examples:
             subreddits=subreddits,
             time_filter=args.time_filter,
             min_activity_score=args.min_activity,
+            min_opportunity_score=args.min_opportunity_score,
             dry_run=args.dry_run,
             pipeline_name=args.pipeline
         )
