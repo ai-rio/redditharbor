@@ -11,7 +11,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -72,7 +72,7 @@ class MigrationExecutor:
             self.log(f"Database connection failed: {e}", "ERROR")
             return False
 
-    def execute_sql(self, sql: str) -> Tuple[bool, str]:
+    def execute_sql(self, sql: str) -> tuple[bool, str]:
         """Execute SQL command."""
         try:
             cursor = self.conn.cursor()
@@ -84,12 +84,12 @@ class MigrationExecutor:
             self.conn.rollback()
             return False, str(e)
 
-    def execute_migration(self) -> Dict[str, Any]:
+    def execute_migration(self) -> dict[str, Any]:
         """Execute complete migration workflow."""
         self.log("=" * 70, "INFO")
         self.log("MIGRATION EXECUTION STARTING", "INFO")
         self.log("=" * 70, "INFO")
-        self.log(f"Migration: 20251108000000_consolidate_schema_safe", "INFO")
+        self.log("Migration: 20251108000000_consolidate_schema_safe", "INFO")
         self.log(f"Timestamp: {self.start_time.isoformat()}", "INFO")
 
         results = {
@@ -122,7 +122,7 @@ class MigrationExecutor:
             self.save_log()
             return results
 
-        with open(MIGRATION_FILE, 'r') as f:
+        with open(MIGRATION_FILE) as f:
             migration_sql = f.read()
 
         self.log(f"Read {len(migration_sql)} characters from migration file", "INFO")
@@ -188,7 +188,7 @@ class MigrationExecutor:
 
         return results
 
-    def capture_snapshot(self) -> Dict[str, Any]:
+    def capture_snapshot(self) -> dict[str, Any]:
         """Capture current database state."""
         snapshot = {}
 
@@ -208,7 +208,7 @@ class MigrationExecutor:
 
         return snapshot
 
-    def compare_snapshots(self, pre: Dict, post: Dict) -> Dict[str, Any]:
+    def compare_snapshots(self, pre: dict, post: dict) -> dict[str, Any]:
         """Compare pre and post migration snapshots."""
         comparison = {}
 
@@ -235,7 +235,7 @@ class MigrationExecutor:
 
         return comparison
 
-    def validate_migration(self) -> Dict[str, Any]:
+    def validate_migration(self) -> dict[str, Any]:
         """Validate migration success."""
         validation = {
             "status": "PASSED",

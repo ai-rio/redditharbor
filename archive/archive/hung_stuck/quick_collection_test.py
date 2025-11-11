@@ -11,12 +11,18 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from redditharbor.login import reddit, supabase
 from redditharbor.dock.pipeline import collect
+from redditharbor.login import reddit, supabase
+
 from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT,
-    SUPABASE_URL, SUPABASE_KEY, DB_CONFIG
+    DB_CONFIG,
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
 )
+
 
 def main():
     print("=" * 80)
@@ -66,7 +72,7 @@ def main():
 
         try:
             # Step 1: Collect submissions
-            print(f"\n   📝 Collecting submissions...")
+            print("\n   📝 Collecting submissions...")
             result = pipeline.subreddit_submission(
                 subreddits=[subreddit],
                 sort_types=sort_types,
@@ -75,7 +81,7 @@ def main():
             )
 
             # Step 2: Collect comments
-            print(f"\n   💬 Collecting comments...")
+            print("\n   💬 Collecting comments...")
             pipeline.subreddit_comment(
                 subreddits=[subreddit],
                 sort_types=sort_types,
@@ -99,7 +105,7 @@ def main():
     comments_result = supabase_client.table('comments').select('count', count='exact').execute()
     redditors_result = supabase_client.table('redditors').select('count', count='exact').execute()
 
-    print(f"\n📊 Final Database State:")
+    print("\n📊 Final Database State:")
     print(f"   📝 Submissions: {subs_result.count}")
     print(f"   💬 Comments: {comments_result.count}")
     print(f"   👥 Redditors: {redditors_result.count}")
@@ -107,11 +113,11 @@ def main():
     if comments_result.count > 0:
         avg_comments = comments_result.count / subs_result.count if subs_result.count > 0 else 0
         print(f"   📊 Avg comments per submission: {avg_comments:.1f}")
-        print(f"\n✅ SUCCESS! Ready to run full-scale collection")
-        print(f"✅ Ready to test AI insights script")
+        print("\n✅ SUCCESS! Ready to run full-scale collection")
+        print("✅ Ready to test AI insights script")
         return True
     else:
-        print(f"\n❌ FAILED! No comments collected")
+        print("\n❌ FAILED! No comments collected")
         return False
 
 if __name__ == "__main__":

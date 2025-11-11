@@ -22,7 +22,7 @@ def test_research_framework():
         print("1️⃣ Testing configuration...")
         try:
             import config.settings as settings
-            print(f"   ✅ Configuration loaded")
+            print("   ✅ Configuration loaded")
             print(f"   ✅ PII anonymization: {settings.ENABLE_PII_ANONYMIZATION}")
         except Exception as e:
             print(f"   ❌ Configuration failed: {e}")
@@ -37,7 +37,7 @@ def test_research_framework():
                 secret_key=settings.REDDIT_SECRET,
                 user_agent=settings.REDDIT_USER_AGENT
             )
-            print(f"   ✅ Reddit API connected")
+            print("   ✅ Reddit API connected")
         except Exception as e:
             print(f"   ❌ Reddit connection failed: {e}")
             return False
@@ -50,7 +50,7 @@ def test_research_framework():
                 url=settings.SUPABASE_URL,
                 private_key=settings.SUPABASE_KEY
             )
-            print(f"   ✅ Supabase connected")
+            print("   ✅ Supabase connected")
         except Exception as e:
             print(f"   ❌ Supabase connection failed: {e}")
             return False
@@ -64,7 +64,7 @@ def test_research_framework():
                 supabase_client=supabase_client,
                 db_config=settings.DB_CONFIG
             )
-            print(f"   ✅ Pipeline initialized")
+            print("   ✅ Pipeline initialized")
         except Exception as e:
             print(f"   ❌ Pipeline initialization failed: {e}")
             return False
@@ -79,18 +79,18 @@ def test_research_framework():
                 limit=2,  # Very small test
                 mask_pii=settings.ENABLE_PII_ANONYMIZATION
             )
-            print(f"   ✅ Small data collection test passed")
+            print("   ✅ Small data collection test passed")
         except Exception as e:
             print(f"   ❌ Data collection failed: {e}")
             return False
 
-        print(f"\n🎉 Research framework test PASSED!")
-        print(f"✅ All core components working correctly")
-        print(f"✅ Ready for full research deployment")
-        print(f"\n📋 Next Steps:")
-        print(f"   1. Install spaCy model: uv pip install en_core_web_lg")
-        print(f"   2. Re-enable PII anonymization in config")
-        print(f"   3. Run full research: python scripts/run_niche_research.py")
+        print("\n🎉 Research framework test PASSED!")
+        print("✅ All core components working correctly")
+        print("✅ Ready for full research deployment")
+        print("\n📋 Next Steps:")
+        print("   1. Install spaCy model: uv pip install en_core_web_lg")
+        print("   2. Re-enable PII anonymization in config")
+        print("   3. Run full research: python scripts/run_niche_research.py")
 
         return True
 

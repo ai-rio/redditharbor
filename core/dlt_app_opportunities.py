@@ -8,7 +8,7 @@ Prevents duplicate profiles from same submission_id, saving LLM API costs.
 
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
 
 import dlt
 
@@ -53,7 +53,7 @@ def create_app_opportunities_pipeline() -> dlt.Pipeline:
         "status": {"data_type": "text", "nullable": True},
     }
 )
-def app_opportunities_resource(ai_profiles: List[Dict[str, Any]]):
+def app_opportunities_resource(ai_profiles: list[dict[str, Any]]):
     """
     DLT resource for app_opportunities with automatic deduplication.
 
@@ -69,7 +69,7 @@ def app_opportunities_resource(ai_profiles: List[Dict[str, Any]]):
             yield profile
 
 
-def load_app_opportunities(ai_profiles: List[Dict[str, Any]]) -> bool:
+def load_app_opportunities(ai_profiles: list[dict[str, Any]]) -> bool:
     """
     Load AI profiles to app_opportunities table with DLT deduplication.
 
@@ -129,7 +129,7 @@ def load_app_opportunities(ai_profiles: List[Dict[str, Any]]) -> bool:
 
         print("✓ AI profiles loaded successfully!")
         print(f"  - Profiles processed: {len(ai_only)}")
-        print(f"  - Write mode: merge (deduplication on submission_id)")
+        print("  - Write mode: merge (deduplication on submission_id)")
         print(f"  - Started: {load_info.started_at}")
 
         return True

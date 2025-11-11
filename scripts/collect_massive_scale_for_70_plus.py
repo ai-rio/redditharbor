@@ -12,9 +12,8 @@ Reddit API Scaling Strategies:
 """
 
 import sys
-from pathlib import Path
-from typing import List, Dict, Optional
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -22,6 +21,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 # Import DLT collection tools
@@ -142,7 +142,7 @@ TIME_FILTERS = ["day", "week", "month", "year", "all"]
 # Sort types to collect for maximum coverage
 SORT_TYPES = ["top"]  # Focus on top posts for quality
 
-def collect_from_subreddit_all_sort_types(subreddit_name: str, base_limit: int) -> List[Dict]:
+def collect_from_subreddit_all_sort_types(subreddit_name: str, base_limit: int) -> list[dict]:
     """
     Collect from a subreddit using multiple sort types and time filters.
     
@@ -154,14 +154,14 @@ def collect_from_subreddit_all_sort_types(subreddit_name: str, base_limit: int) 
         List of all collected posts
     """
     all_posts = []
-    
+
     # Calculate per-type limit
     posts_per_type = max(50, base_limit // 10)  # Distribute across ~10 different sort types
-    
+
     print(f"\n  Collecting from r/{subreddit_name}...")
     print(f"    Base limit: {base_limit}")
     print(f"    Posts per sort type: {posts_per_type}")
-    
+
     # 1. Top posts with different time filters
     for time_filter in TIME_FILTERS:
         try:
@@ -171,13 +171,13 @@ def collect_from_subreddit_all_sort_types(subreddit_name: str, base_limit: int) 
                 sort_type="top",
                 test_mode=False
             )
-            
+
             if posts:
                 all_posts.extend(posts)
                 print(f"    ✓ top({time_filter}): {len(posts)} posts")
         except Exception as e:
             print(f"    ✗ Error with top({time_filter}): {e}")
-    
+
     # 2. Hot posts
     try:
         posts = collect_problem_posts(
@@ -191,7 +191,7 @@ def collect_from_subreddit_all_sort_types(subreddit_name: str, base_limit: int) 
             print(f"    ✓ hot: {len(posts)} posts")
     except Exception as e:
         print(f"    ✗ Error with hot: {e}")
-    
+
     # 3. Rising posts
     try:
         posts = collect_problem_posts(
@@ -205,7 +205,7 @@ def collect_from_subreddit_all_sort_types(subreddit_name: str, base_limit: int) 
             print(f"    ✓ rising: {len(posts)} posts")
     except Exception as e:
         print(f"    ✗ Error with rising: {e}")
-    
+
     # 4. New posts (recent problems)
     try:
         posts = collect_problem_posts(
@@ -219,7 +219,7 @@ def collect_from_subreddit_all_sort_types(subreddit_name: str, base_limit: int) 
             print(f"    ✓ new: {len(posts)} posts")
     except Exception as e:
         print(f"    ✗ Error with new: {e}")
-    
+
     print(f"  Total from r/{subreddit_name}: {len(all_posts)} posts")
     return all_posts
 
@@ -227,51 +227,51 @@ def main():
     print("\n" + "="*80)
     print("MASSIVE SCALE COLLECTION FOR THRESHOLD 70+ TESTING")
     print("="*80)
-    
+
     total_target = sum(info['limit'] for info in ULTRA_PREMIUM_SUBREDDITS.values())
-    
-    print(f"\nCurrent State: 594 submissions")
+
+    print("\nCurrent State: 594 submissions")
     print(f"Target: {total_target} posts from {len(ULTRA_PREMIUM_SUBREDDITS)} subreddits")
-    print(f"Goal: Find 70+ scores with maximum data coverage")
-    print(f"\nStrategy:")
-    print(f"  • Multiple sort types per subreddit (top[time filters] + hot + rising + new)")
+    print("Goal: Find 70+ scores with maximum data coverage")
+    print("\nStrategy:")
+    print("  • Multiple sort types per subreddit (top[time filters] + hot + rising + new)")
     print(f"  • {len(ULTRA_PREMIUM_SUBREDDITS)} ultra-premium subreddits")
-    print(f"  • Expected total: 10,000-15,000 posts")
-    print(f"  • Expected problem posts: 1,000-3,000 (10-20% filter rate)")
-    
+    print("  • Expected total: 10,000-15,000 posts")
+    print("  • Expected problem posts: 1,000-3,000 (10-20% filter rate)")
+
     print("\n" + "="*80)
     print("SUBREDDIT STRATEGY")
     print("="*80)
-    
+
     # Group by category
     categories = {
         "VC/Investment": ["venturecapital", "financialindependence", "investing", "realestateinvesting", "startups"],
         "Business Operations": ["business", "SaaS", "smallbusiness", "b2bmarketing", "entrepreneur", "freelance", "consulting"],
         "Niche Services": ["digitalmarketing", "ecommerce", "webdev", "socialmedia", "projectmanagement", "productivity", "contractors", "accounting"]
     }
-    
+
     for category, subs in categories.items():
         print(f"\n{category}:")
         for sub in subs:
             if sub in ULTRA_PREMIUM_SUBREDDITS:
                 info = ULTRA_PREMIUM_SUBREDDITS[sub]
                 print(f"  r/{sub:25} - {info['limit']:3} posts - {info['monetization']}")
-    
+
     all_posts = []
     subreddit_stats = {}
-    
+
     print("\n" + "="*80)
     print("COLLECTING FROM ALL SUBREDDITS")
     print("="*80)
-    
+
     for subreddit_name, info in ULTRA_PREMIUM_SUBREDDITS.items():
         print(f"\n{'='*80}")
         print(f"Processing r/{subreddit_name}...")
         print(f"{'='*80}")
-        
+
         try:
             posts = collect_from_subreddit_all_sort_types(subreddit_name, info['limit'])
-            
+
             # Add metadata
             for post in posts:
                 post['collection_phase'] = 'Massive Scale 70+ Test'
@@ -279,19 +279,19 @@ def main():
                 post['subreddit_type'] = 'ultra_premium'
                 post['pain_signals'] = info.get('pain_signals', [])
                 post['monetization_tier'] = info.get('monetization', '')
-            
+
             all_posts.extend(posts)
             subreddit_stats[subreddit_name] = len(posts)
-            
+
         except Exception as e:
             print(f"✗ Error processing r/{subreddit_name}: {e}")
             subreddit_stats[subreddit_name] = 0
             continue
-    
+
     print(f"\n{'='*80}")
     print("LOADING TO SUPABASE")
     print(f"{'='*80}")
-    
+
     if all_posts:
         try:
             load_submissions_to_supabase(all_posts)
@@ -299,39 +299,39 @@ def main():
             print(f"  - Subreddits: {len(ULTRA_PREMIUM_SUBREDDITS)}")
             print(f"  - New posts: {len(all_posts)}")
             print(f"  - Database now: ~{594 + len(all_posts)} submissions")
-            print(f"  - DLT deduplication: Active")
-            
+            print("  - DLT deduplication: Active")
+
             # Print subreddit breakdown
-            print(f"\n  Subreddit breakdown:")
+            print("\n  Subreddit breakdown:")
             for sub, count in subreddit_stats.items():
                 if count > 0:
                     print(f"    r/{sub}: {count} posts")
-            
+
         except Exception as e:
             print(f"\n✗ Error loading to Supabase: {e}")
             raise
     else:
         print("\n⚠️  No posts collected")
         return
-    
+
     print("\n" + "="*80)
     print("COLLECTION SUMMARY - MASSIVE SCALE 70+ TEST")
     print("="*80)
-    print(f"Massive Scale Collection Complete!")
+    print("Massive Scale Collection Complete!")
     print(f"New posts collected: {len(all_posts)}")
     print(f"Database total: ~{594 + len(all_posts)} submissions")
     print(f"Target reached: {'✅ YES' if 594 + len(all_posts) >= 1000 else '❌ NO'}")
     print()
     print("Expected Results:")
     if 594 + len(all_posts) >= 5000:
-        print(f"  • High probability of finding 70+ scores (1-5 opportunities)")
-        print(f"  • Exceptional quality from diverse, high-pain data")
-        print(f"  • Validation of 70+ threshold with massive scale")
+        print("  • High probability of finding 70+ scores (1-5 opportunities)")
+        print("  • Exceptional quality from diverse, high-pain data")
+        print("  • Validation of 70+ threshold with massive scale")
     elif 594 + len(all_posts) >= 1000:
-        print(f"  • Good chance of finding some 60+ scores")
-        print(f"  • May need more data for 70+")
+        print("  • Good chance of finding some 60+ scores")
+        print("  • May need more data for 70+")
     else:
-        print(f"  • Need more data to reach meaningful scale")
+        print("  • Need more data to reach meaningful scale")
     print()
     print("Next step: Run batch scoring with threshold 70.0")
     print("  export SCORE_THRESHOLD=70.0")

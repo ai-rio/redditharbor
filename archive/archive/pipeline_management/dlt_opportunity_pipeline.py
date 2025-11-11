@@ -17,25 +17,22 @@ Success Criteria:
 - End-to-end pipeline under 5 minutes (50 posts)
 """
 
+import argparse
 import sys
 import time
-import json
-import argparse
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import DLT collection
-from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
-
 # Import AI analysis - simplified approach for test mode
 # In production, this would use the batch_opportunity_scoring module
-
 # Import DLT
-import dlt
+
+from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
 
 # Configuration
 PIPELINE_NAME = "reddit_harbor_opportunity_pipeline"
@@ -43,7 +40,7 @@ DESTINATION = "postgres"
 DATASET_NAME = "reddit_harbor"
 
 
-def collect_posts_with_dlt(subreddits: List[str], limit: int, test_mode: bool = False) -> List[Dict[str, Any]]:
+def collect_posts_with_dlt(subreddits: list[str], limit: int, test_mode: bool = False) -> list[dict[str, Any]]:
     """
     Step 1: Collect posts using DLT
 
@@ -74,7 +71,7 @@ def collect_posts_with_dlt(subreddits: List[str], limit: int, test_mode: bool = 
     return posts
 
 
-def analyze_opportunities(posts: List[Dict[str, Any]], test_mode: bool = False) -> List[Dict[str, Any]]:
+def analyze_opportunities(posts: list[dict[str, Any]], test_mode: bool = False) -> list[dict[str, Any]]:
     """
     Step 2: Run AI opportunity analysis
 
@@ -129,7 +126,7 @@ def analyze_opportunities(posts: List[Dict[str, Any]], test_mode: bool = False) 
     return analyzed_posts
 
 
-def load_insights_to_supabase(analyzed_posts: List[Dict[str, Any]], write_mode: str = "merge") -> bool:
+def load_insights_to_supabase(analyzed_posts: list[dict[str, Any]], write_mode: str = "merge") -> bool:
     """
     Step 3: Load insights to Supabase using DLT
 
@@ -192,7 +189,7 @@ def load_insights_to_supabase(analyzed_posts: List[Dict[str, Any]], write_mode: 
         print(f"\n✓ Insights loaded successfully in {load_time:.2f}s")
         print(f"  - Write mode: {write_mode}")
         print(f"  - Opportunities: {len(opportunities)}")
-        print(f"  - Merge key: submission_id (prevents duplicates)")
+        print("  - Merge key: submission_id (prevents duplicates)")
 
         return True
 
@@ -214,8 +211,8 @@ def verify_pipeline_results():
 
     try:
         # Check Supabase for results
+        from config.settings import SUPABASE_KEY, SUPABASE_URL
         from supabase import create_client
-        from config.settings import SUPABASE_URL, SUPABASE_KEY
 
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -223,7 +220,7 @@ def verify_pipeline_results():
         result = supabase.table("opportunity_analysis").select("submission_id", count="exact").execute()
         total_count = result.count if result.count else 0
 
-        print(f"\n✓ Verification complete")
+        print("\n✓ Verification complete")
         print(f"  - Total opportunities: {total_count}")
 
         return {
@@ -248,7 +245,7 @@ def verify_pipeline_results():
 
 
 def run_full_pipeline(
-    subreddits: List[str],
+    subreddits: list[str],
     limit: int,
     test_mode: bool = False
 ) -> bool:
@@ -266,7 +263,7 @@ def run_full_pipeline(
     print("=" * 80)
     print("DLT OPPORTUNITY PIPELINE: End-to-End DLT + AI Integration")
     print("=" * 80)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     print(f"  Subreddits: {', '.join(subreddits)}")
     print(f"  Limit: {limit} posts per subreddit")
     print(f"  Test mode: {test_mode}")
@@ -305,18 +302,18 @@ def run_full_pipeline(
         print("PIPELINE COMPLETE")
         print("=" * 80)
         print(f"\n✓ Total time: {pipeline_time:.2f}s")
-        print(f"  - Target: <300s (5 minutes)")
+        print("  - Target: <300s (5 minutes)")
         print(f"  - Status: {'✓ PASS' if pipeline_time < 300 else '⚠️  SLOW'}")
 
         # Check success criteria
         success_rate = (len([p for p in analyzed_posts if "final_score" in p]) / len(analyzed_posts)) * 100
         print(f"\n✓ AI Success Rate: {success_rate:.1f}%")
-        print(f"  - Target: ≥80%")
+        print("  - Target: ≥80%")
         print(f"  - Status: {'✓ PASS' if success_rate >= 80 else '⚠️  LOW'}")
 
-        print(f"\n✓ Merge Write: Functional")
-        print(f"  - Primary Key: submission_id")
-        print(f"  - Prevents duplicates: ✓")
+        print("\n✓ Merge Write: Functional")
+        print("  - Primary Key: submission_id")
+        print("  - Prevents duplicates: ✓")
 
         overall_success = (
             pipeline_time < 300 and

@@ -6,9 +6,10 @@ This script validates DLT integration by collecting a small sample
 of Reddit data and loading it into Supabase.
 """
 
+import os
 import sys
 from pathlib import Path
-import os
+
 import dlt
 
 # Add project root
@@ -16,7 +17,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import configuration
-from config.dlt_settings import DLT_PIPELINE_CONFIG, DLT_SUPABASE_CONFIG
+from config.dlt_settings import DLT_PIPELINE_CONFIG
+
 
 def test_reddit_collection():
     """Test basic Reddit data collection with DLT."""
@@ -77,7 +79,7 @@ def test_reddit_collection():
     # Run pipeline
     try:
         load_info = pipeline.run(source)
-        print(f"\n✓ Pipeline executed successfully")
+        print("\n✓ Pipeline executed successfully")
         print(f"  Tables: {list(load_info.schema.tables.keys())}")
         print(f"  Metrics: {load_info.metrics}")
         return load_info
@@ -108,11 +110,8 @@ def test_dlt_structure():
     try:
         from config.dlt_settings import (
             DLT_PIPELINE_CONFIG,
-            DLT_SUPABASE_CONFIG,
-            DLT_INCREMENTAL_CONFIG,
-            DLT_SCHEMA_CONFIG
         )
-        print(f"✓ DLT configuration loaded")
+        print("✓ DLT configuration loaded")
         print(f"  Pipeline: {DLT_PIPELINE_CONFIG['pipeline_name']}")
         print(f"  Destination: {DLT_PIPELINE_CONFIG['destination']}")
         print(f"  Dataset: {DLT_PIPELINE_CONFIG['dataset_name']}")
@@ -122,14 +121,14 @@ def test_dlt_structure():
 
     # Test Supabase connection
     try:
-        from config.settings import SUPABASE_URL, SUPABASE_KEY
-        print(f"\n✓ Supabase configuration found")
+        from config.settings import SUPABASE_KEY, SUPABASE_URL
+        print("\n✓ Supabase configuration found")
         print(f"  URL: {SUPABASE_URL[:30]}...")
         print(f"  Key: {SUPABASE_KEY[:20]}...")
     except Exception as e:
         print(f"\n⚠️  Supabase config warning: {e}")
 
-    print(f"\n✓ DLT structure is valid")
+    print("\n✓ DLT structure is valid")
     return True
 
 if __name__ == "__main__":

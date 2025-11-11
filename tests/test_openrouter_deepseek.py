@@ -4,12 +4,12 @@ Test OpenRouter API with DeepSeek free model
 Verify authentication and API functionality
 """
 
+import json
 import os
 import sys
-import time
-import requests
-import json
 from pathlib import Path
+
+import requests
 
 # Add project root
 project_root = Path(__file__).parent
@@ -28,7 +28,7 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 print("=" * 80)
 print("OPENROUTER + DEEPSEEK API TEST")
 print("=" * 80)
-print(f"\nConfiguration:")
+print("\nConfiguration:")
 print(f"  API Key: {OPENROUTER_API_KEY[:50]}...")
 print(f"  Model: {OPENROUTER_MODEL}")
 print(f"  Base URL: {OPENROUTER_BASE_URL}")
@@ -53,7 +53,7 @@ try:
     if response.status_code == 200:
         data = response.json()
         print("✅ API Key is valid!")
-        print(f"\nKey Details:")
+        print("\nKey Details:")
         print(f"  Label: {data.get('data', {}).get('label', 'N/A')}")
         print(f"  Limit: {data.get('data', {}).get('limit', 'N/A')}")
         print(f"  Remaining: {data.get('data', {}).get('limit_remaining', 'N/A')}")
@@ -101,7 +101,7 @@ try:
             print(f"✅ Target model '{target_model}' is available")
         else:
             print(f"⚠️  Target model '{target_model}' not found in list")
-            print(f"Available DeepSeek models listed above")
+            print("Available DeepSeek models listed above")
 
     else:
         print(f"❌ Error: {response.status_code}")
@@ -147,7 +147,7 @@ try:
     if response.status_code == 200:
         result = response.json()
         print("\n✅ SUCCESS! DeepSeek API is working!")
-        print(f"\nResponse structure:")
+        print("\nResponse structure:")
         print(json.dumps(result, indent=2)[:1000])
 
         # Try to extract the content
@@ -157,7 +157,7 @@ try:
                 message = output[0].get('content', [])
                 if message and len(message) > 0:
                     text = message[0].get('text', '')
-                    print(f"\n📝 Generated Text:")
+                    print("\n📝 Generated Text:")
                     print(text[:500])
 
                     # Try to parse JSON
@@ -166,7 +166,7 @@ try:
                     if json_match:
                         try:
                             insight = json.loads(json_match.group())
-                            print(f"\n✅ Parsed JSON:")
+                            print("\n✅ Parsed JSON:")
                             print(json.dumps(insight, indent=2))
                         except:
                             print("\n⚠️  Could not parse JSON from response")

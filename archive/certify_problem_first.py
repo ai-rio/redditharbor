@@ -4,17 +4,18 @@ Certify problem-first approach with 2 test cases:
 1. "47 demos" post (already tested successfully)
 2. Accessibility post (new candidate)
 """
+import json
 import os
 import sys
-import json
-from pathlib import Path
-from dotenv import load_dotenv
+
 import requests
+from dotenv import load_dotenv
 
 # Load env
 load_dotenv('.env.local')
 
 from supabase import create_client
+
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
 # Problem-First Prompt
@@ -93,7 +94,7 @@ def test_post(submission_id, expected_title_hint):
     # Get submission
     result = supabase.table("submissions").select("*").eq("id", submission_id).execute()
     if not result.data:
-        print(f"❌ Post not found")
+        print("❌ Post not found")
         return False
 
     post = result.data[0]
@@ -128,7 +129,7 @@ def test_post(submission_id, expected_title_hint):
         "temperature": 0.7
     }
 
-    print(f"\n=== CALLING AI ===")
+    print("\n=== CALLING AI ===")
     response = requests.post(url, headers=headers, json=payload, timeout=60)
 
     if response.status_code != 200:
@@ -145,20 +146,20 @@ def test_post(submission_id, expected_title_hint):
         text = text[:-3]
     text = text.strip()
 
-    print(f"\nAI Response:")
+    print("\nAI Response:")
     print(text)
 
     # Try to parse JSON
     try:
         insight = json.loads(text)
         print(f"\n{'='*60}")
-        print(f"✅ SUCCESS! Problem-first approach worked!")
+        print("✅ SUCCESS! Problem-first approach worked!")
         print(f"{'='*60}")
         print(f"\nProblem: {insight.get('problem_identified', 'N/A')}")
         print(f"App: {insight.get('app_concept', 'N/A')}")
         print(f"Functions: {insight.get('core_functions', [])}")
         print(f"Simplicity: {insight.get('simplicity_score', 'N/A')} functions")
-        print(f"\nReddit Evidence:")
+        print("\nReddit Evidence:")
         evidence = insight.get('reddit_demand_evidence')
         if evidence:
             print(f"  {evidence[:200]}...")
@@ -166,7 +167,7 @@ def test_post(submission_id, expected_title_hint):
             print(f"  {insight.get('rejection_reason', 'N/A')[:200]}...")
         return True
     except json.JSONDecodeError:
-        print(f"\n❌ AI returned non-JSON response")
+        print("\n❌ AI returned non-JSON response")
         return False
 
 # Test Case 1: "47 demos" post (already proven)
@@ -191,7 +192,7 @@ else:
 
 # Summary
 print(f"\n{'='*80}")
-print(f"CERTIFICATION SUMMARY")
+print("CERTIFICATION SUMMARY")
 print(f"{'='*80}")
 print(f"\nTest 1 - '47 demos' (validation problem): {'✅ PASS' if test_47_demos else '❌ FAIL'}")
 print(f"Test 2 - 'Accessibility' (development problem): {'✅ PASS' if test_accessibility else '❌ FAIL'}")

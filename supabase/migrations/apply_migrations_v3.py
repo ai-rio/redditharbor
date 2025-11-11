@@ -3,10 +3,10 @@
 Simple Migration Runner - Executes each file as a complete SQL batch
 """
 
-import os
 import sys
-import psycopg2
 from pathlib import Path
+
+import psycopg2
 
 # Database connection parameters
 DB_CONFIG = {
@@ -20,7 +20,7 @@ DB_CONFIG = {
 def apply_migration_file(sql_file_path):
     """Apply a migration file by executing it as a complete batch"""
     try:
-        with open(sql_file_path, 'r') as f:
+        with open(sql_file_path) as f:
             sql = f.read()
 
         # Connect to database
@@ -36,7 +36,7 @@ def apply_migration_file(sql_file_path):
         cur.close()
         conn.close()
 
-        print(f"✓ Migration applied successfully")
+        print("✓ Migration applied successfully")
         return True
 
     except psycopg2.Error as e:
@@ -47,7 +47,7 @@ def apply_migration_file(sql_file_path):
         if ('already exists' in error_msg or
             'duplicate' in error_msg):
 
-            print(f"  ⚠ Migration had benign errors (resources already exist)")
+            print("  ⚠ Migration had benign errors (resources already exist)")
             if 'conn' in locals():
                 try:
                     conn.rollback()
@@ -56,7 +56,7 @@ def apply_migration_file(sql_file_path):
                     pass
             return True  # Treat as success if it's just "already exists"
         else:
-            print(f"✗ Migration failed")
+            print("✗ Migration failed")
             if 'conn' in locals():
                 try:
                     conn.rollback()

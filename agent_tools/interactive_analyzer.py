@@ -4,16 +4,17 @@ Interactive Opportunity Analyzer
 Example script showing how to use the agent tools for opportunity analysis
 """
 
-import anyio
-import json
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import anyio
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from claude_agent_sdk import query, ClaudeAgentOptions
+from claude_agent_sdk import query
+
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 
 
@@ -62,7 +63,7 @@ async def interactive_analysis():
 
     print(f"\nOpportunity: {result['title']}")
     print(f"Subreddit: {result['subreddit']}")
-    print(f"\n📈 Dimension Scores:")
+    print("\n📈 Dimension Scores:")
     print(f"  • Market Demand (20%): {result['dimension_scores']['market_demand']}")
     print(f"  • Pain Intensity (25%): {result['dimension_scores']['pain_intensity']}")
     print(f"  • Monetization Potential (30%): {result['dimension_scores']['monetization_potential']}")

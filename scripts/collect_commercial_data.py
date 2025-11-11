@@ -33,18 +33,14 @@ Usage:
 import sys
 import time
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import DLT collection functions
-from core.dlt_collection import (
-    collect_problem_posts,
-    load_to_supabase,
-    PROBLEM_KEYWORDS
-)
+from core.dlt_collection import collect_problem_posts, load_to_supabase
 
 # Commercial and monetization keywords for filtering
 BUSINESS_KEYWORDS = [
@@ -101,9 +97,9 @@ def contains_commercial_keywords(text: str, min_keywords: int = 1) -> bool:
 
 
 def filter_commercial_posts(
-    problem_posts: List[Dict[str, Any]],
+    problem_posts: list[dict[str, Any]],
     min_commercial_keywords: int = 1
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Filter problem posts for commercial relevance.
 
@@ -144,11 +140,11 @@ def filter_commercial_posts(
 
 
 def collect_commercial_data(
-    subreddits: List[str] = None,
+    subreddits: list[str] = None,
     limit: int = 50,
     sort_type: str = "hot",
     test_mode: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Collect commercial data from business-focused subreddits.
 
@@ -169,7 +165,7 @@ def collect_commercial_data(
     print("=" * 80)
     print()
     print(f"Target subreddits: {', '.join(subreddits)}")
-    print(f"Collection parameters:")
+    print("Collection parameters:")
     print(f"  - Posts per subreddit: {limit}")
     print(f"  - Sort type: {sort_type}")
     print(f"  - Test mode: {test_mode}")
@@ -228,11 +224,11 @@ def collect_commercial_data(
 
     if success:
         print(f"✓ Successfully loaded {len(commercial_posts)} commercial posts")
-        print(f"  - Table: submissions")
-        print(f"  - Write mode: merge (deduplication enabled)")
+        print("  - Table: submissions")
+        print("  - Write mode: merge (deduplication enabled)")
         print(f"  - Load time: {load_time:.2f}s")
     else:
-        print(f"✗ Failed to load commercial posts to Supabase")
+        print("✗ Failed to load commercial posts to Supabase")
 
     # Step 4: Report statistics
     print("\n" + "=" * 80)
@@ -265,17 +261,17 @@ def collect_commercial_data(
         "subreddits_processed": len(subreddits)
     }
 
-    print(f"\nCollection Performance:")
+    print("\nCollection Performance:")
     print(f"  - Total posts collected: {stats['total_collected']}")
     print(f"  - Commercial posts: {stats['commercial_posts']}")
     print(f"  - Filter rate: {stats['filter_rate']:.1f}%")
     print(f"  - Collection time: {stats['collection_time']:.2f}s")
     print(f"  - Load time: {stats['load_time']:.2f}s")
     print(f"  - Total time: {stats['total_time']:.2f}s")
-    print(f"\nKeyword Analysis:")
+    print("\nKeyword Analysis:")
     print(f"  - Avg commercial keywords per post: {stats['avg_commercial_keywords']:.1f}")
     print(f"  - Avg problem keywords per post: {stats['avg_problem_keywords']:.1f}")
-    print(f"\nSubreddits Processed:")
+    print("\nSubreddits Processed:")
     for subreddit in subreddits:
         subreddit_posts = [p for p in commercial_posts if p.get("subreddit") == subreddit]
         print(f"  - r/{subreddit}: {len(subreddit_posts)} commercial posts")

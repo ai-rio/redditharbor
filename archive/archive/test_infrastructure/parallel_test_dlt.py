@@ -20,7 +20,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import both collection methods
-from core.collection import collect_data, ALL_TARGET_SUBREDDITS
+from core.collection import collect_data
 from core.dlt_collection import collect_problem_posts, load_to_supabase
 
 # Test configuration
@@ -37,11 +37,11 @@ def test_manual_collection():
 
     try:
         # Import settings
-        from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
-        from supabase import create_client, Client
-
         # Create Reddit client
         import praw
+
+        from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
+        from supabase import Client, create_client
         reddit = praw.Reddit(
             client_id=REDDIT_PUBLIC,
             client_secret=REDDIT_SECRET,
@@ -99,7 +99,7 @@ def test_manual_collection():
                 mask_pii=True
             )
             manual_count = TEST_LIMIT  # Approximate
-            print(f"✓ Collection completed")
+            print("✓ Collection completed")
 
         manual_time = time.time() - start_time
 
@@ -153,17 +153,17 @@ def test_dlt_collection():
         collection_time = time.time() - start_time
         dlt_count = len(problem_posts)
 
-        print(f"✓ Collection completed")
+        print("✓ Collection completed")
         print(f"  - Time: {collection_time:.2f}s")
         print(f"  - Posts: {dlt_count}")
         print(f"  - Rate: {dlt_count / collection_time:.1f} posts/sec")
 
         # Test data loading (will fail if Supabase not running, which is okay)
-        print(f"\n  Testing DLT pipeline...")
+        print("\n  Testing DLT pipeline...")
         load_success = load_to_supabase(problem_posts, write_mode="replace")
 
         if not load_success:
-            print(f"  ⚠️  Supabase not available (expected in test mode)")
+            print("  ⚠️  Supabase not available (expected in test mode)")
             load_success = True  # Don't fail the test
 
         return {
@@ -203,18 +203,18 @@ def compare_results(manual_result, dlt_result):
     time_diff = abs(manual_time - dlt_time)
     time_diff_pct = (time_diff / max(manual_time, 0.1)) * 100
 
-    print(f"\n📊 Collection Counts:")
+    print("\n📊 Collection Counts:")
     print(f"  Manual: {manual_count}")
     print(f"  DLT:    {dlt_count}")
     print(f"  Diff:   {count_diff} ({count_diff_pct:.1f}%)")
 
-    print(f"\n⏱️  Collection Times:")
+    print("\n⏱️  Collection Times:")
     print(f"  Manual: {manual_time:.2f}s")
     print(f"  DLT:    {dlt_time:.2f}s")
     print(f"  Diff:   {time_diff:.2f}s ({time_diff_pct:.1f}%)")
 
     # Success criteria (from migration plan)
-    print(f"\n✅ Success Criteria:")
+    print("\n✅ Success Criteria:")
     print(f"  Row count within 5%: {count_diff_pct <= 5}")
     print(f"  Both methods successful: {manual_result['success'] and dlt_result['success']}")
     print(f"  DLT time ≤ Manual time: {dlt_time <= manual_time}")
@@ -228,9 +228,9 @@ def compare_results(manual_result, dlt_result):
     )
 
     if criteria_met:
-        print(f"\n✓ PARALLEL TEST PASSED")
+        print("\n✓ PARALLEL TEST PASSED")
     else:
-        print(f"\n✗ PARALLEL TEST FAILED")
+        print("\n✗ PARALLEL TEST FAILED")
 
     return criteria_met
 
@@ -240,7 +240,7 @@ def main():
     print("=" * 80)
     print("DLT Parallel Testing: Manual vs DLT Collection")
     print("=" * 80)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     print(f"  Subreddits: {', '.join(TEST_SUBREDDITS)}")
     print(f"  Limit: {TEST_LIMIT} posts per subreddit")
     print(f"  Test mode: {TEST_MODE}")

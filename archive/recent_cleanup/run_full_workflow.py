@@ -12,14 +12,13 @@ Executes the full pipeline:
 This script runs all phases with progress tracking and comprehensive reporting.
 """
 
-import sys
 import json
-import time
 import logging
-from pathlib import Path
-from typing import Dict, List, Any, Optional
+import sys
+import time
 from datetime import datetime
-from collections import defaultdict
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent
@@ -27,6 +26,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 # Set up logging
@@ -60,7 +60,7 @@ def initialize_database():
     logger.info("PHASE 1: Database Initialization")
     logger.info("=" * 80)
 
-    from config import SUPABASE_URL, SUPABASE_KEY
+    from config import SUPABASE_KEY, SUPABASE_URL
     from supabase import create_client
 
     try:
@@ -70,7 +70,7 @@ def initialize_database():
         result = supabase.table("submission").select("count", count="exact").execute()
         submission_count = result.count if hasattr(result, 'count') else 0
 
-        logger.info(f"✓ Database connected successfully")
+        logger.info("✓ Database connected successfully")
         logger.info(f"  Current submissions: {submission_count}")
 
         return supabase
@@ -89,10 +89,10 @@ def collect_reddit_data(supabase):
     logger.info("=" * 80)
 
     from core.dlt_collection import (
+        PROBLEM_KEYWORDS,
         collect_problem_posts,
         create_dlt_pipeline,
         load_to_supabase,
-        PROBLEM_KEYWORDS
     )
 
     # Target subreddits - opportunity-focused
@@ -141,12 +141,12 @@ def analyze_and_score(supabase, submissions):
     logger.info("PHASE 3: Analyzing & Scoring Opportunities")
     logger.info("=" * 80)
 
+    from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
     from core.dlt.score_calculator import (
+        apply_constraint_to_score,
         calculate_simplicity_score,
         calculate_total_score,
-        apply_constraint_to_score
     )
-    from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 
     logger.info(f"Processing {len(submissions)} submissions...")
 
@@ -219,7 +219,7 @@ def analyze_and_score(supabase, submissions):
 # PHASE 4: DISPLAY RESULTS
 # ============================================================================
 
-def display_results(opportunities: List[Dict[str, Any]], violations: List[Dict[str, Any]]):
+def display_results(opportunities: list[dict[str, Any]], violations: list[dict[str, Any]]):
     """Display comprehensive analysis results in console."""
     logger.info("\n" + "=" * 80)
     logger.info("PHASE 4: Analysis Results")

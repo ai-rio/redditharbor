@@ -6,12 +6,12 @@ including command parsing, configuration loading, error handling,
 and integration with Phase 1 & 2 components.
 """
 
-import pytest
 import json
-import tempfile
 import os
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+import tempfile
+from unittest.mock import Mock, patch
+
+import pytest
 from click.testing import CliRunner
 
 # Import the CLI commands
@@ -146,7 +146,7 @@ class TestValidateConstraintsCommand:
             assert f"Validated opportunities saved to: {output_file}" in result.output
 
             # Verify output file was created and contains validated data
-            with open(output_file, "r") as f:
+            with open(output_file) as f:
                 validated = json.load(f)
                 assert len(validated) == 1
                 assert validated[0]["app_name"] == "TestApp"
@@ -329,7 +329,7 @@ class TestShowConstraintSchemaCommand:
             assert f"Schema saved to: {output_file}" in result.output
 
             # Verify file was created
-            with open(output_file, "r") as f:
+            with open(output_file) as f:
                 schema_data = json.load(f)
                 assert "schema_name" in schema_data
         finally:
@@ -470,7 +470,7 @@ class TestTestConstraintCommand:
             assert f"Test results saved to: {output_file}" in result.output
 
             # Verify file was created and contains valid data
-            with open(output_file, "r") as f:
+            with open(output_file) as f:
                 test_data = json.load(f)
                 assert len(test_data) == 5
                 assert "app_name" in test_data[0]

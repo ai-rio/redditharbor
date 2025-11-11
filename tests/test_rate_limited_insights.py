@@ -4,20 +4,21 @@ Test rate-limited insight generation (only 2 opportunities)
 This will test if we can avoid 429 errors with proper rate limiting
 """
 
+import json
 import os
 import sys
 import time
-import random
-import requests
-import json
 from pathlib import Path
+
+import requests
 
 # Add project root
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from supabase import create_client
 from dotenv import load_dotenv
+
+from supabase import create_client
 
 load_dotenv(project_root / '.env.local')
 
@@ -29,10 +30,10 @@ GLM_API_KEY = os.getenv("GLM_API_KEY")
 print("=" * 80)
 print("RATE-LIMITED TEST (2 opportunities)")
 print("=" * 80)
-print(f"\nRate limiting configuration:")
-print(f"  - 10 second delay between requests")
-print(f"  - Z.AI GLM API")
-print(f"  - Testing with 2 opportunities only")
+print("\nRate limiting configuration:")
+print("  - 10 second delay between requests")
+print("  - Z.AI GLM API")
+print("  - Testing with 2 opportunities only")
 print()
 
 if not SUPABASE_KEY or not GLM_API_KEY:
@@ -73,7 +74,7 @@ for idx, opp in enumerate(response.data, 1):
     submission = submissions_map.get(opp['submission_id'], {})
     content = submission.get('content', '')
 
-    print(f"\n⏱️  Waiting 10 seconds before API call...")
+    print("\n⏱️  Waiting 10 seconds before API call...")
     time.sleep(10)
 
     try:
@@ -99,7 +100,7 @@ JSON only, no explanation."""
             "temperature": 0.7
         }
 
-        print(f"📡 Making API request to Z.AI GLM...")
+        print("📡 Making API request to Z.AI GLM...")
         start = time.time()
         response = requests.post(url, headers=headers, json=payload, timeout=60)
         elapsed = time.time() - start
@@ -109,9 +110,9 @@ JSON only, no explanation."""
 
         if response.status_code == 200:
             result = response.json()
-            if 'choices' in result and result['choices']:
+            if result.get('choices'):
                 content = result['choices'][0]['message']['content']
-                print(f"✅ SUCCESS! Received response:")
+                print("✅ SUCCESS! Received response:")
                 print(f"   {content[:200]}...")
 
                 # Try to parse JSON
@@ -119,7 +120,7 @@ JSON only, no explanation."""
                 json_match = re.search(r'\{.*\}', content, re.DOTALL)
                 if json_match:
                     insight = json.loads(json_match.group())
-                    print(f"\n📝 Parsed insight:")
+                    print("\n📝 Parsed insight:")
                     print(f"   App: {insight.get('app_concept')}")
                     print(f"   Functions: {insight.get('core_functions', [])}")
 
@@ -134,13 +135,13 @@ JSON only, no explanation."""
                         'opportunity_id', opp['opportunity_id']
                     ).execute()
 
-                    print(f"💾 Database updated!")
+                    print("💾 Database updated!")
                 else:
                     print("⚠️  Could not parse JSON from response")
             else:
                 print("⚠️  Unexpected response structure")
         elif response.status_code == 429:
-            print(f"❌ 429 RATE LIMITED!")
+            print("❌ 429 RATE LIMITED!")
             print(f"   Headers: {dict(response.headers)}")
         else:
             print(f"❌ ERROR: {response.status_code}")

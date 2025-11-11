@@ -5,10 +5,9 @@ Quick status check for DLT traffic cutover
 Provides a snapshot of the current cutover status without running a full cycle.
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
-from datetime import datetime
 
 # Add project root
 project_root = Path(__file__).parent.parent

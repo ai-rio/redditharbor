@@ -5,12 +5,12 @@ A basic web dashboard for Reddit data visualization
 """
 
 import sys
-import json
-from pathlib import Path
-from http.server import HTTPServer, SimpleHTTPRequestHandler
 import urllib.parse
-import pandas as pd
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 
 # Add project root to path
 project_root = Path(__file__).parent

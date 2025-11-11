@@ -6,19 +6,17 @@ Based on PRAW best practices from documentation
 
 import sys
 import time
-from pathlib import Path
-from typing import Dict, List, Any
 from collections import defaultdict
-import re
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit
-from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
-)
+
+from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 
 
 class RobustScanner:
@@ -32,7 +30,7 @@ class RobustScanner:
     def __init__(self, reddit_client):
         self.reddit = reddit_client
 
-    def analyze_text(self, text: str) -> Dict[str, int]:
+    def analyze_text(self, text: str) -> dict[str, int]:
         """Count signals in text"""
         text_lower = text.lower()
         return {
@@ -41,7 +39,7 @@ class RobustScanner:
             "business": sum(1 for s in self.BUSINESS if s in text_lower),
         }
 
-    def scan_subreddit_safe(self, name: str, limit: int = 20) -> Dict[str, Any]:
+    def scan_subreddit_safe(self, name: str, limit: int = 20) -> dict[str, Any]:
         """Safely scan a subreddit with rate limit handling"""
         try:
             print(f"    🔍 r/{name}...", end=" ")
@@ -80,7 +78,7 @@ class RobustScanner:
 
                     analyzed += 1
 
-                except Exception as e:
+                except Exception:
                     # Skip problematic posts
                     continue
 
@@ -114,7 +112,7 @@ class RobustScanner:
                 "success": False
             }
 
-    def scan_list(self, subreddits: List[str]) -> List[Dict[str, Any]]:
+    def scan_list(self, subreddits: list[str]) -> list[dict[str, Any]]:
         """Scan multiple subreddits with progress tracking"""
         print("=" * 70)
         print("ROBUST SUBREDDIT SCANNER")

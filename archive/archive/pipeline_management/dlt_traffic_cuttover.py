@@ -12,22 +12,21 @@ Week 2, Day 8: 10% Traffic Cutover
 - Prepare rollback plan
 """
 
-import sys
-import time
-import json
 import argparse
+import json
 import random
-from pathlib import Path
-from typing import Dict, List, Tuple
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import collection methods
-from core.collection import collect_data, ALL_TARGET_SUBREDDITS
+from core.collection import ALL_TARGET_SUBREDDITS, collect_data
 from core.dlt_collection import collect_problem_posts
+
 # Note: Avoiding circular import with dlt_opportunity_pipeline
 # In production, the DLT pipeline would be called directly
 
@@ -68,7 +67,7 @@ class TrafficCutoverManager:
         self.config = self.load_config()
         self.setup_logging()
 
-    def load_config(self) -> Dict:
+    def load_config(self) -> dict:
         """Load cutover configuration"""
         config_path = project_root / CONFIG_FILE
         if config_path.exists():
@@ -129,7 +128,7 @@ class TrafficCutoverManager:
             # Subreddit not in DLT list, use manual
             return "manual"
 
-    def collect_with_dlt(self, subreddit: str, limit: int = 50) -> Tuple[bool, str]:
+    def collect_with_dlt(self, subreddit: str, limit: int = 50) -> tuple[bool, str]:
         """
         Collect data using DLT pipeline
 
@@ -167,7 +166,7 @@ class TrafficCutoverManager:
             self.logger.error(msg, exc_info=True)
             return False, msg
 
-    def collect_with_manual(self, subreddit: str, limit: int = 50) -> Tuple[bool, str]:
+    def collect_with_manual(self, subreddit: str, limit: int = 50) -> tuple[bool, str]:
         """
         Collect data using manual collection
 
@@ -182,8 +181,9 @@ class TrafficCutoverManager:
             print(f"  → Using manual collection for r/{subreddit}...")
 
             # Import Reddit and Supabase clients
-            from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
             import praw
+
+            from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
             from supabase import create_client
 
             reddit = praw.Reddit(
@@ -227,7 +227,7 @@ class TrafficCutoverManager:
             self.logger.error(msg, exc_info=True)
             return False, msg
 
-    def run_collection_cycle(self, subreddits: List[str], limit: int = 50):
+    def run_collection_cycle(self, subreddits: list[str], limit: int = 50):
         """
         Run one collection cycle with traffic cutover
 
@@ -313,7 +313,7 @@ class TrafficCutoverManager:
         # For demo, we'll just show the monitoring setup
         print("\n✓ Monitoring setup complete")
         print(f"\nTo view logs: tail -f {LOG_FILE}")
-        print(f"To check status: python scripts/dlt_traffic_cuttover.py --status")
+        print("To check status: python scripts/dlt_traffic_cuttover.py --status")
 
     def rollback_to_manual(self) -> bool:
         """

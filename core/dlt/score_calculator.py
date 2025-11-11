@@ -30,8 +30,8 @@ Usage:
     validated_opp = apply_constraint_to_score(opportunity, function_count=4)
 """
 
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any
 
 
 def calculate_simplicity_score(function_count: int) -> float:
@@ -86,8 +86,8 @@ def calculate_simplicity_score(function_count: int) -> float:
 
 
 def calculate_total_score(
-    opportunity: Dict[str, Any],
-    weights: Optional[Dict[str, float]] = None
+    opportunity: dict[str, Any],
+    weights: dict[str, float] | None = None
 ) -> float:
     """
     Calculate weighted total score for an opportunity.
@@ -164,9 +164,9 @@ def calculate_total_score(
 
 
 def apply_constraint_to_score(
-    opportunity: Dict[str, Any],
+    opportunity: dict[str, Any],
     function_count: int
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Apply simplicity constraint to opportunity score with audit trail.
 
@@ -227,9 +227,9 @@ def apply_constraint_to_score(
 
 
 def recalculate_scores_after_validation(
-    opportunity: Dict[str, Any],
-    weights: Optional[Dict[str, float]] = None
-) -> Dict[str, Any]:
+    opportunity: dict[str, Any],
+    weights: dict[str, float] | None = None
+) -> dict[str, Any]:
     """
     Recalculate total score AFTER constraint validation has been applied.
 
@@ -300,7 +300,7 @@ def validate_score_range(score: float, min_val: float = 0.0, max_val: float = 10
     return min_val <= score <= max_val
 
 
-def get_score_audit_summary(opportunity: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def get_score_audit_summary(opportunity: dict[str, Any]) -> dict[str, Any] | None:
     """
     Extract score audit summary from opportunity.
 
@@ -318,7 +318,7 @@ def get_score_audit_summary(opportunity: Dict[str, Any]) -> Optional[Dict[str, A
     return opportunity.get("_score_audit")
 
 
-def is_disqualified(opportunity: Dict[str, Any]) -> bool:
+def is_disqualified(opportunity: dict[str, Any]) -> bool:
     """
     Check if an opportunity has been disqualified.
 

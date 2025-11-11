@@ -1,6 +1,7 @@
 # RedditHarbor Configuration
 # Load environment variables
 import os
+
 from dotenv import load_dotenv
 
 # Load from .env if it exists
@@ -39,3 +40,20 @@ DEFAULT_LIMIT = 500  # Increased limit for better opportunity analysis
 
 # Privacy Settings
 ENABLE_PII_ANONYMIZATION = False  # Temporarily disabled for testing research framework
+
+# DLT Configuration Settings
+# DLT pipeline configuration for enhanced Reddit data collection
+DLT_MIN_ACTIVITY_SCORE = float(os.getenv("DLT_MIN_ACTIVITY_SCORE", "50.0"))  # Minimum subreddit activity score (0-100)
+DLT_TIME_FILTER = os.getenv("DLT_TIME_FILTER", "day")  # Time period for activity analysis
+DLT_PIPELINE_NAME = os.getenv("DLT_PIPELINE_NAME", "reddit_harbor_activity_collection")  # DLT pipeline identifier
+DLT_DATASET_NAME = os.getenv("DLT_DATASET_NAME", "reddit_activity_data")  # DLT dataset for data organization
+
+# DLT Quality Filter Settings
+DLT_QUALITY_MIN_COMMENT_LENGTH = int(os.getenv("DLT_QUALITY_MIN_COMMENT_LENGTH", "10"))  # Minimum comment character length
+DLT_QUALITY_MIN_SCORE = int(os.getenv("DLT_QUALITY_MIN_SCORE", "1"))  # Minimum comment score
+DLT_QUALITY_COMMENTS_PER_POST = int(os.getenv("DLT_QUALITY_COMMENTS_PER_POST", "10"))  # Max comments per post
+
+# DLT Collection Settings
+DLT_ENABLED = os.getenv("DLT_ENABLED", "false").lower() == "true"  # Enable/disable DLT collection
+DLT_USE_ACTIVITY_VALIDATION = os.getenv("DLT_USE_ACTIVITY_VALIDATION", "true").lower() == "true"  # Enable activity-aware validation
+DLT_MAX_SUBREDDITS_PER_RUN = int(os.getenv("DLT_MAX_SUBREDDITS_PER_RUN", "50"))  # Maximum subreddits to process per run

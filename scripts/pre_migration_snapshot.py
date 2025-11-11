@@ -17,15 +17,15 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from supabase import create_client, Client
-    from config.settings import SUPABASE_URL, SUPABASE_KEY
+    from config.settings import SUPABASE_KEY, SUPABASE_URL
+    from supabase import Client, create_client
 except ImportError as e:
     print(f"Error importing dependencies: {e}")
     print("Please ensure supabase-py is installed: pip install supabase")
@@ -37,7 +37,7 @@ class PreMigrationSnapshot:
 
     def __init__(self, supabase_client: Client):
         self.client = supabase_client
-        self.snapshot: Dict[str, Any] = {
+        self.snapshot: dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "purpose": "Pre-migration database state snapshot",
             "tables": {},
@@ -57,11 +57,11 @@ class PreMigrationSnapshot:
         try:
             result = self.client.table(table_name).select(column_name, count="exact").is_(column_name, "null").execute()
             return result.count or 0
-        except Exception as e:
+        except Exception:
             # Column may not exist yet
             return -1
 
-    def snapshot_table(self, table_name: str, fk_columns: list = None) -> Dict[str, Any]:
+    def snapshot_table(self, table_name: str, fk_columns: list = None) -> dict[str, Any]:
         """Snapshot a single table."""
         print(f"Capturing snapshot: {table_name}...")
 
@@ -134,8 +134,8 @@ class PreMigrationSnapshot:
                 "workflow_results",
                 fk_columns=[]
             )
-        except Exception as e:
-            print(f"Note: workflow_results table does not exist (this is expected)")
+        except Exception:
+            print("Note: workflow_results table does not exist (this is expected)")
             self.snapshot["tables"]["workflow_results"] = {
                 "exists": False,
                 "note": "Table not created yet"

@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 try:
     from redditharbor.login import supabase
+
     from config.settings import *
 except ImportError as e:
     print(f"Error: Could not import dependencies: {e}")
@@ -158,11 +159,11 @@ def create_sample_research_data():
                 print(f"   ❌ Error inserting post: {e}")
 
         print(f"\n✅ Successfully inserted {inserted_count} sample research posts!")
-        print(f"📈 Data represents high-frequency daily problems from:")
-        print(f"   • Personal Finance: Daily expense tracking, habit breaking")
-        print(f"   • Skill Learning: Consistency, motivation, retention")
-        print(f"   • Health Management: Medication adherence, symptom tracking")
-        print(f"   • Budget Travel: Real-time expense tracking, hidden fees")
+        print("📈 Data represents high-frequency daily problems from:")
+        print("   • Personal Finance: Daily expense tracking, habit breaking")
+        print("   • Skill Learning: Consistency, motivation, retention")
+        print("   • Health Management: Medication adherence, symptom tracking")
+        print("   • Budget Travel: Real-time expense tracking, hidden fees")
 
         return inserted_count
 

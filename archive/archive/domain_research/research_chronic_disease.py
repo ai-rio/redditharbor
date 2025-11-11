@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 try:
     from redditharbor.dock.pipeline import collect
     from redditharbor.login import reddit, supabase
+
     from config.settings import *
 except ImportError as e:
     print(f"Error: Could not import dependencies: {e}")

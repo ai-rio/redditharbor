@@ -14,29 +14,26 @@ Validates that:
 5. Both approved and disqualified opportunities are handled properly
 """
 
-import pytest
-import json
 import tempfile
-import os
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Dict, Any
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+# Import DLT constraint components
+from core.dlt.constraint_validator import app_opportunities_with_constraint
+from scripts.batch_opportunity_scoring import (
+    format_submission_for_agent,
+    load_scores_to_supabase_via_dlt,
+    prepare_analysis_for_storage,
+)
+from scripts.dlt_opportunity_pipeline import validate_constraints_only
 
 # Import the components we're testing
 from scripts.final_system_test import (
     generate_opportunity_scores,
-    print_opportunity_report,
-    save_results
+    save_results,
 )
-from scripts.batch_opportunity_scoring import (
-    load_scores_to_supabase_via_dlt,
-    prepare_analysis_for_storage,
-    format_submission_for_agent
-)
-
-# Import DLT constraint components
-from core.dlt.constraint_validator import app_opportunities_with_constraint
-from scripts.dlt_opportunity_pipeline import validate_constraints_only
 
 
 class TestFinalSystemTestIntegration:

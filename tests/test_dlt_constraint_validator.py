@@ -6,16 +6,16 @@ including 1-3 core function validation, automatic disqualification for 4+ functi
 and constraint metadata tracking.
 """
 
-import pytest
-import dlt
 from unittest.mock import Mock, patch
-from typing import List, Dict, Any
+
+import dlt
+import pytest
 
 from core.dlt.constraint_validator import (
-    app_opportunities_with_constraint,
-    _extract_core_functions,
     _calculate_simplicity_score,
-    _parse_functions_from_text
+    _extract_core_functions,
+    _parse_functions_from_text,
+    app_opportunities_with_constraint,
 )
 
 
@@ -347,7 +347,9 @@ class TestDLTPipelineIntegration:
     @patch('dlt.pipeline')
     def test_dlt_pipeline_creation(self, mock_pipeline):
         """Test DLT pipeline is created with correct configuration."""
-        from scripts.dlt_opportunity_pipeline import load_app_opportunities_with_constraint
+        from scripts.dlt_opportunity_pipeline import (
+            load_app_opportunities_with_constraint,
+        )
 
         # Mock pipeline instance
         mock_pipeline_instance = Mock()

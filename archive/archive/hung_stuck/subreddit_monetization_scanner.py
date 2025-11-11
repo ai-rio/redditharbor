@@ -10,21 +10,20 @@ This script:
 - Recommends top subreddits for data collection
 """
 
+import re
 import sys
 import time
-from pathlib import Path
-from typing import Dict, List, Any, Tuple
 from collections import defaultdict
-import re
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit
-from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
-)
+
+from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 
 
 class SubredditMonetizationScanner:
@@ -64,7 +63,7 @@ class SubredditMonetizationScanner:
         self.reddit = reddit_client
         self.results = {}
 
-    def analyze_text_for_signals(self, text: str) -> Dict[str, int]:
+    def analyze_text_for_signals(self, text: str) -> dict[str, int]:
         """
         Analyze text for monetization signals.
 
@@ -95,7 +94,7 @@ class SubredditMonetizationScanner:
             "price": price_count
         }
 
-    def scan_subreddit(self, subreddit_name: str, limit: int = 50) -> Dict[str, Any]:
+    def scan_subreddit(self, subreddit_name: str, limit: int = 50) -> dict[str, Any]:
         """
         Scan a single subreddit for monetization signals.
 
@@ -151,7 +150,7 @@ class SubredditMonetizationScanner:
 
                     posts_analyzed += 1
 
-                except Exception as e:
+                except Exception:
                     # Skip problematic posts
                     continue
 
@@ -194,14 +193,14 @@ class SubredditMonetizationScanner:
             return result
 
         except Exception as e:
-            print(f"    ❌ Error: {str(e)}")
+            print(f"    ❌ Error: {e!s}")
             return {
                 "subreddit": subreddit_name,
                 "error": str(e),
                 "success": False
             }
 
-    def scan_multiple_subreddits(self, subreddits: List[str], posts_per_subreddit: int = 50) -> List[Dict[str, Any]]:
+    def scan_multiple_subreddits(self, subreddits: list[str], posts_per_subreddit: int = 50) -> list[dict[str, Any]]:
         """
         Scan multiple subreddits and rank by monetization potential.
 
@@ -261,7 +260,7 @@ class SubredditMonetizationScanner:
             print(f"\n{i}. r/{result['subreddit']} - Score: {result['overall_score']:.1f}/100")
             print(f"   Posts analyzed: {result['posts_analyzed']}")
             print(f"   Posts with signals: {result['posts_with_signals']} ({result['posts_with_signals']/result['posts_analyzed']*100:.1f}%)")
-            print(f"   Signal breakdown:")
+            print("   Signal breakdown:")
             print(f"     💰 Payment signals: {signals.get('payment', 0)}")
             print(f"     🔍 Gap signals: {signals.get('gap', 0)}")
             print(f"     💼 Commerce signals: {signals.get('commerce', 0)}")
@@ -289,7 +288,7 @@ class SubredditMonetizationScanner:
 
         print(f"\n💾 Results saved to: {filepath}")
 
-    def get_top_subreddits(self, count: int = 10) -> List[str]:
+    def get_top_subreddits(self, count: int = 10) -> list[str]:
         """
         Get list of top-scoring subreddits.
 
@@ -384,12 +383,12 @@ def main():
     top_5 = scanner.get_top_subreddits(count=5)
     top_10 = scanner.get_top_subreddits(count=10)
 
-    print(f"\n🥇 TOP 5 RECOMMENDED SUBREDDITS:")
+    print("\n🥇 TOP 5 RECOMMENDED SUBREDDITS:")
     for i, sub in enumerate(top_5, 1):
         score = next(r["overall_score"] for r in results if r["subreddit"] == sub)
         print(f"  {i}. r/{sub} (Score: {score:.1f}/100)")
 
-    print(f"\n🎯 TOP 10 SUBREDDITS FOR COLLECTION:")
+    print("\n🎯 TOP 10 SUBREDDITS FOR COLLECTION:")
     print("   Use these in your collection scripts:")
     print(f"   {top_10}")
 

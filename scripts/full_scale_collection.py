@@ -19,27 +19,22 @@ Original functionality preserved:
 - Both submissions and comments collection
 """
 
+import logging
 import sys
 from pathlib import Path
-import logging
-from datetime import datetime
-from typing import List, Dict, Any, Tuple
+from typing import Any
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # DLT imports
-from core.dlt_collection import (
-    collect_problem_posts,
-    collect_post_comments,
-    create_dlt_pipeline,
-    get_reddit_client
-)
-
 # Import configuration
-from config.settings import (
-    SUPABASE_URL, SUPABASE_KEY
+from config.settings import SUPABASE_KEY, SUPABASE_URL
+from core.dlt_collection import (
+    collect_post_comments,
+    collect_problem_posts,
+    get_reddit_client,
 )
 
 # Setup logging
@@ -97,10 +92,10 @@ logger.info(f"📊 Market segments: {list(TARGET_SUBREDDITS.keys())}")
 
 def collect_segment_submissions(
     segment_name: str,
-    subreddits: List[str],
-    sort_types: List[str],
+    subreddits: list[str],
+    sort_types: list[str],
     limit_per_sort: int
-) -> Tuple[List[Dict[str, Any]], int, int]:
+) -> tuple[list[dict[str, Any]], int, int]:
     """
     Collect submissions from a market segment using DLT pipeline.
 
@@ -147,7 +142,7 @@ def collect_segment_submissions(
                         logger.warning(f"      ⚠️  No {sort_type} submissions found")
 
                 except Exception as sort_e:
-                    logger.error(f"      ❌ Error collecting {sort_type} submissions: {str(sort_e)}")
+                    logger.error(f"      ❌ Error collecting {sort_type} submissions: {sort_e!s}")
                     segment_errors += 1
 
             # Add to segment total
@@ -159,7 +154,7 @@ def collect_segment_submissions(
                 logger.warning(f"   ⚠️  No submissions collected from r/{subreddit}")
 
         except Exception as e:
-            logger.error(f"   ❌ r/{subreddit}: Error - {str(e)}")
+            logger.error(f"   ❌ r/{subreddit}: Error - {e!s}")
             segment_errors += 1
 
     logger.info(f"\n✅ {segment_name} segment complete:")
@@ -169,7 +164,7 @@ def collect_segment_submissions(
     return all_segment_submissions, segment_submissions, segment_errors
 
 
-def load_submissions_to_supabase(submissions: List[Dict[str, Any]]) -> bool:
+def load_submissions_to_supabase(submissions: list[dict[str, Any]]) -> bool:
     """
     Load collected submissions to Supabase using raw SQL INSERT.
 
@@ -264,15 +259,15 @@ def load_submissions_to_supabase(submissions: List[Dict[str, Any]]) -> bool:
         cursor.close()
         conn.close()
 
-        logger.info(f"✅ Submissions loaded successfully!")
-        logger.info(f"   - Table: public.submissions")
+        logger.info("✅ Submissions loaded successfully!")
+        logger.info("   - Table: public.submissions")
         logger.info(f"   - Rows affected: {inserted_count}")
-        logger.info(f"   - Deduplication: ON CONFLICT (submission_id)")
+        logger.info("   - Deduplication: ON CONFLICT (submission_id)")
 
         return True
 
     except Exception as e:
-        logger.error(f"❌ Failed to load submissions: {str(e)}")
+        logger.error(f"❌ Failed to load submissions: {e!s}")
         import traceback
         traceback.print_exc()
         return False
@@ -280,10 +275,10 @@ def load_submissions_to_supabase(submissions: List[Dict[str, Any]]) -> bool:
 
 def collect_segment_comments(
     segment_name: str,
-    subreddits: List[str],
-    sort_types: List[str],
+    subreddits: list[str],
+    sort_types: list[str],
     comment_limit: int
-) -> Tuple[List[Dict[str, Any]], int]:
+) -> tuple[list[dict[str, Any]], int]:
     """
     Collect comments from top posts in a market segment.
 
@@ -316,7 +311,7 @@ def collect_segment_comments(
             )
 
             if not posts:
-                logger.warning(f"   ⚠️  No posts found for comment collection")
+                logger.warning("   ⚠️  No posts found for comment collection")
                 continue
 
             # Extract submission IDs
@@ -338,15 +333,15 @@ def collect_segment_comments(
                 logger.warning(f"   ⚠️  No comments collected from r/{subreddit}")
 
         except Exception as e:
-            logger.error(f"   ❌ Error collecting comments from r/{subreddit}: {str(e)}")
+            logger.error(f"   ❌ Error collecting comments from r/{subreddit}: {e!s}")
 
-    logger.info(f"\n✅ Comment collection complete:")
+    logger.info("\n✅ Comment collection complete:")
     logger.info(f"   💬 Total comments: {len(all_comments)}")
 
     return all_comments, len(all_comments)
 
 
-def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
+def load_comments_to_supabase(comments: list[dict[str, Any]]) -> bool:
     """
     Load collected comments to Supabase using raw SQL INSERT.
 
@@ -402,27 +397,28 @@ def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
         logger.info(f"   Deduplicating: {len(comments)} -> {len(unique_comments)} unique comments")
 
         # Prepare data for insertion
-        # Note: submission_id in comments table is UUID (FK to submissions.id)
-        # We'll insert NULL for now since we don't have the UUID mapping
+        # Note: We populate link_id (Reddit submission ID string) which will be used to backfill submission_id (UUID)
+        # submission_id (UUID) will be backfilled after INSERT via the UPDATE query below
         values = [
             (
                 comment.get("comment_id"),
+                comment.get("link_id"),  # Reddit submission ID string (e.g., "1opmkio")
                 comment.get("body"),
                 comment.get("content"),
                 max(0, comment.get("score", 0)),  # Ensure non-negative for CHECK constraint
                 comment.get("created_at"),
                 comment.get("parent_id"),
-                comment.get("comment_depth", 0)
+                comment.get("comment_depth", 0),
+                comment.get("subreddit")  # Add subreddit for denormalized access
             )
             for comment in unique_comments
         ]
 
         # Insert with ON CONFLICT to handle duplicates
         # Note: ON CONFLICT requires a named constraint or column list matching the unique index
-        # TODO: Add link_id column to store Reddit submission ID (t3_xxxxx format)
         insert_query = """
             INSERT INTO public.comments
-                (comment_id, body, content, upvotes, created_at, parent_id, comment_depth)
+                (comment_id, link_id, body, content, upvotes, created_at, parent_id, comment_depth, subreddit)
             VALUES %s
             ON CONFLICT (comment_id) WHERE comment_id IS NOT NULL
             DO UPDATE SET
@@ -431,25 +427,45 @@ def load_comments_to_supabase(comments: List[Dict[str, Any]]) -> bool:
                 upvotes = EXCLUDED.upvotes,
                 created_at = EXCLUDED.created_at,
                 parent_id = EXCLUDED.parent_id,
-                comment_depth = EXCLUDED.comment_depth;
+                comment_depth = EXCLUDED.comment_depth,
+                subreddit = EXCLUDED.subreddit;
         """
 
         execute_values(cursor, insert_query, values, page_size=100)
         conn.commit()
 
+        # CRITICAL: Backfill submission_id (UUID) by linking via link_id
+        # This is the key fix - without this, comments are orphaned with NULL submission_id
+        logger.info("   Backfilling submission_id UUID foreign key...")
+
+        # Update comments.submission_id (UUID) from submissions.id (UUID)
+        # Join on: comments.link_id = submissions.submission_id (both are Reddit ID strings)
+        cursor.execute("""
+            UPDATE public.comments
+            SET submission_id = s.id
+            FROM public.submissions s
+            WHERE public.comments.link_id = s.submission_id
+              AND public.comments.submission_id IS NULL
+              AND s.submission_id IS NOT NULL;
+        """)
+
+        conn.commit()
+        backfill_count = cursor.rowcount
+        logger.info(f"   ✓ Backfilled {backfill_count} comments with submission_id UUID")
+
         inserted_count = cursor.rowcount
         cursor.close()
         conn.close()
 
-        logger.info(f"✅ Comments loaded successfully!")
-        logger.info(f"   - Table: public.comments")
+        logger.info("✅ Comments loaded successfully!")
+        logger.info("   - Table: public.comments")
         logger.info(f"   - Rows affected: {inserted_count}")
-        logger.info(f"   - Deduplication: ON CONFLICT (comment_id)")
+        logger.info("   - Deduplication: ON CONFLICT (comment_id)")
 
         return True
 
     except Exception as e:
-        logger.error(f"❌ Failed to load comments: {str(e)}")
+        logger.error(f"❌ Failed to load comments: {e!s}")
         import traceback
         traceback.print_exc()
         return False
@@ -463,7 +479,7 @@ def verify_database_results():
         Dict with verification metrics
     """
     logger.info(f"\n{'='*80}")
-    logger.info(f"🔍 Verifying database results...")
+    logger.info("🔍 Verifying database results...")
     logger.info(f"{'='*80}")
 
     try:
@@ -483,7 +499,7 @@ def verify_database_results():
         redditors_result = supabase_client.table('redditors').select('username', count='exact').execute()
         redditors_count = redditors_result.count if redditors_result.count else 0
 
-        logger.info(f"✅ Database verified:")
+        logger.info("✅ Database verified:")
         logger.info(f"   📝 Submissions: {subs_count}")
         logger.info(f"   💬 Comments: {comments_count}")
         logger.info(f"   👥 Redditors: {redditors_count}")
@@ -492,9 +508,9 @@ def verify_database_results():
         if subs_count > 0 and comments_count > 0:
             avg_comments = comments_count / subs_count
             logger.info(f"   📊 Avg comments per submission: {avg_comments:.1f}")
-            logger.info(f"   ✅ Comments successfully collected!")
+            logger.info("   ✅ Comments successfully collected!")
         elif comments_count == 0:
-            logger.warning(f"   ⚠️  No comments found in database!")
+            logger.warning("   ⚠️  No comments found in database!")
 
         return {
             "submissions": subs_count,
@@ -504,7 +520,7 @@ def verify_database_results():
         }
 
     except Exception as e:
-        logger.error(f"⚠️  Database verification failed: {str(e)}")
+        logger.error(f"⚠️  Database verification failed: {e!s}")
         return {
             "submissions": 0,
             "comments": 0,
@@ -555,7 +571,7 @@ def main():
         # Calculate total subreddits
         total_subreddits = sum(len(subs) for subs in subreddits_to_use.values())
 
-        logger.info(f"📝 Collection parameters:")
+        logger.info("📝 Collection parameters:")
         logger.info(f"   - Mode: {'TEST' if args.test_mode else 'FULL SCALE'}")
         logger.info(f"   - Subreddits: {total_subreddits}")
         logger.info(f"   - Sort types: {sort_types}")
@@ -585,7 +601,7 @@ def main():
 
         # Load all submissions to Supabase (batch operation)
         logger.info(f"\n{'='*80}")
-        logger.info(f"📊 SUBMISSION COLLECTION COMPLETE")
+        logger.info("📊 SUBMISSION COLLECTION COMPLETE")
         logger.info(f"{'='*80}")
         logger.info(f"   Total submissions collected: {len(all_submissions)}")
         logger.info(f"   Total errors: {total_errors}")
@@ -615,7 +631,7 @@ def main():
 
         # Load all comments to Supabase (batch operation)
         logger.info(f"\n{'='*80}")
-        logger.info(f"💬 COMMENT COLLECTION COMPLETE")
+        logger.info("💬 COMMENT COLLECTION COMPLETE")
         logger.info(f"{'='*80}")
         logger.info(f"   Total comments collected: {len(all_comments)}")
 
@@ -630,7 +646,7 @@ def main():
 
         # Final summary
         logger.info(f"\n{'='*80}")
-        logger.info(f"🎉 FULL-SCALE DLT COLLECTION COMPLETE")
+        logger.info("🎉 FULL-SCALE DLT COLLECTION COMPLETE")
         logger.info(f"{'='*80}")
         logger.info(f"📊 Total Submissions: {total_submissions}")
         logger.info(f"💬 Total Comments: {total_comments}")
@@ -658,7 +674,7 @@ def main():
         return success
 
     except Exception as e:
-        logger.error(f"❌ Collection failed: {str(e)}", exc_info=True)
+        logger.error(f"❌ Collection failed: {e!s}", exc_info=True)
         return False
 
 

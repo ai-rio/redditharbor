@@ -4,11 +4,11 @@ Test Opportunity Analysis Functionality
 Unit tests for the monetizable app opportunity research methodology
 """
 
-import pytest
+import json
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
-import json
+
+import pytest
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -231,7 +231,7 @@ class TestOpportunityScoringConfig:
         """Test that scoring configuration has proper structure"""
         config_path = project_root / "config" / "opportunity_scoring_config.json"
 
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             config = json.load(f)
 
         # Check main configuration sections
@@ -259,7 +259,7 @@ class TestOpportunityScoringConfig:
         """Test opportunity categories configuration"""
         config_path = project_root / "config" / "opportunity_scoring_config.json"
 
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             config = json.load(f)
 
         categories = config["opportunity_categories"]

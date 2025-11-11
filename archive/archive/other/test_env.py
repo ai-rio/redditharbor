@@ -12,6 +12,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment variables from .env.local
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 # Check environment variables
@@ -37,13 +38,13 @@ def test_env():
 
     print(f"\n✓ MINIMAX_API_KEY: {'*' * 20 if minimax_api_key else 'NOT SET'}")
     if minimax_api_key != "your_minimax_api_key_here":
-        print(f"  ✓ Looks like it's been configured!")
+        print("  ✓ Looks like it's been configured!")
     else:
-        print(f"  ⚠️  Using default placeholder - update .env.local")
+        print("  ⚠️  Using default placeholder - update .env.local")
 
     print(f"\n✓ MINIMAX_GROUP_ID: {minimax_group_id if minimax_group_id != 'your_minimax_group_id_here' else 'NOT SET'}")
     if minimax_group_id and minimax_group_id != "your_minimax_group_id_here":
-        print(f"  ✓ Looks like it's been configured!")
+        print("  ✓ Looks like it's been configured!")
 
     print("\n" + "=" * 80)
 

@@ -4,9 +4,9 @@ Verification script for monetizable opportunities data collection implementation
 Validates that all required functions are implemented and callable
 """
 
+import logging
 import sys
 from pathlib import Path
-import logging
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -29,28 +29,28 @@ def verify_implementation():
     try:
         # Import core functions
         from core.collection import (
-            collect_monetizable_opportunities_data,
-            collect_enhanced_submissions,
-            collect_enhanced_comments,
-            # Helper functions
-            extract_problem_keywords,
-            extract_workarounds,
-            extract_solution_mentions,
-            detect_payment_mentions,
-            analyze_emotional_intensity,
-            calculate_sentiment_score,
-            analyze_pain_language,
-            analyze_sentiment_and_pain_intensity,
-            identify_market_segment,
-            smart_rate_limiting,
-            # Constants
-            TARGET_SUBREDDITS,
             ALL_TARGET_SUBREDDITS,
-            PROBLEM_KEYWORDS,
             MONETIZATION_KEYWORDS,
             PAYMENT_WILLINGNESS_SIGNALS,
+            PROBLEM_KEYWORDS,
+            SOLUTION_MENTION_KEYWORDS,
+            # Constants
+            TARGET_SUBREDDITS,
             WORKAROUND_KEYWORDS,
-            SOLUTION_MENTION_KEYWORDS
+            analyze_emotional_intensity,
+            analyze_pain_language,
+            analyze_sentiment_and_pain_intensity,
+            calculate_sentiment_score,
+            collect_enhanced_comments,
+            collect_enhanced_submissions,
+            collect_monetizable_opportunities_data,
+            detect_payment_mentions,
+            # Helper functions
+            extract_problem_keywords,
+            extract_solution_mentions,
+            extract_workarounds,
+            identify_market_segment,
+            smart_rate_limiting,
         )
 
         logger.info("✅ All required imports successful")

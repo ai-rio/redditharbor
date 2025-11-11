@@ -13,6 +13,7 @@ sys.path.insert(0, str(project_root))
 
 # Import directly without going through scripts package
 import importlib.util
+
 spec = importlib.util.spec_from_file_location(
     "batch_opportunity_scoring",
     project_root / "scripts" / "batch_opportunity_scoring.py"
@@ -24,7 +25,7 @@ map_subreddit_to_sector = batch_scoring.map_subreddit_to_sector
 format_submission_for_agent = batch_scoring.format_submission_for_agent
 SECTOR_MAPPING = batch_scoring.SECTOR_MAPPING
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_KEY, SUPABASE_URL
 from supabase import create_client
 
 
@@ -109,10 +110,10 @@ def test_agent_analysis():
     assert "final_score" in result, "Missing final score"
     assert "priority" in result, "Missing priority"
 
-    print(f"  [PASS] Analysis completed")
+    print("  [PASS] Analysis completed")
     print(f"  Final Score: {result['final_score']}")
     print(f"  Priority: {result['priority']}")
-    print(f"  Dimension Scores:")
+    print("  Dimension Scores:")
     for dim, score in result["dimension_scores"].items():
         print(f"    - {dim}: {score}")
     print()
@@ -129,7 +130,7 @@ def test_database_connection():
         response = supabase.table("submissions").select("*").limit(1).execute()
 
         if response.data and len(response.data) > 0:
-            print(f"  [PASS] Connected to database")
+            print("  [PASS] Connected to database")
             print(f"  [PASS] Sample submission fetched: {response.data[0].get('submission_id')}")
 
             # Check if required fields exist
@@ -146,14 +147,14 @@ def test_database_connection():
         # Check if opportunities table exists
         try:
             opp_response = supabase.table("opportunities").select("id").limit(1).execute()
-            print(f"  [PASS] Opportunities table accessible")
+            print("  [PASS] Opportunities table accessible")
         except Exception as e:
             print(f"  [WARN] Opportunities table issue: {e}")
 
         # Check if opportunity_scores table exists
         try:
             score_response = supabase.table("opportunity_scores").select("id").limit(1).execute()
-            print(f"  [PASS] Opportunity_scores table accessible")
+            print("  [PASS] Opportunity_scores table accessible")
         except Exception as e:
             print(f"  [WARN] Opportunity_scores table issue: {e}")
 

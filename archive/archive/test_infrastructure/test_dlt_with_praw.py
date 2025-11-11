@@ -8,9 +8,8 @@ and then loads it into Supabase using DLT.
 
 import sys
 from pathlib import Path
+
 import dlt
-import json
-import os
 
 # Add project root
 project_root = Path(__file__).parent.parent
@@ -18,8 +17,9 @@ sys.path.insert(0, str(project_root))
 
 # Import existing Reddit client
 try:
-    from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
     import praw
+
+    from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
     PRAW_AVAILABLE = True
 except ImportError:
     print("⚠️  PRAW not available - will use mock data")
@@ -105,9 +105,9 @@ def test_dlt_with_reddit_data():
             table_name="submissions",
             write_disposition="replace"
         )
-        print(f"✓ Data loaded successfully!")
-        print(f"  - Load completed: ✓")
-        print(f"  - Table: submissions")
+        print("✓ Data loaded successfully!")
+        print("  - Load completed: ✓")
+        print("  - Table: submissions")
 
         return True
 

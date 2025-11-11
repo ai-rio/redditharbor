@@ -12,22 +12,22 @@ Tests verify:
 """
 
 import sys
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.batch_opportunity_scoring import (
-    map_subreddit_to_sector,
     format_submission_for_agent,
-    prepare_analysis_for_storage,
     load_scores_to_supabase_via_dlt,
+    map_subreddit_to_sector,
+    prepare_analysis_for_storage,
     process_batch,
-    SECTOR_MAPPING,
 )
 
 

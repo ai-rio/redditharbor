@@ -4,21 +4,21 @@ RedditHarbor Opportunity Analysis Agent
 Automated tools for continuous opportunity analysis using the 5-dimensional methodology
 """
 
-import anyio
 import json
 import sys
-from pathlib import Path
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
+from pathlib import Path
+from typing import Any
+
+import anyio
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from claude_agent_sdk import tool, query, ClaudeAgentOptions
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_KEY, SUPABASE_URL
 from supabase import create_client
 
 
@@ -55,19 +55,21 @@ class OpportunityAnalyzerAgent:
         self.methodology_weights = {
             "market_demand": 0.20,
             "pain_intensity": 0.25,
-            "monetization_potential": 0.30,
-            "market_gap": 0.15,
-            "technical_feasibility": 0.10
+            "monetization_potential": 0.20,
+            "market_gap": 0.10,
+            "technical_feasibility": 0.05,
+            "simplicity_score": 0.20  # Methodology requirement: 1-3 function constraint
         }
 
-    def _calculate_final_score(self, scores: Dict[str, float]) -> float:
+    def _calculate_final_score(self, scores: dict[str, float]) -> float:
         """Calculate weighted final score using methodology formula"""
         final = (
             scores["market_demand"] * self.methodology_weights["market_demand"] +
             scores["pain_intensity"] * self.methodology_weights["pain_intensity"] +
             scores["monetization_potential"] * self.methodology_weights["monetization_potential"] +
             scores["market_gap"] * self.methodology_weights["market_gap"] +
-            scores["technical_feasibility"] * self.methodology_weights["technical_feasibility"]
+            scores["technical_feasibility"] * self.methodology_weights["technical_feasibility"] +
+            scores.get("simplicity_score", 70.0) * self.methodology_weights["simplicity_score"]  # Default to 3 functions (70 points)
         )
         return round(final, 2)
 
@@ -84,7 +86,7 @@ class OpportunityAnalyzerAgent:
         else:
             return "❌ Not Recommended"
 
-    def analyze_opportunity(self, submission_data: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_opportunity(self, submission_data: dict[str, Any]) -> dict[str, Any]:
         """
         Analyze a single opportunity using the 5-dimensional scoring methodology.
 
@@ -120,11 +122,15 @@ class OpportunityAnalyzerAgent:
             "pain_intensity": pain_intensity,
             "monetization_potential": monetization_potential,
             "market_gap": market_gap,
-            "technical_feasibility": technical_feasibility
+            "technical_feasibility": technical_feasibility,
+            "simplicity_score": 70.0  # Default: Will be updated by constraint validator after LLM profiling
         }
 
         final_score = self._calculate_final_score(scores)
         priority = self._get_priority(final_score)
+
+        # Generate core functions based on analysis
+        core_functions = self._generate_core_functions(text, final_score)
 
         result = {
             "opportunity_id": submission_data.get("id", "unknown"),
@@ -134,12 +140,14 @@ class OpportunityAnalyzerAgent:
             "final_score": final_score,
             "priority": priority,
             "weights": self.methodology_weights,
+            "core_functions": core_functions,
+            "function_count": len(core_functions),
             "timestamp": datetime.now().isoformat()
         }
 
         return result
 
-    def _calculate_market_demand(self, text: str, engagement: Dict, subreddit: str) -> float:
+    def _calculate_market_demand(self, text: str, engagement: dict, subreddit: str) -> float:
         """Calculate Market Demand score (0-100)"""
         score = 0
 
@@ -165,7 +173,7 @@ class OpportunityAnalyzerAgent:
 
         return min(100, round(score, 2))
 
-    def _calculate_pain_intensity(self, text: str, comments: List[str]) -> float:
+    def _calculate_pain_intensity(self, text: str, comments: list[str]) -> float:
         """Calculate Pain Intensity score (0-100)"""
         score = 0
 
@@ -196,7 +204,7 @@ class OpportunityAnalyzerAgent:
 
         return min(100, round(score, 2))
 
-    def _calculate_monetization_potential(self, text: str, engagement: Dict) -> float:
+    def _calculate_monetization_potential(self, text: str, engagement: dict) -> float:
         """Calculate Monetization Potential score (0-100)"""
         score = 0
 
@@ -227,7 +235,7 @@ class OpportunityAnalyzerAgent:
 
         return min(100, round(score, 2))
 
-    def _calculate_market_gap(self, text: str, comments: List[str]) -> float:
+    def _calculate_market_gap(self, text: str, comments: list[str]) -> float:
         """Calculate Market Gap Analysis score (0-100)"""
         score = 0
 
@@ -277,8 +285,70 @@ class OpportunityAnalyzerAgent:
 
         return max(0, min(100, round(score, 2)))
 
-    
-    def batch_analyze_opportunities(self, submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _generate_core_functions(self, text: str, final_score: float) -> list[str]:
+        """
+        Generate 1-3 core functions based on the text analysis and score.
+
+        This ensures every opportunity has the required function_list for database storage.
+        The functions are derived from the problem domain and solution indicators in the text.
+
+        Args:
+            text: The submission text to analyze for function hints
+            final_score: The calculated opportunity score (affects function complexity)
+
+        Returns:
+            List of 1-3 core function descriptions
+        """
+        text_lower = text.lower()
+        functions = []
+
+        # Analyze problem domain to suggest primary function
+        if any(word in text_lower for word in ["track", "monitor", "measure", "analytics", "dashboard"]):
+            functions.append("Data tracking and analytics")
+        elif any(word in text_lower for word in ["manage", "organize", "plan", "schedule", "coordinate"]):
+            functions.append("Task and resource management")
+        elif any(word in text_lower for word in ["connect", "sync", "integrate", "link", "bridge"]):
+            functions.append("System integration and synchronization")
+        elif any(word in text_lower for word in ["find", "search", "discover", "recommend", "suggest"]):
+            functions.append("Smart search and recommendations")
+        elif any(word in text_lower for word in ["automate", "automatic", "schedule", "trigger", "workflow"]):
+            functions.append("Automation and workflow management")
+        elif any(word in text_lower for word in ["share", "collaborate", "team", "group", "social"]):
+            functions.append("Collaboration and sharing")
+        elif any(word in text_lower for word in ["budget", "cost", "price", "payment", "billing"]):
+            functions.append("Financial management and billing")
+        elif any(word in text_lower for word in ["learn", "teach", "training", "education", "tutorial"]):
+            functions.append("Learning and education platform")
+        elif any(word in text_lower for word in ["health", "fitness", "wellness", "exercise", "diet"]):
+            functions.append("Health and wellness tracking")
+        elif any(word in text_lower for word in ["build", "create", "design", "develop", "make"]):
+            functions.append("Content creation and design tools")
+        else:
+            functions.append("Core problem-solving functionality")
+
+        # Add secondary functions based on complexity and score
+        if final_score >= 70 and len(functions) < 3:
+            # High-scoring opportunities can handle more complexity
+            if any(word in text_lower for word in ["report", "analyze", "insight", "visualization"]):
+                if len(functions) < 3:
+                    functions.append("Reporting and insights")
+            elif any(word in text_lower for word in ["mobile", "phone", "ios", "android", "app"]):
+                if len(functions) < 3:
+                    functions.append("Mobile access and notifications")
+            elif any(word in text_lower for word in ["api", "integrations", "connectors", "extensions"]):
+                if len(functions) < 3:
+                    functions.append("API and third-party integrations")
+
+        # Add user management function for higher scores if not already present
+        if final_score >= 60 and len(functions) < 3:
+            if not any("user" in func.lower() or "account" in func.lower() for func in functions):
+                functions.append("User account management")
+
+        # Ensure we have 1-3 functions (database constraint)
+        return functions[:3] if functions else ["Core functionality"]
+
+
+    def batch_analyze_opportunities(self, submissions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Analyze multiple opportunities in batch.
 
@@ -303,8 +373,8 @@ class OpportunityAnalyzerAgent:
 
         return results
 
-    
-    def get_top_opportunities(self, min_score: float = 70, limit: int = 10) -> List[Dict[str, Any]]:
+
+    def get_top_opportunities(self, min_score: float = 70, limit: int = 10) -> list[dict[str, Any]]:
         """
         Retrieve top opportunities from database based on score.
 
@@ -325,8 +395,8 @@ class OpportunityAnalyzerAgent:
             print(f"Error retrieving opportunities: {e}")
             return []
 
-    
-    def generate_validation_report(self, opportunity_id: str) -> Dict[str, Any]:
+
+    def generate_validation_report(self, opportunity_id: str) -> dict[str, Any]:
         """
         Generate validation report for an opportunity.
 
@@ -368,8 +438,8 @@ class OpportunityAnalyzerAgent:
 
         return validation_status
 
-    
-    def track_business_metrics(self) -> Dict[str, Any]:
+
+    def track_business_metrics(self) -> dict[str, Any]:
         """
         Calculate and return current business metrics from the methodology.
 
@@ -394,8 +464,8 @@ class OpportunityAnalyzerAgent:
 
         return metrics
 
-    
-    def continuous_analysis(self, duration_minutes: int = 60) -> Dict[str, Any]:
+
+    def continuous_analysis(self, duration_minutes: int = 60) -> dict[str, Any]:
         """
         Run continuous opportunity analysis for a specified duration.
 

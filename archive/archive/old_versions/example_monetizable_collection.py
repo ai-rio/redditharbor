@@ -6,19 +6,14 @@ This script shows how to use the new collection capabilities for identifying
 monetizable app opportunities from Reddit discussions.
 """
 
-import sys
 import logging
+import sys
 
 # Add project root to path
 sys.path.insert(0, '/home/carlos/projects/redditharbor')
 
 from core.collection import (
-    collect_monetizable_opportunities_data,
-    collect_for_opportunity_scoring,
     TARGET_SUBREDDITS,
-    ALL_TARGET_SUBREDDITS,
-    PROBLEM_KEYWORDS,
-    MONETIZATION_KEYWORDS,
 )
 
 # Configure logging

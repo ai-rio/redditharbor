@@ -4,13 +4,11 @@ RedditHarbor Simple Data Collection Script
 Collects REAL Reddit data from finance and health subreddits for opportunity analysis
 """
 
-import sys
-import os
-from pathlib import Path
-import logging
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 import json
+import logging
+import sys
+from datetime import datetime
+from pathlib import Path
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -69,8 +67,8 @@ def collect_reddit_data_simple():
     try:
         # Try to use RedditHarbor if available
         logger.info("🔍 Attempting RedditHarbor imports...")
-        from redditharbor.login import reddit, supabase
         from redditharbor.dock.pipeline import collect
+        from redditharbor.login import reddit, supabase
         logger.info("✅ RedditHarbor imports successful")
 
         # Check Reddit connection
@@ -202,7 +200,7 @@ def process_existing_html_logs():
 
     for html_file in html_files[:10]:  # Process first 10 files for testing
         try:
-            with open(html_file, 'r', encoding='utf-8') as f:
+            with open(html_file, encoding='utf-8') as f:
                 content = f.read().lower()
 
                 # Extract subreddit info and content from HTML
@@ -266,7 +264,7 @@ def process_existing_html_logs():
     print(f"Monetization Mentions: {len(opportunity_insights['monetization_mentions'])}")
 
     if opportunity_insights["insights"]:
-        print(f"\n🔥 TOP OPPORTUNITIES (by signal count):")
+        print("\n🔥 TOP OPPORTUNITIES (by signal count):")
         sorted_insights = sorted(opportunity_insights["insights"],
                                key=lambda x: x['total_opportunity_signals'], reverse=True)
         for insight in sorted_insights[:5]:

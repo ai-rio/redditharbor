@@ -5,14 +5,13 @@ Handles the main data collection functionality for RedditHarbor with comprehensi
 and specialized support for monetizable app research methodology.
 """
 
-import logging
-import time
-import random
-import re
-from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
-import traceback
 import json
+import logging
+import re
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +246,7 @@ def collect_comments_for_submissions(
     It processes existing submissions and collects their comments.
     """
     try:
-        logger.info(f"💬 CRITICAL: Starting comment collection for existing submissions")
+        logger.info("💬 CRITICAL: Starting comment collection for existing submissions")
         logger.info(f"🎯 Target subreddits: {len(target_subreddits)}")
         logger.info(f"⏰ Processing submissions from last {max_age_hours} hours")
 
@@ -362,7 +361,7 @@ def collect_comments_for_submissions(
                 logger.error(f"  ❌ Failed to process comments for r/{subreddit_name}: {e}")
                 continue
 
-        logger.info(f"🎉 CRITICAL COMMENT COLLECTION COMPLETED!")
+        logger.info("🎉 CRITICAL COMMENT COLLECTION COMPLETED!")
         logger.info(f"✅ Total comments collected: {total_comments_collected}")
         logger.info(f"✅ Submissions processed: {processed_submissions}")
 
@@ -458,7 +457,7 @@ def identify_market_segment(subreddit_name: str) -> str:
     return "other"
 
 
-def extract_problem_keywords(text: str) -> List[str]:
+def extract_problem_keywords(text: str) -> list[str]:
     """Extract problem indicators from text"""
     if not text:
         return []
@@ -475,7 +474,7 @@ def extract_problem_keywords(text: str) -> List[str]:
     return list(set(found_keywords))  # Remove duplicates
 
 
-def extract_workarounds(text: str) -> List[str]:
+def extract_workarounds(text: str) -> list[str]:
     """Extract workaround mentions from text"""
     if not text:
         return []
@@ -491,7 +490,7 @@ def extract_workarounds(text: str) -> List[str]:
     return list(set(found_workarounds))
 
 
-def extract_solution_mentions(text: str) -> List[str]:
+def extract_solution_mentions(text: str) -> list[str]:
     """Extract current solutions mentioned in text"""
     if not text:
         return []
@@ -507,7 +506,7 @@ def extract_solution_mentions(text: str) -> List[str]:
     return list(set(solutions))
 
 
-def detect_payment_mentions(text: str) -> List[str]:
+def detect_payment_mentions(text: str) -> list[str]:
     """Detect payment and monetization signals in text"""
     if not text:
         return []
@@ -600,9 +599,9 @@ def analyze_pain_language(text: str) -> float:
 
 
 def extract_problem_statements(
-    submissions_data: List[dict],
-    comments_data: List[dict]
-) -> List[str]:
+    submissions_data: list[dict],
+    comments_data: list[dict]
+) -> list[str]:
     """Extract problem statements using NLP analysis"""
     problem_statements = []
 
@@ -646,9 +645,9 @@ def extract_problem_statements(
 
 
 def analyze_sentiment_and_pain_intensity(
-    text_data: List[str],
-    keywords: List[str]
-) -> Dict[str, float]:
+    text_data: list[str],
+    keywords: list[str]
+) -> dict[str, float]:
     """Analyze sentiment and pain intensity scores"""
     total_sentiment = 0.0
     total_pain = 0.0
@@ -731,7 +730,7 @@ def collect_monetizable_opportunities_data(
         bool: True if collection successful, False otherwise
     """
     try:
-        logger.info(f"💰 Starting monetizable app research data collection")
+        logger.info("💰 Starting monetizable app research data collection")
         logger.info(f"🎯 Market segment: {market_segment}")
         logger.info(f"📊 Limit per sort: {limit_per_sort}")
         logger.info(f"⏰ Time filter: {time_filter}")
@@ -775,7 +774,7 @@ def collect_monetizable_opportunities_data(
         )
 
         # Log collection summary
-        logger.info(f"✅ Monetizable app research collection complete")
+        logger.info("✅ Monetizable app research collection complete")
         logger.info(f"📊 Submissions: {'✓' if submissions_success else '✗'}")
         logger.info(f"💬 Comments: {'✓' if comments_success else '✗'}")
 
@@ -916,7 +915,7 @@ def collect_enhanced_comments(
     Collect comments with enhanced metadata for monetizable app research
     """
     try:
-        logger.info(f"💬 Collecting enhanced comments for monetizable app research")
+        logger.info("💬 Collecting enhanced comments for monetizable app research")
 
         total_comments_collected = 0
         processed_submissions = 0
@@ -1032,7 +1031,7 @@ def collect_enhanced_comments(
                 logger.error(f"  ❌ Failed to process comments for r/{subreddit_name}: {e}")
                 continue
 
-        logger.info(f"🎉 Enhanced comment collection completed!")
+        logger.info("🎉 Enhanced comment collection completed!")
         logger.info(f"✅ Total enhanced comments collected: {total_comments_collected}")
         logger.info(f"✅ Submissions processed: {processed_submissions}")
 
@@ -1065,7 +1064,7 @@ def collect_for_opportunity_scoring(
     - Simplicity Score (1-3 core functions)
     """
     try:
-        logger.info(f"🎯 Collecting data for opportunity scoring")
+        logger.info("🎯 Collecting data for opportunity scoring")
         logger.info(f"📝 Problem keywords: {len(problem_keywords)}")
         logger.info(f"💰 Monetization keywords: {len(monetization_keywords)}")
 
@@ -1095,7 +1094,7 @@ def collect_for_opportunity_scoring(
             track_workarounds=True
         )
 
-        logger.info(f"✅ Opportunity scoring data collection complete")
+        logger.info("✅ Opportunity scoring data collection complete")
         return submissions_success and comments_success
 
     except Exception as e:
@@ -1160,8 +1159,8 @@ def emergency_comment_collection(
         ]
 
     try:
-        logger.info(f"🚨 EMERGENCY COMMENT COLLECTION ACTIVATED")
-        logger.info(f"🎯 Target: Collect comments for existing 937 submissions")
+        logger.info("🚨 EMERGENCY COMMENT COLLECTION ACTIVATED")
+        logger.info("🎯 Target: Collect comments for existing 937 submissions")
 
         # Use multiple strategies for maximum comment collection
 
@@ -1177,9 +1176,288 @@ def emergency_comment_collection(
             limit=2000, mask_pii=False
         )
 
-        logger.info(f"🎯 EMERGENCY COLLECTION COMPLETE")
+        logger.info("🎯 EMERGENCY COLLECTION COMPLETE")
         return success1 or success2
 
     except Exception as e:
         logger.error(f"❌ Emergency comment collection failed: {e}")
         return False
+
+
+# ============================================================================
+# DLT INTEGRATION FUNCTIONS
+# ============================================================================
+
+def collect_with_dlt_validation(
+    reddit_client,
+    supabase_client,
+    db_config: dict[str, str],
+    subreddits: list[str],
+    limit: int = 100,
+    sort_types: list[str] | None = None,
+    mask_pii: bool = True,
+    dlt_enabled: bool = False,
+    dlt_min_activity_score: float = 50.0,
+    dlt_time_filter: str = "day"
+) -> dict[str, Any]:
+    """
+    Enhanced data collection with DLT activity validation integration.
+
+    This function provides a unified interface for both traditional collection
+    and DLT-enhanced collection with activity validation.
+
+    Args:
+        reddit_client: Reddit API client
+        supabase_client: Supabase database client
+        db_config: Database table configuration
+        subreddits: List of subreddits to collect from
+        limit: Maximum number of posts to collect per subreddit
+        sort_types: Sort types to use ("hot", "new", "top", etc.)
+        mask_pii: Whether to mask personally identifiable information
+        dlt_enabled: Whether to use DLT activity validation
+        dlt_min_activity_score: Minimum activity score for DLT validation
+        dlt_time_filter: Time filter for DLT activity analysis
+
+    Returns:
+        dict: Collection results with both traditional and DLT statistics
+    """
+    try:
+        logger.info("🔄 Starting unified collection with DLT validation")
+        logger.info(f"🎯 Subreddits: {len(subreddits)}")
+        logger.info(f"🔧 DLT enabled: {dlt_enabled}")
+        logger.info(f"📊 DLT min activity score: {dlt_min_activity_score}")
+
+        results = {
+            "success": False,
+            "traditional_collection": {"success": False, "stats": {}},
+            "dlt_collection": {"success": False, "stats": {}},
+            "combined_stats": {},
+            "duration": 0.0
+        }
+
+        start_time = time.time()
+
+        # Always run traditional collection first for backward compatibility
+        logger.info("📊 Running traditional collection...")
+        if sort_types is None:
+            sort_types = ["hot", "top"]
+
+        traditional_success = collect_data(
+            reddit_client=reddit_client,
+            supabase_client=supabase_client,
+            db_config=db_config,
+            subreddits=subreddits,
+            limit=limit,
+            sort_types=sort_types,
+            mask_pii=mask_pii
+        )
+
+        results["traditional_collection"]["success"] = traditional_success
+
+        # Get traditional collection statistics
+        traditional_stats = get_collection_status(reddit_client, supabase_client, db_config)
+        results["traditional_collection"]["stats"] = traditional_stats
+
+        if dlt_enabled:
+            logger.info("🚀 Running DLT-enhanced collection...")
+
+            try:
+                # Import DLT functions from scripts module
+                from scripts.run_dlt_activity_collection import run_dlt_collection
+
+                # Run DLT collection with the same subreddits
+                dlt_result = run_dlt_collection(
+                    subreddits=subreddits,
+                    time_filter=dlt_time_filter,
+                    min_activity_score=dlt_min_activity_score,
+                    dry_run=False,
+                    pipeline_name=f"reddit_harbor_unified_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+                )
+
+                results["dlt_collection"]["success"] = dlt_result.get("success", False)
+                results["dlt_collection"]["stats"] = dlt_result
+
+                if dlt_result.get("success"):
+                    logger.info("✅ DLT collection completed successfully")
+                else:
+                    logger.warning(f"⚠️ DLT collection failed: {dlt_result.get('error', 'Unknown error')}")
+
+            except ImportError as ie:
+                logger.warning(f"⚠️ DLT module not available: {ie}")
+                results["dlt_collection"]["stats"] = {"error": f"DLT module import failed: {ie}"}
+            except Exception as e:
+                logger.error(f"❌ DLT collection error: {e}")
+                results["dlt_collection"]["stats"] = {"error": str(e)}
+        else:
+            logger.info("ℹ️ DLT collection disabled")
+            results["dlt_collection"]["stats"] = {"message": "DLT collection disabled"}
+
+        # Combine statistics
+        results["combined_stats"] = {
+            "total_duration": time.time() - start_time,
+            "traditional_success": traditional_success,
+            "dlt_success": results["dlt_collection"]["success"],
+            "subreddits_processed": len(subreddits),
+            "collection_mode": "unified_dlt" if dlt_enabled else "traditional_only"
+        }
+
+        # Overall success if either method succeeded
+        results["success"] = (
+            traditional_success or results["dlt_collection"]["success"]
+        )
+        results["duration"] = time.time() - start_time
+
+        logger.info("🎉 Unified collection completed")
+        logger.info(f"📊 Traditional: {'✓' if traditional_success else '✗'}")
+        logger.info(f"🚀 DLT: {'✓' if results['dlt_collection']['success'] else '✗'}")
+        logger.info(f"⏱️ Total duration: {results['duration']:.2f}s")
+
+        return results
+
+    except Exception as e:
+        logger.error(f"❌ Unified collection failed: {e}")
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        return {
+            "success": False,
+            "error": str(e),
+            "traditional_collection": {"success": False, "stats": {}},
+            "dlt_collection": {"success": False, "stats": {}},
+            "combined_stats": {"error": str(e)},
+            "duration": 0.0
+        }
+
+
+def get_dlt_collection_stats(
+    reddit_client,
+    supabase_client,
+    db_config: dict[str, str]
+) -> dict[str, Any]:
+    """
+    Get comprehensive DLT collection statistics and performance metrics.
+
+    This function provides detailed statistics about DLT collection performance,
+    including activity validation results, quality filter effectiveness, and
+    integration metrics with the existing RedditHarbor system.
+
+    Args:
+        reddit_client: Reddit API client
+        supabase_client: Supabase database client
+        db_config: Database table configuration
+
+    Returns:
+        dict: Comprehensive DLT collection statistics
+    """
+    try:
+        logger.info("📊 Gathering DLT collection statistics...")
+
+        # Get basic collection status
+        base_stats = get_collection_status(reddit_client, supabase_client, db_config)
+
+        # DLT-specific statistics
+        dlt_stats = {
+            "dlt_enabled": False,
+            "activity_validation_enabled": False,
+            "quality_filters_active": False,
+            "pipeline_performance": {},
+            "validation_metrics": {},
+            "quality_metrics": {},
+            "integration_health": {}
+        }
+
+        try:
+            # Import DLT settings
+            from config.settings import (
+                DLT_ENABLED,
+                DLT_MIN_ACTIVITY_SCORE,
+                DLT_QUALITY_COMMENTS_PER_POST,
+                DLT_QUALITY_MIN_COMMENT_LENGTH,
+                DLT_QUALITY_MIN_SCORE,
+                DLT_TIME_FILTER,
+                DLT_USE_ACTIVITY_VALIDATION,
+            )
+
+            dlt_stats["dlt_enabled"] = DLT_ENABLED
+            dlt_stats["activity_validation_enabled"] = DLT_USE_ACTIVITY_VALIDATION
+            dlt_stats["quality_filters_active"] = True  # Always active when DLT is enabled
+
+            # Configuration metrics
+            dlt_stats["configuration"] = {
+                "min_activity_score": DLT_MIN_ACTIVITY_SCORE,
+                "time_filter": DLT_TIME_FILTER,
+                "quality_min_comment_length": DLT_QUALITY_MIN_COMMENT_LENGTH,
+                "quality_min_score": DLT_QUALITY_MIN_SCORE,
+                "quality_comments_per_post": DLT_QUALITY_COMMENTS_PER_POST
+            }
+
+        except ImportError as ie:
+            logger.warning(f"⚠️ DLT settings import failed: {ie}")
+            dlt_stats["configuration_error"] = str(ie)
+
+        # Database-specific metrics
+        try:
+            # Count submissions with enhanced DLT metadata
+            submissions_query = supabase_client.table(db_config.get("submission", "submissions")).select(
+                "submission_id,market_segment,sort_type,time_filter,emotional_language_score,sentiment_score"
+            ).limit(1)
+
+            submissions_result = submissions_query.execute()
+            if submissions_result.data:
+                dlt_stats["enhanced_metadata_available"] = True
+            else:
+                dlt_stats["enhanced_metadata_available"] = False
+
+        except Exception as e:
+            logger.warning(f"⚠️ Could not check enhanced metadata: {e}")
+            dlt_stats["enhanced_metadata_available"] = False
+
+        # Activity validation metrics (try to get recent activity data)
+        try:
+            # Check if we have recent activity data
+            recent_cutoff = datetime.utcnow() - timedelta(days=1)
+            recent_submissions = supabase_client.table(db_config.get("submission", "submissions")).select(
+                "submission_id,created_utc,score,num_comments"
+            ).gte("created_utc", recent_cutoff.isoformat()).execute()
+
+            if recent_submissions.data:
+                dlt_stats["validation_metrics"]["recent_submissions_24h"] = len(recent_submissions.data)
+
+                # Calculate average activity metrics
+                total_comments = sum(s.get("num_comments", 0) for s in recent_submissions.data)
+                total_score = sum(s.get("score", 0) for s in recent_submissions.data)
+
+                dlt_stats["validation_metrics"]["avg_comments_per_post"] = total_comments / max(len(recent_submissions.data), 1)
+                dlt_stats["validation_metrics"]["avg_score_per_post"] = total_score / max(len(recent_submissions.data), 1)
+
+        except Exception as e:
+            logger.warning(f"⚠️ Could not calculate validation metrics: {e}")
+            dlt_stats["validation_metrics"]["error"] = str(e)
+
+        # Integration health check
+        dlt_stats["integration_health"] = {
+            "collection_module_available": True,
+            "settings_available": True,
+            "database_connection": base_stats.get("status") == "active",
+            "reddit_client_available": bool(reddit_client),
+            "supabase_client_available": bool(supabase_client)
+        }
+
+        # Combine all statistics
+        combined_stats = {
+            **base_stats,
+            "dlt_stats": dlt_stats,
+            "timestamp": datetime.utcnow().isoformat(),
+            "collection_type": "dlt_enhanced"
+        }
+
+        logger.info("✅ DLT statistics collection completed")
+        return combined_stats
+
+    except Exception as e:
+        logger.error(f"❌ Failed to get DLT statistics: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "dlt_stats": {"error": str(e)},
+            "timestamp": datetime.utcnow().isoformat(),
+            "collection_type": "dlt_enhanced_error"
+        }

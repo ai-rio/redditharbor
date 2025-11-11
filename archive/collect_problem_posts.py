@@ -11,10 +11,12 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 import sys
+
 sys.path.append(str(project_root))
+import argparse
+
 from core.setup import setup_redditharbor
 from core.templates import problem_first_opportunity_research
-import argparse
 
 # Problem keywords - posts MUST contain at least one
 PROBLEM_KEYWORDS = [
@@ -73,7 +75,7 @@ def collect_problem_posts(subreddits, limit_per_subreddit=500):
     print(f"\nTarget Subreddits: {', '.join(subreddits)}")
     print(f"Limit per subreddit: {limit_per_subreddit}")
     print(f"Problem keywords: {len(PROBLEM_KEYWORDS)}")
-    print(f"\nCollecting posts that contain problem indicators...")
+    print("\nCollecting posts that contain problem indicators...")
 
     # Use the problem-first template
     problem_first_opportunity_research(pipeline, subreddits)

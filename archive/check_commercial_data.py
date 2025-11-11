@@ -9,7 +9,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import supabase
-from config.settings import SUPABASE_URL, SUPABASE_KEY
+
+from config.settings import SUPABASE_KEY, SUPABASE_URL
 
 # Initialize Supabase
 client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)

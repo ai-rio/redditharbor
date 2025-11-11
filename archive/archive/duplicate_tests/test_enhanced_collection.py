@@ -4,21 +4,26 @@ Test Enhanced Collection - Small batch from 2 subreddits only
 Validates the enhanced collection logic before full deployment
 """
 
-import sys
-from pathlib import Path
 import logging
-from datetime import datetime
-from textblob import TextBlob
+import sys
 import time
+from datetime import datetime
+from pathlib import Path
+
+from textblob import TextBlob
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit, supabase
+
 from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT,
-    SUPABASE_URL, SUPABASE_KEY
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
 )
 
 # Setup logging
@@ -201,13 +206,13 @@ def main():
             continue
 
     logger.info(f"\n{'='*80}")
-    logger.info(f"✅ TEST COMPLETE")
+    logger.info("✅ TEST COMPLETE")
     logger.info(f"{'='*80}")
     logger.info(f"📊 Total Submissions: {total_submissions}")
     logger.info(f"🎯 With Enhanced Data: {total_enhanced}")
 
     # Verify database
-    logger.info(f"\n🔍 Database verification:")
+    logger.info("\n🔍 Database verification:")
     subs_result = supabase_client.table('submissions').select('id', count='exact').execute()
     sentiment_result = supabase_client.table('submissions').select('id', count='exact').not_.is_('sentiment_score', 'null').execute()
     problems_result = supabase_client.table('submissions').select('id', count='exact').neq('problem_keywords', '').execute()

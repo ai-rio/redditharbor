@@ -10,4 +10,4 @@ __author__ = "RedditHarbor"
 from .config import MarimoConfig
 from .utils import DatabaseConnector
 
-__all__ = ["MarimoConfig", "DatabaseConnector"]
+__all__ = ["DatabaseConnector", "MarimoConfig"]

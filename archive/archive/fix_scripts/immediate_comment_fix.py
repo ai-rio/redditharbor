@@ -5,11 +5,11 @@ CRITICAL PRIORITY: Fix the 0 comments issue for 937 submissions
 TIME SENSITIVE: Must start immediately to enable opportunity analysis
 """
 
+import logging
 import sys
 import time
-import logging
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -41,9 +41,9 @@ def main():
         logger.info("🚀 Starting immediate comment collection fix")
 
         # Import core components
+        from config.settings import DB_CONFIG, DEFAULT_SUBREDDITS
         from core.collection import emergency_comment_collection, get_collection_status
         from core.setup import setup_redditharbor
-        from config.settings import DB_CONFIG, DEFAULT_SUBREDDITS
 
         logger.info("✅ Components imported successfully")
 
@@ -128,8 +128,8 @@ def verify_comment_collection():
     logger.info("🔍 Verifying comment collection results...")
 
     try:
-        from core.setup import setup_redditharbor
         from config.settings import DB_CONFIG
+        from core.setup import setup_redditharbor
 
         pipeline = setup_redditharbor()
         if not pipeline:

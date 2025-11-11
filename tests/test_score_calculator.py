@@ -10,18 +10,18 @@ Tests the single source of truth for all score calculations across RedditHarbor:
 These tests ensure DLT compliance and prevent ordering vulnerabilities.
 """
 
-import pytest
 from datetime import datetime
-from typing import Dict, Any
+
+import pytest
 
 from core.dlt.score_calculator import (
+    apply_constraint_to_score,
     calculate_simplicity_score,
     calculate_total_score,
-    apply_constraint_to_score,
+    get_score_audit_summary,
+    is_disqualified,
     recalculate_scores_after_validation,
     validate_score_range,
-    get_score_audit_summary,
-    is_disqualified
 )
 
 

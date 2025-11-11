@@ -4,10 +4,10 @@ Migration Runner for RedditHarbor Monetizable App Research Schema
 Applies all migration files in order to the Supabase database
 """
 
-import os
 import sys
-import psycopg2
 from pathlib import Path
+
+import psycopg2
 
 # Database connection parameters
 DB_CONFIG = {
@@ -21,7 +21,7 @@ DB_CONFIG = {
 def apply_migration(sql_file_path):
     """Apply a single migration file"""
     try:
-        with open(sql_file_path, 'r') as f:
+        with open(sql_file_path) as f:
             sql = f.read()
 
         # Split SQL into individual statements

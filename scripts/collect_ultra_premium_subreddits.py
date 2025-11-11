@@ -6,10 +6,8 @@ Goal: Scale to 250+ posts to find 1-2 opportunities at 50+
 """
 
 import sys
-from pathlib import Path
-from typing import List, Dict
-import uuid
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -17,6 +15,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 # Import DLT collection tools
@@ -62,10 +61,10 @@ def main():
     print("\n" + "="*80)
     print("PHASE 5: ULTRA-PREMIUM COLLECTION FOR 50+ SCORE VALIDATION")
     print("="*80)
-    print(f"\nCurrent State: 136 submissions")
-    print(f"Target: 250+ submissions (need ~120 more)")
-    print(f"Goal: Find 1-2 opportunities at 50+ scores")
-    print(f"\nUltra-Premium Strategy:")
+    print("\nCurrent State: 136 submissions")
+    print("Target: 250+ submissions (need ~120 more)")
+    print("Goal: Find 1-2 opportunities at 50+ scores")
+    print("\nUltra-Premium Strategy:")
     print("  • VC-level pain (venturecapital)")
     print("  • High net worth (financialindependence)")
     print("  • Serial entrepreneurs (startups)")
@@ -124,7 +123,7 @@ def main():
             print(f"  - Subreddits: {list(ULTRA_PREMIUM_SUBREDDITS.keys())}")
             print(f"  - Total posts: {total_collected}")
             print(f"  - Database now: ~{136 + total_collected} submissions")
-            print(f"  - DLT deduplication: Active")
+            print("  - DLT deduplication: Active")
 
         except Exception as e:
             print(f"\n✗ Error loading to Supabase: {e}")
@@ -136,7 +135,7 @@ def main():
     print("\n" + "="*80)
     print("COLLECTION SUMMARY - PHASE 5")
     print("="*80)
-    print(f"Ultra-Premium Collection Complete!")
+    print("Ultra-Premium Collection Complete!")
     print(f"New posts collected: {total_collected}")
     print(f"Database total: ~{136 + total_collected} submissions")
     print(f"Target reached: {'✅ YES' if 136 + total_collected >= 250 else '❌ NO (need more)'}")

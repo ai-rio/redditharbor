@@ -4,17 +4,18 @@ Test API keys for MiniMax and Z.AI GLM
 Validates rate limits and functionality
 """
 
+import json
 import os
 import time
-import requests
-import json
 from pathlib import Path
+
+import requests
 
 # Load environment variables
 project_root = Path(__file__).parent
 env_file = project_root / '.env.local'
 
-with open(env_file, 'r') as f:
+with open(env_file) as f:
     for line in f:
         if '=' in line and not line.startswith('#'):
             key, val = line.strip().split('=', 1)

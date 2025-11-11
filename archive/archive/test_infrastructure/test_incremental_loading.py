@@ -9,17 +9,20 @@ This test demonstrates DLT's incremental loading by:
 """
 
 import sys
-from pathlib import Path
-import dlt
 import time
+from pathlib import Path
+
+import dlt
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import existing Reddit client
-from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 import praw
+
+from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
+
 
 def get_reddit_data(subreddit_name="opensource", limit=50):
     """Get Reddit data using PRAW with timing."""
@@ -117,9 +120,9 @@ def test_incremental_loading():
     print(f"\nFull Refresh: {(time1 + load_time1):.2f}s")
     print(f"Incremental:  {(time2 + load_time2):.2f}s")
     print(f"Improvement:  {time_improvement:.1f}%")
-    print(f"\n✓ Merge write disposition prevents duplicates")
-    print(f"✓ Primary key 'id' ensures data consistency")
-    print(f"✓ DLT tracks state for true incremental loading")
+    print("\n✓ Merge write disposition prevents duplicates")
+    print("✓ Primary key 'id' ensures data consistency")
+    print("✓ DLT tracks state for true incremental loading")
 
     return True
 

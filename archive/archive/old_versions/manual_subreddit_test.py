@@ -11,9 +11,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit
-from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
-)
+
+from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 
 # Initialize Reddit
 print("Connecting to Reddit...")

@@ -6,16 +6,17 @@ Creates test Reddit submissions → Runs scoring → Verifies storage
 
 import os
 import sys
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from supabase import create_client
-from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from agent_tools.llm_profiler import LLMProfiler
+from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from supabase import create_client
+
 
 def create_test_submissions(supabase):
     """Insert 3 test submissions with varying pain levels"""
@@ -67,10 +68,10 @@ def create_test_submissions(supabase):
         try:
             supabase.table("submissions").insert(sub).execute()
             print(f"  ✓ Created: {sub['title'][:60]}... (score: {sub['score']})")
-        except Exception as e:
+        except Exception:
             print(f"  ⚠️  Skipped (may already exist): {sub['id']}")
 
-    print(f"\n✓ Test submissions ready")
+    print("\n✓ Test submissions ready")
     return test_submissions, [uuid1, uuid2, uuid3]
 
 
@@ -113,7 +114,7 @@ def run_scoring(supabase, llm_profiler, test_uuids):
 
         # Generate AI profile for high scores (using 30.0 threshold for testing)
         if llm_profiler and final_score >= 30.0:
-            print(f"   🎯 Score >= 30! Generating AI profile...")
+            print("   🎯 Score >= 30! Generating AI profile...")
             try:
                 ai_profile = llm_profiler.generate_app_profile(
                     text=formatted["text"],
@@ -190,9 +191,9 @@ def store_opportunities(supabase, scored_opportunities):
         if success:
             print(f"\n✓ Stored {len(ai_profiles)} AI profiles (deduplicated on submission_id)")
         else:
-            print(f"\n⚠️  Failed to store AI profiles via DLT")
+            print("\n⚠️  Failed to store AI profiles via DLT")
     else:
-        print(f"\n  No AI profiles to store (score threshold not met)")
+        print("\n  No AI profiles to store (score threshold not met)")
 
 
 def verify_results(supabase):

@@ -2,20 +2,22 @@
 """
 Test AI on the "47 demos" post specifically
 """
+import json
 import os
 import sys
-import json
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Add project root
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from supabase import create_client
-
 # Import functions directly from the file
 import importlib.util
+
+from supabase import create_client
+
 spec = importlib.util.spec_from_file_location("gen_insights", "scripts/generate_opportunity_insights_openrouter.py")
 gen_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gen_mod)
@@ -58,7 +60,7 @@ for i, c in enumerate(comments, 1):
 result = supabase.table("opportunity_analysis").select("*").eq("submission_id", sub_id).execute()
 opp = result.data[0] if result.data else {}
 
-print(f"\n=== OPPORTUNITY SCORES ===")
+print("\n=== OPPORTUNITY SCORES ===")
 print(f"Final Score: {opp.get('final_score', 0):.1f}")
 print(f"Market Demand: {opp.get('market_demand', 0):.1f}")
 print(f"Pain Intensity: {opp.get('pain_intensity', 0):.1f}")
@@ -66,7 +68,7 @@ print(f"Monetization: {opp.get('monetization_potential', 0):.1f}")
 print(f"Simplicity: {opp.get('simplicity_score', 0):.1f}")
 
 # Generate AI insight
-print(f"\n=== GENERATING AI INSIGHT ===")
+print("\n=== GENERATING AI INSIGHT ===")
 scores = {
     'market_demand': opp.get('market_demand', 0),
     'pain_intensity': opp.get('pain_intensity', 0),
@@ -84,7 +86,7 @@ insight = generate_insight_with_openrouter(
 )
 
 if insight:
-    print(f"\n✅ AI RESPONSE:")
+    print("\n✅ AI RESPONSE:")
     print(json.dumps(insight, indent=2))
 
     # Validate
@@ -94,7 +96,7 @@ if insight:
     else:
         print(f"\n❌ VALIDATION FAILED: {reason}")
 else:
-    print(f"\n❌ AI rejected/null response")
+    print("\n❌ AI rejected/null response")
     print("The AI sees this as not having a clear app opportunity.")
     print("\nThis suggests the prompt is still too strict or app-focused.")
     print("We need a problem-first approach!")

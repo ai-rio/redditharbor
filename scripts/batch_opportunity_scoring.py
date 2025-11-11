@@ -20,11 +20,10 @@ CRITICAL: Uses centralized score_calculator module for consistency.
 """
 
 import sys
-import json
 import time
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -32,6 +31,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment variables from .env.local
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 try:
@@ -42,20 +42,16 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
     from tqdm import tqdm
 
-from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from agent_tools.llm_profiler import LLMProfiler
-from config import SUPABASE_URL, SUPABASE_KEY
-from supabase import create_client
-
-# DLT imports for pipeline-based loading
-from core.dlt_collection import create_dlt_pipeline
+from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from config import SUPABASE_KEY, SUPABASE_URL
 
 # DLT constraint validator
 from core.dlt.constraint_validator import app_opportunities_with_constraint
 
+# DLT imports for pipeline-based loading
 # DLT opportunity pipeline
-from scripts.dlt_opportunity_pipeline import load_app_opportunities_with_constraint
-
+from supabase import create_client
 
 # ============================================================================
 # SUBREDDIT TO SECTOR MAPPING
@@ -171,7 +167,7 @@ def map_subreddit_to_sector(subreddit: str) -> str:
     return SECTOR_MAPPING.get(subreddit_lower, "Technology & SaaS")
 
 
-def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> List[Dict[str, Any]]:
+def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[dict[str, Any]]:
     """
     Fetch all submissions from the Supabase database in batches.
 
@@ -221,7 +217,7 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> List[
         raise
 
 
-def fetch_submissions(supabase_client: Any, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+def fetch_submissions(supabase_client: Any, limit: int | None = None) -> list[dict[str, Any]]:
     """
     Fetch submissions from the Supabase database.
 
@@ -262,7 +258,7 @@ def fetch_submissions(supabase_client: Any, limit: Optional[int] = None) -> List
         raise
 
 
-def format_submission_for_agent(submission: Dict[str, Any]) -> Dict[str, Any]:
+def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
     """
     Format a database submission record for the OpportunityAnalyzerAgent.
 
@@ -278,9 +274,10 @@ def format_submission_for_agent(submission: Dict[str, Any]) -> Dict[str, Any]:
     full_text = f"{title}\n\n{text}".strip()
 
     # Format engagement data - use actual column names
+    # Note: 'score' field may contain upvotes, use as fallback
     engagement = {
-        "upvotes": submission.get("upvotes", 0) or 0,
-        "num_comments": submission.get("comments_count", 0) or 0,
+        "upvotes": submission.get("upvotes", submission.get("score", 0)) or 0,
+        "num_comments": submission.get("num_comments", submission.get("comments_count", 0)) or 0,
     }
 
     # Extract comments from problem_keywords and solution_mentions if available
@@ -307,9 +304,9 @@ def format_submission_for_agent(submission: Dict[str, Any]) -> Dict[str, Any]:
 
 def prepare_analysis_for_storage(
     submission_id: str,
-    analysis: Dict[str, Any],
+    analysis: dict[str, Any],
     sector: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Prepare opportunity analysis result for DLT pipeline storage.
 
@@ -327,13 +324,13 @@ def prepare_analysis_for_storage(
     # Extract dimension scores
     scores = analysis.get("dimension_scores", {})
 
-    # Extract core functions from analysis
+    # Extract core functions from analysis (now always available)
     core_functions = analysis.get("core_functions", [])
     if isinstance(core_functions, list):
         function_count = len(core_functions)
         function_list = core_functions
     else:
-        # Fallback for old format
+        # Fallback for unexpected format
         function_count = core_functions if isinstance(core_functions, int) else 1
         function_list = [f"Core function {i+1}" for i in range(function_count)]
 
@@ -368,7 +365,7 @@ def prepare_analysis_for_storage(
 
 
 def load_scores_to_supabase_via_dlt(
-    scored_opportunities: List[Dict[str, Any]]
+    scored_opportunities: list[dict[str, Any]]
 ) -> bool:
     """
     Load scored opportunities to Supabase using DLT pipeline with constraint validation.
@@ -388,6 +385,33 @@ def load_scores_to_supabase_via_dlt(
         print("⚠️  No scored opportunities to load")
         return False
 
+    # Phase 1: Pre-flight checks for function consistency
+    print("\n🔍 Pre-flight checks (Phase 1)...")
+
+    # Check: Every opportunity has function_list
+    missing_functions = [
+        o["opportunity_id"] for o in scored_opportunities
+        if not o.get("function_list")
+    ]
+    if missing_functions:
+        print(f"❌ ERROR: {len(missing_functions)} opportunities missing function_list:")
+        for opp_id in missing_functions[:5]:
+            print(f"  - {opp_id}")
+        raise ValueError(f"Cannot load: {len(missing_functions)} missing function_list")
+
+    # Check: function_count matches function_list length
+    mismatches = [
+        o for o in scored_opportunities
+        if len(o.get("function_list", [])) != o.get("function_count")
+    ]
+    if mismatches:
+        print(f"⚠️  WARNING: {len(mismatches)} opportunities have count/list mismatch")
+        for opp in mismatches[:3]:
+            print(f"  - {opp['opportunity_id']}: count={opp.get('function_count')}, "
+                  f"actual={len(opp.get('function_list', []))}")
+
+    print(f"✓ Pre-flight checks passed ({len(scored_opportunities)} opportunities)")
+
     try:
         print(f"\n{'='*80}")
         print("LOADING SCORES TO SUPABASE VIA DLT PIPELINE")
@@ -405,7 +429,7 @@ def load_scores_to_supabase_via_dlt(
         print(f"  ✓ Compliance rate: {len(approved)/len(validated_opportunities)*100:.1f}%")
 
         if disqualified:
-            print(f"\n  Disqualified Opportunities:")
+            print("\n  Disqualified Opportunities:")
             for opp in disqualified[:3]:  # Show first 3
                 print(f"    - {opp.get('app_name', 'Unknown')}: {opp.get('violation_reason', 'N/A')}")
             if len(disqualified) > 3:
@@ -431,10 +455,10 @@ def load_scores_to_supabase_via_dlt(
         print(f"✓ Successfully loaded {len(approved)} approved opportunities to Supabase")
         if disqualified:
             print(f"⚠️  Skipped {len(disqualified)} disqualified opportunities (4+ functions)")
-        print(f"  - Table: workflow_results")
-        print(f"  - Write mode: merge (deduplication enabled)")
-        print(f"  - Primary key: opportunity_id")
-        print(f"  - Constraint validation: DLT-native (1-3 function rule)")
+        print("  - Table: workflow_results")
+        print("  - Write mode: merge (deduplication enabled)")
+        print("  - Primary key: opportunity_id")
+        print("  - Constraint validation: DLT-native (1-3 function rule)")
         print(f"  - Started at: {load_info.started_at}")
         print(f"{'='*80}\n")
 
@@ -443,13 +467,13 @@ def load_scores_to_supabase_via_dlt(
     except Exception as e:
         print(f"\n✗ Error loading scores via DLT: {e}")
         print(f"  - Opportunities affected: {len(scored_opportunities)}")
-        print(f"  - Recommendation: Check DLT configuration and Supabase connection")
+        print("  - Recommendation: Check DLT configuration and Supabase connection")
         print(f"{'='*80}\n")
         return False
 
 
 def store_ai_profiles_to_app_opportunities_via_dlt(
-    scored_opportunities: List[Dict[str, Any]]
+    scored_opportunities: list[dict[str, Any]]
 ) -> int:
     """
     Store opportunities with AI profiles to app_opportunities table via DLT.
@@ -495,12 +519,12 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
 
 
 def process_batch(
-    submissions: List[Dict[str, Any]],
+    submissions: list[dict[str, Any]],
     agent: OpportunityAnalyzerAgent,
     batch_number: int,
-    llm_profiler: Optional[LLMProfiler] = None,
+    llm_profiler: LLMProfiler | None = None,
     high_score_threshold: float = 40.0
-) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Process a batch of submissions through the opportunity analyzer.
 
@@ -536,6 +560,7 @@ def process_batch(
 
             # Check if this is a high-scoring opportunity
             final_score = analysis.get("final_score", 0)
+            print(f"  📊 {formatted['title'][:60]}... Score: {final_score:.1f}")
             if llm_profiler and final_score >= high_score_threshold:
                 high_score_count += 1
                 print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
@@ -592,7 +617,7 @@ def process_batch(
 
 
 def generate_summary_report(
-    all_results: List[Dict[str, Any]],
+    all_results: list[dict[str, Any]],
     elapsed_time: float,
     total_submissions: int
 ) -> None:
@@ -612,7 +637,7 @@ def generate_summary_report(
     successful = sum(1 for r in all_results if r.get("stored", False))
     failed = len(all_results) - successful
 
-    print(f"\nProcessing Statistics:")
+    print("\nProcessing Statistics:")
     print(f"  Total Submissions:     {total_submissions:,}")
     print(f"  Successfully Scored:   {successful:,}")
     print(f"  Failed:                {failed:,}")
@@ -625,7 +650,7 @@ def generate_summary_report(
     valid_results = [r for r in all_results if r.get("stored", False)]
 
     if valid_results:
-        print(f"\nScore Distribution:")
+        print("\nScore Distribution:")
         high_priority = sum(1 for r in valid_results if r.get("final_score", 0) >= 85)
         med_high = sum(1 for r in valid_results if 70 <= r.get("final_score", 0) < 85)
         medium = sum(1 for r in valid_results if 55 <= r.get("final_score", 0) < 70)
@@ -639,7 +664,7 @@ def generate_summary_report(
         print(f"  Not Recommended (<40): {not_recommended:,} ({not_recommended/len(valid_results)*100:.1f}%)")
 
         # Average scores by dimension
-        print(f"\nAverage Dimension Scores:")
+        print("\nAverage Dimension Scores:")
         avg_market = sum(r.get("dimension_scores", {}).get("market_demand", 0) for r in valid_results) / len(valid_results)
         avg_pain = sum(r.get("dimension_scores", {}).get("pain_intensity", 0) for r in valid_results) / len(valid_results)
         avg_monetization = sum(r.get("dimension_scores", {}).get("monetization_potential", 0) for r in valid_results) / len(valid_results)
@@ -660,12 +685,12 @@ def generate_summary_report(
             sector = r.get("sector", "Unknown")
             sector_counts[sector] = sector_counts.get(sector, 0) + 1
 
-        print(f"\nOpportunities by Sector:")
+        print("\nOpportunities by Sector:")
         for sector, count in sorted(sector_counts.items(), key=lambda x: x[1], reverse=True):
             print(f"  {sector:25} {count:,} ({count/len(valid_results)*100:.1f}%)")
 
         # Top opportunities
-        print(f"\nTop 10 Opportunities:")
+        print("\nTop 10 Opportunities:")
         top_opps = sorted(valid_results, key=lambda x: x.get("final_score", 0), reverse=True)[:10]
         for i, opp in enumerate(top_opps, 1):
             title = opp.get("title", "No title")[:60]
@@ -679,10 +704,56 @@ def generate_summary_report(
     print("="*80 + "\n")
 
 
+def refresh_problem_metrics(supabase, submission_ids: list[str]) -> None:
+    """
+    Refresh problem metrics for the given submissions.
+
+    This function is called after opportunities are loaded to calculate and store
+    Reddit validation signals (comment count, trending score, intent signals, etc.)
+    in the problem_metrics table.
+
+    Args:
+        supabase: Supabase client
+        submission_ids: List of submission UUIDs to refresh metrics for
+    """
+    if not submission_ids:
+        print("  No submissions to refresh metrics for")
+        return
+
+    print(f"\n📊 Refreshing problem metrics for {len(submission_ids)} submissions...")
+
+    try:
+        # Call the refresh_problem_metrics function for each submission
+        # This function is defined in the problem_metrics migration
+        for submission_id in submission_ids:
+            try:
+                # Execute the stored function to refresh metrics
+                response = supabase.rpc(
+                    "refresh_problem_metrics",
+                    {"p_problem_id": submission_id}
+                ).execute()
+
+            except Exception as e:
+                # Log but don't fail - metrics are secondary to scoring
+                print(f"  ⚠️  Could not refresh metrics for {submission_id[:8]}...: {str(e)[:50]}")
+                continue
+
+        print(f"✓ Problem metrics refreshed for {len(submission_ids)} submissions")
+
+    except Exception as e:
+        print(f"⚠️  Metrics refresh unavailable: {str(e)[:100]}")
+        print("  (This is expected if problem_metrics table hasn't been created yet)")
+        print("  Run: psql -f supabase/migrations/20251110151231_add_problem_metrics_table.sql")
+
+
 def main():
     """
     Main execution function for batch opportunity scoring (DLT-powered).
     """
+    # Read score threshold from environment variable (default: 40.0)
+    import os
+    score_threshold = float(os.getenv("SCORE_THRESHOLD", "40.0"))
+
     print("\n" + "="*80)
     print("BATCH OPPORTUNITY SCORING - DLT-POWERED")
     print("="*80 + "\n")
@@ -691,6 +762,7 @@ def main():
     print("  ✓ Incremental Loading: Automatic")
     print("  ✓ Constraint Validation: DLT-Native (1-3 Function Rule)")
     print("  ✓ Deduplication: Merge disposition")
+    print(f"  ✓ AI Profile Threshold: {score_threshold}")
     print("")
 
     start_time = time.time()
@@ -753,7 +825,7 @@ def main():
 
         try:
             # Process batch (returns analysis results and scored opportunities)
-            results, scored_opps = process_batch(batch, agent, batch_num, llm_profiler)
+            results, scored_opps = process_batch(batch, agent, batch_num, llm_profiler, score_threshold)
             all_results.extend(results)
             all_scored_opportunities.extend(scored_opps)
 
@@ -769,19 +841,32 @@ def main():
     print(f"\n{'='*80}")
     print("LOADING SCORED OPPORTUNITIES TO SUPABASE")
     print(f"{'='*80}")
-    print(f"Total opportunities to load: {len(all_scored_opportunities):,}")
+
+    # Filter to only include opportunities with function_list (i.e., those with AI profiles)
+    opportunities_with_functions = [
+        opp for opp in all_scored_opportunities
+        if opp.get("function_list") and len(opp.get("function_list", [])) > 0
+    ]
+
+    print(f"Total opportunities analyzed: {len(all_scored_opportunities):,}")
+    print(f"Opportunities with AI profiles (function_list): {len(opportunities_with_functions):,}")
+    print(f"Filtered out (no AI profile): {len(all_scored_opportunities) - len(opportunities_with_functions):,}")
 
     dlt_load_start = time.time()
-    load_success = load_scores_to_supabase_via_dlt(all_scored_opportunities)
+    load_success = load_scores_to_supabase_via_dlt(opportunities_with_functions)
     dlt_load_time = time.time() - dlt_load_start
 
     # Also store AI profiles to app_opportunities table via DLT (with deduplication)
-    print(f"\n📤 Storing AI-generated profiles to app_opportunities via DLT...")
+    print("\n📤 Storing AI-generated profiles to app_opportunities via DLT...")
     ai_stored_count = store_ai_profiles_to_app_opportunities_via_dlt(all_scored_opportunities)
     if ai_stored_count > 0:
         print(f"✓ Stored {ai_stored_count} AI-generated app profiles (deduplicated on submission_id)")
     else:
-        print(f"  No AI profiles to store (score threshold not met)")
+        print("  No AI profiles to store (score threshold not met)")
+
+    # Refresh problem metrics for credibility tracking
+    submission_ids = [sub.get("id") for sub in submissions if sub.get("id")]
+    refresh_problem_metrics(supabase, submission_ids)
 
     # Update stored status in results
     if load_success:
@@ -806,10 +891,10 @@ def main():
     print(f"DLT load time:         {dlt_load_time:.2f}s")
     print(f"Total time:            {elapsed_time:.2f}s")
     print(f"Load success:          {'✓ Yes' if load_success else '✗ No'}")
-    print(f"Deduplication:         Enabled (merge disposition)")
-    print(f"Primary key:           opportunity_id")
-    print(f"Target table:          opportunity_scores")
-    print(f"Constraint validation: DLT-Native (1-3 function rule)")
+    print("Deduplication:         Enabled (merge disposition)")
+    print("Primary key:           opportunity_id")
+    print("Target table:          opportunity_scores")
+    print("Constraint validation: DLT-Native (1-3 function rule)")
     print(f"{'='*80}\n")
 
     if load_success:

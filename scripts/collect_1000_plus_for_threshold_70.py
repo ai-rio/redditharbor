@@ -11,10 +11,8 @@ Based on E2E guide findings:
 """
 
 import sys
-from pathlib import Path
-from typing import List, Dict
-import uuid
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -22,6 +20,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 # Import DLT collection tools
@@ -79,10 +78,10 @@ def main():
     print("\n" + "="*80)
     print("SCALE-UP: COLLECT 1000+ POSTS FOR THRESHOLD 70+ TESTING")
     print("="*80)
-    print(f"\nCurrent State: 217 submissions")
-    print(f"Target: 1000+ total submissions (need ~800+ more)")
-    print(f"Goal: Find 1-5 opportunities at 70+ scores (top 0.1%)")
-    print(f"\nUltra-Premium Strategy:")
+    print("\nCurrent State: 217 submissions")
+    print("Target: 1000+ total submissions (need ~800+ more)")
+    print("Goal: Find 1-5 opportunities at 70+ scores (top 0.1%)")
+    print("\nUltra-Premium Strategy:")
     print("  • VC-level pain (venturecapital) - 200 posts")
     print("  • High net worth (financialindependence) - 200 posts")
     print("  • Serial entrepreneurs (startups) - 200 posts")
@@ -150,10 +149,10 @@ def main():
             print(f"  - Subreddits: {list(ULTRA_PREMIUM_SUBREDDITS.keys())}")
             print(f"  - New posts: {total_collected}")
             print(f"  - Database now: ~{217 + total_collected} submissions")
-            print(f"  - DLT deduplication: Active")
+            print("  - DLT deduplication: Active")
 
             # Print subreddit breakdown
-            print(f"\n  Subreddit breakdown:")
+            print("\n  Subreddit breakdown:")
             for sub, count in subreddit_stats.items():
                 if count > 0:
                     print(f"    r/{sub}: {count} posts")
@@ -168,7 +167,7 @@ def main():
     print("\n" + "="*80)
     print("COLLECTION SUMMARY - THRESHOLD 70+ SCALE-UP")
     print("="*80)
-    print(f"Ultra-Premium Scale-Up Complete!")
+    print("Ultra-Premium Scale-Up Complete!")
     print(f"New posts collected: {total_collected}")
     print(f"Database total: ~{217 + total_collected} submissions")
     print(f"Target reached: {'✅ YES' if 217 + total_collected >= 1000 else '❌ NO (need more)'}")

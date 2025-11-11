@@ -11,7 +11,15 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit, supabase
-from config.settings import DB_CONFIG, REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT, SUPABASE_URL, SUPABASE_KEY
+
+from config.settings import (
+    DB_CONFIG,
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
+)
 from core.collection import collect_monetizable_opportunities_data
 
 # Create clients

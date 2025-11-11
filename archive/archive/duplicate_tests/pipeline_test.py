@@ -12,7 +12,14 @@ sys.path.insert(0, str(project_root))
 
 from redditharbor.dock.pipeline import collect
 from redditharbor.login import reddit, supabase
-from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT, SUPABASE_URL, SUPABASE_KEY
+
+from config.settings import (
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
+)
 
 # Create clients
 reddit_client = reddit(public_key=REDDIT_PUBLIC, secret_key=REDDIT_SECRET, user_agent=REDDIT_USER_AGENT)

@@ -13,10 +13,10 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from config import SUPABASE_URL, SUPABASE_KEY, DB_CONFIG
+from datetime import datetime
+
+from config import SUPABASE_KEY, SUPABASE_URL
 from supabase import create_client
-from datetime import datetime, timedelta
-import json
 
 # Market segments from methodology
 METHODOLOGY_SUBREDDITS = {
@@ -206,7 +206,7 @@ def verify_data_collection():
             if any(keyword in text for keyword in monetization_keywords):
                 monetization_count += 1
 
-        print(f"Sample Analysis (100 posts):")
+        print("Sample Analysis (100 posts):")
         print(f"  Pain Indicators: {pain_count}% of sample posts")
         print(f"  Monetization Signals: {monetization_count}% of sample posts")
 
@@ -228,9 +228,9 @@ def verify_data_collection():
     if total_collected < total_required * 0.3:
         recommendations.append("🔴 CRITICAL: Less than 30% of required subreddits have data. Run comprehensive data collection.")
     elif total_collected < total_required * 0.7:
-        recommendations.append("🟡 WARNING: Only {:.0f}% coverage. Expand data collection to missing segments.".format((total_collected/total_required)*100))
+        recommendations.append(f"🟡 WARNING: Only {(total_collected/total_required)*100:.0f}% coverage. Expand data collection to missing segments.")
     else:
-        recommendations.append("🟢 GOOD: {:.0f}% coverage achieved. Focus on data quality and freshness.".format((total_collected/total_required)*100))
+        recommendations.append(f"🟢 GOOD: {(total_collected/total_required)*100:.0f}% coverage achieved. Focus on data quality and freshness.")
 
     if total_comments == 0:
         recommendations.append("🔴 CRITICAL: No comment data collected. Comments are essential for opportunity analysis.")

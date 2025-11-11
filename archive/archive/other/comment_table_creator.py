@@ -5,7 +5,8 @@ Create Comment Table - Initialize the comment table with proper schema
 
 import sys
 from pathlib import Path
-from supabase import create_client, Client
+
+from supabase import Client, create_client
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -15,7 +16,7 @@ def create_comment_table():
     """Create the comment table with proper schema"""
     try:
         # Import configuration
-        from config.settings import SUPABASE_URL, SUPABASE_KEY
+        from config.settings import SUPABASE_KEY, SUPABASE_URL
 
         # Setup Supabase client
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -95,7 +96,7 @@ def create_comment_table():
                 # This might not work with the REST API, but worth a try
                 schema_query = supabase.table("comment").select("*").limit(0).execute()
                 if hasattr(schema_query, 'data') and schema_query.data:
-                    print(f"✅ Comment table exists, can access columns")
+                    print("✅ Comment table exists, can access columns")
                 else:
                     print("❌ Cannot access comment table schema")
             except Exception as e:

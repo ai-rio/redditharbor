@@ -5,10 +5,56 @@ This module implements DLT-native validation for the 1-3 core function constrain
 automatically disqualifying apps with 4+ functions and tracking constraint metadata.
 """
 
-import dlt
-from typing import List, Dict, Any
 import re
 from datetime import datetime
+from typing import Any
+
+import dlt
+
+
+def _validate_function_consistency(opportunity: dict[str, Any]) -> dict[str, Any]:
+    """
+    Ensure function_count matches len(function_list).
+    Auto-corrects minor mismatches, raises on structural errors.
+
+    Phase 1: Early warning system for function count/list mismatches.
+    This catches schema inconsistencies before they propagate to downstream systems.
+
+    Args:
+        opportunity: App opportunity dictionary
+
+    Returns:
+        Dict[str, Any]: Opportunity with corrected function data
+
+    Raises:
+        ValueError: If function_list is not a list or opportunity has empty function_list
+    """
+    function_list = opportunity.get("function_list", [])
+    function_count = opportunity.get("core_functions", 0)
+
+    # Type check: function_list must be a list
+    if not isinstance(function_list, list):
+        raise ValueError(
+            f"function_list must be list, got {type(function_list).__name__}: {function_list}"
+        )
+
+    # Count mismatch detection and auto-correction
+    actual_count = len(function_list)
+    if actual_count != function_count:
+        opp_id = opportunity.get('opportunity_id', 'unknown')
+        print(
+            f"⚠️  MISMATCH in {opp_id}: "
+            f"core_functions={function_count} but function_list={actual_count}"
+        )
+        opportunity["function_count"] = actual_count  # Auto-correct
+        opportunity["core_functions"] = actual_count
+
+    # Emptiness check
+    if actual_count == 0:
+        opp_id = opportunity.get('opportunity_id', 'unknown')
+        raise ValueError(f"Opportunity {opp_id} has empty function_list")
+
+    return opportunity
 
 
 @dlt.resource(
@@ -39,7 +85,7 @@ from datetime import datetime
         "validation_status": {"data_type": "text", "nullable": True},
     }
 )
-def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
+def app_opportunities_with_constraint(opportunities: list[dict[str, Any]]):
     """
     DLT resource that validates simplicity constraint before loading.
 
@@ -58,11 +104,22 @@ def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
         core_functions = _extract_core_functions(opportunity)
         function_count = len(core_functions)
 
+        # Add function_list to opportunity for consistency validation
+        opportunity["function_list"] = core_functions
+        opportunity["core_functions"] = function_count
+
+        # Phase 1: Validate function consistency before processing
+        try:
+            opportunity = _validate_function_consistency(opportunity)
+        except ValueError as e:
+            # Log validation error and skip this opportunity
+            print(f"❌ Validation error: {e}")
+            continue
+
         # Calculate simplicity score using methodology formula
         simplicity_score = _calculate_simplicity_score(function_count)
 
         # Add constraint metadata
-        opportunity["core_functions"] = function_count
         opportunity["simplicity_score"] = simplicity_score
         opportunity["is_disqualified"] = function_count >= 4
         opportunity["constraint_version"] = 1
@@ -80,7 +137,7 @@ def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
         yield opportunity
 
 
-def _extract_core_functions(opportunity: Dict[str, Any]) -> List[str]:
+def _extract_core_functions(opportunity: dict[str, Any]) -> list[str]:
     """
     Extract core functions from app opportunity definition.
 
@@ -132,7 +189,7 @@ def _calculate_simplicity_score(function_count: int) -> float:
         return 0.0  # Automatic disqualification for 4+ functions
 
 
-def _parse_functions_from_text(text: str) -> List[str]:
+def _parse_functions_from_text(text: str) -> list[str]:
     """
     Parse core functions from app description text using NLP patterns.
 

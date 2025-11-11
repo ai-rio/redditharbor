@@ -4,11 +4,11 @@ Improved Migration Runner for RedditHarbor Monetizable App Research Schema
 Properly handles DO blocks and dollar-quoted strings
 """
 
-import os
-import sys
-import psycopg2
 import re
+import sys
 from pathlib import Path
+
+import psycopg2
 
 # Database connection parameters
 DB_CONFIG = {
@@ -75,7 +75,7 @@ def extract_sql_statements(sql_content):
 def apply_migration(sql_file_path):
     """Apply a single migration file"""
     try:
-        with open(sql_file_path, 'r') as f:
+        with open(sql_file_path) as f:
             sql = f.read()
 
         # Extract statements
@@ -106,7 +106,7 @@ def apply_migration(sql_file_path):
                         skipped_count += 1
                         print(f"  ⚠ Skipped: {str(e)[:100]}")
                     else:
-                        print(f"  ✗ Error executing statement:")
+                        print("  ✗ Error executing statement:")
                         print(f"     {str(e)[:200]}")
                         print(f"\n     Statement preview: {statement[:200]}...")
                         raise
@@ -222,11 +222,11 @@ def test_simplicity_constraint():
             RETURNING id, core_function_count, simplicity_constraint_met, status
         """)
         result = cur.fetchone()
-        print(f"\nTest 1 - 2 Functions:")
+        print("\nTest 1 - 2 Functions:")
         print(f"  Core Functions: {result[1]}")
         print(f"  Constraint Met: {result[2]}")
         print(f"  Status: {result[3]}")
-        print(f"  ✓ PASS" if result[2] and result[3] != 'disqualified' else f"  ✗ FAIL")
+        print("  ✓ PASS" if result[2] and result[3] != 'disqualified' else "  ✗ FAIL")
 
         # Test with 4 functions (should auto-disqualify)
         cur.execute("""
@@ -235,11 +235,11 @@ def test_simplicity_constraint():
             RETURNING id, core_function_count, simplicity_constraint_met, status
         """)
         result = cur.fetchone()
-        print(f"\nTest 2 - 4 Functions (Auto-Disqualify):")
+        print("\nTest 2 - 4 Functions (Auto-Disqualify):")
         print(f"  Core Functions: {result[1]}")
         print(f"  Constraint Met: {result[2]}")
         print(f"  Status: {result[3]}")
-        print(f"  ✓ PASS" if not result[2] and result[3] == 'disqualified' else f"  ✗ FAIL")
+        print("  ✓ PASS" if not result[2] and result[3] == 'disqualified' else "  ✗ FAIL")
 
         # Clean up test data
         cur.execute("DELETE FROM opportunities WHERE problem_statement LIKE 'Test with%'")

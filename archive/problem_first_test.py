@@ -2,12 +2,11 @@
 """
 Test problem-first AI approach on "47 demos" post
 """
-import os
-import sys
 import json
-from pathlib import Path
-from dotenv import load_dotenv
+import os
+
 import requests
+from dotenv import load_dotenv
 
 # Load env
 load_dotenv('.env.local')
@@ -92,6 +91,7 @@ Return ONLY valid JSON."""
 
 # Get the "47 demos" post
 from supabase import create_client
+
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
 result = supabase.table("submissions").select("*").ilike("title", "%47 demos%").execute()
@@ -108,7 +108,7 @@ print("PROBLEM-FIRST AI APPROACH TEST")
 print("=" * 80)
 print(f"\nTitle: {post['title']}")
 print(f"\nPost: {post['text'][:400]}...")
-print(f"\nComments:")
+print("\nComments:")
 for i, c in enumerate(comments, 1):
     print(f"  {i}. {c[:150]}...")
 
@@ -135,7 +135,7 @@ payload = {
     "temperature": 0.7
 }
 
-print(f"\n=== CALLING AI WITH PROBLEM-FIRST PROMPT ===")
+print("\n=== CALLING AI WITH PROBLEM-FIRST PROMPT ===")
 response = requests.post(url, headers=headers, json=payload, timeout=60)
 
 if response.status_code == 200:
@@ -149,19 +149,19 @@ if response.status_code == 200:
         text = text[:-3]
     text = text.strip()
 
-    print(f"\nAI Response:")
+    print("\nAI Response:")
     print(text)
 
     # Try to parse JSON
     try:
         insight = json.loads(text)
-        print(f"\n✅ SUCCESS! Problem-first approach worked!")
+        print("\n✅ SUCCESS! Problem-first approach worked!")
         print(f"\nProblem: {insight.get('problem_identified', 'N/A')}")
         print(f"App: {insight.get('app_concept', 'N/A')}")
         print(f"Functions: {insight.get('core_functions', [])}")
         print(f"Simplicity: {insight.get('simplicity_score', 'N/A')} functions")
     except json.JSONDecodeError:
-        print(f"\n❌ AI returned non-JSON response")
+        print("\n❌ AI returned non-JSON response")
         print(f"Raw: {text}")
 else:
     print(f"\n❌ API Error: {response.status_code}")

@@ -4,21 +4,19 @@ Fast Subreddit Monetization Scanner
 Optimized version for quick analysis of multiple subreddits
 """
 
+import re
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Any
-from collections import defaultdict
-import re
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit
-from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
-)
+
+from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 
 
 class FastMonetizationScanner:
@@ -33,7 +31,7 @@ class FastMonetizationScanner:
     def __init__(self, reddit_client):
         self.reddit = reddit_client
 
-    def count_signals(self, text: str) -> Dict[str, int]:
+    def count_signals(self, text: str) -> dict[str, int]:
         """Count monetization signals in text"""
         text_lower = text.lower()
 
@@ -44,7 +42,7 @@ class FastMonetizationScanner:
 
         return {"payment": payment, "gap": gap, "commerce": commerce, "price": price}
 
-    def scan_subreddit_fast(self, subreddit_name: str, limit: int = 30) -> Dict[str, Any]:
+    def scan_subreddit_fast(self, subreddit_name: str, limit: int = 30) -> dict[str, Any]:
         """Fast scan of a subreddit"""
         try:
             subreddit = self.reddit.subreddit(subreddit_name)
@@ -114,7 +112,7 @@ class FastMonetizationScanner:
                 "success": False
             }
 
-    def scan_batch(self, subreddits: List[str]) -> List[Dict[str, Any]]:
+    def scan_batch(self, subreddits: list[str]) -> list[dict[str, Any]]:
         """Scan multiple subreddits quickly"""
         print("=" * 70)
         print("FAST SUBREDDITE MONETIZATION SCANNER")
@@ -196,10 +194,10 @@ def main():
     top_5 = [r["subreddit"] for r in results[:5]]
     top_10 = [r["subreddit"] for r in results[:10]]
 
-    print(f"\n🥇 TOP 5 FOR COLLECTION:")
+    print("\n🥇 TOP 5 FOR COLLECTION:")
     print(f"   {', '.join(top_5)}")
 
-    print(f"\n🎯 TOP 10 FOR COLLECTION:")
+    print("\n🎯 TOP 10 FOR COLLECTION:")
     print(f"   {', '.join(top_10)}")
 
     # Save results
