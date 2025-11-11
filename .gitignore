@@ -426,6 +426,15 @@ worktrees/
 error_log/
 
 # =============================================================================
+# DATABASE-GENERATED REPORTS & DUMPS
+# =============================================================================
+# Database-connected AI reports and dumps (from DLT collection)
+db_connected_reports/
+db_dumps/
+full_dump.sql
+schema.sql
+
+# =============================================================================
 # END OF .GITIGNORE
 # =============================================================================
 
