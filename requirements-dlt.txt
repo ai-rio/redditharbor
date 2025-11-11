@@ -1,0 +1,14 @@
+# DLT (Data Load Tool) requirements for RedditHarbor
+# Includes core DLT functionality and PostgreSQL destination support
+
+# Core DLT with PostgreSQL destination
+dlt[postgres]>=1.15.0
+
+# Pendulum for timezone-aware datetime handling (DLT dependency)
+pendulum>=2.1.0
+
+# Reddit API wrapper for data collection
+praw>=7.6.0
+
+# Additional Reddit data collection utilities
+asyncpraw>=7.6.0

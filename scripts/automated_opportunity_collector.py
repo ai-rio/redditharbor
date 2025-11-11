@@ -20,14 +20,13 @@ Migration from external pipeline (redditharbor.dock.pipeline) to DLT provides:
 - Simplified dependencies (no external pipeline)
 """
 
-import sys
-import os
-from pathlib import Path
-import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
 import json
+import logging
+import sys
 import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -35,12 +34,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 # DLT imports
-from core.dlt_collection import (
-    collect_problem_posts,
-    create_dlt_pipeline,
-    load_to_supabase,
-    PROBLEM_KEYWORDS
-)
+from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
 
 # Set up logging
 error_log_dir = project_root / "error_log"
@@ -91,7 +85,7 @@ MIN_PROBLEM_KEYWORDS = 1  # Minimum problem keywords
 MIN_COMMENT_COUNT = 0  # Allow posts without comments (they might be fresh)
 
 
-def calculate_quality_score(post: Dict[str, Any]) -> float:
+def calculate_quality_score(post: dict[str, Any]) -> float:
     """
     Calculate quality score for opportunity posts.
 
@@ -121,7 +115,7 @@ def calculate_quality_score(post: Dict[str, Any]) -> float:
     return round(total, 2)
 
 
-def enrich_opportunity_metadata(post: Dict[str, Any]) -> Dict[str, Any]:
+def enrich_opportunity_metadata(post: dict[str, Any]) -> dict[str, Any]:
     """
     Enrich post with opportunity-specific metadata.
 
@@ -168,9 +162,9 @@ def enrich_opportunity_metadata(post: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def filter_high_quality_opportunities(
-    problem_posts: List[Dict[str, Any]],
+    problem_posts: list[dict[str, Any]],
     min_quality_score: float = 20.0
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Filter problem posts for high-quality opportunities.
 
@@ -210,8 +204,8 @@ def filter_high_quality_opportunities(
 def collect_fresh_reddit_data(
     batch_size: int = 5,
     limit_per_subreddit: int = 50,
-    sort_types: List[str] = None
-) -> Dict[str, Any]:
+    sort_types: list[str] = None
+) -> dict[str, Any]:
     """
     Collect fresh Reddit data from target subreddits using DLT pipeline.
 
@@ -290,7 +284,7 @@ def collect_fresh_reddit_data(
 
             # Rate limiting delay between batches
             if i + batch_size < len(all_target_subreddits):
-                logger.info(f"  ⏱️  Rate limit delay (30s)...")
+                logger.info("  ⏱️  Rate limit delay (30s)...")
                 time.sleep(30)
 
             collection_stats["batches_processed"] += 1
@@ -350,8 +344,8 @@ def collect_fresh_reddit_data(
             )
 
             logger.info(f"✅ Loaded {len(opportunity_records)} opportunities to Supabase")
-            logger.info(f"  - Table: opportunities")
-            logger.info(f"  - Write mode: merge (deduplication enabled)")
+            logger.info("  - Table: opportunities")
+            logger.info("  - Write mode: merge (deduplication enabled)")
             logger.info(f"  - Started: {load_info.started_at}")
 
             collection_stats["load_success"] = True
@@ -390,9 +384,9 @@ def analyze_fresh_data():
     try:
         # Import the database analyzer
         from analyze_real_database_data import (
-            fetch_submissions,
             analyze_subreddit_opportunities,
-            generate_opportunity_report
+            fetch_submissions,
+            generate_opportunity_report,
         )
 
         # Get latest data

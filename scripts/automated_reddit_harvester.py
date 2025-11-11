@@ -4,27 +4,28 @@ Automated RedditHarvester - Complete Automation System
 Schedules and manages continuous collection + 60+ score hunting
 """
 
-import sys
-from pathlib import Path
-from datetime import datetime, timedelta
 import logging
-import schedule
+import sys
 import time
-import json
-from typing import Dict, List, Any
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+import schedule
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
+
+import os
 
 from scripts.continuous_collection_system import ContinuousCollectionSystem
 from scripts.score_hunter_60_plus import ScoreHunter60Plus
-from scripts.batch_opportunity_scoring import main as batch_scoring
 from supabase import create_client
-import os
 
 # Configure logging
 logging.basicConfig(
@@ -204,7 +205,7 @@ class AutomatedRedditHarvester:
         except Exception as e:
             logger.error(f"❌ Error storing alert record: {e}")
 
-    def generate_daily_performance_report(self) -> Dict[str, Any]:
+    def generate_daily_performance_report(self) -> dict[str, Any]:
         """Generate daily performance analysis report"""
         try:
             today = datetime.now().date().isoformat()
@@ -263,7 +264,7 @@ class AutomatedRedditHarvester:
         else:
             return "D (Needs Improvement)"
 
-    def store_performance_metrics(self, report: Dict[str, Any]):
+    def store_performance_metrics(self, report: dict[str, Any]):
         """Store daily performance metrics"""
         try:
             self.supabase.table('daily_performance_metrics').insert(report).execute()
@@ -271,7 +272,7 @@ class AutomatedRedditHarvester:
         except Exception as e:
             logger.error(f"❌ Error storing performance metrics: {e}")
 
-    def store_automation_metrics(self, hunter_report: Dict[str, Any]):
+    def store_automation_metrics(self, hunter_report: dict[str, Any]):
         """Store automation system metrics"""
         try:
             metrics = {
@@ -286,7 +287,7 @@ class AutomatedRedditHarvester:
         except Exception as e:
             logger.error(f"❌ Error storing automation metrics: {e}")
 
-    def optimize_collection_strategy(self, performance_report: Dict[str, Any]):
+    def optimize_collection_strategy(self, performance_report: dict[str, Any]):
         """Optimize collection strategy based on performance"""
         logger.info("🧠 Optimizing collection strategy based on performance")
 

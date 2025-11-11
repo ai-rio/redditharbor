@@ -4,30 +4,30 @@ RedditHarbor Intelligent Research Analysis System
 Uses Agent SDK to speed up decision-making based on research results
 """
 
-import os
-import sys
 import asyncio
 import json
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from collections import Counter, defaultdict
+import os
 import re
+import sys
+from collections import Counter
+from datetime import datetime
+from typing import Any
+
+import pandas as pd
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Import Agent SDK
 try:
-    from claude_agent_sdk import query, SDKClient
+    from claude_agent_sdk import SDKClient, query
 except ImportError:
     print("❌ Agent SDK not installed. Install with: pip install claude-agent-sdk")
     sys.exit(1)
 
 # Import RedditHarbor components
 from redditharbor.login import supabase
+
 import config.settings as settings
 
 
@@ -42,7 +42,7 @@ class IntelligentResearchAnalyzer:
         self.analysis_cache = {}
         self.decision_history = []
 
-    async def analyze_research_data_with_ai(self, domain: str, limit: int = 100) -> Dict[str, Any]:
+    async def analyze_research_data_with_ai(self, domain: str, limit: int = 100) -> dict[str, Any]:
         """Use Agent SDK to intelligently analyze research data"""
 
         print(f"🧠 AI Analysis: {domain} domain research data")
@@ -112,7 +112,7 @@ class IntelligentResearchAnalyzer:
             print(f"❌ Analysis failed: {e}")
             return {"error": str(e)}
 
-    async def _fetch_research_data(self, domain: str, limit: int) -> List[Dict]:
+    async def _fetch_research_data(self, domain: str, limit: int) -> list[dict]:
         """Fetch research data from Supabase"""
 
         try:
@@ -155,7 +155,7 @@ class IntelligentResearchAnalyzer:
             print(f"❌ Data fetch failed: {e}")
             return []
 
-    def _prepare_data_for_analysis(self, data: List[Dict]) -> str:
+    def _prepare_data_for_analysis(self, data: list[dict]) -> str:
         """Prepare research data for AI analysis"""
 
         research_text = "REDDIT POSTS ANALYSIS:\n\n"
@@ -178,7 +178,7 @@ class IntelligentResearchAnalyzer:
 
         return research_text
 
-    async def _get_ai_analysis(self, prompt: str) -> Dict:
+    async def _get_ai_analysis(self, prompt: str) -> dict:
         """Get AI analysis using Agent SDK"""
 
         try:
@@ -200,7 +200,7 @@ class IntelligentResearchAnalyzer:
             print(f"⚠️ AI analysis error: {e}")
             return {"error": str(e)}
 
-    async def _enhance_with_metrics(self, data: List[Dict], ai_analysis: Dict) -> Dict:
+    async def _enhance_with_metrics(self, data: list[dict], ai_analysis: dict) -> dict:
         """Enhance AI analysis with quantitative metrics"""
 
         try:
@@ -239,7 +239,7 @@ class IntelligentResearchAnalyzer:
             print(f"⚠️ Metrics enhancement error: {e}")
             return ai_analysis
 
-    def _extract_common_words(self, titles: List[str], min_freq: int = 3) -> List[str]:
+    def _extract_common_words(self, titles: list[str], min_freq: int = 3) -> list[str]:
         """Extract common words from titles"""
 
         words = []
@@ -258,7 +258,7 @@ class IntelligentResearchAnalyzer:
 
         return [word for word, count in sorted(filtered.items(), key=lambda x: x[1], reverse=True)]
 
-    def _is_recent_post(self, post: Dict) -> bool:
+    def _is_recent_post(self, post: dict) -> bool:
         """Check if post is recent (last 7 days)"""
         try:
             created_at = post.get('created_at')
@@ -269,7 +269,7 @@ class IntelligentResearchAnalyzer:
             pass
         return False
 
-    def _store_analysis(self, domain: str, analysis: Dict):
+    def _store_analysis(self, domain: str, analysis: dict):
         """Store analysis for decision tracking"""
 
         self.analysis_cache[domain] = {
@@ -285,7 +285,7 @@ class IntelligentResearchAnalyzer:
         except Exception as e:
             print(f"⚠️ Could not save cache: {e}")
 
-    async def generate_decision_report(self, domains: List[str]) -> str:
+    async def generate_decision_report(self, domains: list[str]) -> str:
         """Generate comprehensive decision-making report"""
 
         print("📋 Generating Decision Report")
@@ -371,7 +371,7 @@ class IntelligentResearchAnalyzer:
 
         return "\n".join(report)
 
-    async def run_continuous_analysis(self, domains: List[str], interval_minutes: int = 30):
+    async def run_continuous_analysis(self, domains: list[str], interval_minutes: int = 30):
         """Run continuous analysis for real-time decision-making"""
 
         print(f"🔄 Starting Continuous Analysis (every {interval_minutes} minutes)")

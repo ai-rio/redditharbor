@@ -5,15 +5,15 @@ Based on MiniMax API documentation
 """
 
 import os
-import requests
-import json
 from pathlib import Path
+
+import requests
 
 # Load environment variables
 project_root = Path(__file__).parent
 env_file = project_root / '.env.local'
 
-with open(env_file, 'r') as f:
+with open(env_file) as f:
     for line in f:
         if '=' in line and not line.startswith('#'):
             key, val = line.strip().split('=', 1)
@@ -62,7 +62,7 @@ for endpoint in endpoints:
             "use_standard_sse": False
         }
 
-        print(f"Method 1: Bearer Authorization")
+        print("Method 1: Bearer Authorization")
         response = requests.post(endpoint, headers=headers, json=data, timeout=30)
         print(f"Status: {response.status_code}")
         print(f"Response: {response.text[:500]}")
@@ -73,7 +73,7 @@ for endpoint in endpoints:
             "Content-Type": "application/json"
         }
 
-        print(f"\nMethod 2: X-API-Key Header")
+        print("\nMethod 2: X-API-Key Header")
         response2 = requests.post(endpoint, headers=headers2, json=data, timeout=30)
         print(f"Status: {response2.status_code}")
         print(f"Response: {response2.text[:500]}")
@@ -82,7 +82,7 @@ for endpoint in endpoints:
         url_with_key = f"{endpoint}?Authorization=Bearer {MINIMAX_API_KEY}"
         headers3 = {"Content-Type": "application/json"}
 
-        print(f"\nMethod 3: Query Parameter")
+        print("\nMethod 3: Query Parameter")
         response3 = requests.post(url_with_key, headers=headers3, json=data, timeout=30)
         print(f"Status: {response3.status_code}")
         print(f"Response: {response3.text[:500]}")

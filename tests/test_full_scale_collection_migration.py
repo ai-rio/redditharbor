@@ -15,10 +15,10 @@ Tests cover:
 """
 
 import sys
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, call
-from typing import List, Dict, Any
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add project root
 project_root = Path(__file__).parent.parent
@@ -26,12 +26,12 @@ sys.path.insert(0, str(project_root))
 
 # Import script functions
 from scripts.full_scale_collection import (
-    TARGET_SUBREDDITS,
     ALL_SUBREDDITS,
-    collect_segment_submissions,
-    load_submissions_to_supabase,
+    TARGET_SUBREDDITS,
     collect_segment_comments,
+    collect_segment_submissions,
     load_comments_to_supabase,
+    load_submissions_to_supabase,
     verify_database_results,
 )
 

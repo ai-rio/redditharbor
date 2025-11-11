@@ -6,10 +6,11 @@ Provides robust database connectivity with proper error handling and logging.
 """
 
 import logging
-from typing import Optional
+
 import pandas as pd
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
+
 from .config import MarimoConfig
 
 # Set up logging following RedditHarbor patterns
@@ -35,7 +36,7 @@ class DatabaseConnector:
         self.connection_url = self.config.get_connection_url()
         self.engine = self._create_engine()
 
-    def _create_engine(self) -> Optional[sqlalchemy.Engine]:
+    def _create_engine(self) -> sqlalchemy.Engine | None:
         """
         Create SQLAlchemy engine with error handling.
 

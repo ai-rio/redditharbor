@@ -16,11 +16,12 @@ Migration Pattern: Phase 2 - Large-scale opportunity discovery with quality filt
 """
 
 import sys
-from pathlib import Path
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
 import time
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add project root
 project_root = Path(__file__).parent.parent
@@ -28,18 +29,15 @@ sys.path.insert(0, str(project_root))
 
 # Import script functions
 from scripts.automated_opportunity_collector import (
-    calculate_quality_score,
-    enrich_opportunity_metadata,
-    filter_high_quality_opportunities,
-    collect_fresh_reddit_data,
     FINANCE_SUBREDDITS,
     HEALTH_FITNESS_SUBREDDITS,
-    TECH_SAAS_SUBREDDITS,
     OPPORTUNITY_SUBREDDITS,
-    MIN_ENGAGEMENT_SCORE,
-    MIN_PROBLEM_KEYWORDS
+    TECH_SAAS_SUBREDDITS,
+    calculate_quality_score,
+    collect_fresh_reddit_data,
+    enrich_opportunity_metadata,
+    filter_high_quality_opportunities,
 )
-
 
 # ============================================================================
 # Test Configuration

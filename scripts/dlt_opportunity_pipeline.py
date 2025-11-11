@@ -6,15 +6,17 @@ automatically enforces the 1-3 core function constraint through DLT resources
 and normalization hooks.
 """
 
-import dlt
-from typing import List, Dict, Any
 from datetime import datetime
-from core.dlt.constraint_validator import app_opportunities_with_constraint
+from typing import Any
+
+import dlt
+
 from config.dlt_settings import DLT_PIPELINE_CONFIG
+from core.dlt.constraint_validator import app_opportunities_with_constraint
 
 
 def load_app_opportunities_with_constraint(
-    opportunities: List[Dict[str, Any]],
+    opportunities: list[dict[str, Any]],
     write_disposition: str = "merge",
     primary_key: str = "opportunity_id"
 ) -> dlt.Pipeline:
@@ -58,7 +60,7 @@ def load_app_opportunities_with_constraint(
     return load_info
 
 
-def load_opportunities_replace(opportunities: List[Dict[str, Any]]) -> dlt.Pipeline:
+def load_opportunities_replace(opportunities: list[dict[str, Any]]) -> dlt.Pipeline:
     """
     Load opportunities with full refresh (replace disposition).
 
@@ -78,7 +80,7 @@ def load_opportunities_replace(opportunities: List[Dict[str, Any]]) -> dlt.Pipel
 
 
 def load_opportunities_incremental(
-    opportunities: List[Dict[str, Any]],
+    opportunities: list[dict[str, Any]],
     primary_key: str = "opportunity_id"
 ) -> dlt.Pipeline:
     """
@@ -101,7 +103,7 @@ def load_opportunities_incremental(
     )
 
 
-def validate_constraints_only(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
+def validate_constraints_only(opportunities: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Validate constraints without loading to database.
 

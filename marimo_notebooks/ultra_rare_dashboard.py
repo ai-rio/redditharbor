@@ -12,10 +12,12 @@ app = marimo.App()
 
 @app.cell
 def __():
-    import marimo as mo
-    from supabase import create_client
     import os
     from datetime import datetime, timedelta
+
+    import marimo as mo
+
+    from supabase import create_client
     return create_client, datetime, mo, os, timedelta
 
 
@@ -54,7 +56,7 @@ def __(supabase):
             ).gte('opportunity_score', 60.0).order('opportunity_score', desc=True).limit(20).execute()
 
             ultra_rare_opportunities = result.data if result.data else []
-        except Exception as e:
+        except Exception:
             # Fallback if table doesn't exist
             ultra_rare_opportunities = []
 

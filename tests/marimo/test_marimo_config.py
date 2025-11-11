@@ -1,5 +1,5 @@
-import pytest
 from marimo_notebooks.config import MarimoConfig
+
 
 def test_marimo_config_initialization():
     config = MarimoConfig()

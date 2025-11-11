@@ -6,19 +6,19 @@ constraints during DLT's normalization phase, including automatic
 disqualification of 4+ function apps and violation logging.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from typing import List, Dict, Any
 
-from core.dlt.normalize_hooks import (
-    SimplicityConstraintNormalizeHandler,
-    create_constraint_normalize_handler
-)
+import pytest
+
 from core.dlt.dataset_constraints import (
     create_constraint_aware_dataset,
     create_constraint_summary_resource,
     create_constraint_violations_resource,
-    get_constraint_schema
+    get_constraint_schema,
+)
+from core.dlt.normalize_hooks import (
+    SimplicityConstraintNormalizeHandler,
+    create_constraint_normalize_handler,
 )
 
 

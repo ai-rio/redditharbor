@@ -5,13 +5,14 @@ This module implements DLT-native validation for the 1-3 core function constrain
 automatically disqualifying apps with 4+ functions and tracking constraint metadata.
 """
 
-import dlt
-from typing import List, Dict, Any
 import re
 from datetime import datetime
+from typing import Any
+
+import dlt
 
 
-def _validate_function_consistency(opportunity: Dict[str, Any]) -> Dict[str, Any]:
+def _validate_function_consistency(opportunity: dict[str, Any]) -> dict[str, Any]:
     """
     Ensure function_count matches len(function_list).
     Auto-corrects minor mismatches, raises on structural errors.
@@ -84,7 +85,7 @@ def _validate_function_consistency(opportunity: Dict[str, Any]) -> Dict[str, Any
         "validation_status": {"data_type": "text", "nullable": True},
     }
 )
-def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
+def app_opportunities_with_constraint(opportunities: list[dict[str, Any]]):
     """
     DLT resource that validates simplicity constraint before loading.
 
@@ -136,7 +137,7 @@ def app_opportunities_with_constraint(opportunities: List[Dict[str, Any]]):
         yield opportunity
 
 
-def _extract_core_functions(opportunity: Dict[str, Any]) -> List[str]:
+def _extract_core_functions(opportunity: dict[str, Any]) -> list[str]:
     """
     Extract core functions from app opportunity definition.
 
@@ -188,7 +189,7 @@ def _calculate_simplicity_score(function_count: int) -> float:
         return 0.0  # Automatic disqualification for 4+ functions
 
 
-def _parse_functions_from_text(text: str) -> List[str]:
+def _parse_functions_from_text(text: str) -> list[str]:
     """
     Parse core functions from app description text using NLP patterns.
 

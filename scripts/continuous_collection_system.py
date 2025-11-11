@@ -4,25 +4,28 @@ Continuous RedditHarbor Collection System
 Automated daily harvesting with intelligent subreddit rotation and quality control
 """
 
-import sys
-from pathlib import Path
-from datetime import datetime, timedelta
 import logging
-import schedule
+import sys
 import time
-from typing import Dict, List, Any
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import schedule
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
+
+import os
 
 from core.dlt_collection import collect_problem_posts
 from scripts.full_scale_collection import load_submissions_to_supabase
 from supabase import create_client
-import os
 
 # Configure logging
 logging.basicConfig(
@@ -68,7 +71,7 @@ class ContinuousCollectionSystem:
             ]
         }
 
-    def get_high_performance_subreddits(self, limit: int = 10) -> List[str]:
+    def get_high_performance_subreddits(self, limit: int = 10) -> list[str]:
         """Analyze historical performance to select high-performing subreddits"""
         try:
             # Query recent high-scoring opportunities
@@ -101,7 +104,7 @@ class ContinuousCollectionSystem:
             # Fallback to default ultra-premium list
             return self.daily_rotation_tiers['ultra_premium'][:limit]
 
-    def adaptive_subreddit_selection(self, daily_target: int = 20) -> Dict[str, int]:
+    def adaptive_subreddit_selection(self, daily_target: int = 20) -> dict[str, int]:
         """Intelligently select subreddits based on performance and diversity"""
 
         # Get high performers (40% of collection)
@@ -134,7 +137,7 @@ class ContinuousCollectionSystem:
 
         return allocation
 
-    def collect_daily_posts(self, test_mode: bool = False) -> Dict[str, Any]:
+    def collect_daily_posts(self, test_mode: bool = False) -> dict[str, Any]:
         """Main daily collection function"""
         logger.info("🌅 Starting Daily Continuous Collection")
         logger.info(f"📅 Collection date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")

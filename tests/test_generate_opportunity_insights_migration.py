@@ -13,11 +13,11 @@ Tests cover:
 - Batch optimization
 """
 
-import pytest
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any, List
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -25,10 +25,10 @@ sys.path.insert(0, str(project_root))
 
 # Import functions from script
 from scripts.generate_opportunity_insights_openrouter import (
-    generate_insight_with_openrouter,
-    validate_insight,
-    load_insights_to_supabase_via_dlt,
     RateLimiter,
+    generate_insight_with_openrouter,
+    load_insights_to_supabase_via_dlt,
+    validate_insight,
 )
 
 

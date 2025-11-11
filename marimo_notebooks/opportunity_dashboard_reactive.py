@@ -13,9 +13,11 @@ app = marimo.App()
 
 @app.cell
 def __():
-    import marimo as mo
-    from supabase import create_client
     import os
+
+    import marimo as mo
+
+    from supabase import create_client
     return mo, create_client, os
 
 

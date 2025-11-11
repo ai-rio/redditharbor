@@ -11,9 +11,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit
-from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
-)
+
+from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 
 # Initialize Reddit
 print("Connecting to Reddit...")
@@ -28,7 +27,7 @@ print("✅ Connected!\n")
 print("Testing with r/entrepreneur...")
 subreddit = reddit_client.subreddit("entrepreneur")
 
-print(f"Fetching 10 posts...")
+print("Fetching 10 posts...")
 posts = list(subreddit.hot(limit=10))
 
 print(f"\nAnalyzing {len(posts)} posts...\n")

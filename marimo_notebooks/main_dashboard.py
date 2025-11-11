@@ -13,13 +13,11 @@ app = marimo.App(width="full")
 
 @app.cell
 def setup_imports():
+    import subprocess
+
     import marimo as mo
     import pandas as pd
-    import psycopg2
     from sqlalchemy import create_engine, text
-    from typing import Optional, Dict, List
-    import subprocess
-    from datetime import datetime
     return create_engine, mo, pd, text, subprocess
 
 
@@ -205,9 +203,9 @@ def priority_filter_control(mo):
     """Filter by priority tiers"""
 
     priority_options = {
-        "high": f"🔥 High Priority (85+)",
-        "med-high": f"⚡ Med-High Priority (70-84)",
-        "medium": f"📊 Medium Priority (55-69)"
+        "high": "🔥 High Priority (85+)",
+        "med-high": "⚡ Med-High Priority (70-84)",
+        "medium": "📊 Medium Priority (55-69)"
     }
 
     priority_filter = mo.ui.multiselect(
@@ -704,7 +702,7 @@ def ai_processing_trigger(subprocess):
                 return f"❌ Analysis failed: {result.stderr}"
 
         except subprocess.TimeoutExpired:
-            return f"⏱️ Analysis timed out after 10 minutes"
+            return "⏱️ Analysis timed out after 10 minutes"
         except Exception as e:
             return f"❌ Error: {e}"
 
@@ -774,7 +772,7 @@ def processing_result_display(mo, btn_top_50, btn_all_high, btn_custom, COLORS):
         else:
             result_display = mo.callout(result, kind="danger")
     else:
-        result_display = mo.md(f"""
+        result_display = mo.md("""
         💡 **Tip:** Start with top 50 to discover new opportunities quickly.
         Costs are estimates based on Claude Haiku 4.5.
         """)

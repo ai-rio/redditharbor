@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """Execute the SQL to fix comment-submission linkage"""
 
+import os
 import sys
 from pathlib import Path
-import os
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from redditharbor.login import supabase
-from config.settings import SUPABASE_URL, SUPABASE_KEY
 import psycopg2
 
 # Connect to Supabase PostgreSQL directly

@@ -2,8 +2,8 @@
 Test Marimo utilities - Database Connection
 Following TDD approach for Task 2: Create Database Connection Utilities
 """
-import pytest
 import sqlalchemy
+
 from marimo_notebooks.utils import DatabaseConnector
 
 

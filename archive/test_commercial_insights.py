@@ -8,12 +8,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from redditharbor.login import supabase
-from config.settings import SUPABASE_URL, SUPABASE_KEY
-import requests
 import json
-import time
 import re
+
+from redditharbor.login import supabase
+
+from config.settings import SUPABASE_KEY, SUPABASE_URL
+
 
 def clean_ai_response(text):
     """Clean and validate AI response"""
@@ -125,7 +126,7 @@ if __name__ == "__main__":
 
         # Show the data
         print(f"\nPost text: {data['submission'].get('text', 'N/A')[:200]}...")
-        print(f"\nComment sample:")
+        print("\nComment sample:")
         for i, comment in enumerate(data['comments'][:3], 1):
             print(f"  {i}. {comment['body'][:150]}...")
     else:

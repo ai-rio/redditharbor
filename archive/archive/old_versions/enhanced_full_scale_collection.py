@@ -5,13 +5,12 @@ Collects from all 73 target subreddits with enhanced metadata
 Built from proven full_scale_collection.py with inline enhancements
 """
 
-import sys
-from pathlib import Path
 import logging
-from datetime import datetime
-import json
-import re
+import sys
 import time
+from datetime import datetime
+from pathlib import Path
+
 from textblob import TextBlob
 
 # Add project root
@@ -19,9 +18,13 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit, supabase
+
 from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT,
-    SUPABASE_URL, SUPABASE_KEY, DB_CONFIG
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
 )
 
 # Setup logging
@@ -187,7 +190,7 @@ def main():
         logger.info("🚀 ENHANCED FULL-SCALE COLLECTION")
         logger.info("="*80)
         logger.info(f"📊 Target: {len(ALL_SUBREDDITS)} subreddits across {len(TARGET_SUBREDDITS)} market segments")
-        logger.info(f"🔍 Enhanced Features: sentiment analysis, problem extraction, solution tracking")
+        logger.info("🔍 Enhanced Features: sentiment analysis, problem extraction, solution tracking")
         logger.info("="*80)
 
         # Create clients
@@ -207,7 +210,7 @@ def main():
         limit_per_sort = 50
         time_filter = "month"
 
-        logger.info(f"\n📝 Collection parameters:")
+        logger.info("\n📝 Collection parameters:")
         logger.info(f"   - Subreddits: {len(ALL_SUBREDDITS)}")
         logger.info(f"   - Sort types: {sort_types}")
         logger.info(f"   - Limit per sort: {limit_per_sort}")
@@ -315,7 +318,7 @@ def main():
                     total_submissions += sub_count
 
                 except Exception as e:
-                    logger.error(f"   ❌ r/{subreddit_name}: Error - {str(e)}")
+                    logger.error(f"   ❌ r/{subreddit_name}: Error - {e!s}")
                     continue
 
             total_enhanced += segment_enhanced
@@ -325,20 +328,20 @@ def main():
 
         # Final summary
         logger.info(f"\n{'='*80}")
-        logger.info(f"🎉 ENHANCED FULL-SCALE COLLECTION COMPLETE")
+        logger.info("🎉 ENHANCED FULL-SCALE COLLECTION COMPLETE")
         logger.info(f"{'='*80}")
         logger.info(f"📊 Total Submissions: {total_submissions}")
         logger.info(f"🎯 With Enhanced Metadata: {total_enhanced}")
         logger.info(f"🏆 Success! Enhanced data collected from {len(ALL_SUBREDDITS)} subreddits")
 
         # Verify in database
-        logger.info(f"\n🔍 Verifying database...")
+        logger.info("\n🔍 Verifying database...")
         subs_result = supabase_client.table('submissions').select('id', count='exact').execute()
         sentiment_result = supabase_client.table('submissions').select('id', count='exact').not_.is_('sentiment_score', 'null').execute()
         problems_result = supabase_client.table('submissions').select('id', count='exact').neq('problem_keywords', '').execute()
         solutions_result = supabase_client.table('submissions').select('id', count='exact').neq('solution_mentions', '').execute()
 
-        logger.info(f"✅ Database verified:")
+        logger.info("✅ Database verified:")
         logger.info(f"   📝 Total Submissions: {subs_result.count}")
         logger.info(f"   🎭 With Sentiment: {sentiment_result.count}")
         logger.info(f"   🔍 With Problems: {problems_result.count}")
@@ -347,7 +350,7 @@ def main():
         return True
 
     except Exception as e:
-        logger.error(f"❌ Collection failed: {str(e)}", exc_info=True)
+        logger.error(f"❌ Collection failed: {e!s}", exc_info=True)
         return False
 
 if __name__ == "__main__":

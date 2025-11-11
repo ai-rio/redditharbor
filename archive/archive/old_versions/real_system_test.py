@@ -11,13 +11,13 @@ This test uses ACTUAL Reddit API credentials from .env to:
 No synthetic data - this is production validation.
 """
 
-import sys
 import json
-import time
 import logging
-from pathlib import Path
-from typing import List, Dict, Any
+import sys
+import time
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Setup logging
 logging.basicConfig(
@@ -44,6 +44,7 @@ if env_local.exists():
 
 # Import config (or get from environ if .env.local was loaded)
 import os
+
 REDDIT_PUBLIC = os.getenv("REDDIT_PUBLIC")
 REDDIT_SECRET = os.getenv("REDDIT_SECRET")
 REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
@@ -82,7 +83,7 @@ def is_problem_post(title: str, selftext: str) -> bool:
     return has_problem and no_filter
 
 
-def collect_real_reddit_data(subreddits: List[str], limit: int = 50) -> List[Dict[str, Any]]:
+def collect_real_reddit_data(subreddits: list[str], limit: int = 50) -> list[dict[str, Any]]:
     """Collect REAL problem posts from Reddit using live API."""
 
     print("=" * 80)
@@ -90,7 +91,7 @@ def collect_real_reddit_data(subreddits: List[str], limit: int = 50) -> List[Dic
     print("=" * 80)
     print(f"\nSubreddits: {', '.join(subreddits)}")
     print(f"Limit: {limit} posts per subreddit")
-    print(f"Reddit API: Using credentials from .env")
+    print("Reddit API: Using credentials from .env")
 
     if not PRAW_AVAILABLE:
         print("\n⚠️  PRAW not available - install with: uv pip install praw")
@@ -110,7 +111,7 @@ def collect_real_reddit_data(subreddits: List[str], limit: int = 50) -> List[Dic
             user_agent=REDDIT_USER_AGENT
         )
 
-        print(f"\n✓ Connected to Reddit API")
+        print("\n✓ Connected to Reddit API")
 
         # Collect from each subreddit
         for subreddit_name in subreddits:
@@ -153,15 +154,15 @@ def collect_real_reddit_data(subreddits: List[str], limit: int = 50) -> List[Dic
         return all_posts
 
     except Exception as e:
-        print(f"\n❌ Reddit API Error: {str(e)}")
-        print(f"\nTroubleshooting:")
-        print(f"  1. Check credentials in .env file")
-        print(f"  2. Install PRAW: uv pip install praw")
-        print(f"  3. Verify Reddit app at: https://www.reddit.com/prefs/apps")
+        print(f"\n❌ Reddit API Error: {e!s}")
+        print("\nTroubleshooting:")
+        print("  1. Check credentials in .env file")
+        print("  2. Install PRAW: uv pip install praw")
+        print("  3. Verify Reddit app at: https://www.reddit.com/prefs/apps")
         return []
 
 
-def analyze_opportunities(posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def analyze_opportunities(posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Analyze collected posts for monetizable opportunities."""
 
     print("\n" + "=" * 80)
@@ -228,7 +229,7 @@ def analyze_opportunities(posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return opportunities
 
 
-def generate_real_opportunities_report(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
+def generate_real_opportunities_report(opportunities: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate final opportunities report from real data."""
 
     print("\n" + "=" * 80)
@@ -278,7 +279,7 @@ def generate_real_opportunities_report(opportunities: List[Dict[str, Any]]) -> D
         print(f"   Community Comments: {category_data['total_community_comments']}")
         print(f"   Avg Score: {category_data['avg_post_score']:.1f}")
         print(f"   Subreddits: {', '.join(category_data['subreddits'])}")
-        print(f"   Sample Problems:")
+        print("   Sample Problems:")
         for problem in category_data['sample_problems']:
             print(f"     • {problem[:70]}...")
         print()
@@ -311,10 +312,10 @@ def main():
         "SideProject"
     ]
 
-    print(f"\n📋 Test Configuration:")
+    print("\n📋 Test Configuration:")
     print(f"   Subreddits: {len(target_subreddits)}")
-    print(f"   Posts per subreddit: 50")
-    print(f"   API Source: LIVE Reddit API")
+    print("   Posts per subreddit: 50")
+    print("   API Source: LIVE Reddit API")
 
     # Step 1: Collect real data
     print("\n" + "=" * 80)
@@ -365,8 +366,8 @@ def main():
     print(f"\nExecution Time: {elapsed:.2f} seconds")
     print(f"Posts Analyzed: {len(opportunities)}")
     print(f"Opportunities Identified: {report['total_opportunities']}")
-    print(f"Status: ✅ PASSED")
-    print(f"\nNext: Review generated/real_system_test_results.json for details")
+    print("Status: ✅ PASSED")
+    print("\nNext: Review generated/real_system_test_results.json for details")
 
 
 if __name__ == "__main__":

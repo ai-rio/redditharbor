@@ -11,31 +11,27 @@ Usage:
     dlt-cli run-pipeline --source opportunities.json --destination postgres
 """
 
-import click
 import json
 import sys
-from typing import List, Dict, Any, Optional
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
+import click
 import dlt
-from dlt import Pipeline
 
 # Import Phase 1 & 2 components
 from core.dlt.constraint_validator import (
-    app_opportunities_with_constraint,
     _calculate_simplicity_score,
-    _extract_core_functions
-)
-from core.dlt.normalize_hooks import (
-    SimplicityConstraintNormalizeHandler,
-    create_constraint_normalize_handler
+    _extract_core_functions,
+    app_opportunities_with_constraint,
 )
 from core.dlt.dataset_constraints import (
-    create_constraint_aware_dataset,
     create_production_dataset,
     create_test_dataset,
-    get_constraint_schema
+    get_constraint_schema,
+)
+from core.dlt.normalize_hooks import (
+    create_constraint_normalize_handler,
 )
 
 
@@ -101,7 +97,7 @@ def cli(ctx: click.Context, verbose: bool) -> None:
 def validate_constraints(
     ctx: click.Context,
     file: Path,
-    output: Optional[Path],
+    output: Path | None,
     max_functions: int,
     fail_on_violation: bool
 ) -> None:
@@ -121,7 +117,7 @@ def validate_constraints(
 
     try:
         # Load opportunities
-        with open(file, "r") as f:
+        with open(file) as f:
             opportunities = json.load(f)
 
         if not isinstance(opportunities, list):
@@ -180,7 +176,7 @@ def validate_constraints(
         if len(opportunities) > 0:
             click.echo(f"Compliance rate: {approved/len(opportunities)*100:.1f}%")
         else:
-            click.echo(f"Compliance rate: N/A (no data)")
+            click.echo("Compliance rate: N/A (no data)")
         click.echo("="*60 + "\n")
 
         if violations:
@@ -233,7 +229,7 @@ def validate_constraints(
 def show_constraint_schema(
     ctx: click.Context,
     format: str,
-    output: Optional[Path]
+    output: Path | None
 ) -> None:
     """Display DLT schema with constraint enforcement fields.
 
@@ -421,7 +417,7 @@ def run_pipeline(
 
     try:
         # Load data
-        with open(source, "r") as f:
+        with open(source) as f:
             opportunities = json.load(f)
 
         if not isinstance(opportunities, list):
@@ -511,7 +507,7 @@ def test_constraint(
     ctx: click.Context,
     sample_size: int,
     max_functions: int,
-    output: Optional[Path]
+    output: Path | None
 ) -> None:
     """Test constraint enforcement with sample data.
 
@@ -637,7 +633,7 @@ def check_database(
         click.echo(f"Database type: {destination}")
         click.echo(f"Dataset name: {dataset_name}")
         click.echo(f"Pipeline name: {pipeline.pipeline_name}")
-        click.echo(f"Status: ✓ Database accessible")
+        click.echo("Status: ✓ Database accessible")
         click.echo("="*60 + "\n")
 
         # Get schema information

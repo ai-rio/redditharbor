@@ -14,12 +14,13 @@ Test Coverage:
 - Data validation
 """
 
-import sys
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+import sys
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add project root
 project_root = Path(__file__).parent.parent
@@ -27,12 +28,12 @@ sys.path.insert(0, str(project_root))
 
 # Import script functions
 from scripts.final_system_test import (
+    DLT_TEST_LIMIT,
+    DLT_TEST_SUBREDDITS,
+    SAMPLE_PROBLEM_POSTS,
+    collect_real_problem_posts,
     generate_opportunity_scores,
     save_results,
-    collect_real_problem_posts,
-    SAMPLE_PROBLEM_POSTS,
-    DLT_TEST_SUBREDDITS,
-    DLT_TEST_LIMIT,
 )
 
 
@@ -100,7 +101,7 @@ class TestSyntheticMode:
             assert output_file.exists()
 
             # Verify JSON structure
-            with open(output_file, "r") as f:
+            with open(output_file) as f:
                 data = json.load(f)
 
             assert "timestamp" in data

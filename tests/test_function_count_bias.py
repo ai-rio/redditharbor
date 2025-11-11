@@ -12,11 +12,10 @@ It can be run immediately to:
 Run: pytest tests/test_function_count_bias.py -v
 """
 
-import sys
 import json
-from pathlib import Path
+import sys
 from collections import Counter
-from typing import List, Dict, Any
+from pathlib import Path
 
 import pytest
 
@@ -24,7 +23,7 @@ import pytest
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_KEY, SUPABASE_URL
 from supabase import create_client
 
 
@@ -70,7 +69,7 @@ class TestFunctionCountBias:
 
         # Distribution analysis
         dist = Counter(counts)
-        print(f"\n=== FUNCTION COUNT DISTRIBUTION ===")
+        print("\n=== FUNCTION COUNT DISTRIBUTION ===")
         print(f"Total opportunities: {len(counts)}")
         print(f"Unique counts: {sorted(dist.keys())}")
 
@@ -151,7 +150,7 @@ class TestFunctionCountBias:
                 print("\nℹ️  workflow_results table is empty (expected if not populated yet)")
                 pytest.skip("workflow_results not yet populated")
 
-            print(f"\n=== WORKFLOW_RESULTS CONSISTENCY CHECK ===")
+            print("\n=== WORKFLOW_RESULTS CONSISTENCY CHECK ===")
             print(f"Total records: {len(records)}")
 
             mismatches = []
@@ -178,13 +177,13 @@ class TestFunctionCountBias:
                 print(f"⚠️  MISMATCH: {len(mismatches)} records have count/list inconsistency")
                 for m in mismatches[:3]:
                     print(f"   {m['opportunity_id']}: stored={m['stored']}, actual={m['actual']}")
-                print(f"   This will be fixed by Phase 1 validation function")
+                print("   This will be fixed by Phase 1 validation function")
                 pytest.skip(f"Mismatches expected before Phase 1 fix: {len(mismatches)}")
             else:
                 print(f"✓ All {len(records)} records have matching counts")
 
         except Exception as e:
-            print(f"\nℹ️  workflow_results not accessible or doesn't exist yet")
+            print("\nℹ️  workflow_results not accessible or doesn't exist yet")
             print(f"   Error: {str(e)[:100]}")
             pytest.skip("workflow_results table not available")
 
@@ -219,8 +218,8 @@ class TestFunctionCountBias:
         UNIT TEST: Verify constraint validator correctly counts functions.
         """
         from core.dlt.constraint_validator import (
+            _calculate_simplicity_score,
             _extract_core_functions,
-            _calculate_simplicity_score
         )
 
         # Test case 1: 1 function
@@ -257,7 +256,6 @@ class TestConstraintValidatorEnhancement:
 
     def test_validate_function_consistency_passes(self):
         """Test: Consistent count and array pass validation."""
-        from core.dlt.constraint_validator import _calculate_simplicity_score
 
         opp = {
             "opportunity_id": "test_1",
@@ -334,7 +332,7 @@ class TestAcceptanceCriteria:
         dist = Counter(counts)
         pct_2 = (dist.get(2, 0) / len(counts)) * 100
 
-        print(f"\n=== ACCEPTANCE CRITERIA ===")
+        print("\n=== ACCEPTANCE CRITERIA ===")
         print(f"Distribution: {dict(dist)}")
         print(f"2-function percentage: {pct_2:.1f}%")
 

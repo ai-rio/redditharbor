@@ -17,7 +17,15 @@ print()
 
 try:
     from redditharbor.login import reddit, supabase
-    from config.settings import DB_CONFIG, REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT, SUPABASE_URL, SUPABASE_KEY
+
+    from config.settings import (
+        DB_CONFIG,
+        REDDIT_PUBLIC,
+        REDDIT_SECRET,
+        REDDIT_USER_AGENT,
+        SUPABASE_KEY,
+        SUPABASE_URL,
+    )
     from core.collection import collect_monetizable_opportunities_data
 
     print("✅ All imports successful")
@@ -52,7 +60,7 @@ try:
     # Test Supabase connection
     print("🔍 Testing Supabase connection...")
     result = supabase_client.table('submissions').select('count').limit(1).execute()
-    print(f"✅ Supabase connected - table accessible")
+    print("✅ Supabase connected - table accessible")
     print()
 
     # Try collection from one subreddit

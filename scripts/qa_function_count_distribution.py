@@ -15,20 +15,20 @@ Expected outcome after fix:
 """
 
 import sys
-from pathlib import Path
 from collections import Counter
-from typing import Dict, List, Any
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_KEY, SUPABASE_URL
 from supabase import create_client
 
 
-def analyze_function_count_distribution() -> Dict[str, Any]:
+def analyze_function_count_distribution() -> dict[str, Any]:
     """
     Analyze function count distribution across both tables.
 
@@ -63,7 +63,7 @@ def analyze_function_count_distribution() -> Dict[str, Any]:
     print(f"  Total opportunities with core_functions: {total_app}")
 
     if total_app > 0:
-        print(f"\n  Distribution:")
+        print("\n  Distribution:")
         for count in sorted(app_distribution.keys()):
             percentage = (app_distribution[count] / total_app) * 100
             print(f"    {count} functions: {app_distribution[count]:3d} ({percentage:5.1f}%)")
@@ -112,7 +112,7 @@ def analyze_function_count_distribution() -> Dict[str, Any]:
     print(f"  Total opportunities with function_list: {total_wf}")
 
     if total_wf > 0:
-        print(f"\n  Distribution:")
+        print("\n  Distribution:")
         for count in sorted(wf_distribution.keys()):
             percentage = (wf_distribution[count] / total_wf) * 100
             print(f"    {count} functions: {wf_distribution[count]:3d} ({percentage:5.1f}%)")
@@ -139,7 +139,7 @@ def analyze_function_count_distribution() -> Dict[str, Any]:
         if len(mismatches) > 5:
             print(f"    ... and {len(mismatches) - 5} more")
     else:
-        print(f"  ✅ No mismatches found - validation working correctly!")
+        print("  ✅ No mismatches found - validation working correctly!")
 
     print()
 
@@ -201,7 +201,7 @@ def analyze_function_count_distribution() -> Dict[str, Any]:
             print(f"\n  ⚠️  VALIDATION ISSUES: {len(mismatches)} count/list mismatches found")
             print("  → Pre-flight validation may not be catching all cases")
         else:
-            print(f"\n  ✅ VALIDATION WORKING: No count/list mismatches")
+            print("\n  ✅ VALIDATION WORKING: No count/list mismatches")
 
     print()
     print("="*80)

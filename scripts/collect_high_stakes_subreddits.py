@@ -5,10 +5,8 @@ Collects from subreddits with high monetization potential and willingness to pay
 """
 
 import sys
-from pathlib import Path
-from typing import List, Dict
-import uuid
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -16,6 +14,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 # Import DLT collection tools
@@ -92,8 +91,8 @@ def main():
             print(f"\n✅ SUCCESS: Loaded {total_collected} posts to Supabase")
             print(f"  - Subreddits: {list(HIGH_STAKES_SUBREDDITS.keys())}")
             print(f"  - Total posts: {total_collected}")
-            print(f"  - Database table: submissions")
-            print(f"  - DLT deduplication: Active")
+            print("  - Database table: submissions")
+            print("  - DLT deduplication: Active")
 
         except Exception as e:
             print(f"\n✗ Error loading to Supabase: {e}")
@@ -105,12 +104,12 @@ def main():
     print("\n" + "="*80)
     print("COLLECTION SUMMARY")
     print("="*80)
-    print(f"Phase 4 Data Collection Complete!")
+    print("Phase 4 Data Collection Complete!")
     print(f"Total posts collected: {total_collected}")
     print(f"Database now contains: ~{100 + total_collected} submissions")
-    print(f"\nNext step: Run batch scoring with threshold 50.0")
-    print(f"  export SCORE_THRESHOLD=50.0")
-    print(f"  python3 scripts/batch_opportunity_scoring.py")
+    print("\nNext step: Run batch scoring with threshold 50.0")
+    print("  export SCORE_THRESHOLD=50.0")
+    print("  python3 scripts/batch_opportunity_scoring.py")
     print("="*80 + "\n")
 
 if __name__ == "__main__":

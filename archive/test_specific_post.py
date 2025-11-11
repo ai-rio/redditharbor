@@ -9,7 +9,9 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import supabase
-from config.settings import SUPABASE_URL, SUPABASE_KEY
+
+from config.settings import SUPABASE_KEY, SUPABASE_URL
+
 
 def test_specific_post():
     """Test the new prompt on a commercial post"""
@@ -35,7 +37,7 @@ def test_specific_post():
             result = client.table('comments').select('body').eq('submission_id', submission_id).limit(5).execute()
             comments = result.data
 
-            print(f"\n--- POST CONTENT ---")
+            print("\n--- POST CONTENT ---")
             print(f"Title: {submission['title']}")
             print(f"Text: {submission.get('text', 'N/A')[:500]}...")
 
@@ -43,7 +45,7 @@ def test_specific_post():
             for i, comment in enumerate(comments, 1):
                 print(f"{i}. {comment['body'][:200]}...")
 
-            print(f"\n" + "=" * 80)
+            print("\n" + "=" * 80)
             print("This post is ready for AI analysis with the new problem-inference prompt!")
             print("=" * 80)
 

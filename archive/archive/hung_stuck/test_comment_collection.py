@@ -11,12 +11,18 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from redditharbor.login import reddit, supabase
 from redditharbor.dock.pipeline import collect
+from redditharbor.login import reddit, supabase
+
 from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT,
-    SUPABASE_URL, SUPABASE_KEY, DB_CONFIG
+    DB_CONFIG,
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
 )
+
 
 def main():
     print("=" * 80)
@@ -65,7 +71,7 @@ def main():
             level=1,  # Top-level comments only
             mask_pii=False
         )
-        print(f"   ✅ Comment collection complete")
+        print("   ✅ Comment collection complete")
     except Exception as e:
         print(f"   ❌ Error: {e}")
         return False

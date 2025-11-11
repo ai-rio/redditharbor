@@ -7,25 +7,26 @@ Based on E2E testing showing 50+ scores are extremely rare (0% in 217 posts),
 60+ opportunities are expected to be ultra-rare unicorns requiring specialized detection.
 """
 
-import sys
-from pathlib import Path
-from datetime import datetime, timedelta
 import logging
-import json
-from typing import Dict, List, Any, Optional
+import sys
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
+
+import os
 
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from scripts.batch_opportunity_scoring import LLMProfiler
 from supabase import create_client
-import os
 
 # Configure logging
 logging.basicConfig(
@@ -90,7 +91,7 @@ class ScoreHunter60Plus:
             }
         }
 
-    def calculate_ultra_rare_score(self, submission_data: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_ultra_rare_score(self, submission_data: dict[str, Any]) -> dict[str, Any]:
         """
         Enhanced scoring specifically for ultra-rare opportunities
         Uses weighted indicators optimized for 60+ detection
@@ -161,7 +162,7 @@ class ScoreHunter60Plus:
             'assessment': self._assess_ultra_rare_potential(scores, ultra_rare_score)
         }
 
-    def _extract_raw_indicators(self, text: str) -> Dict[str, List[str]]:
+    def _extract_raw_indicators(self, text: str) -> dict[str, list[str]]:
         """Extract specific indicators found in the text"""
         found_indicators = {}
 
@@ -174,7 +175,7 @@ class ScoreHunter60Plus:
 
         return found_indicators
 
-    def _assess_ultra_rare_potential(self, scores: Dict[str, float], ultra_score: float) -> Dict[str, Any]:
+    def _assess_ultra_rare_potential(self, scores: dict[str, float], ultra_score: float) -> dict[str, Any]:
         """Assess the potential classification of ultra-rare opportunity"""
 
         if ultra_score >= 70:
@@ -202,7 +203,7 @@ class ScoreHunter60Plus:
             'competitive_advantage': self._assess_competitive_advantage(scores)
         }
 
-    def _estimate_market_size(self, scores: Dict[str, float]) -> str:
+    def _estimate_market_size(self, scores: dict[str, float]) -> str:
         """Estimate market size based on scoring components"""
         overall_score = sum(scores.values()) / len(scores)
 
@@ -217,7 +218,7 @@ class ScoreHunter60Plus:
         else:
             return "Sub-million-dollar niche"
 
-    def _assess_competitive_advantage(self, scores: Dict[str, float]) -> str:
+    def _assess_competitive_advantage(self, scores: dict[str, float]) -> str:
         """Assess potential competitive advantage"""
         if scores['market_explosiveness'] >= 70:
             return "First-mover advantage in emerging market"
@@ -228,7 +229,7 @@ class ScoreHunter60Plus:
         else:
             return "Incremental improvement opportunity"
 
-    def hunt_ultra_rare_opportunities(self, limit: int = 100) -> List[UltraRareOpportunity]:
+    def hunt_ultra_rare_opportunities(self, limit: int = 100) -> list[UltraRareOpportunity]:
         """
         Hunt for ultra-rare 60+ scoring opportunities in recent submissions
         """
@@ -301,7 +302,7 @@ class ScoreHunter60Plus:
 
         return ultra_rare_opportunities
 
-    def _store_ultra_rare_findings(self, opportunities: List[UltraRareOpportunity]):
+    def _store_ultra_rare_findings(self, opportunities: list[UltraRareOpportunity]):
         """Store ultra-rare opportunity findings to dedicated table"""
         try:
             findings_data = []
@@ -328,7 +329,7 @@ class ScoreHunter60Plus:
         except Exception as e:
             logger.error(f"❌ Error storing ultra-rare findings: {e}")
 
-    def generate_hunter_report(self, opportunities: List[UltraRareOpportunity]) -> Dict[str, Any]:
+    def generate_hunter_report(self, opportunities: list[UltraRareOpportunity]) -> dict[str, Any]:
         """Generate comprehensive hunter report"""
         legendary_count = len([o for o in opportunities if o.rarity_tier == "Legendary"])
         epic_count = len([o for o in opportunities if o.rarity_tier == "Epic"])
@@ -377,7 +378,7 @@ def main():
 
     logger.info("\n🎯 60+ SCORE HUNTER REPORT")
     logger.info("=" * 50)
-    logger.info(f"📊 Total candidates analyzed: 200")
+    logger.info("📊 Total candidates analyzed: 200")
     logger.info(f"⭐ Ultra-rare opportunities found: {report['total_candidates']}")
     logger.info(f"🌟 Legendary (70+): {report['legendary_opportunities']}")
     logger.info(f"🔥 Epic (60-69): {report['epic_opportunities']}")

@@ -4,17 +4,15 @@ RedditHarbor Agent SDK Integration Demo (Simple Version)
 Shows how to leverage Agent SDK for intelligent decision-making
 """
 
+import json
 import os
 import sys
-import json
 from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Import RedditHarbor components
-from redditharbor.login import supabase
-import config.settings as settings
 
 
 def demonstrate_sdk_integration():

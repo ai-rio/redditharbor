@@ -11,12 +11,11 @@ Tests the collect_post_comments function including:
 - Error logging functionality
 """
 
-import pytest
 import sys
-import os
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
-from typing import List, Dict, Any
+from unittest.mock import MagicMock, Mock
+
+import pytest
 
 # Add project root
 project_root = Path(__file__).parent.parent
@@ -24,8 +23,9 @@ sys.path.insert(0, str(project_root))
 
 # Try to import the module with fallback for missing dependencies
 try:
-    from core.dlt_collection import collect_post_comments, get_reddit_client
     import praw
+
+    from core.dlt_collection import collect_post_comments, get_reddit_client
     HAS_DEPENDENCIES = True
 except ImportError as e:
     HAS_DEPENDENCIES = False

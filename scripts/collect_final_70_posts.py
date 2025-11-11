@@ -5,10 +5,8 @@ Target: Collect ~70 more posts to reach 250+ total
 """
 
 import sys
-from pathlib import Path
-from typing import List, Dict
-import uuid
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -16,6 +14,7 @@ sys.path.insert(0, str(project_root))
 
 # Load environment
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 # Import DLT collection tools
@@ -50,10 +49,10 @@ def main():
     print("\n" + "="*80)
     print("FINAL PUSH: REACH 250+ POSTS FOR 50+ VALIDATION")
     print("="*80)
-    print(f"\nCurrent State: 188 submissions")
-    print(f"Target: 250+ submissions (need ~70 more)")
-    print(f"Goal: Find 1-2 opportunities at 50+ scores")
-    print(f"\nFocus: Additional proven pain points")
+    print("\nCurrent State: 188 submissions")
+    print("Target: 250+ submissions (need ~70 more)")
+    print("Goal: Find 1-2 opportunities at 50+ scores")
+    print("\nFocus: Additional proven pain points")
     print()
 
     print("="*80)

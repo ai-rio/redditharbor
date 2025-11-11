@@ -6,9 +6,7 @@ including destination setup, incremental loading strategies, and
 schema evolution policies.
 """
 
-import os
-from typing import Dict, Any
-from config.settings import SUPABASE_URL, SUPABASE_KEY
+from config.settings import SUPABASE_KEY, SUPABASE_URL
 
 # DLT destination configuration
 DLT_DESTINATION = "postgres"

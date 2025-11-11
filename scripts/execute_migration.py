@@ -15,11 +15,11 @@ Features:
 """
 
 import json
-import sys
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -93,7 +93,7 @@ class MigrationExecutor:
 
         return True
 
-    def execute_sql_file(self, sql_file: Path) -> Tuple[bool, str]:
+    def execute_sql_file(self, sql_file: Path) -> tuple[bool, str]:
         """Execute SQL file via psql."""
         self.log(f"Executing SQL file: {sql_file}", "INFO")
 
@@ -153,7 +153,7 @@ class MigrationExecutor:
             self.log(f"Error running pre-migration snapshot: {e}", "ERROR")
             return False
 
-    def run_post_verification(self) -> Tuple[bool, Dict[str, Any]]:
+    def run_post_verification(self) -> tuple[bool, dict[str, Any]]:
         """Run post-migration verification script."""
         self.log("Running post-migration verification...", "INFO")
 
@@ -178,7 +178,7 @@ class MigrationExecutor:
             # Load verification results
             verification_results_file = project_root / "migration_verification_results.json"
             if verification_results_file.exists():
-                with open(verification_results_file, 'r') as f:
+                with open(verification_results_file) as f:
                     verification_results = json.load(f)
 
                 status = verification_results.get("status", "UNKNOWN")
@@ -223,12 +223,12 @@ class MigrationExecutor:
         except Exception as e:
             self.log(f"Error creating post-snapshot: {e}", "WARNING")
 
-    def execute_migration(self) -> Dict[str, Any]:
+    def execute_migration(self) -> dict[str, Any]:
         """Execute complete migration workflow."""
         self.log("=" * 70, "INFO")
         self.log("MIGRATION EXECUTION STARTING", "INFO")
         self.log("=" * 70, "INFO")
-        self.log(f"Migration: 20251108000000_consolidate_schema_safe", "INFO")
+        self.log("Migration: 20251108000000_consolidate_schema_safe", "INFO")
         self.log(f"Timestamp: {self.start_time.isoformat()}", "INFO")
 
         results = {

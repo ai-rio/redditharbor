@@ -17,15 +17,15 @@ app = marimo.App(width="full")
 
 @app.cell
 def imports():
+    import os
+    import sys
+    from datetime import datetime
+    from pathlib import Path
+
     import marimo as mo
     import pandas as pd
     import psycopg2
     from sqlalchemy import create_engine, text
-    from typing import Optional, Dict, List
-    from datetime import datetime
-    import os
-    import sys
-    from pathlib import Path
 
     # Add project root to path for config imports
     project_root = Path(__file__).parent.parent
@@ -157,7 +157,7 @@ def data_connection(connection_url, mo):
         except Exception as e:
             # Return error DataFrame if connection fails
             error_df = pd.DataFrame({
-                'error': [f"Database connection failed: {str(e)}"],
+                'error': [f"Database connection failed: {e!s}"],
                 'connection_url': [connection_url]
             })
             return error_df

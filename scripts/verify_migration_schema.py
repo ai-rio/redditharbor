@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Quick schema verification after migration."""
-import psycopg2
-import json
-import sys
 from pathlib import Path
+
+import psycopg2
 
 project_root = Path(__file__).parent.parent
 

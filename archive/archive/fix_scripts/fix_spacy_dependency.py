@@ -5,8 +5,9 @@ Automatically install the en_core_web_lg model and re-enable PII anonymization
 """
 
 import os
-import sys
 import subprocess
+import sys
+
 
 def fix_spacy_dependency():
     """Fix the spaCy dependency issue by installing the model and updating config"""
@@ -58,7 +59,7 @@ def fix_spacy_dependency():
         config_file = "config/settings.py"
 
         if os.path.exists(config_file):
-            with open(config_file, 'r') as f:
+            with open(config_file) as f:
                 content = f.read()
 
             # Update PII setting
@@ -85,8 +86,7 @@ def fix_spacy_dependency():
             sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
             from redditharbor.dock.pipeline import collect
-            from redditharbor.login import reddit, supabase
-            import config.settings as settings
+
 
             # Initialize PII tools
             test_pipeline = collect.__new__(collect)
@@ -97,11 +97,11 @@ def fix_spacy_dependency():
             print(f"❌ Error testing PII system: {e}")
             return False
 
-        print(f"\n🎉 SpaCy dependency fix completed successfully!")
-        print(f"📋 Next steps:")
-        print(f"   1. Run the research: python scripts/run_niche_research.py")
-        print(f"   2. Monitor for any remaining issues")
-        print(f"   3. Analyze the collected data")
+        print("\n🎉 SpaCy dependency fix completed successfully!")
+        print("📋 Next steps:")
+        print("   1. Run the research: python scripts/run_niche_research.py")
+        print("   2. Monitor for any remaining issues")
+        print("   3. Analyze the collected data")
 
         return True
 

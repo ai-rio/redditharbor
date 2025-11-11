@@ -12,10 +12,9 @@ the destination.
 Uses centralized score_calculator module to ensure consistency across the system.
 """
 
-import dlt
-from typing import List, Dict, Any, Generator, Optional
+from collections.abc import Generator
 from datetime import datetime
-import uuid
+from typing import Any
 
 # Import centralized score calculation functions
 from core.dlt.score_calculator import calculate_simplicity_score
@@ -50,9 +49,9 @@ class SimplicityConstraintNormalizeHandler:
 
     def process_batch(
         self,
-        tables: List[Any],
-        schema: Optional[Any] = None
-    ) -> List[Any]:
+        tables: list[Any],
+        schema: Any | None = None
+    ) -> list[Any]:
         """
         Process a batch of tables through the normalization pipeline.
 
@@ -77,7 +76,7 @@ class SimplicityConstraintNormalizeHandler:
 
         return tables
 
-    def _enforce_constraint(self, row: Dict[str, Any]) -> None:
+    def _enforce_constraint(self, row: dict[str, Any]) -> None:
         """
         Enforce simplicity constraint on a single row.
 
@@ -98,7 +97,7 @@ class SimplicityConstraintNormalizeHandler:
             # App is approved (1-3 functions are allowed when max is 3)
             self._approve_app(row, function_count)
 
-    def _extract_function_count(self, row: Dict[str, Any]) -> int:
+    def _extract_function_count(self, row: dict[str, Any]) -> int:
         """
         Extract the number of core functions from a row.
 
@@ -140,7 +139,7 @@ class SimplicityConstraintNormalizeHandler:
         # Default: no functions found
         return 0
 
-    def _parse_functions_from_text(self, text: str) -> List[str]:
+    def _parse_functions_from_text(self, text: str) -> list[str]:
         """
         Parse core functions from app description text using NLP patterns.
 
@@ -194,7 +193,7 @@ class SimplicityConstraintNormalizeHandler:
         # Limit to maximum 3 functions
         return functions[:3]
 
-    def _disqualify_app(self, row: Dict[str, Any], function_count: int) -> None:
+    def _disqualify_app(self, row: dict[str, Any], function_count: int) -> None:
         """
         Mark an app as disqualified due to too many functions.
 
@@ -213,7 +212,7 @@ class SimplicityConstraintNormalizeHandler:
         row["constraint_version"] = row.get("constraint_version", 1)
         row["validation_timestamp"] = datetime.now().isoformat()
 
-    def _approve_app(self, row: Dict[str, Any], function_count: int) -> None:
+    def _approve_app(self, row: dict[str, Any], function_count: int) -> None:
         """
         Mark an app as approved for having 1-3 functions.
 
@@ -260,8 +259,8 @@ class SimplicityConstraintNormalizeHandler:
         opportunity_id: str,
         app_name: str,
         function_count: int,
-        original_score: Optional[float] = None
-    ) -> Generator[Dict[str, Any], None, None]:
+        original_score: float | None = None
+    ) -> Generator[dict[str, Any], None, None]:
         """
         Generate violation records for the constraint_violations table.
 
@@ -290,7 +289,7 @@ class SimplicityConstraintNormalizeHandler:
         }
         yield violation
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """
         Get statistics about constraint enforcement.
 

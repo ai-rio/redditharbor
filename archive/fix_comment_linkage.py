@@ -8,7 +8,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import supabase
-from config.settings import SUPABASE_URL, SUPABASE_KEY
+
+from config.settings import SUPABASE_KEY, SUPABASE_URL
 
 client = supabase(url=SUPABASE_URL, private_key=SUPABASE_KEY)
 
@@ -27,12 +28,12 @@ print(f"Linked comments: {linked}")
 
 # Get a sample to see the pattern
 result = client.table('comments').select('link_id').is_('submission_id', None).limit(5).execute()
-print(f"\nSample unlinked comment link_ids:")
+print("\nSample unlinked comment link_ids:")
 for row in result.data:
     print(f"  {row['link_id']}")
 
 result = client.table('submissions').select('submission_id').limit(5).execute()
-print(f"\nSample submission submission_ids:")
+print("\nSample submission submission_ids:")
 for row in result.data:
     print(f"  {row['submission_id']}")
 

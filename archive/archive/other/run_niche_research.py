@@ -20,10 +20,10 @@ def run_all_niche_research():
 
     try:
         # Import our research modules
+        from research_budget_travel import research_budget_travel_constraints
+        from research_chronic_disease import research_chronic_disease_management
         from research_personal_finance import research_personal_finance_struggles
         from research_skill_acquisition import research_skill_acquisition_pain_points
-        from research_chronic_disease import research_chronic_disease_management
-        from research_budget_travel import research_budget_travel_constraints
 
         print("📊 Starting 4-domain niche research...")
         print()
@@ -88,7 +88,9 @@ def interactive_research_menu():
             from research_personal_finance import research_personal_finance_struggles
             research_personal_finance_struggles()
         elif choice == "2":
-            from research_skill_acquisition import research_skill_acquisition_pain_points
+            from research_skill_acquisition import (
+                research_skill_acquisition_pain_points,
+            )
             research_skill_acquisition_pain_points()
         elif choice == "3":
             from research_chronic_disease import research_chronic_disease_management

@@ -3,12 +3,13 @@
 Problem Filter for Existing Data
 Analyzes existing submissions and flags posts that describe real user problems
 """
-import os
-import sys
-from pathlib import Path
-from dotenv import load_dotenv
-from supabase import create_client
 import json
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+from supabase import create_client
 
 # Load environment
 project_root = Path(__file__).parent.parent
@@ -155,7 +156,7 @@ def filter_existing_problems():
     print(f"That's {(len(problem_posts) / len(submissions)) * 100:.1f}% problem posts!")
 
     if len(problem_posts) > 0:
-        print(f"\n✅ RECOMMENDATION:")
+        print("\n✅ RECOMMENDATION:")
         print(f"   Run AI analysis on these {len(problem_posts)} posts:")
         print(f"   python scripts/generate_opportunity_insights_openrouter.py --mode database --limit {min(10, len(problem_posts))}")
 

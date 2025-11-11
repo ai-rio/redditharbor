@@ -13,16 +13,17 @@ Strategy:
 4. Engagement-based prioritization (Top posts = stronger market signals)
 """
 
-import sys
-from pathlib import Path
-from datetime import datetime
 import logging
+import sys
+from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 from core.dlt_collection import collect_problem_posts

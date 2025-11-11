@@ -16,7 +16,8 @@ Test Coverage:
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
+
 import pytest
 
 # Add project root to path
@@ -24,12 +25,12 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.collect_commercial_data import (
-    contains_commercial_keywords,
-    filter_commercial_posts,
-    collect_commercial_data,
     BUSINESS_KEYWORDS,
     MONETIZATION_KEYWORDS,
-    TOP_COMMERCIAL_SUBREDDITS
+    TOP_COMMERCIAL_SUBREDDITS,
+    collect_commercial_data,
+    contains_commercial_keywords,
+    filter_commercial_posts,
 )
 
 

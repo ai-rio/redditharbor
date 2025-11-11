@@ -5,6 +5,7 @@ Test DLT connection to Supabase/PostgreSQL database.
 
 import sys
 from pathlib import Path
+
 import dlt
 
 # Add project root
@@ -26,19 +27,19 @@ def test_supabase_connection():
             dataset_name="reddit_harbor"
         )
 
-        print(f"\n✓ Pipeline created successfully")
+        print("\n✓ Pipeline created successfully")
         print(f"  Name: {pipeline.pipeline_name}")
         print(f"  Destination: {pipeline.destination}")
 
         # Test destination client initialization
         destination_client = pipeline.destination_client()
-        print(f"\n✓ Destination client initialized")
+        print("\n✓ Destination client initialized")
         print(f"  Client type: {type(destination_client).__name__}")
 
         # Test database connection by trying to create the client
         with pipeline.destination_client() as client:
             # Just having the client means connection parameters are valid
-            print(f"\n✓ Database connection successful")
+            print("\n✓ Database connection successful")
             print(f"  Client ready: {client is not None}")
 
         return True

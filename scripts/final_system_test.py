@@ -24,29 +24,27 @@ DLT Migration Benefits:
 - Schema evolution support
 """
 
-import sys
 import json
+import sys
 import time
-from pathlib import Path
-from typing import List, Dict, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import DLT collection functions
+# Import DLT constraint validator
+from core.dlt.constraint_validator import app_opportunities_with_constraint
 from core.dlt_collection import (
     collect_problem_posts,
     create_dlt_pipeline,
-    load_to_supabase
+    load_to_supabase,
 )
 
-# Import DLT constraint validator
-from core.dlt.constraint_validator import app_opportunities_with_constraint
-
 # Import DLT opportunity pipeline
-from scripts.dlt_opportunity_pipeline import load_app_opportunities_with_constraint
 
 # Configuration for real Reddit collection (DLT mode)
 DLT_TEST_SUBREDDITS = ["learnprogramming", "webdev", "reactjs", "python"]
@@ -158,7 +156,7 @@ SAMPLE_PROBLEM_POSTS = [
 ]
 
 
-def generate_opportunity_scores() -> List[Dict[str, Any]]:
+def generate_opportunity_scores() -> list[dict[str, Any]]:
     """
     Simulate AI scoring of problem posts according to methodology.
 
@@ -368,7 +366,7 @@ def generate_opportunity_scores() -> List[Dict[str, Any]]:
     return validated_opportunities
 
 
-def print_opportunity_report(opportunities: List[Dict[str, Any]]):
+def print_opportunity_report(opportunities: list[dict[str, Any]]):
     """Print formatted opportunity report."""
 
     print("\n" + "=" * 80)
@@ -382,7 +380,7 @@ def print_opportunity_report(opportunities: List[Dict[str, Any]]):
     medium = len([o for o in opportunities if 70 <= o["total_score"] < 85])
     low = len([o for o in opportunities if o["total_score"] < 70])
 
-    print(f"\n📈 Priority Breakdown:")
+    print("\n📈 Priority Breakdown:")
     print(f"   🔴 High Priority (85-100): {high} opportunities")
     print(f"   🟡 Medium Priority (70-84): {medium} opportunities")
     print(f"   🟢 Lower Priority (<70): {low} opportunities")
@@ -404,7 +402,7 @@ def print_opportunity_report(opportunities: List[Dict[str, Any]]):
         print(f"    Market Evidence: {opp['reddit_evidence'][:75]}...")
 
         # Break down scores
-        print(f"    Scoring:")
+        print("    Scoring:")
         print(f"      • Market Demand: {opp['market_demand_score']}/100")
         print(f"      • Pain Intensity: {opp['pain_intensity_score']}/100")
         print(f"      • Monetization: {opp['monetization_potential_score']}/100")
@@ -421,12 +419,12 @@ def print_opportunity_report(opportunities: List[Dict[str, Any]]):
         "✅ APPROVED" in o.get("validation_status", "✅ APPROVED") for o in opportunities
     )
 
-    print(f"\n✓ Problem-First Approach: Validated")
+    print("\n✓ Problem-First Approach: Validated")
     print(f"✓ 1-3 Function Constraint: {len(opportunities)}/{len(opportunities)} opportunities compliant")
-    print(f"✓ Monetization Models: All with defined revenue strategies")
-    print(f"✓ Reddit Evidence: All opportunities validated with community data")
-    print(f"✓ Technical Feasibility: All within 4-12 week development timeline")
-    print(f"✓ DLT Constraint Validation: Enabled (Phase 4)")
+    print("✓ Monetization Models: All with defined revenue strategies")
+    print("✓ Reddit Evidence: All opportunities validated with community data")
+    print("✓ Technical Feasibility: All within 4-12 week development timeline")
+    print("✓ DLT Constraint Validation: Enabled (Phase 4)")
     print(f"\n{'✅ SYSTEM VALIDATION: PASSED' if all_approved else '❌ SYSTEM VALIDATION: FAILED'}")
     print(f"\nSuccess Rate: 100% ({len(opportunities)}/{len(opportunities)} valid opportunities)")
 
@@ -451,7 +449,7 @@ def print_opportunity_report(opportunities: List[Dict[str, Any]]):
     print("\n" + "=" * 80)
 
 
-def save_results(opportunities: List[Dict[str, Any]], use_dlt: bool = False):
+def save_results(opportunities: list[dict[str, Any]], use_dlt: bool = False):
     """
     Save results to JSON file and optionally to Supabase via DLT.
 
@@ -477,14 +475,14 @@ def save_results(opportunities: List[Dict[str, Any]], use_dlt: bool = False):
     approved = [o for o in opportunities if not o.get("is_disqualified")]
     disqualified = [o for o in opportunities if o.get("is_disqualified")]
 
-    print(f"\nValidation Results (from generate_opportunity_scores):")
+    print("\nValidation Results (from generate_opportunity_scores):")
     print(f"  Total opportunities: {len(opportunities)}")
     print(f"  Approved: {len(approved)}")
     print(f"  Disqualified: {len(disqualified)}")
     print(f"  Compliance rate: {len(approved)/len(opportunities)*100:.1f}%")
 
     if disqualified:
-        print(f"\n⚠️  Disqualified Opportunities:")
+        print("\n⚠️  Disqualified Opportunities:")
         for opp in disqualified:
             print(f"  - {opp.get('app_name', 'Unknown')}: {opp.get('violation_reason', 'N/A')}")
 
@@ -549,9 +547,9 @@ def save_results(opportunities: List[Dict[str, Any]], use_dlt: bool = False):
             print(f"✓ {len(db_opportunities)} opportunities processed")
             print(f"✓ {len(approved)} opportunities loaded to Supabase")
             print(f"✓ {len(disqualified)} opportunities disqualified (not loaded)")
-            print(f"  - Table: app_opportunities")
-            print(f"  - Write mode: merge (deduplication enabled)")
-            print(f"  - Constraint validation: DLT-native (1-3 function rule)")
+            print("  - Table: app_opportunities")
+            print("  - Write mode: merge (deduplication enabled)")
+            print("  - Constraint validation: DLT-native (1-3 function rule)")
             print(f"  - Started: {load_info.started_at}")
 
         except Exception as e:
@@ -559,7 +557,7 @@ def save_results(opportunities: List[Dict[str, Any]], use_dlt: bool = False):
             print("   Results saved to JSON file only")
 
 
-def collect_real_problem_posts() -> List[Dict[str, Any]]:
+def collect_real_problem_posts() -> list[dict[str, Any]]:
     """
     Collect real problem posts from Reddit using DLT pipeline.
 
@@ -623,7 +621,7 @@ def main():
     print("=" * 80)
     print(f"Mode: {'DLT (Real Reddit Data)' if args.dlt_mode else 'Synthetic Data'}")
     print(f"Supabase Storage: {'Enabled' if args.store_supabase else 'JSON Only'}")
-    print(f"Constraint Validation: DLT-Native (1-3 Function Rule)")
+    print("Constraint Validation: DLT-Native (1-3 Function Rule)")
     print("=" * 80)
     print()
 

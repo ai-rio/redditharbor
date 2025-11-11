@@ -4,12 +4,13 @@ Test OpenRouter API with DeepSeek PAID model (not free)
 Verify full API functionality before implementing rate limiting
 """
 
+import json
 import os
 import sys
 import time
-import requests
-import json
 from pathlib import Path
+
+import requests
 
 # Add project root
 project_root = Path(__file__).parent
@@ -30,10 +31,10 @@ OPENROUTER_MODEL = "deepseek/deepseek-chat-v3.1"
 print("=" * 80)
 print("OPENROUTER + DEEPSEEK PAID MODEL TEST")
 print("=" * 80)
-print(f"\nConfiguration:")
+print("\nConfiguration:")
 print(f"  API Key: {OPENROUTER_API_KEY[:50]}...")
 print(f"  Model: {OPENROUTER_MODEL}")
-print(f"  Pricing: $0.0000002/1K prompt, $0.0000008/1K completion (very cheap!)")
+print("  Pricing: $0.0000002/1K prompt, $0.0000008/1K completion (very cheap!)")
 print()
 
 if not OPENROUTER_API_KEY:
@@ -69,7 +70,7 @@ Generate JSON with:
 
 JSON only, no explanation or markdown."""
 
-print(f"\nCalling DeepSeek API for insight generation...")
+print("\nCalling DeepSeek API for insight generation...")
 print(f"Title: {test_opportunity['title'][:60]}...")
 print()
 
@@ -106,7 +107,7 @@ try:
                 message = output[0].get('content', [])
                 if message and len(message) > 0:
                     text = message[0].get('text', '')
-                    print(f"\n📝 Generated Response:")
+                    print("\n📝 Generated Response:")
                     print("-" * 80)
                     print(text)
                     print("-" * 80)
@@ -117,10 +118,10 @@ try:
                     if json_match:
                         try:
                             insight = json.loads(json_match.group())
-                            print(f"\n✅ PARSED JSON:")
+                            print("\n✅ PARSED JSON:")
                             print(json.dumps(insight, indent=2))
 
-                            print(f"\n📋 INSIGHT BREAKDOWN:")
+                            print("\n📋 INSIGHT BREAKDOWN:")
                             print(f"  App Concept: {insight.get('app_concept')}")
                             functions = insight.get('core_functions', [])
                             print(f"  Core Functions ({len(functions)}):")

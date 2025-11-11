@@ -5,25 +5,30 @@ Uses the new enhanced collection functions from core/collection.py
 Targets all 73 subreddits across 6 market segments with enhanced metadata extraction
 """
 
-import sys
-from pathlib import Path
 import logging
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from redditharbor.login import reddit, supabase
+
 from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT,
-    SUPABASE_URL, SUPABASE_KEY, DB_CONFIG
+    DB_CONFIG,
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
 )
 from core.collection import (
-    collect_monetizable_opportunities_data,
-    collect_enhanced_comments,
+    ALL_TARGET_SUBREDDITS,
     TARGET_SUBREDDITS,
-    ALL_TARGET_SUBREDDITS
+    collect_enhanced_comments,
+    collect_monetizable_opportunities_data,
 )
 
 # Setup logging
@@ -44,7 +49,7 @@ def main():
         logger.info("="*80)
         logger.info(f"📊 Target: {len(ALL_TARGET_SUBREDDITS)} subreddits across 6 market segments")
         logger.info(f"🎯 Market Segments: {list(TARGET_SUBREDDITS.keys())}")
-        logger.info(f"🔍 Enhanced Features: sentiment analysis, problem extraction, solution tracking")
+        logger.info("🔍 Enhanced Features: sentiment analysis, problem extraction, solution tracking")
         logger.info("="*80)
 
         # Create clients
@@ -63,8 +68,8 @@ def main():
         limit_per_sort = 50  # 50 posts per sort type (hot, rising, top)
         time_filter = "month"  # Last month's top posts
 
-        logger.info(f"\n📝 Collection Parameters:")
-        logger.info(f"   - Sort types: hot, rising, top")
+        logger.info("\n📝 Collection Parameters:")
+        logger.info("   - Sort types: hot, rising, top")
         logger.info(f"   - Limit per sort: {limit_per_sort}")
         logger.info(f"   - Time filter: {time_filter}")
         logger.info(f"   - Expected submissions: ~{len(ALL_TARGET_SUBREDDITS) * 3 * limit_per_sort}")
@@ -100,7 +105,7 @@ def main():
                     logger.warning(f"⚠️  {segment_name} segment had some collection issues")
 
             except Exception as e:
-                logger.error(f"❌ {segment_name} segment failed: {str(e)}", exc_info=True)
+                logger.error(f"❌ {segment_name} segment failed: {e!s}", exc_info=True)
 
         # Now collect comments for all submissions
         logger.info(f"\n{'='*80}")
@@ -124,7 +129,7 @@ def main():
                 logger.warning("⚠️  Comment collection had some issues")
 
         except Exception as e:
-            logger.error(f"❌ Comment collection failed: {str(e)}", exc_info=True)
+            logger.error(f"❌ Comment collection failed: {e!s}", exc_info=True)
 
         # Final verification
         logger.info(f"\n{'='*80}")
@@ -155,7 +160,7 @@ def main():
             logger.info(f"👥 Total Redditors: {redditors_result.count}")
 
         except Exception as e:
-            logger.error(f"⚠️  Database verification error: {str(e)}")
+            logger.error(f"⚠️  Database verification error: {e!s}")
 
         logger.info(f"\n{'='*80}")
         logger.info("🎉 ENHANCED COLLECTION COMPLETE")
@@ -168,7 +173,7 @@ def main():
         return True
 
     except Exception as e:
-        logger.error(f"❌ Collection failed: {str(e)}", exc_info=True)
+        logger.error(f"❌ Collection failed: {e!s}", exc_info=True)
         return False
 
 if __name__ == "__main__":

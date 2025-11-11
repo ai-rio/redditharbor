@@ -21,10 +21,11 @@ Main Functions:
 """
 
 import sys
-import dlt
-from pathlib import Path
-from typing import List, Dict, Any, Optional
 import time
+from pathlib import Path
+from typing import Any
+
+import dlt
 
 # Add project root
 project_root = Path(__file__).parent.parent
@@ -36,7 +37,7 @@ import os
 # Manually read .env file
 env_file = project_root / '.env'
 if env_file.exists():
-    with open(env_file, 'r') as f:
+    with open(env_file) as f:
         for line in f:
             line = line.strip()
             if '=' in line and not line.startswith('#'):
@@ -101,7 +102,7 @@ def contains_problem_keywords(text: str, min_keywords: int = MIN_PROBLEM_KEYWORD
     return len(found_keywords) >= min_keywords
 
 
-def transform_submission_to_schema(submission_data: Dict[str, Any]) -> Dict[str, Any]:
+def transform_submission_to_schema(submission_data: dict[str, Any]) -> dict[str, Any]:
     """
     Transform Reddit API submission data to match Supabase schema.
 
@@ -141,11 +142,11 @@ def transform_submission_to_schema(submission_data: Dict[str, Any]) -> Dict[str,
 
 
 def collect_problem_posts(
-    subreddits: List[str],
+    subreddits: list[str],
     limit: int = 50,
     sort_type: str = "new",
     test_mode: bool = False
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Collect problem posts from specified subreddits.
 
@@ -168,23 +169,26 @@ def collect_problem_posts(
             "Looking for a tool to help with productivity",
             "Manual processes are so tedious and annoying"
         ]
-        # Use first subreddit for mock data
-        first_subreddit = subreddits[0] if subreddits else "test"
-        mock_submissions = [{
-            "id": f"test_{i}",
-            "title": problem_titles[i % len(problem_titles)],
-            "selftext": "This is frustrating and time consuming. I wish there was a better tool.",
-            "author": "test_user",
-            "created_utc": 1704067200 + i,
-            "subreddit": first_subreddit,
-            "score": 15,
-            "url": f"https://reddit.com/r/{first_subreddit}/comments/test_{i}",
-            "num_comments": 5,
-            "problem_keywords_found": ["struggle", "frustrating", "time consuming", "wish"]
-        } for i in range(limit)]
+        all_mock_submissions = []
+
+        # Generate limit posts per subreddit for testing
+        for subreddit_idx, subreddit_name in enumerate(subreddits):
+            mock_submissions = [{
+                "id": f"test_{subreddit_idx}_{i}",
+                "title": problem_titles[i % len(problem_titles)],
+                "selftext": "This is frustrating and time consuming. I wish there was a better tool.",
+                "author": "test_user",
+                "created_utc": 1704067200 + i + subreddit_idx * 1000,
+                "subreddit": subreddit_name,
+                "score": 15 + i,
+                "url": f"https://reddit.com/r/{subreddit_name}/comments/test_{subreddit_idx}_{i}",
+                "num_comments": 5 + i,
+                "problem_keywords_found": ["struggle", "frustrating", "time consuming", "wish"]
+            } for i in range(limit)]
+            all_mock_submissions.extend(mock_submissions)
 
         # Transform to schema format
-        return [transform_submission_to_schema(sub) for sub in mock_submissions]
+        return [transform_submission_to_schema(sub) for sub in all_mock_submissions]
 
     print(f"Collecting problem posts from {len(subreddits)} subreddits...")
     print(f"Limit: {limit} posts per subreddit")
@@ -261,7 +265,7 @@ def collect_problem_posts(
     return all_problem_posts
 
 
-def transform_comment_to_schema(comment_data: Dict[str, Any]) -> Dict[str, Any]:
+def transform_comment_to_schema(comment_data: dict[str, Any]) -> dict[str, Any]:
     """
     Transform Reddit API comment data to match Supabase schema.
 
@@ -303,11 +307,11 @@ def transform_comment_to_schema(comment_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def collect_post_comments(
-    submission_ids: List[str] | str,
-    reddit_client: Optional[praw.Reddit] = None,
+    submission_ids: list[str] | str,
+    reddit_client: praw.Reddit | None = None,
     merge_disposition: str = "merge",
-    state_key: Optional[str] = None
-) -> List[Dict[str, Any]] | bool:
+    state_key: str | None = None
+) -> list[dict[str, Any]] | bool:
     """
     Collect comments from Reddit submissions using DLT-compatible format.
 
@@ -446,7 +450,7 @@ def collect_post_comments(
     if all_comments:
         print(f"\n✓ Total comments collected: {len(all_comments)}")
         print(f"  - Merge disposition: {merge_disposition}")
-        print(f"  - Ready for DLT pipeline (use primary_key='comment_id')")
+        print("  - Ready for DLT pipeline (use primary_key='comment_id')")
         return all_comments
     else:
         print(f"\n⚠️  No comments collected from {len(submission_ids)} submission(s)")
@@ -469,7 +473,7 @@ def create_dlt_pipeline() -> dlt.Pipeline:
     return pipeline
 
 
-def load_to_supabase(problem_posts: List[Dict[str, Any]], write_mode: str = "merge") -> bool:
+def load_to_supabase(problem_posts: list[dict[str, Any]], write_mode: str = "merge") -> bool:
     """
     Load problem posts to Supabase using DLT.
 
@@ -519,7 +523,7 @@ def load_to_supabase(problem_posts: List[Dict[str, Any]], write_mode: str = "mer
         print("✓ Data loaded successfully!")
         print(f"  - Started: {load_info.started_at}")
         print(f"  - Write mode: {write_mode}")
-        print(f"  - Deduplication key: submission_id")
+        print("  - Deduplication key: submission_id")
 
         return True
 

@@ -6,9 +6,11 @@ Interactive dashboard showing AI-powered app opportunities from Reddit data.
 Displays opportunities with final scores >= 40.0
 """
 
-import marimo as mo
-from supabase import create_client
 import os
+
+import marimo as mo
+
+from supabase import create_client
 
 # Initialize Supabase client
 supabase = create_client(

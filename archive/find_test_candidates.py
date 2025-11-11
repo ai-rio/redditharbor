@@ -3,7 +3,9 @@
 Find more test candidates for problem-first approach
 """
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv('.env.local')
 import requests
 
@@ -66,10 +68,10 @@ if response.status_code == 200:
         print()
 
     if len(candidates) >= 2:
-        print(f"\n✅ RECOMMENDED TEST POSTS:")
+        print("\n✅ RECOMMENDED TEST POSTS:")
         print(f"   1. {candidates[0]['title'][:60]}...")
         print(f"   2. {candidates[1]['title'][:60]}...")
     else:
-        print(f"\n⚠️  Not enough candidates found")
-        print(f"   We already have '47 demos' post as a test case")
-        print(f"   Let's test it with problem-first approach")
+        print("\n⚠️  Not enough candidates found")
+        print("   We already have '47 demos' post as a test case")
+        print("   Let's test it with problem-first approach")

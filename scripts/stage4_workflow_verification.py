@@ -15,7 +15,6 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -72,7 +71,7 @@ class WorkflowVerifier:
             workflow_file = project_root / "generated" / "clean_slate_workflow_results.json"
             self.log(f"Loading workflow data from: {workflow_file}")
 
-            with open(workflow_file, "r") as f:
+            with open(workflow_file) as f:
                 self.workflow_data = json.load(f)
 
             opportunities = self.workflow_data.get("opportunities", [])

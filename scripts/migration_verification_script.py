@@ -21,15 +21,15 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from supabase import create_client, Client
-    from config.settings import SUPABASE_URL, SUPABASE_KEY
+    from config.settings import SUPABASE_KEY, SUPABASE_URL
+    from supabase import Client, create_client
 except ImportError as e:
     print(f"Error importing dependencies: {e}")
     print("Please ensure supabase-py is installed: pip install supabase")
@@ -41,7 +41,7 @@ class MigrationVerifier:
 
     def __init__(self, supabase_client: Client):
         self.client = supabase_client
-        self.results: Dict[str, Any] = {
+        self.results: dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "migration": "20251108000000_consolidate_schema_safe",
             "status": "PENDING",
@@ -74,7 +74,7 @@ class MigrationVerifier:
             # Try to select the column
             result = self.client.table(table_name).select(column_name).limit(1).execute()
             return True
-        except Exception as e:
+        except Exception:
             return False
 
     def check_foreign_key_integrity(
@@ -83,7 +83,7 @@ class MigrationVerifier:
         fk_column: str,
         ref_table: str,
         ref_column: str
-    ) -> Tuple[int, int, int]:
+    ) -> tuple[int, int, int]:
         """
         Check foreign key integrity.
 
@@ -109,7 +109,7 @@ class MigrationVerifier:
             )
             return -1, -1, -1
 
-    def verify_redditors_table(self) -> Dict[str, Any]:
+    def verify_redditors_table(self) -> dict[str, Any]:
         """Verify redditors table migration."""
         print("\n🔍 Verifying redditors table...")
         check = {
@@ -148,7 +148,7 @@ class MigrationVerifier:
 
         return check
 
-    def verify_submissions_table(self) -> Dict[str, Any]:
+    def verify_submissions_table(self) -> dict[str, Any]:
         """Verify submissions table migration."""
         print("\n🔍 Verifying submissions table...")
         check = {
@@ -213,7 +213,7 @@ class MigrationVerifier:
 
         return check
 
-    def verify_comments_table(self) -> Dict[str, Any]:
+    def verify_comments_table(self) -> dict[str, Any]:
         """Verify comments table migration."""
         print("\n🔍 Verifying comments table...")
         check = {
@@ -277,7 +277,7 @@ class MigrationVerifier:
 
         return check
 
-    def verify_opportunities_table(self) -> Dict[str, Any]:
+    def verify_opportunities_table(self) -> dict[str, Any]:
         """Verify opportunities table migration."""
         print("\n🔍 Verifying opportunities table...")
         check = {
@@ -311,7 +311,7 @@ class MigrationVerifier:
 
         return check
 
-    def verify_opportunity_scores_table(self) -> Dict[str, Any]:
+    def verify_opportunity_scores_table(self) -> dict[str, Any]:
         """Verify opportunity_scores table migration."""
         print("\n🔍 Verifying opportunity_scores table...")
         check = {
@@ -348,7 +348,7 @@ class MigrationVerifier:
 
         return check
 
-    def verify_workflow_results_table(self) -> Dict[str, Any]:
+    def verify_workflow_results_table(self) -> dict[str, Any]:
         """Verify workflow_results table exists."""
         print("\n🔍 Verifying workflow_results table...")
         check = {
@@ -372,7 +372,7 @@ class MigrationVerifier:
 
         return check
 
-    def run_verification(self) -> Dict[str, Any]:
+    def run_verification(self) -> dict[str, Any]:
         """Run complete verification suite."""
         print("=" * 70)
         print("MIGRATION VERIFICATION STARTING")

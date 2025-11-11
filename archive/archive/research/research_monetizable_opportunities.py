@@ -6,14 +6,13 @@ Implements comprehensive methodology for identifying and scoring monetizable
 app development opportunities from Reddit discussions.
 """
 
-import sys
-import os
-from pathlib import Path
-import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
 import json
+import logging
 import re
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -24,10 +23,10 @@ if str(project_root) not in sys.path:
 try:
     from redditharbor.dock.pipeline import collect
     from redditharbor.login import reddit, supabase
-    from core.setup import setup_redditharbor
-    from core.templates import run_project
 
     from config.settings import *
+    from core.setup import setup_redditharbor
+    from core.templates import run_project
 except ImportError as e:
     print(f"Warning: Could not import dependencies: {e}")
     # Define fallbacks
@@ -177,7 +176,7 @@ class OpportunityAnalyzer:
             }
         }
 
-    def calculate_opportunity_score(self, text: str, engagement_metrics: Dict[str, int]) -> Dict[str, float]:
+    def calculate_opportunity_score(self, text: str, engagement_metrics: dict[str, int]) -> dict[str, float]:
         """
         Calculate comprehensive opportunity score for a Reddit discussion
 
@@ -268,7 +267,7 @@ class OpportunityAnalyzer:
         else:
             return "Not Recommended"
 
-    def analyze_segment_opportunities(self, segment_name: str) -> Dict[str, Any]:
+    def analyze_segment_opportunities(self, segment_name: str) -> dict[str, Any]:
         """
         Analyze opportunities for a specific market segment
 
@@ -301,7 +300,7 @@ class OpportunityAnalyzer:
 
         return analysis_result
 
-    def generate_research_report(self, analyses: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def generate_research_report(self, analyses: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Generate comprehensive research report from segment analyses
 

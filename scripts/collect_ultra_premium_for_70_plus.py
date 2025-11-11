@@ -18,16 +18,17 @@ Collection Strategy:
 4. Focus on professional domains with business impact
 """
 
-import sys
-from pathlib import Path
-from datetime import datetime
 import logging
+import sys
+from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 from core.dlt_collection import collect_problem_posts
@@ -151,8 +152,8 @@ def collect_from_subreddit(subreddit_name, config, sort_type="top"):
 def main():
     """Main collection function for ultra-premium data gathering."""
     logger.info("🚀 Starting Ultra-Premium Reddit Data Collection for 70+ Opportunities")
-    logger.info(f"📊 Target: 1000+ posts from ultra-premium subreddits")
-    logger.info(f"🎯 Goal: Find 70+ score opportunities (unicorn apps)")
+    logger.info("📊 Target: 1000+ posts from ultra-premium subreddits")
+    logger.info("🎯 Goal: Find 70+ score opportunities (unicorn apps)")
 
     all_posts = []
     collection_summary = {}

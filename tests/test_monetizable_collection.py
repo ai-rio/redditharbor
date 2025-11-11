@@ -4,30 +4,30 @@ Test script for monetizable app research collection functionality
 This script validates the new collection capabilities for the monetizable app research methodology.
 """
 
-import sys
 import logging
-from unittest.mock import Mock, MagicMock
+import sys
+from unittest.mock import Mock
 
 # Add project root to path
 sys.path.insert(0, '/home/carlos/projects/redditharbor')
 
 from core.collection import (
-    TARGET_SUBREDDITS,
     ALL_TARGET_SUBREDDITS,
-    PROBLEM_KEYWORDS,
     MONETIZATION_KEYWORDS,
-    identify_market_segment,
-    extract_problem_keywords,
-    extract_workarounds,
-    detect_payment_mentions,
+    PROBLEM_KEYWORDS,
+    TARGET_SUBREDDITS,
     analyze_emotional_intensity,
-    calculate_sentiment_score,
     analyze_pain_language,
-    extract_problem_statements,
     analyze_sentiment_and_pain_intensity,
-    smart_rate_limiting,
-    collect_monetizable_opportunities_data,
+    calculate_sentiment_score,
     collect_for_opportunity_scoring,
+    collect_monetizable_opportunities_data,
+    detect_payment_mentions,
+    extract_problem_keywords,
+    extract_problem_statements,
+    extract_workarounds,
+    identify_market_segment,
+    smart_rate_limiting,
 )
 
 # Configure logging

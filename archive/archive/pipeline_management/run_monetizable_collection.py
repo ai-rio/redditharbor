@@ -4,11 +4,9 @@ RedditHarbor Monetizable App Research - Complete Data Collection
 Collects data from all 73 target subreddits across 6 market segments
 """
 
-import sys
-import os
-from pathlib import Path
 import logging
-from datetime import datetime
+import sys
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -37,12 +35,12 @@ def run_collection():
     try:
         # Import RedditHarbor components
         from redditharbor.login import reddit, supabase
-        from config.settings import DB_CONFIG
 
+        from config.settings import DB_CONFIG
         from core.collection import (
-            collect_monetizable_opportunities_data,
+            ALL_TARGET_SUBREDDITS,
             TARGET_SUBREDDITS,
-            ALL_TARGET_SUBREDDITS
+            collect_monetizable_opportunities_data,
         )
 
         # Verify connections
@@ -79,10 +77,10 @@ def run_collection():
 
         logger.info("")
         logger.info("Collection settings:")
-        logger.info(f"  - Posts per sort type: 100")
-        logger.info(f"  - Sort types: hot, rising, top")
-        logger.info(f"  - Time filter: month")
-        logger.info(f"  - PII anonymization: DISABLED (for testing)")
+        logger.info("  - Posts per sort type: 100")
+        logger.info("  - Sort types: hot, rising, top")
+        logger.info("  - Time filter: month")
+        logger.info("  - PII anonymization: DISABLED (for testing)")
         logger.info("")
         logger.info("=" * 80)
         logger.info("")

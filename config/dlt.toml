@@ -1,0 +1,163 @@
+# DLT Configuration for RedditHarbor
+# Production-ready configuration for Reddit data collection pipeline
+
+[normalize]
+# Data normalization settings
+enable_normalization = true
+max_nesting_levels = 5
+json_normalizer = "arrow"
+
+[validation]
+# Activity validation settings
+enable_activity_validation = true
+min_activity_threshold = 1
+max_inactive_days = 365
+validate_comment_activity = true
+validate_submission_activity = true
+
+[incremental]
+# Incremental loading configuration
+# Primary key columns for deduplication
+primary_keys = [
+    "submissions:id",
+    "comments:id",
+    "redditors:name"
+]
+
+# Cursor columns for incremental loading
+cursor_paths = [
+    "submissions:created_utc",
+    "comments:created_utc",
+    "redditors:created_utc"
+]
+
+# Merge strategy for incremental updates
+merge_strategy = "upsert"
+
+# Time-based partitioning for large datasets
+partition_by = "created_utc"
+partition_granularity = "month"
+
+[destination.postgres]
+# PostgreSQL destination configuration
+# These values will be overridden by environment variables
+connection_url = "${SUPABASE_DB_URL}"
+port = 5432
+schema_name = "public"
+dataset_name = "reddit_harbor"
+
+# Performance tuning
+batch_size = 1000
+max_parallel_loads = 4
+
+# Table configuration
+create_indexes = true
+vacuum_analyze = true
+
+[schema]
+# Schema evolution policies
+allow_new_columns = true
+allow_new_tables = true
+allow_column_type_changes = false
+detect_and_apply_schema_changes = true
+
+# Data quality enforcement
+enforce_not_null = true
+enforce_foreign_keys = false  # Reddit data may have missing references
+validate_data_types = true
+
+[performance]
+# Pipeline performance settings
+workers = 4
+max_rows_per_buffer = 100000
+buffer_size_mb = 256
+flush_interval_seconds = 30
+
+# Memory management
+enable_memory_profiling = false
+max_memory_usage_mb = 2048
+
+[logging]
+# Logging configuration
+log_level = "INFO"
+log_format = "json"
+include_traceback = true
+
+# Structured logging
+log_extraction_events = true
+log_normalize_events = true
+log_load_events = true
+
+[monitoring]
+# Pipeline monitoring
+track_pipeline_performance = true
+collect_execution_metrics = true
+metric_storage_backend = "file"
+
+# Alert thresholds
+error_rate_threshold = 0.1  # 10% error rate
+slow_query_threshold_seconds = 30
+memory_usage_threshold_percent = 85
+
+[retry]
+# Retry policy for failed operations
+max_retries = 3
+retry_delay_seconds = 5
+exponential_backoff = true
+jitter = true
+
+# Specific retry policies for different operations
+[retry.reddit_api]
+max_retries = 5
+initial_delay_seconds = 2
+max_delay_seconds = 60
+
+[retry.database]
+max_retries = 3
+initial_delay_seconds = 1
+max_delay_seconds = 30
+
+[pii]
+# PII (Personally Identifiable Information) handling
+enable_pii_detection = true
+anonymize_user_data = true
+hash_user_identifiers = true
+
+# PII detection patterns
+username_patterns = ["u/", "user/", "@"]
+email_patterns = ["@domain.com", "email:"]
+phone_patterns = ["phone:", "tel:"]
+
+# Retention policies
+retain_original_pii = false
+store_anonymized_only = true
+
+[reddit_api]
+# Reddit API specific configuration
+rate_limit_per_minute = 60
+rate_limit_per_second = 1
+respect_rate_limits = true
+
+# User agent configuration
+user_agent = "RedditHarbor/1.0.0 (Data Collection Pipeline)"
+
+# OAuth2 configuration
+oauth2_client_id = "${REDDIT_PUBLIC}"
+oauth2_client_secret = "${REDDIT_SECRET}"
+oauth2_user_agent = "${REDDIT_USER_AGENT}"
+
+[data_quality]
+# Data quality metrics and validation
+enable_quality_metrics = true
+track_data_freshness = true
+track_completeness = true
+track_accuracy = true
+
+# Quality thresholds
+min_completeness_percent = 95
+max_stale_data_days = 7
+validate_required_fields = true
+
+# Quality reporting
+generate_quality_reports = true
+quality_report_format = "json"

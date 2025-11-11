@@ -18,15 +18,13 @@ Tests that:
 """
 
 import json
-import tempfile
 import os
-from pathlib import Path
-from typing import List, Dict, Any
+import tempfile
 
 # Import all DLT constraint components
 from core.dlt.constraint_validator import app_opportunities_with_constraint
-from core.dlt.normalize_hooks import SimplicityConstraintNormalizeHandler
 from core.dlt.dataset_constraints import create_constraint_aware_dataset
+from core.dlt.normalize_hooks import SimplicityConstraintNormalizeHandler
 from scripts.dlt_opportunity_pipeline import validate_constraints_only
 
 # Sample test data with various function counts
@@ -123,7 +121,7 @@ def test_layer_1_resource_validation():
     validated = list(app_opportunities_with_constraint(TEST_OPPORTUNITIES))
 
     print(f"✓ Processed {len(validated)} opportunities")
-    print(f"✓ All have constraint metadata added")
+    print("✓ All have constraint metadata added")
 
     # Verify each opportunity
     approved = []
@@ -142,7 +140,7 @@ def test_layer_1_resource_validation():
             functions = opp.get('core_functions', 'N/A')
             print(f"  ❌ {opp['app_name']}: {status}, Score: {score}, Functions: {functions}")
 
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"   Total: {len(validated)}")
     print(f"   Approved: {len(approved)}")
     print(f"   Disqualified: {len(disqualified)}")
@@ -169,7 +167,7 @@ def test_layer_2_normalization_hooks():
 
     # Verify enforcement
     violations = [opp for opp in TEST_OPPORTUNITIES if opp.get('is_disqualified')]
-    print(f"\n📊 Normalization Summary:")
+    print("\n📊 Normalization Summary:")
     print(f"   Total: {stats['apps_processed']}")
     print(f"   Violations logged: {len(violations)}")
     for v in violations:
@@ -219,7 +217,7 @@ def test_layer_3_dataset_constraints():
         "compliance_rate": 60.0
     }
 
-    print(f"✓ Created violation tracking resource")
+    print("✓ Created violation tracking resource")
     print(f"✓ Generated compliance summary: {summary['compliance_rate']}% compliant")
 
     return dataset
@@ -233,17 +231,17 @@ def test_layer_4_script_integration():
     # Test the validation function
     results = validate_constraints_only(TEST_OPPORTUNITIES)
 
-    print(f"✓ Validation completed")
+    print("✓ Validation completed")
     print(f"✓ Total opportunities: {results['total_opportunities']}")
     print(f"✓ Approved: {results['approved_count']}")
     print(f"✓ Disqualified: {results['disqualified_count']}")
 
     # Show examples
-    print(f"\n📋 Approved Opportunities:")
+    print("\n📋 Approved Opportunities:")
     for opp in results['approved_opportunities']:
         print(f"  ✅ {opp['app_name']}: {opp['validation_status']}")
 
-    print(f"\n📋 Disqualified Opportunities:")
+    print("\n📋 Disqualified Opportunities:")
     for opp in results['disqualified_opportunities']:
         print(f"  ❌ {opp['app_name']}: {opp['validation_status']}")
 
@@ -262,7 +260,6 @@ def test_cli_validation():
         print(f"Created test data file: {temp_file}")
 
         # Import CLI
-        from dlt_cli import validate_constraints
         from click.testing import CliRunner
         from dlt_cli import cli
 
@@ -277,7 +274,7 @@ def test_cli_validation():
         ])
 
         print(f"\nExit code: {result.exit_code}")
-        print(f"\nOutput:")
+        print("\nOutput:")
         print(result.output)
 
         if result.exit_code == 0:

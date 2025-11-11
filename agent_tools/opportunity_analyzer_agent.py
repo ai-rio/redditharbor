@@ -4,21 +4,21 @@ RedditHarbor Opportunity Analysis Agent
 Automated tools for continuous opportunity analysis using the 5-dimensional methodology
 """
 
-import anyio
 import json
 import sys
-from pathlib import Path
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
+from pathlib import Path
+from typing import Any
+
+import anyio
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from claude_agent_sdk import tool, query, ClaudeAgentOptions
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_KEY, SUPABASE_URL
 from supabase import create_client
 
 
@@ -61,7 +61,7 @@ class OpportunityAnalyzerAgent:
             "simplicity_score": 0.20  # Methodology requirement: 1-3 function constraint
         }
 
-    def _calculate_final_score(self, scores: Dict[str, float]) -> float:
+    def _calculate_final_score(self, scores: dict[str, float]) -> float:
         """Calculate weighted final score using methodology formula"""
         final = (
             scores["market_demand"] * self.methodology_weights["market_demand"] +
@@ -86,7 +86,7 @@ class OpportunityAnalyzerAgent:
         else:
             return "❌ Not Recommended"
 
-    def analyze_opportunity(self, submission_data: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_opportunity(self, submission_data: dict[str, Any]) -> dict[str, Any]:
         """
         Analyze a single opportunity using the 5-dimensional scoring methodology.
 
@@ -142,7 +142,7 @@ class OpportunityAnalyzerAgent:
 
         return result
 
-    def _calculate_market_demand(self, text: str, engagement: Dict, subreddit: str) -> float:
+    def _calculate_market_demand(self, text: str, engagement: dict, subreddit: str) -> float:
         """Calculate Market Demand score (0-100)"""
         score = 0
 
@@ -168,7 +168,7 @@ class OpportunityAnalyzerAgent:
 
         return min(100, round(score, 2))
 
-    def _calculate_pain_intensity(self, text: str, comments: List[str]) -> float:
+    def _calculate_pain_intensity(self, text: str, comments: list[str]) -> float:
         """Calculate Pain Intensity score (0-100)"""
         score = 0
 
@@ -199,7 +199,7 @@ class OpportunityAnalyzerAgent:
 
         return min(100, round(score, 2))
 
-    def _calculate_monetization_potential(self, text: str, engagement: Dict) -> float:
+    def _calculate_monetization_potential(self, text: str, engagement: dict) -> float:
         """Calculate Monetization Potential score (0-100)"""
         score = 0
 
@@ -230,7 +230,7 @@ class OpportunityAnalyzerAgent:
 
         return min(100, round(score, 2))
 
-    def _calculate_market_gap(self, text: str, comments: List[str]) -> float:
+    def _calculate_market_gap(self, text: str, comments: list[str]) -> float:
         """Calculate Market Gap Analysis score (0-100)"""
         score = 0
 
@@ -280,8 +280,8 @@ class OpportunityAnalyzerAgent:
 
         return max(0, min(100, round(score, 2)))
 
-    
-    def batch_analyze_opportunities(self, submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+    def batch_analyze_opportunities(self, submissions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Analyze multiple opportunities in batch.
 
@@ -306,8 +306,8 @@ class OpportunityAnalyzerAgent:
 
         return results
 
-    
-    def get_top_opportunities(self, min_score: float = 70, limit: int = 10) -> List[Dict[str, Any]]:
+
+    def get_top_opportunities(self, min_score: float = 70, limit: int = 10) -> list[dict[str, Any]]:
         """
         Retrieve top opportunities from database based on score.
 
@@ -328,8 +328,8 @@ class OpportunityAnalyzerAgent:
             print(f"Error retrieving opportunities: {e}")
             return []
 
-    
-    def generate_validation_report(self, opportunity_id: str) -> Dict[str, Any]:
+
+    def generate_validation_report(self, opportunity_id: str) -> dict[str, Any]:
         """
         Generate validation report for an opportunity.
 
@@ -371,8 +371,8 @@ class OpportunityAnalyzerAgent:
 
         return validation_status
 
-    
-    def track_business_metrics(self) -> Dict[str, Any]:
+
+    def track_business_metrics(self) -> dict[str, Any]:
         """
         Calculate and return current business metrics from the methodology.
 
@@ -397,8 +397,8 @@ class OpportunityAnalyzerAgent:
 
         return metrics
 
-    
-    def continuous_analysis(self, duration_minutes: int = 60) -> Dict[str, Any]:
+
+    def continuous_analysis(self, duration_minutes: int = 60) -> dict[str, Any]:
         """
         Run continuous opportunity analysis for a specified duration.
 

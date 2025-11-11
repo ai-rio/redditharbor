@@ -50,8 +50,8 @@ def show_selections(subreddit, metric):
 
 @app.cell
 def interactive_chart():
-    import pandas as pd
     import altair as alt
+    import pandas as pd
 
     data = pd.DataFrame({
         'metric': ['Posts', 'Comments', 'Engagement', 'Activity'],

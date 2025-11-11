@@ -17,18 +17,17 @@ Expected output:
 """
 
 import sys
-import time
 from pathlib import Path
-from typing import Optional
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_KEY, SUPABASE_URL
 from supabase import create_client
 
 
@@ -43,7 +42,7 @@ def run_migration(migration_path: str) -> bool:
         True if successful, False otherwise
     """
     try:
-        with open(migration_path, 'r') as f:
+        with open(migration_path) as f:
             sql = f.read()
 
         # Split by semicolon but preserve multi-line statements
@@ -122,7 +121,7 @@ def verify_tables_and_functions() -> bool:
             error_msg = str(e).lower()
             # Function should exist even if no data
             if 'function' in error_msg or 'does not exist' in error_msg.lower():
-                print(f"✗ get_opportunities_with_metrics() function not found")
+                print("✗ get_opportunities_with_metrics() function not found")
                 return False
             else:
                 print("✓ get_opportunities_with_metrics() function exists")
@@ -184,7 +183,7 @@ def refresh_all_metrics(dry_run: bool = False) -> int:
                 if error_count <= 5:  # Show first 5 errors only
                     print(f"  ⚠️  {submission_id[:8]}... error: {str(e)[:50]}")
 
-        print(f"\n✓ Metrics refresh complete!")
+        print("\n✓ Metrics refresh complete!")
         print(f"  Success: {success_count}/{len(submissions)}")
         if error_count > 0:
             print(f"  Errors: {error_count}")
@@ -211,18 +210,18 @@ def main():
         print(f"✗ Migration file not found: {migration_file}")
         return False
 
-    print(f"\nStep 1: Apply migration")
+    print("\nStep 1: Apply migration")
     if not run_migration(str(migration_file)):
         print("✗ Migration failed. Exiting.")
         return False
 
     # Step 2: Verify setup
-    print(f"\nStep 2: Verify migration")
+    print("\nStep 2: Verify migration")
     if not verify_tables_and_functions():
         print("⚠️  Some components may be missing. Continuing anyway...")
 
     # Step 3: Refresh metrics
-    print(f"\nStep 3: Refresh metrics for existing submissions")
+    print("\nStep 3: Refresh metrics for existing submissions")
     print("(This may take a few minutes for large datasets)")
     refresh_count = refresh_all_metrics(dry_run=False)
 
@@ -230,16 +229,16 @@ def main():
     print("\n" + "="*80)
     print("INITIALIZATION SUMMARY")
     print("="*80)
-    print(f"\n✓ Problem metrics system initialized successfully!")
-    print(f"\nNext steps:")
-    print(f"1. Run batch scoring: python scripts/batch_opportunity_scoring.py")
-    print(f"   (Metrics will be automatically refreshed for new opportunities)")
-    print(f"\n2. View dashboards with metrics:")
-    print(f"   - Main: marimo run marimo_notebooks/opportunity_dashboard_fixed.py")
-    print(f"   - Interactive: marimo run marimo_notebooks/opportunity_dashboard_reactive.py")
-    print(f"   - High-score: marimo run marimo_notebooks/ultra_rare_dashboard.py")
-    print(f"\n3. Manually refresh metrics anytime:")
-    print(f"   SELECT refresh_problem_metrics('submission-uuid');")
+    print("\n✓ Problem metrics system initialized successfully!")
+    print("\nNext steps:")
+    print("1. Run batch scoring: python scripts/batch_opportunity_scoring.py")
+    print("   (Metrics will be automatically refreshed for new opportunities)")
+    print("\n2. View dashboards with metrics:")
+    print("   - Main: marimo run marimo_notebooks/opportunity_dashboard_fixed.py")
+    print("   - Interactive: marimo run marimo_notebooks/opportunity_dashboard_reactive.py")
+    print("   - High-score: marimo run marimo_notebooks/ultra_rare_dashboard.py")
+    print("\n3. Manually refresh metrics anytime:")
+    print("   SELECT refresh_problem_metrics('submission-uuid');")
 
     print("\n" + "="*80 + "\n")
     return True

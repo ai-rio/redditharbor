@@ -5,15 +5,17 @@ Create comment table and populate with comments from existing submissions
 TIME CRITICAL: Must solve the 0 comments issue immediately
 """
 
+import json
+import logging
 import sys
 import time
-import logging
+from datetime import datetime
 from pathlib import Path
-from datetime import datetime, timedelta
+
 import praw
-from supabase import create_client, Client
 import requests
-import json
+
+from supabase import Client, create_client
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -29,7 +31,13 @@ logger = logging.getLogger(__name__)
 def setup_connections():
     """Setup direct connections"""
     try:
-        from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT, SUPABASE_URL, SUPABASE_KEY
+        from config.settings import (
+            REDDIT_PUBLIC,
+            REDDIT_SECRET,
+            REDDIT_USER_AGENT,
+            SUPABASE_KEY,
+            SUPABASE_URL,
+        )
 
         # Reddit connection
         reddit = praw.Reddit(
@@ -156,7 +164,7 @@ def collect_and_store_comments_memory_fallback(reddit, supabase: Client):
                         all_comments.append(comment_data)
                         comment_count += 1
 
-                    except Exception as e:
+                    except Exception:
                         continue
 
                 logger.info(f"    ✅ Collected {comment_count} comments")
@@ -307,7 +315,7 @@ def main():
             print("\n🎉 CRITICAL ISSUE RESOLVED!")
             print("💬 Comments have been collected and are available for analysis")
             print("📊 Opportunity analysis has been generated")
-            print(f"💾 Data saved to:")
+            print("💾 Data saved to:")
             print(f"   • {project_root}/collected_comments.json")
             print(f"   • {project_root}/comments_summary.json")
             print(f"   • {project_root}/immediate_opportunities.json")

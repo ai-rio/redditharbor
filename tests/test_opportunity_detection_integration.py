@@ -13,29 +13,27 @@ Tests verify:
 8. Integration between scoring and profiling components
 """
 
-import sys
-import pytest
 import json
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
+import sys
 from datetime import datetime
-from typing import Dict, List, Any
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import modules to test
-from scripts.batch_opportunity_scoring import (
-    process_batch,
-    map_subreddit_to_sector,
-    format_submission_for_agent,
-    prepare_analysis_for_storage,
-    load_scores_to_supabase_via_dlt,
-    SECTOR_MAPPING,
-)
 from agent_tools.llm_profiler import LLMProfiler
-from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from scripts.batch_opportunity_scoring import (
+    format_submission_for_agent,
+    load_scores_to_supabase_via_dlt,
+    map_subreddit_to_sector,
+    prepare_analysis_for_storage,
+    process_batch,
+)
 
 
 class TestDatabaseOperations:
