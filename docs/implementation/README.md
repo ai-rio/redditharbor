@@ -42,6 +42,10 @@ The `implementation/` directory contains comprehensive documentation of RedditHa
 
 ### 🏗️ Additional Implementation Documentation
 
+#### Recent File Organization Updates
+- **[dlt-fix-summary.txt](./dlt-fix-summary.txt)** - DLT system fix and optimization summary
+- **[dlt-pipeline-bug-fix-report.md](./dlt-pipeline-bug-fix-report.md)** - Complete DLT pipeline bug fix documentation
+
 #### Migration Summaries
 - **[migration-summary-final-system-test.md](./migration-summary-final-system-test.md)** - Final system test migration details
 - **[migration-quick-reference.md](./migration-quick-reference.md)** - Quick reference for migrations

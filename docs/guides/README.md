@@ -10,6 +10,7 @@
 ### Getting Started
 
 - **[Quick Start](./quickstart.md)** - Quick start guide for RedditHarbor
+- **[Quick Fix Guide](./quick-fix-guide.md)** - Troubleshooting and quick fixes for common issues
 - **[Setup Guide Root](./setup-guide-root.md)** - Complete multi-project setup instructions from root level
 - **[Integration Complete](./integration-complete.md)** - Marimo integration and dashboard documentation
 - **[Research Types](./research-types.md)** - Comprehensive research capabilities overview

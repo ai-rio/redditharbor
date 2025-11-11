@@ -51,11 +51,23 @@ collector.store_to_database(data, database_url="your_db_url")
 ### Core Documentation
 
 - **[API Reference](./api/README.md)** - Complete API documentation and function reference
-- **[Component Guide](./components/README.md)** - Detailed component documentation
+- **[Component Guide](./components/README.md)** - Reusable UI components and modular system architecture
 - **[User Guides](./guides/README.md)** - Step-by-step tutorials and how-to guides
 - **[Architecture](./architecture/README.md)** - System design and architecture decisions
-- **[Testing Reports](./reports/README.md)** - Comprehensive testing and validation reports
+- **[Technical Specifications](./technical/README.md)** - System architecture, deployment guides, and technical specifications
+- **[Testing Reports](./test-results/README.md)** - Comprehensive testing results, quality metrics, and validation reports
 - **[Implementation](./implementation/README.md)** - Technical implementation and migration documentation
+
+### Business & Strategy
+
+- **[Business Strategy](./business/README.md)** - Strategic planning, monetization, and market positioning
+- **[Planning & Roadmaps](./plans/README.md)** - Strategic plans, development roadmaps, and project timelines
+- **[Bias Analysis](./bias/README.md)** - System bias detection, function count diagnosis, and optimization
+
+### Resources & Examples
+
+- **[Examples & Usage Patterns](./examples/README.md)** - Practical examples and implementation patterns
+- **[Assets & Visual Resources](./assets/README.md)** - Diagrams, examples, and images for documentation
 
 ### Setup & Verification
 
