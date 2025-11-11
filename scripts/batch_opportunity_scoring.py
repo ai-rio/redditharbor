@@ -324,13 +324,13 @@ def prepare_analysis_for_storage(
     # Extract dimension scores
     scores = analysis.get("dimension_scores", {})
 
-    # Extract core functions from analysis
+    # Extract core functions from analysis (now always available)
     core_functions = analysis.get("core_functions", [])
     if isinstance(core_functions, list):
         function_count = len(core_functions)
         function_list = core_functions
     else:
-        # Fallback for old format
+        # Fallback for unexpected format
         function_count = core_functions if isinstance(core_functions, int) else 1
         function_list = [f"Core function {i+1}" for i in range(function_count)]
 

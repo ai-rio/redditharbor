@@ -129,6 +129,9 @@ class OpportunityAnalyzerAgent:
         final_score = self._calculate_final_score(scores)
         priority = self._get_priority(final_score)
 
+        # Generate core functions based on analysis
+        core_functions = self._generate_core_functions(text, final_score)
+
         result = {
             "opportunity_id": submission_data.get("id", "unknown"),
             "title": submission_data.get("title", "")[:100],
@@ -137,6 +140,8 @@ class OpportunityAnalyzerAgent:
             "final_score": final_score,
             "priority": priority,
             "weights": self.methodology_weights,
+            "core_functions": core_functions,
+            "function_count": len(core_functions),
             "timestamp": datetime.now().isoformat()
         }
 
@@ -279,6 +284,68 @@ class OpportunityAnalyzerAgent:
         score -= api_count * 5
 
         return max(0, min(100, round(score, 2)))
+
+    def _generate_core_functions(self, text: str, final_score: float) -> list[str]:
+        """
+        Generate 1-3 core functions based on the text analysis and score.
+
+        This ensures every opportunity has the required function_list for database storage.
+        The functions are derived from the problem domain and solution indicators in the text.
+
+        Args:
+            text: The submission text to analyze for function hints
+            final_score: The calculated opportunity score (affects function complexity)
+
+        Returns:
+            List of 1-3 core function descriptions
+        """
+        text_lower = text.lower()
+        functions = []
+
+        # Analyze problem domain to suggest primary function
+        if any(word in text_lower for word in ["track", "monitor", "measure", "analytics", "dashboard"]):
+            functions.append("Data tracking and analytics")
+        elif any(word in text_lower for word in ["manage", "organize", "plan", "schedule", "coordinate"]):
+            functions.append("Task and resource management")
+        elif any(word in text_lower for word in ["connect", "sync", "integrate", "link", "bridge"]):
+            functions.append("System integration and synchronization")
+        elif any(word in text_lower for word in ["find", "search", "discover", "recommend", "suggest"]):
+            functions.append("Smart search and recommendations")
+        elif any(word in text_lower for word in ["automate", "automatic", "schedule", "trigger", "workflow"]):
+            functions.append("Automation and workflow management")
+        elif any(word in text_lower for word in ["share", "collaborate", "team", "group", "social"]):
+            functions.append("Collaboration and sharing")
+        elif any(word in text_lower for word in ["budget", "cost", "price", "payment", "billing"]):
+            functions.append("Financial management and billing")
+        elif any(word in text_lower for word in ["learn", "teach", "training", "education", "tutorial"]):
+            functions.append("Learning and education platform")
+        elif any(word in text_lower for word in ["health", "fitness", "wellness", "exercise", "diet"]):
+            functions.append("Health and wellness tracking")
+        elif any(word in text_lower for word in ["build", "create", "design", "develop", "make"]):
+            functions.append("Content creation and design tools")
+        else:
+            functions.append("Core problem-solving functionality")
+
+        # Add secondary functions based on complexity and score
+        if final_score >= 70 and len(functions) < 3:
+            # High-scoring opportunities can handle more complexity
+            if any(word in text_lower for word in ["report", "analyze", "insight", "visualization"]):
+                if len(functions) < 3:
+                    functions.append("Reporting and insights")
+            elif any(word in text_lower for word in ["mobile", "phone", "ios", "android", "app"]):
+                if len(functions) < 3:
+                    functions.append("Mobile access and notifications")
+            elif any(word in text_lower for word in ["api", "integrations", "connectors", "extensions"]):
+                if len(functions) < 3:
+                    functions.append("API and third-party integrations")
+
+        # Add user management function for higher scores if not already present
+        if final_score >= 60 and len(functions) < 3:
+            if not any("user" in func.lower() or "account" in func.lower() for func in functions):
+                functions.append("User account management")
+
+        # Ensure we have 1-3 functions (database constraint)
+        return functions[:3] if functions else ["Core functionality"]
 
 
     def batch_analyze_opportunities(self, submissions: list[dict[str, Any]]) -> list[dict[str, Any]]:
