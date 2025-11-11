@@ -434,6 +434,10 @@ db_dumps/
 full_dump.sql
 schema.sql
 
+# Schema dumps (keep script, ignore generated dumps)
+schema_dumps/*.sql
+schema_dumps/*.sql.backup
+
 # =============================================================================
 # END OF .GITIGNORE
 # =============================================================================
