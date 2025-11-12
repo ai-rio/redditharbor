@@ -37,6 +37,7 @@ SCRIPTS_DIR = "scripts"
 DATA_DIR = "data"
 REPORTS_DIR = "reports"
 LOGS_DIR = "error_log"
+VENV_PYTHON = str(project_root / ".venv" / "bin" / "python")
 
 # Ensure directories exist
 for dir_path in [DATA_DIR, REPORTS_DIR, LOGS_DIR]:
@@ -52,7 +53,7 @@ def task_collect_reddit_data():
     """
     return {
         'doc': 'Collect Reddit posts and comments using PRAW API',
-        'actions': [f'python {SCRIPTS_DIR}/collect_reddit_data.py'],
+        'actions': [f'{VENV_PYTHON} {SCRIPTS_DIR}/collect_reddit_data.py'],
         'file_dep': [
             f'{SCRIPTS_DIR}/collect_reddit_data.py',
             'core/collection.py',
@@ -71,7 +72,7 @@ def task_analyze_opportunities():
     """
     return {
         'doc': 'Analyze Reddit data for business opportunities using AI',
-        'actions': [f'python {SCRIPTS_DIR}/analyze_opportunities.py'],
+        'actions': [f'{VENV_PYTHON} {SCRIPTS_DIR}/analyze_opportunities.py'],
         'file_dep': [
             f'{SCRIPTS_DIR}/analyze_opportunities.py',
             'agent_tools/opportunity_analyzer_agent.py',
@@ -90,7 +91,7 @@ def task_generate_reports():
     """
     return {
         'doc': 'Generate professional reports from opportunity analysis',
-        'actions': [f'python {SCRIPTS_DIR}/generate_reports.py'],
+        'actions': [f'{VENV_PYTHON} {SCRIPTS_DIR}/generate_reports.py'],
         'file_dep': [
             f'{SCRIPTS_DIR}/generate_reports.py',
             'config/settings.py'
@@ -108,7 +109,7 @@ def task_run_full_pipeline():
     """
     return {
         'doc': 'Run complete RedditHarbor pipeline: collect → analyze → report',
-        'actions': [f'python {SCRIPTS_DIR}/run_pipeline.py'],
+        'actions': [f'python3 {SCRIPTS_DIR}/run_pipeline.py'],
         'file_dep': [
             f'{SCRIPTS_DIR}/run_pipeline.py',
             f'{SCRIPTS_DIR}/collect_reddit_data.py',
@@ -134,7 +135,7 @@ def task_clean_database():
     """
     return {
         'doc': 'Clean all data from database for fresh pipeline run',
-        'actions': [f'python {SCRIPTS_DIR}/clean_database_slate.py'],
+        'actions': [f'python3 {SCRIPTS_DIR}/clean_database_slate.py'],
         'file_dep': [
             f'{SCRIPTS_DIR}/clean_database_slate.py',
             'config/settings.py'
@@ -197,7 +198,7 @@ def task_run_tests():
     """
     return {
         'doc': 'Run pytest test suite',
-        'actions': ['uv run pytest tests/ -v'],
+        'actions': [f'{VENV_PYTHON} -m pytest tests/ -v'],
         'file_dep': [
             'tests/',
             'core/',
@@ -213,8 +214,8 @@ def task_lint_code():
     return {
         'doc': 'Run ruff linting and formatting',
         'actions': [
-            'uv run ruff check .',
-            'uv run ruff format .'
+            f'{VENV_PYTHON} -m ruff check .',
+            f'{VENV_PYTHON} -m ruff format .'
         ],
         'file_dep': [
             'core/',
@@ -248,7 +249,7 @@ def task_test_batch_scoring():
     """Test batch opportunity scoring on small dataset"""
     return {
         'doc': 'Test batch opportunity scoring with small dataset',
-        'actions': ['SCORE_THRESHOLD=25.0 python scripts/batch_opportunity_scoring.py'],
+        'actions': ['SCORE_THRESHOLD=25.0 python3 scripts/batch_opportunity_scoring.py'],
         'file_dep': [
             'scripts/batch_opportunity_scoring.py',
             'agent_tools/opportunity_analyzer_agent.py',
@@ -264,7 +265,7 @@ def task_full_scale_collection():
     """
     return {
         'doc': 'Run full-scale Reddit data collection with DLT',
-        'actions': ['python scripts/full_scale_collection.py'],
+        'actions': ['python3 scripts/full_scale_collection.py'],
         'file_dep': [
             'scripts/full_scale_collection.py',
             'core/dlt_reddit_source.py',
@@ -288,7 +289,7 @@ def task_qa_function_distribution():
     """
     return {
         'doc': 'QA: Check function count distribution for bias detection',
-        'actions': ['python scripts/qa_function_count_distribution.py'],
+        'actions': ['python3 scripts/qa_function_count_distribution.py'],
         'file_dep': [
             'scripts/qa_function_count_distribution.py'
         ],
@@ -302,7 +303,7 @@ def task_e2e_test():
     """
     return {
         'doc': 'Run end-to-end pipeline test with small batch',
-        'actions': ['python scripts/e2e_test_small_batch.py'],
+        'actions': ['python3 scripts/e2e_test_small_batch.py'],
         'file_dep': [
             'scripts/e2e_test_small_batch.py',
             'core/',

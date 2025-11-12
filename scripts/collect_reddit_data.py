@@ -18,7 +18,7 @@ from typing import List, Dict, Any
 sys.path.append(str(Path(__file__).parent.parent))
 
 from supabase import create_client
-from config.settings import SUPABASE_URL, SUPABASE_KEY
+from config.settings import SUPABASE_URL, SUPABASE_KEY, REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 import praw
 from praw.models import Submission
 
@@ -34,9 +34,9 @@ class RedditDataCollector:
         """Initialize Reddit API client"""
         try:
             self.reddit = praw.Reddit(
-                client_id=os.getenv('REDDIT_CLIENT_ID'),
-                client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
-                user_agent='RedditHarbor/1.0 Data Collection Pipeline'
+                client_id=REDDIT_PUBLIC,
+                client_secret=REDDIT_SECRET,
+                user_agent=REDDIT_USER_AGENT
             )
             print("✅ Reddit API client initialized")
         except Exception as e:
