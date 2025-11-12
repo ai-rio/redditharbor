@@ -81,12 +81,14 @@ class LLMProfiler:
 
 Generate a JSON response with exactly these fields:
 
-1. **problem_description** (1-2 sentences): The core problem or pain point expressed
-2. **app_concept** (2-3 sentences): Specific app idea that solves this problem
-3. **core_functions** (array of 1-3 strings): The MINIMUM number of specific, actionable functions needed to solve the core problem
-4. **value_proposition** (1-2 sentences): Why users need this, what benefit they get
-5. **target_user** (1 sentence): Primary user persona
-6. **monetization_model** (1 sentence): Recommended revenue model with pricing
+1. **app_name** (1-3 words): Short, catchy name for the app
+2. **problem_description** (1-2 sentences): The core problem or pain point expressed
+3. **app_concept** (2-3 sentences): Specific app idea that solves this problem
+4. **core_functions** (array of 1-3 strings): The MINIMUM number of specific, actionable functions needed to solve the core problem
+5. **value_proposition** (1-2 sentences): Why users need this, what benefit they get
+6. **target_user** (1 sentence): Primary user persona
+7. **monetization_model** (1 sentence): Recommended revenue model with pricing
+8. **final_score** (number 0-100): Overall opportunity score based on market potential
 
 **Critical Rules:**
 - Be SPECIFIC. No generic functions like "Core function 1" or "User management"
@@ -164,12 +166,14 @@ Return ONLY valid JSON, no markdown, no explanation."""
 
             # Validate required fields
             required = [
+                "app_name",
                 "problem_description",
                 "app_concept",
                 "core_functions",
                 "value_proposition",
                 "target_user",
-                "monetization_model"
+                "monetization_model",
+                "final_score"
             ]
 
             for field in required:
