@@ -18,6 +18,9 @@ REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "project:RedditHarbor (by /u/
 SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your_supabase_service_role_key_here")
 
+# Error Log Configuration
+ERROR_LOG_DIR = "error_log"
+
 # Remote Supabase (if needed for production/deployment)
 # SUPABASE_URL = "https://<your-supabase-project>.supabase.co"
 # SUPABASE_KEY = "<your-supabase-service-role-key>"
