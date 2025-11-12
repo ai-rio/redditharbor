@@ -1,218 +1,122 @@
-# 🚀 RedditHarbor Clean Pipeline Scripts
+# RedditHarbor Scripts
 
-<div style="display: flex; gap: 10px; margin-bottom: 20px;">
-  <span style="background-color: #FF6B35; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">CLEAN PIPELINE</span>
-  <span style="background-color: #004E89; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">4-SCRIPT ARCHITECTURE</span>
-  <span style="background-color: #F7B801; color: #1A1A1A; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">PRODUCTION READY</span>
-</div>
+This directory contains all RedditHarbor scripts organized by function and purpose.
 
-**Updated:** 2025-11-11
-**Architecture:** Clean 4-Script Pipeline
-**Status:** ✅ Production Ready
+## 🚀 Quick Start
 
----
-
-## 🎯 **Pipeline Overview**
-
-RedditHarbor's clean pipeline architecture provides a streamlined, maintainable approach to Reddit data collection and AI opportunity analysis. Each script has a single responsibility and clear data flow.
-
-### **Data Flow Architecture**
-```
-Reddit API → collect_reddit_data.py → Database submissions table → analyze_opportunities.py → Database app_opportunities table → generate_reports.py → Clean reports output → run_pipeline.py (orchestrates all)
+### Main Pipeline (Recommended)
+```bash
+# Run the complete DLT + Trust Layer pipeline
+python dlt/dlt_trust_pipeline.py --subreddits personalfinance investing --limit 10
 ```
 
----
+### Core Operations
+```bash
+# Collect Reddit data
+python core/collect_reddit_data.py
 
-## 📋 **Core Scripts**
+# Analyze opportunities with AI
+python core/batch_opportunity_scoring.py
 
-### **1. collect_reddit_data.py** - `Script 1 of 4`
-**Purpose:** Reddit API → Database submissions table
-**Single Responsibility:** Collect and store Reddit submission data
+# Apply trust validation
+python trust/trust_layer_integration.py
+```
+
+## 📁 Directory Structure
+
+### Essential Scripts (DO NOT MOVE)
+- **`core/`** - Essential system scripts
+- **`dlt/`** - DLT pipeline scripts
+- **`trust/`** - Trust validation scripts
+
+### Support Scripts
+- **`analysis/`** - Data analysis and reporting
+- **`testing/`** - Testing and validation
+- **`database/`** - Database maintenance
+- **`collection/`** - Data collection utilities
+
+### Archive
+- **`archive/`** - Deprecated or one-time scripts
+
+## 📋 Script Categories
+
+| Category | Purpose | Scripts |
+|----------|---------|---------|
+| **Core** | Essential system operation | 3 scripts |
+| **DLT** | Data pipeline processing | 9 scripts |
+| **Trust** | Credibility validation | 2 scripts |
+| **Analysis** | Data analysis | 1 script |
+| **Testing** | Validation | 2 scripts |
+| **Database** | Maintenance | 1 script |
+| **Archive** | Deprecated | 2 scripts |
+
+## 🎯 Recommended Workflows
+
+### 1. Complete Pipeline (New Data)
+```bash
+python dlt/dlt_trust_pipeline.py
+```
+
+### 2. Trust Validation Only (Existing Data)
+```bash
+python trust/trust_layer_integration.py
+```
+
+### 3. Analysis and Reporting
+```bash
+python analysis/generate_reports.py
+```
+
+### 4. Testing
+```bash
+python testing/analyze_opportunities.py
+python dlt/test_trust_validation_real.py
+```
+
+## ⚙️ Configuration
+
+Most scripts use configuration from `config/settings.py`:
+- `DLT_MIN_ACTIVITY_SCORE`: Activity validation threshold (25.0)
+- `DEFAULT_SUBREDDITS`: Target subreddits for collection
+- Reddit API credentials in `.env` file
+
+## 🔧 Environment Setup
 
 ```bash
-# Collect data from default subreddits
-python scripts/run_pipeline.py --stage collection
+# Activate virtual environment
+source .venv/bin/activate
 
-# Collect with custom limits
-python scripts/run_pipeline.py --stage collection --collection-limit 25
+# Ensure dependencies are installed
+uv sync
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Reddit API credentials
 ```
 
-**Key Features:**
-- Rate limiting and error recovery
-- PII anonymization compliance
-- Configurable subreddit targeting
-- Metadata enrichment (upvotes, comments, timestamps)
+## 📊 System Status
+
+Last organized: 2025-11-12 13:34:10
+
+- **Total Scripts**: 21
+- **Essential Scripts**: 14
+- **Support Scripts**: 5
+- **Archived Scripts**: 2
+
+## 🚨 Important Notes
+
+1. **Core scripts should never be moved** - they are integrated into the system
+2. **DLT scripts require proper setup** - ensure Supabase is running locally
+3. **Trust layer requires Reddit API** - valid credentials needed
+4. **Archive scripts are deprecated** - use only for reference
+
+## 📚 Documentation
+
+For more detailed information:
+- See individual subdirectory README files
+- Check `docs/guides/` for comprehensive guides
+- Review `config/settings.py` for configuration options
 
 ---
 
-### **2. analyze_opportunities.py** - `Script 2 of 4`
-**Purpose:** Database submissions → LLM profiler → Database app_opportunities table
-**Single Responsibility:** AI-powered opportunity analysis
-
-```bash
-# Analyze submissions with AI
-python scripts/run_pipeline.py --stage analysis
-
-# Custom analysis parameters
-python scripts/run_pipeline.py --stage analysis --analysis-limit 50 --min-score 40.0
-```
-
-**Key Features:**
-- Claude Haiku AI analysis via OpenRouter
-- High-quality app concept generation
-- Structured opportunity scoring (0-100)
-- Specific function identification (1-3 core functions)
-
----
-
-### **3. generate_reports.py** - `Script 3 of 4`
-**Purpose:** Database app_opportunities → Clean reports output
-**Single Responsibility:** Generate comprehensive AI opportunity reports
-
-```bash
-# Generate reports from AI profiles
-python scripts/run_pipeline.py --stage reporting
-
-# Custom report generation
-python scripts/run_pipeline.py --stage reporting --reporting-limit 10 --min-score 50.0
-```
-
-**Key Features:**
-- Financial projections and market analysis
-- Reddit evidence integration
-- Investment readiness assessment
-- Professional report formatting
-
----
-
-### **4. run_pipeline.py** - `Script 4 of 4`
-**Purpose:** Pipeline orchestration and coordination
-**Single Responsibility:** Execute complete end-to-end pipeline
-
-```bash
-# Run full pipeline
-python scripts/run_pipeline.py
-
-# Run with custom configuration
-python scripts/run_pipeline.py \
-  --collection-limit 100 \
-  --analysis-limit 50 \
-  --reporting-limit 25
-```
-
-**Key Features:**
-- Individual stage execution
-- Comprehensive error handling
-- Progress tracking and reporting
-- Configurable parameters per stage
-
----
-
-## 🛠️ **Utility Scripts**
-
-### **clean_database_slate.py**
-**Purpose:** Database maintenance and cleanup
-**Usage:** `python scripts/clean_database_slate.py`
-
-**Features:**
-- Clear data while preserving table structure
-- Safe database reset functionality
-- Development and testing support
-
----
-
-## ⚙️ **Configuration**
-
-### **Default Pipeline Settings**
-```python
-{
-    'collection': {
-        'target_subreddits': [
-            'productivity', 'selfimprovement', 'entrepreneur',
-            'startups', 'personalfinance', 'technology', 'programming'
-        ],
-        'submissions_per_subreddit': 50
-    },
-    'analysis': {
-        'limit': 100,
-        'min_score_threshold': 30.0
-    },
-    'reporting': {
-        'limit': 25,
-        'min_score': 35.0
-    }
-}
-```
-
-### **Environment Requirements**
-- Reddit API credentials (REDDIT_PUBLIC, REDDIT_SECRET)
-- Supabase configuration (SUPABASE_URL, SUPABASE_KEY)
-- OpenRouter API key for AI analysis (OPENROUTER_API_KEY)
-
----
-
-## 📊 **Quality Metrics**
-
-The clean pipeline consistently produces:
-- ✅ **High-Quality AI Profiles:** Specific app concepts (72-78/100 scores)
-- ✅ **Real Reddit Evidence:** Actual engagement signals and validation
-- ✅ **Financial Projections:** Conservative, data-backed revenue estimates
-- ✅ **Market Analysis:** Target market sizing and competitive landscape
-
----
-
-## 🔄 **Usage Examples**
-
-### **Development Workflow**
-```bash
-# 1. Test individual stages
-python scripts/run_pipeline.py --stage collection --collection-limit 5
-python scripts/run_pipeline.py --stage analysis --analysis-limit 3
-python scripts/run_pipeline.py --stage reporting --reporting-limit 2
-
-# 2. Full pipeline with small sample
-python scripts/run_pipeline.py --collection-limit 10 --analysis-limit 5 --reporting-limit 3
-
-# 3. Production pipeline
-python scripts/run_pipeline.py
-```
-
-### **Monitoring**
-- **Progress Tracking:** Real-time stage completion updates
-- **Error Handling:** Comprehensive error reporting and recovery
-- **Performance Metrics:** Execution time and data processing statistics
-
----
-
-## 📁 **Output Locations**
-
-| Stage | Output Location | Description |
-|-------|-----------------|-------------|
-| Collection | `submissions` table | Reddit submission data |
-| Analysis | `app_opportunities` table | AI-generated app profiles |
-| Reporting | `reports/` directory | Markdown opportunity reports |
-
----
-
-## 🎯 **Benefits of Clean Architecture**
-
-- **Maintainability:** 4 focused scripts vs. 50+ scattered scripts
-- **Clarity:** Linear data flow with single responsibilities
-- **Testability:** Each stage can be tested independently
-- **Scalability:** Easy to extend and modify individual components
-- **Documentation:** Clear purpose and usage for each script
-
----
-
-## 🔗 **Related Documentation**
-
-- [Database Schema](../supabase/migrations/) - Database structure and migrations
-- [Clean Pipeline Architecture](../CLEAN_PIPELINE_ARCHITECTURE.md) - Complete architecture documentation
-- [AI Profiler](../agent_tools/llm_profiler.py) - LLM-powered analysis engine
-- [Archived Scripts](../archive/archive/scripts-2025-11-11/) - Legacy script archive
-
----
-
-<div style="margin-top: 30px; padding: 15px; background-color: #F5F5F5; border-left: 4px solid #FF6B35; border-radius: 4px;">
-  <strong>🎉 Success Story:</strong> The clean pipeline has eliminated script sprawl, reduced complexity from 50+ scripts to 4 focused components, and significantly improved code quality and maintainability while generating higher-quality AI app opportunities.
-</div>
+*This README was generated by the script organization tool on 2025-11-12*

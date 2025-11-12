@@ -46,7 +46,7 @@ ENABLE_PII_ANONYMIZATION = False  # Temporarily disabled for testing research fr
 
 # DLT Configuration Settings
 # DLT pipeline configuration for enhanced Reddit data collection
-DLT_MIN_ACTIVITY_SCORE = float(os.getenv("DLT_MIN_ACTIVITY_SCORE", "50.0"))  # Minimum subreddit activity score (0-100)
+DLT_MIN_ACTIVITY_SCORE = float(os.getenv("DLT_MIN_ACTIVITY_SCORE", "25.0"))  # Minimum subreddit activity score (0-100) - optimized for balance
 DLT_TIME_FILTER = os.getenv("DLT_TIME_FILTER", "day")  # Time period for activity analysis
 DLT_PIPELINE_NAME = os.getenv("DLT_PIPELINE_NAME", "reddit_harbor_activity_collection")  # DLT pipeline identifier
 DLT_DATASET_NAME = os.getenv("DLT_DATASET_NAME", "reddit_activity_data")  # DLT dataset for data organization
