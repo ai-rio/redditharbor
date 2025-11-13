@@ -8,18 +8,20 @@ Targets high-stakes subreddits with VC-level problems and urgent pain points
 
 import sys
 import time
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+
 load_dotenv(project_root / '.env.local')
 
 import dlt
-from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
+
+from core.dlt_collection import collect_problem_posts
 
 # High-value niches from enhanced-chunks documentation
 HIGH_VALUE_NICHES = {
@@ -204,7 +206,7 @@ def collect_niche_data(niches: dict, posts_per_niche: int = 100, sort_type: str 
     print(f"  - Success rate: {len(successful_niches)/len(niches)*100:.1f}%")
 
     # Priority breakdown
-    print(f"\n📊 BREAKDOWN BY PRIORITY:")
+    print("\n📊 BREAKDOWN BY PRIORITY:")
     priority_counts = {}
     for niche_name, result in niche_results.items():
         if result.get('success', False):
@@ -221,7 +223,7 @@ def collect_niche_data(niches: dict, posts_per_niche: int = 100, sort_type: str 
     ]
 
     if failed_high_priority:
-        print(f"\n⚠️  HIGH-PRIORITY FAILURES:")
+        print("\n⚠️  HIGH-PRIORITY FAILURES:")
         for niche in failed_high_priority:
             print(f"  - r/{niche}: {niche_results[niche].get('error', 'Unknown error')}")
 
@@ -248,13 +250,13 @@ def main():
     )
 
     if results["total_posts"] > 0:
-        print(f"\n🎉 ADVANCED NICHE COLLECTION SUCCESS!")
+        print("\n🎉 ADVANCED NICHE COLLECTION SUCCESS!")
         print(f"Collected {results['total_posts']} posts from {results['successful_niches']} high-value niches")
-        print(f"Next step: Run AI opportunity analysis with SCORE_THRESHOLD=35.0")
-        print(f"Command: SCORE_THRESHOLD=35.0 python scripts/batch_opportunity_scoring.py")
+        print("Next step: Run AI opportunity analysis with SCORE_THRESHOLD=35.0")
+        print("Command: SCORE_THRESHOLD=35.0 python scripts/batch_opportunity_scoring.py")
         return True
     else:
-        print(f"\n⚠️  No posts collected from niche subreddits")
+        print("\n⚠️  No posts collected from niche subreddits")
         return False
 
 if __name__ == "__main__":

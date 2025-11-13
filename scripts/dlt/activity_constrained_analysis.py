@@ -10,22 +10,21 @@ Usage:
     python scripts/activity_constrained_analysis.py [--activity-threshold SCORE]
 """
 
-import sys
-import os
-import time
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any, Tuple
 import argparse
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
 
 # Add project root
 sys.path.append(str(Path(__file__).parent.parent))
 
-from supabase import create_client
-from config.settings import SUPABASE_URL, SUPABASE_KEY, DLT_MIN_ACTIVITY_SCORE
-from core.activity_validation import calculate_activity_score, get_active_subreddits
-from agent_tools.llm_profiler import LLMProfiler
 import praw
+
+from agent_tools.llm_profiler import LLMProfiler
+from config.settings import SUPABASE_KEY, SUPABASE_URL
+from core.activity_validation import calculate_activity_score
+from supabase import create_client
 
 
 class ActivityConstrainedAnalyzer:
@@ -59,7 +58,7 @@ class ActivityConstrainedAnalyzer:
             print(f"❌ Reddit client setup failed: {e}")
             raise
 
-    def filter_submissions_by_activity(self, submissions: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
+    def filter_submissions_by_activity(self, submissions: list[dict]) -> tuple[list[dict], list[dict]]:
         """
         Filter submissions by subreddit activity score.
 
@@ -112,14 +111,14 @@ class ActivityConstrainedAnalyzer:
                 submission['activity_score'] = subreddit_scores.get(subreddit, 0.0)
                 inactive_submissions.append(submission)
 
-        print(f"\n📈 Activity Filtering Results:")
+        print("\n📈 Activity Filtering Results:")
         print(f"  Active subreddits (≥{self.activity_threshold}): {len(active_subreddits)}")
         print(f"  Active submissions: {len(active_submissions)}")
         print(f"  Inactive submissions: {len(inactive_submissions)}")
 
         return active_submissions, inactive_submissions
 
-    def analyze_filtered_opportunities(self, submissions: List[Dict], dataset_name: str) -> List[Dict]:
+    def analyze_filtered_opportunities(self, submissions: list[dict], dataset_name: str) -> list[dict]:
         """Analyze filtered submissions with AI profiling"""
         print(f"\n🤖 Analyzing {len(submissions)} {dataset_name} submissions...")
 
@@ -164,17 +163,17 @@ class ActivityConstrainedAnalyzer:
 
         return analyzed_opportunities
 
-    def save_results(self, opportunities: List[Dict], dataset_name: str):
+    def save_results(self, opportunities: list[dict], dataset_name: str):
         """Save results to database"""
         print(f"\n💾 {len(opportunities)} {dataset_name} opportunities generated")
-        print(f"ℹ️  Database schema doesn't support activity_score field - using in-memory analysis")
+        print("ℹ️  Database schema doesn't support activity_score field - using in-memory analysis")
 
         # Store in memory for analysis instead of database
         # The current app_opportunities table schema doesn't include activity_score
 
-    def generate_comparison_report(self, active_opportunities: List[Dict], inactive_opportunities: List[Dict]):
+    def generate_comparison_report(self, active_opportunities: list[dict], inactive_opportunities: list[dict]):
         """Generate A/B test comparison report"""
-        print(f"\n📊 GENERATING A/B TEST COMPARISON REPORT")
+        print("\n📊 GENERATING A/B TEST COMPARISON REPORT")
         print("=" * 80)
 
         # Get existing unconstrained results for comparison
@@ -321,7 +320,7 @@ class ActivityConstrainedAnalyzer:
         # Generate comparison report
         self.generate_comparison_report(active_opportunities, inactive_submissions)
 
-        print(f"\n🎉 ACTIVITY-CONSTRAINED ANALYSIS COMPLETE!")
+        print("\n🎉 ACTIVITY-CONSTRAINED ANALYSIS COMPLETE!")
         print(f"Analyzed {len(active_opportunities)} activity-constrained opportunities")
 
 
