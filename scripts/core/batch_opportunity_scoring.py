@@ -302,7 +302,8 @@ def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
 def prepare_analysis_for_storage(
     submission_id: str,
     analysis: dict[str, Any],
-    sector: str
+    sector: str,
+    trust_data: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """
     Prepare opportunity analysis result for DLT pipeline storage.
@@ -323,7 +324,8 @@ def prepare_analysis_for_storage(
 
     # Extract core functions from analysis (now always available)
     core_functions = analysis.get("core_functions", [])
-    if isinstance(core_functions, list):
+
+    if isinstance(core_functions, list) and len(core_functions) > 0:
         function_count = len(core_functions)
         function_list = core_functions
     else:
@@ -335,7 +337,7 @@ def prepare_analysis_for_storage(
     analysis_data = {
         "opportunity_id": opportunity_id,  # For workflow_results deduplication
         "submission_id": submission_id,  # Original Reddit ID for app_opportunities deduplication
-        "app_name": analysis.get("title", "Unnamed Opportunity")[:255],
+        "app_name": analysis.get("app_name", analysis.get("title", "Unnamed Opportunity"))[:255],
         "function_count": function_count,
         "function_list": function_list,
         "original_score": float(analysis.get("final_score", 0)),
@@ -343,7 +345,12 @@ def prepare_analysis_for_storage(
         "status": "scored",
         "constraint_applied": True,
         "ai_insight": f"Market sector: {sector}. Subreddit: {analysis.get('subreddit', 'unknown')}",
+        "subreddit": analysis.get("subreddit", ""),
         "processed_at": datetime.now().isoformat(),
+        # Trust validation data (from app_opportunities_trust)
+        "trust_score": float(trust_data.get("trust_score", 0)) if trust_data and trust_data.get("trust_score") else None,
+        "trust_badge": trust_data.get("trust_badge", "")[:50] if trust_data and trust_data.get("trust_badge") else None,
+        "activity_score": float(trust_data.get("activity_score", 0)) if trust_data and trust_data.get("activity_score") else None,
         # Dimension scores
         "market_demand": float(scores.get("market_demand", 0)) if scores else None,
         "pain_intensity": float(scores.get("pain_intensity", 0)) if scores else None,
@@ -637,10 +644,19 @@ def process_batch(
 
             # Prepare for DLT storage - use submission_id from app_opportunities_trust
             submission_id = submission.get("submission_id", submission.get("id"))
+
+            # Extract trust data from submission
+            trust_data = {
+                "trust_score": submission.get("trust_score"),
+                "trust_badge": submission.get("trust_badge"),
+                "activity_score": submission.get("activity_score")
+            }
+
             scored_opp = prepare_analysis_for_storage(
                 submission_id,
                 analysis,
-                sector
+                sector,
+                trust_data
             )
 
             # Track for batch loading

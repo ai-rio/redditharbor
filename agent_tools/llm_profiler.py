@@ -84,7 +84,7 @@ Generate a JSON response with exactly these fields:
 1. **app_name** (1-3 words): Short, catchy name for the app
 2. **problem_description** (1-2 sentences): The core problem or pain point expressed
 3. **app_concept** (2-3 sentences): Specific app idea that solves this problem
-4. **core_functions** (array of 1-3 strings): The MINIMUM number of specific, actionable functions needed to solve the core problem
+4. **core_functions** (array of 1-3 strings): Focused functions with CLEAR BOUNDARIES that solve specific, non-overlapping aspects of the problem. Each function should have: (1) Specific problem it solves, (2) Clear scope boundaries, (3) One measurable outcome. Functions should work together logically (analyze → build → monitor) with no overlap.
 5. **value_proposition** (1-2 sentences): Why users need this, what benefit they get
 6. **target_user** (1 sentence): Primary user persona
 7. **monetization_model** (1 sentence): Recommended revenue model with pricing
