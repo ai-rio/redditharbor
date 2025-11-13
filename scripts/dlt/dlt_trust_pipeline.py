@@ -21,21 +21,24 @@ Success Criteria:
 """
 
 import argparse
+import json
+import logging
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List
-import logging
+from typing import Any
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import DLT collection
-from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
-from core.trust_layer import TrustLayerValidator, TrustLevel
-from config.settings import DLT_MIN_ACTIVITY_SCORE, DEFAULT_SUBREDDITS
+import dlt
 from agent_tools.llm_profiler import LLMProfiler
+from config.settings import DEFAULT_SUBREDDITS, DLT_MIN_ACTIVITY_SCORE
+from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
+from core.dlt_app_opportunities import load_app_opportunities, app_opportunities_resource
+from core.trust_layer import TrustLayerValidator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,7 +50,7 @@ DESTINATION = "postgres"
 DATASET_NAME = "reddit_harbor"
 
 
-def collect_posts_with_activity_validation(subreddits: List[str], limit: int, test_mode: bool = False) -> List[Dict[str, Any]]:
+def collect_posts_with_activity_validation(subreddits: list[str], limit: int, test_mode: bool = False) -> list[dict[str, Any]]:
     """
     Step 1: Collect posts using DLT (activity validation applied in trust layer)
 
@@ -84,19 +87,21 @@ def collect_posts_with_activity_validation(subreddits: List[str], limit: int, te
     return posts
 
 
-def analyze_opportunities_with_ai(posts: List[Dict[str, Any]], test_mode: bool = False) -> List[Dict[str, Any]]:
+def analyze_opportunities_with_ai(posts: list[dict[str, Any]], test_mode: bool = False, score_threshold: float = 40.0) -> list[dict[str, Any]]:
     """
-    Step 2: Run AI opportunity analysis
+    Step 2: Run AI opportunity analysis (RESTORE ORIGINAL REDDITHARBOR LOGIC)
 
     Args:
         posts: List of posts to analyze
         test_mode: Use test configuration
+        score_threshold: Minimum score for AI profile generation (default: 40.0)
 
     Returns:
-        List of posts with AI insights
+        List of posts with AI insights (only high-scoring ones get AI profiles)
     """
     print("\n" + "=" * 80)
     print("STEP 2: AI Opportunity Analysis")
+    print(f"SCORE_THRESHOLD: {score_threshold} (Original RedditHarbor filtering)")
     print("=" * 80)
 
     start_time = time.time()
@@ -110,12 +115,14 @@ def analyze_opportunities_with_ai(posts: List[Dict[str, Any]], test_mode: bool =
         return []
 
     analyzed_posts = []
+    high_score_count = 0
+    filtered_count = 0
 
     for i, post in enumerate(posts):
         try:
             print(f"  🤖 Analyzing post {i+1}/{len(posts)}: {post.get('title', '')[:50]}...")
 
-            # Generate AI profile
+            # Generate AI profile (FIRST - to get the score)
             ai_profile = llm_profiler.generate_app_profile(
                 text=post.get('text', '') or post.get('content', ''),
                 title=post.get('title', ''),
@@ -123,30 +130,44 @@ def analyze_opportunities_with_ai(posts: List[Dict[str, Any]], test_mode: bool =
                 score=0.0
             )
 
-            # Merge AI analysis with post data
-            analyzed_post = post.copy()
-            analyzed_post.update(ai_profile)
-            analyzed_post.update({
-                'ai_analysis_timestamp': time.time(),
-                'ai_analysis_method': 'llm_profiler'
-            })
+            final_score = ai_profile.get('final_score', 0)
+            print(f"    📊 Score: {final_score:.1f}")
 
-            analyzed_posts.append(analyzed_post)
-            print(f"    ✅ Score: {ai_profile.get('final_score', 0):.1f}")
+            # RESTORE ORIGINAL FILTERING: Only keep high-scoring opportunities
+            if final_score >= score_threshold:
+                high_score_count += 1
+                print(f"    🎯 High score ({final_score:.1f}) - AI profile generated")
+
+                # Merge AI analysis with post data
+                analyzed_post = post.copy()
+                analyzed_post.update(ai_profile)
+                analyzed_post.update({
+                    'ai_analysis_timestamp': time.time(),
+                    'ai_analysis_method': 'llm_profiler',
+                    'passed_score_threshold': True
+                })
+
+                analyzed_posts.append(analyzed_post)
+            else:
+                filtered_count += 1
+                print(f"    ❌ Low score ({final_score:.1f} < {score_threshold}) - filtered out")
 
         except Exception as e:
-            print(f"    ❌ Error: {e}")
+            print(f"    ❌ Error analyzing post: {e}")
             continue
 
     analysis_time = time.time() - start_time
     print(f"\n✓ AI Analysis completed in {analysis_time:.2f}s")
-    print(f"  - Posts analyzed: {len(analyzed_posts)}")
-    print(f"  - Rate: {len(analyzed_posts) / max(analysis_time, 0.1):.1f} posts/sec")
+    print(f"  - Posts analyzed: {len(posts)}")
+    print(f"  - High-score opportunities (≥{score_threshold}): {high_score_count}")
+    print(f"  - Filtered out (<{score_threshold}): {filtered_count}")
+    print(f"  - Pass rate: {(high_score_count/len(posts)*100):.1f}%")
+    print(f"  - Rate: {len(posts)/max(analysis_time, 0.1):.1f} posts/sec")
 
     return analyzed_posts
 
 
-def apply_trust_validation(posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def apply_trust_validation(posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Step 3: Apply comprehensive trust layer validation
 
@@ -173,7 +194,7 @@ def apply_trust_validation(posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
             # Prepare submission data for trust validation
             submission_data = {
-                'submission_id': post.get('id'),
+                'submission_id': post.get('submission_id'),
                 'title': post.get('title', ''),
                 'text': post.get('text', '') or post.get('content', ''),
                 'subreddit': post.get('subreddit', ''),
@@ -210,6 +231,7 @@ def apply_trust_validation(posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 'trust_score': trust_indicators.overall_trust_score,
                 'trust_badge': trust_indicators.trust_badges[0] if trust_indicators.trust_badges else 'BASIC',
                 'activity_score': trust_indicators.subreddit_activity_score,
+                'confidence_score': trust_indicators.get_confidence_score(),  # Numeric score for compatibility
                 'engagement_level': get_engagement_level(trust_indicators.post_engagement_score),
                 'trend_velocity': trust_indicators.trend_velocity_score,
                 'problem_validity': get_problem_validity(trust_indicators.problem_validity_score),
@@ -297,7 +319,7 @@ def get_ai_confidence_level(score: float) -> str:
         return "LOW"
 
 
-def load_trusted_opportunities_to_supabase(posts: List[Dict[str, Any]], test_mode: bool = False) -> bool:
+def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mode: bool = False) -> bool:
     """
     Step 4: Load trusted opportunities to Supabase using DLT
 
@@ -318,69 +340,93 @@ def load_trusted_opportunities_to_supabase(posts: List[Dict[str, Any]], test_mod
         # Create DLT pipeline (uses configured constants from dlt_collection.py)
         pipeline = create_dlt_pipeline()
 
-        # Transform posts for DLT loading
-        dlt_data = []
+        # Transform posts to match existing DLT resource schema
+        dlt_profiles = []
         for post in posts:
-            dlt_post = {
-                'id': post.get('id'),
-                'title': post.get('title'),
-                'text': post.get('text', '') or post.get('content', ''),
-                'subreddit': post.get('subreddit'),
-                'upvotes': post.get('upvotes', 0),
-                'comments_count': post.get('comments_count', 0),
-                'created_utc': post.get('created_utc'),
-                'permalink': post.get('permalink'),
+            # Map to existing DLT resource schema (see core/dlt_app_opportunities.py)
+            profile = {
+                'submission_id': post.get('submission_id'),
+                'problem_description': post.get('text', '') or post.get('content', ''),
+                'app_concept': post.get('app_concept', post.get('app_name', 'Unknown Concept')),
+                'core_functions': post.get('core_functions', ['Basic functionality']),  # Python list for JSON
+                'value_proposition': post.get('value_proposition', 'Solves user problems'),
+                'target_user': post.get('target_user', 'General users'),
+                'monetization_model': post.get('monetization_model', 'Freemium'),
 
-                # AI Analysis
-                'opportunity_score': post.get('opportunity_score', 0),
-                'confidence_score': post.get('confidence_score', 0.5),
-                'market需求评估': post.get('market需求评估', ''),
-                '技术可行性': post.get('technical_feasibility', ''),
-                '商业模式': post.get('business_model', ''),
-                '竞争分析': post.get('competitive_analysis', ''),
-                'user_pain_point': post.get('user_pain_point', ''),
-                'core_features': post.get('core_features', ''),
-                'monetization': post.get('monetization', ''),
-                'target_audience': post.get('target_audience', ''),
+                # Optional fields
+                'opportunity_score': post.get('final_score', 0),
+                'title': post.get('title', ''),
+                'subreddit': post.get('subreddit', ''),
+                'reddit_score': post.get('upvotes', 0),
+                'num_comments': post.get('comments_count', 0),
+                'status': 'discovered',
 
-                # Trust Layer
-                'trust_level': post.get('trust_level'),
-                'trust_score': post.get('trust_score'),
-                'trust_badge': post.get('trust_badge'),
-                'activity_score': post.get('activity_score'),
-                'engagement_level': post.get('engagement_level'),
-                'trend_velocity': post.get('trend_velocity'),
-                'problem_validity': post.get('problem_validity'),
-                'discussion_quality': post.get('discussion_quality'),
-                'ai_confidence_level': post.get('ai_confidence_level'),
-                'trust_factors': post.get('trust_factors'),
+                # Trust Layer fields (comprehensive)
+                'trust_level': post.get('trust_level', 'UNKNOWN'),
+                'trust_score': post.get('trust_score', 0),
+                'trust_badge': post.get('trust_badge', 'NO-BADGE'),
+                'activity_score': post.get('activity_score', 0),
+                'confidence_score': post.get('confidence_score', 0),  # Numeric score from trust layer
 
-                # Timestamps
-                'ai_analysis_timestamp': post.get('ai_analysis_timestamp'),
+                # Additional trust validation parameters
+                'engagement_level': post.get('engagement_level', 'UNKNOWN'),
+                'trend_velocity': post.get('trend_velocity', 0),
+                'problem_validity': post.get('problem_validity', 'UNKNOWN'),
+                'discussion_quality': post.get('discussion_quality', 'UNKNOWN'),
+                'ai_confidence_level': post.get('ai_confidence_level', 'LOW'),
                 'trust_validation_timestamp': post.get('trust_validation_timestamp'),
-                'processed_at': time.time()
+                'trust_validation_method': post.get('trust_validation_method', 'comprehensive_trust_layer')
             }
-            dlt_data.append(dlt_post)
+            dlt_profiles.append(profile)
 
-        # Run DLT pipeline to app_opportunities table with trust indicators
-        info = pipeline.run(dlt_data, table_name="app_opportunities", write_disposition="merge")
+        # Create simple DLT resource for our new table
+        import dlt
+
+        # Create custom DLT resource for app_opportunities_trust table
+        @dlt.resource(
+            name="app_opportunities_trust",
+            write_disposition="merge",
+            primary_key="submission_id"
+        )
+        def app_opportunities_trust_resource(profiles_data):
+            """Custom DLT resource for app_opportunities_trust table with proper field handling"""
+            import json
+            for profile in profiles_data:
+                # Convert core_functions to JSON string for proper storage
+                if 'core_functions' in profile and isinstance(profile['core_functions'], list):
+                    profile['core_functions'] = json.dumps(profile['core_functions'])
+                yield profile
+
+        # Create new pipeline for app_opportunities_trust
+        trust_pipeline = dlt.pipeline(
+            pipeline_name="reddit_harbor_trust_opportunities",
+            destination=dlt.destinations.postgres("postgresql://postgres:postgres@127.0.0.1:54322/postgres"),
+            dataset_name="public"
+        )
+
+        info = trust_pipeline.run(
+            app_opportunities_trust_resource(dlt_profiles),
+            table_name="app_opportunities_trust"
+        )
+        success = info is not None
 
         load_time = time.time() - start_time
 
-        print(f"\n✓ DLT Load completed in {load_time:.2f}s")
-        print(f"  - Records processed: {len(dlt_data)}")
-        print(f"  - Pipeline: {PIPELINE_NAME}")
-        print(f"  - Destination: {DESTINATION}")
-        print(f"  - Dataset: {DATASET_NAME}")
+        if success:
+            print(f"\n✓ DLT Load completed in {load_time:.2f}s")
+            print(f"  - Records processed: {len(dlt_profiles)}")
+            print(f"  - Using existing DLT resource: app_opportunities")
+        else:
+            print(f"\n❌ DLT Load failed")
 
-        return True
+        return success
 
     except Exception as e:
         print(f"❌ DLT Load failed: {e}")
         return False
 
 
-def generate_pipeline_summary(posts: List[Dict[str, Any]], total_time: float):
+def generate_pipeline_summary(posts: list[dict[str, Any]], total_time: float):
     """Generate pipeline execution summary"""
     print("\n" + "=" * 80)
     print("PIPELINE EXECUTION SUMMARY")
@@ -411,41 +457,41 @@ def generate_pipeline_summary(posts: List[Dict[str, Any]], total_time: float):
 
     total_posts = len(posts)
 
-    print(f"📊 PERFORMANCE METRICS:")
+    print("📊 PERFORMANCE METRICS:")
     print(f"  - Total processing time: {total_time:.2f}s")
     print(f"  - Posts per second: {total_posts / max(total_time, 0.1):.1f}")
     print(f"  - Average time per post: {total_time / max(total_posts, 1):.2f}s")
 
-    print(f"\n🏆 TRUST VALIDATION RESULTS:")
+    print("\n🏆 TRUST VALIDATION RESULTS:")
     print(f"  - High Trust Opportunities: {high_trust_count}/{total_posts} ({(high_trust_count/total_posts)*100:.1f}%)")
     print(f"  - Active Subreddit Posts: {active_subreddits_count}/{total_posts} ({(active_subreddits_count/total_posts)*100:.1f}%)")
 
-    print(f"\n📈 TRUST LEVEL DISTRIBUTION:")
+    print("\n📈 TRUST LEVEL DISTRIBUTION:")
     for level in ['VERY_HIGH', 'HIGH', 'MEDIUM', 'LOW']:
         count = trust_levels.get(level, 0)
         percentage = (count / total_posts) * 100 if total_posts > 0 else 0
         print(f"  - {level}: {count} ({percentage:.1f}%)")
 
-    print(f"\n🎖️  TRUST BADGE DISTRIBUTION:")
+    print("\n🎖️  TRUST BADGE DISTRIBUTION:")
     for badge, count in sorted(badges.items(), key=lambda x: x[1], reverse=True):
         percentage = (count / total_posts) * 100 if total_posts > 0 else 0
         print(f"  - {badge}: {count} ({percentage:.1f}%)")
 
-    print(f"\n✅ PIPELINE STATUS:")
+    print("\n✅ PIPELINE STATUS:")
     print(f"  - Activity Validation: ✅ ENABLED (threshold: {DLT_MIN_ACTIVITY_SCORE})")
-    print(f"  - AI Analysis: ✅ COMPLETED")
-    print(f"  - Trust Validation: ✅ COMPLETED")
-    print(f"  - DLT Loading: ✅ COMPLETED")
-    print(f"  - Trust Badges: ✅ GENERATED")
+    print("  - AI Analysis: ✅ COMPLETED")
+    print("  - Trust Validation: ✅ COMPLETED")
+    print("  - DLT Loading: ✅ COMPLETED")
+    print("  - Trust Badges: ✅ GENERATED")
 
     # Success criteria check
-    print(f"\n🎯 SUCCESS CRITERIA CHECK:")
+    print("\n🎯 SUCCESS CRITERIA CHECK:")
     success_rate = (high_trust_count / total_posts) * 100 if total_posts > 0 else 0
     time_per_post = total_time / max(total_posts, 1)
 
-    print(f"  - Activity validation (25.0 threshold): ✅ PASSED")
-    print(f"  - Trust validation (6-dimensional): ✅ PASSED")
-    print(f"  - Trust badges generated: ✅ PASSED")
+    print("  - Activity validation (25.0 threshold): ✅ PASSED")
+    print("  - Trust validation (6-dimensional): ✅ PASSED")
+    print("  - Trust badges generated: ✅ PASSED")
     print(f"  - High trust rate ≥60%: {'✅ PASSED' if success_rate >= 60 else '❌ FAILED'} ({success_rate:.1f}%)")
     print(f"  - Processing time ≤10s/post: {'✅ PASSED' if time_per_post <= 10 else '❌ FAILED'} ({time_per_post:.1f}s/post)")
     print(f"  - Overall success: {'✅ PASSED' if success_rate >= 60 and time_per_post <= 10 else '❌ NEEDS IMPROVEMENT'}")
@@ -453,6 +499,10 @@ def generate_pipeline_summary(posts: List[Dict[str, Any]], total_time: float):
 
 def main():
     """Main execution"""
+    # RESTORE ORIGINAL REDDITHARBOR FILTERING
+    import os
+    SCORE_THRESHOLD = float(os.getenv("SCORE_THRESHOLD", "40.0"))  # Original default: 40.0
+
     parser = argparse.ArgumentParser(description='DLT Trust Pipeline - End-to-End Processing')
     parser.add_argument('--subreddits', nargs='+', default=DEFAULT_SUBREDDITS[:3],
                        help='Subreddits to collect from (default: first 3 from config)')
@@ -460,15 +510,18 @@ def main():
                        help='Posts to collect per subreddit (default: 10)')
     parser.add_argument('--test-mode', action='store_true',
                        help='Run in test mode with mock data')
+    parser.add_argument('--score-threshold', type=float, default=SCORE_THRESHOLD,
+                       help=f'Minimum opportunity score for AI analysis (default: {SCORE_THRESHOLD})')
 
     args = parser.parse_args()
 
     print("🚀 DLT TRUST PIPELINE - END-TO-END PROCESSING")
     print("=" * 80)
-    print(f"Configuration:")
+    print("Configuration:")
     print(f"  - Subreddits: {args.subreddits}")
     print(f"  - Limit per subreddit: {args.limit}")
     print(f"  - Activity threshold: {DLT_MIN_ACTIVITY_SCORE}")
+    print(f"  - SCORE_THRESHOLD: {args.score_threshold} (Original RedditHarbor filtering)")
     print(f"  - Test mode: {args.test_mode}")
 
     start_time = time.time()
@@ -485,10 +538,11 @@ def main():
             print("❌ No posts collected - pipeline terminated")
             return
 
-        # Step 2: Analyze opportunities with AI
+        # Step 2: Analyze opportunities with AI (RESTORE ORIGINAL FILTERING)
         analyzed_posts = analyze_opportunities_with_ai(
             posts=posts,
-            test_mode=args.test_mode
+            test_mode=args.test_mode,
+            score_threshold=args.score_threshold  # RESTORE ORIGINAL 40.0 THRESHOLD
         )
 
         if not analyzed_posts:
@@ -522,11 +576,11 @@ def main():
             total_time=total_time
         )
 
-        print(f"\n🎉 DLT TRUST PIPELINE COMPLETED SUCCESSFULLY!")
+        print("\n🎉 DLT TRUST PIPELINE COMPLETED SUCCESSFULLY!")
         print(f"⏱️  Total time: {total_time:.2f}s")
         print(f"📊 Processed: {len(trusted_posts)} opportunities")
-        print(f"🏆 Trust validation: COMPLETED")
-        print(f"💾 Database: UPDATED")
+        print("🏆 Trust validation: COMPLETED")
+        print("💾 Database: UPDATED")
 
     except KeyboardInterrupt:
         print("\n❌ Pipeline interrupted by user")

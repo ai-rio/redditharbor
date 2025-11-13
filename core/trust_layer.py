@@ -11,11 +11,10 @@ This module provides:
 """
 
 import logging
-import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any
 
 import praw
 
@@ -49,13 +48,17 @@ class TrustIndicators:
     # Trust metrics
     overall_trust_score: float = 0.0
     trust_level: TrustLevel = TrustLevel.LOW
-    trust_badges: List[str] = None
+    trust_badges: list[str] = None
 
     # Validation metadata
     validation_timestamp: str = ""
     validation_method: str = ""
     activity_constraints_met: bool = False
     quality_constraints_met: bool = False
+
+    def get_confidence_score(self) -> float:
+        """Convert AI confidence to numeric score (0-100)"""
+        return self.ai_analysis_confidence
 
 
 class TrustLayerValidator:
@@ -72,7 +75,7 @@ class TrustLayerValidator:
             "ai_confidence": 0.10             # 10% - analysis quality
         }
 
-    def validate_opportunity_trust(self, submission_data: Dict[str, Any], ai_analysis: Dict[str, Any]) -> TrustIndicators:
+    def validate_opportunity_trust(self, submission_data: dict[str, Any], ai_analysis: dict[str, Any]) -> TrustIndicators:
         """
         Comprehensive trust validation for a single opportunity
 
@@ -132,7 +135,7 @@ class TrustLayerValidator:
 
         return indicators
 
-    def _validate_subreddit_activity(self, submission_data: Dict[str, Any]) -> float:
+    def _validate_subreddit_activity(self, submission_data: dict[str, Any]) -> float:
         """Validate subreddit activity using Reddit API"""
         try:
             from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
@@ -162,11 +165,11 @@ class TrustLayerValidator:
             logger.warning(f"Error validating subreddit activity: {e}")
             return 0.0
 
-    def _validate_post_engagement(self, submission_data: Dict[str, Any]) -> float:
+    def _validate_post_engagement(self, submission_data: dict[str, Any]) -> float:
         """Validate post engagement metrics"""
         try:
-            upvotes = submission_data.get('upvotes', 0)
-            comments = submission_data.get('comments_count', 0)
+            upvotes = submission_data.get('upvotes', 0) or 0
+            comments = submission_data.get('comments_count', 0) or 0
 
             # Calculate engagement score
             # Upvotes: log scale (0-100 points)
@@ -191,19 +194,19 @@ class TrustLayerValidator:
             logger.warning(f"Error validating post engagement: {e}")
             return 0.0
 
-    def _calculate_trend_velocity(self, submission_data: Dict[str, str]) -> float:
+    def _calculate_trend_velocity(self, submission_data: dict[str, str]) -> float:
         """Calculate trend velocity based on post timing and engagement patterns"""
         try:
             created_utc = submission_data.get('created_utc', 0)
-            upvotes = submission_data.get('upvotes', 0)
-            comments = submission_data.get('comments_count', 0)
+            upvotes = submission_data.get('upvotes', 0) or 0
+            comments = submission_data.get('comments_count', 0) or 0
 
-            if created_utc <= 0:
+            if created_utc is None or created_utc <= 0:
                 return 0.0
 
             # Calculate time since post creation
-            created_time = datetime.fromtimestamp(created_utc, tz=timezone.utc)
-            time_diff = datetime.now(timezone.utc) - created_time
+            created_time = datetime.fromtimestamp(created_utc, tz=UTC)
+            time_diff = datetime.now(UTC) - created_time
             hours_old = time_diff.total_seconds() / 3600
 
             # Trend velocity based on engagement rate over time
@@ -232,7 +235,7 @@ class TrustLayerValidator:
             logger.warning(f"Error calculating trend velocity: {e}")
             return 0.0
 
-    def _validate_problem_validity(self, submission_data: Dict[str, Any], ai_analysis: Dict[str, Any]) -> float:
+    def _validate_problem_validity(self, submission_data: dict[str, Any], ai_analysis: dict[str, Any]) -> float:
         """Validate problem validity using AI analysis confidence"""
         try:
             # Check AI analysis completeness
@@ -263,7 +266,7 @@ class TrustLayerValidator:
             logger.warning(f"Error validating problem validity: {e}")
             return 0.0
 
-    def _validate_discussion_quality(self, submission_data: Dict[str, Any]) -> float:
+    def _validate_discussion_quality(self, submission_data: dict[str, Any]) -> float:
         """Validate discussion quality based on comment patterns"""
         try:
             comments_count = submission_data.get('comments_count', 0)
@@ -281,7 +284,7 @@ class TrustLayerValidator:
             logger.warning(f"Error validating discussion quality: {e}")
             return 0.0
 
-    def _validate_ai_confidence(self, ai_analysis: Dict[str, Any]) -> float:
+    def _validate_ai_confidence(self, ai_analysis: dict[str, Any]) -> float:
         """Validate AI analysis confidence"""
         try:
             final_score = ai_analysis.get('final_score', 0)
@@ -300,7 +303,7 @@ class TrustLayerValidator:
             logger.warning(f"Error validating AI confidence: {e}")
             return 0.0
 
-    def _check_quality_constraints(self, ai_analysis: Dict[str, Any]) -> bool:
+    def _check_quality_constraints(self, ai_analysis: dict[str, Any]) -> bool:
         """Check if quality constraints are met"""
         try:
             # Check function count constraint
@@ -353,7 +356,7 @@ class TrustLayerValidator:
         else:
             return TrustLevel.LOW
 
-    def _generate_trust_badges(self, indicators: TrustIndicators) -> List[str]:
+    def _generate_trust_badges(self, indicators: TrustIndicators) -> list[str]:
         """Generate trust badges based on validation results"""
         badges = []
 
@@ -375,7 +378,7 @@ class TrustLayerValidator:
         # Trend badge
         if indicators.trend_velocity_score >= 80:
             badges.append("🚀 Trending Topic")
-        elif indicators.trend_score >= 50:
+        elif indicators.trend_velocity_score >= 50:
             badges.append("📈 Emerging Trend")
 
         # Quality badge
@@ -400,7 +403,7 @@ class TrustLayerValidator:
 
         return badges
 
-    def generate_trust_report(self, opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def generate_trust_report(self, opportunities: list[dict[str, Any]]) -> dict[str, Any]:
         """Generate comprehensive trust report for batch analysis"""
         print("🔍 GENERATING TRUST LAYER REPORT")
         print("=" * 60)
@@ -421,7 +424,7 @@ class TrustLayerValidator:
                     'trust_badges': trust_indicators.trust_badges,
                     'activity_score': trust_indicators.subreddit_activity_score,
                     'engagement_score': trust_indicators.post_engagement_score,
-                    'trend_score': trust_indicators.trend_velocity_score,
+                    'trend_velocity_score': trust_indicators.trend_velocity_score,
                     'quality_constraints_met': trust_indicators.quality_constraints_met,
                     'validation_timestamp': trust_indicators.validation_timestamp
                 })
@@ -454,7 +457,7 @@ class TrustLayerValidator:
             'activity_threshold': self.activity_threshold
         }
 
-        print(f"\n📊 TRUST SUMMARY:")
+        print("\n📊 TRUST SUMMARY:")
         print(f"  Total opportunities validated: {total_validated}")
         print(f"  Average trust score: {avg_trust_score:.1f}")
         print(f"  Very High trust: {trust_distribution['very_high']}")

@@ -37,21 +37,9 @@ def create_app_opportunities_pipeline() -> dlt.Pipeline:
 @dlt.resource(
     name="app_opportunities",
     write_disposition="merge",  # Deduplication via primary key
-    columns={
-        "submission_id": {"data_type": "text", "nullable": False},
-        "problem_description": {"data_type": "text", "nullable": False},
-        "app_concept": {"data_type": "text", "nullable": False},
-        "core_functions": {"data_type": "json", "nullable": False},
-        "value_proposition": {"data_type": "text", "nullable": False},
-        "target_user": {"data_type": "text", "nullable": False},
-        "monetization_model": {"data_type": "text", "nullable": False},
-        "opportunity_score": {"data_type": "decimal", "nullable": True},
-        "title": {"data_type": "text", "nullable": True},
-        "subreddit": {"data_type": "text", "nullable": True},
-        "reddit_score": {"data_type": "bigint", "nullable": True},
-        "num_comments": {"data_type": "bigint", "nullable": True},
-        "status": {"data_type": "text", "nullable": True},
-    }
+    primary_key="submission_id",  # Specify primary key for merge operations
+    # Remove complex column hints - let DLT infer from data
+    # core_functions will be inferred as text from JSON string
 )
 def app_opportunities_resource(ai_profiles: list[dict[str, Any]]):
     """
@@ -63,9 +51,14 @@ def app_opportunities_resource(ai_profiles: list[dict[str, Any]]):
     Yields:
         Profile dictionaries with submission_id as primary key
     """
+    import json
+
     for profile in ai_profiles:
         # Only yield if it has AI-generated content
         if profile.get("problem_description"):
+            # Convert core_functions from Python list to JSON string for jsonb
+            if "core_functions" in profile and isinstance(profile["core_functions"], list):
+                profile["core_functions"] = json.dumps(profile["core_functions"])
             yield profile
 
 
