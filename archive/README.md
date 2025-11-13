@@ -121,12 +121,27 @@ Miscellaneous scripts.
 - `test_env.py` - Environment test
 - `collect_real_reddit_data.py` - Duplicate collection
 
+### recent_cleanup/ (16 files) - UPDATED 2025-11-13
+Files moved during final production cleanup. Non-essential test scripts, logs, and utilities from production readiness phase.
+
+**Pipeline Validation Logs (8 files)**:
+- `pipeline_validation_*.log` - Pipeline execution logs from trust layer testing phase
+
+**Test Scripts (4 files)**:
+- `test_llm_profiler.py` - LLM profiling test script
+- `dodo.py` - Test utility script
+- `test_trust_schema_fix.py` - Trust schema validation test
+- `check_db_direct.py` - Direct database connection test
+
+**Note**: Documentation files were moved to appropriate docs/ subdirectories for better organization.
+
 ## Summary
 
-- **Total Archived:** 78+ scripts
+- **Total Archived:** 94+ scripts and files
 - **Categories:** 15 directories
 - **New Categories (Nov 7, 2025):** 5 (test_infrastructure, utilities, pipeline_management, research, recent_cleanup)
 - **Recent Cleanup (Nov 8, 2025):** 8 files newly archived from root directory
+- **Production Cleanup (Nov 13, 2025):** 16 files newly archived from root and scripts directories
 
 ### Archival Breakdown
 - **Test infrastructure:** 6 scripts (DLT integration testing)
