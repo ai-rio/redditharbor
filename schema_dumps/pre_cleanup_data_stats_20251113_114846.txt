@@ -1,0 +1,8 @@
+        summary        
+-----------------------
+ Total Records: 23
+ Score 70+: 11 (47.8%)
+ Avg Score: 63.83
+ Score Range: 42-78
+(4 rows)
+

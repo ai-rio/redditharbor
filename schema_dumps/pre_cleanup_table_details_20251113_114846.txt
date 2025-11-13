@@ -1,0 +1,34 @@
+                                                Table "public.app_opportunities_trust"
+           Column           |       Type        | Collation | Nullable | Default | Storage  | Compression | Stats target | Description 
+----------------------------+-------------------+-----------+----------+---------+----------+-------------+--------------+-------------
+ submission_id              | character varying |           | not null |         | extended |             |              | 
+ problem_description        | character varying |           |          |         | extended |             |              | 
+ app_concept                | character varying |           |          |         | extended |             |              | 
+ core_functions             | character varying |           |          |         | extended |             |              | 
+ value_proposition          | character varying |           |          |         | extended |             |              | 
+ target_user                | character varying |           |          |         | extended |             |              | 
+ monetization_model         | character varying |           |          |         | extended |             |              | 
+ opportunity_score          | bigint            |           |          |         | plain    |             |              | 
+ title                      | character varying |           |          |         | extended |             |              | 
+ subreddit                  | character varying |           |          |         | extended |             |              | 
+ reddit_score               | bigint            |           |          |         | plain    |             |              | 
+ num_comments               | bigint            |           |          |         | plain    |             |              | 
+ status                     | character varying |           |          |         | extended |             |              | 
+ trust_level                | character varying |           |          |         | extended |             |              | 
+ trust_score                | double precision  |           |          |         | plain    |             |              | 
+ trust_badge                | character varying |           |          |         | extended |             |              | 
+ activity_score             | double precision  |           |          |         | plain    |             |              | 
+ confidence_score           | double precision  |           |          |         | plain    |             |              | 
+ engagement_level           | character varying |           |          |         | extended |             |              | 
+ trend_velocity             | double precision  |           |          |         | plain    |             |              | 
+ problem_validity           | character varying |           |          |         | extended |             |              | 
+ discussion_quality         | character varying |           |          |         | extended |             |              | 
+ ai_confidence_level        | character varying |           |          |         | extended |             |              | 
+ trust_validation_timestamp | double precision  |           |          |         | plain    |             |              | 
+ trust_validation_method    | character varying |           |          |         | extended |             |              | 
+ _dlt_load_id               | character varying |           | not null |         | extended |             |              | 
+ _dlt_id                    | character varying |           | not null |         | extended |             |              | 
+Indexes:
+    "app_opportunities_trust__dlt_id_key" UNIQUE CONSTRAINT, btree (_dlt_id)
+Access method: heap
+

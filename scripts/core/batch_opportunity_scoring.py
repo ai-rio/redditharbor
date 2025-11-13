@@ -169,30 +169,29 @@ def map_subreddit_to_sector(subreddit: str) -> str:
 
 def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[dict[str, Any]]:
     """
-    Fetch all submissions from the Supabase database in batches.
+    Fetch all opportunities from app_opportunities_trust table in batches.
 
     Args:
         supabase_client: Initialized Supabase client
-        batch_size: Number of submissions to fetch per batch (default 1000)
+        batch_size: Number of opportunities to fetch per batch (default 1000)
 
     Returns:
-        List of all submission dictionaries
+        List of all opportunity dictionaries
 
     Raises:
         Exception: If database query fails
     """
     try:
-        print("Fetching all submissions from database...")
+        print("Fetching all opportunities from app_opportunities_trust...")
 
         all_submissions = []
         offset = 0
 
         while True:
             # Build query with pagination
-            query = supabase_client.table("submissions").select(
-                "id, submission_id, title, text, content, subreddit, upvotes, "
-                "comments_count, sentiment_score, problem_keywords, solution_mentions, "
-                "created_at"
+            query = supabase_client.table("app_opportunities_trust").select(
+                "submission_id, title, problem_description, subreddit, reddit_score, "
+                "num_comments, trust_score, trust_badge, activity_score"
             ).range(offset, offset + batch_size - 1)
 
             response = query.execute()
@@ -219,14 +218,14 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
 
 def fetch_submissions(supabase_client: Any, limit: int | None = None) -> list[dict[str, Any]]:
     """
-    Fetch submissions from the Supabase database.
+    Fetch opportunities from app_opportunities_trust table for AI enrichment.
 
     Args:
         supabase_client: Initialized Supabase client
-        limit: Optional limit on number of submissions to fetch
+        limit: Optional limit on number of opportunities to fetch
 
     Returns:
-        List of submission dictionaries with all relevant fields
+        List of opportunity dictionaries with all relevant fields
 
     Raises:
         Exception: If database query fails
@@ -234,61 +233,59 @@ def fetch_submissions(supabase_client: Any, limit: int | None = None) -> list[di
     try:
         if limit:
             # Use simple fetch for limited results
-            print("Fetching limited submissions from database...")
-            query = supabase_client.table("submissions").select(
-                "id, submission_id, title, text, content, subreddit, upvotes, "
-                "comments_count, sentiment_score, problem_keywords, solution_mentions, "
-                "created_at"
+            print("Fetching limited opportunities from app_opportunities_trust...")
+            query = supabase_client.table("app_opportunities_trust").select(
+                "submission_id, title, problem_description, subreddit, reddit_score, "
+                "num_comments, trust_score, trust_badge, activity_score"
             ).limit(limit)
 
             response = query.execute()
 
             if not response.data:
-                print("Warning: No submissions found in database")
+                print("Warning: No opportunities found in database")
                 return []
 
-            print(f"Successfully fetched {len(response.data)} submissions")
+            print(f"Successfully fetched {len(response.data)} opportunities")
             return response.data
         else:
-            # Fetch all submissions in batches
+            # Fetch all opportunities in batches
             return fetch_all_submissions(supabase_client)
 
     except Exception as e:
-        print(f"Error fetching submissions: {e}")
+        print(f"Error fetching opportunities: {e}")
         raise
 
 
 def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
     """
-    Format a database submission record for the OpportunityAnalyzerAgent.
+    Format an opportunity from app_opportunities_trust for LLM profiler enrichment.
 
     Args:
-        submission: Raw submission data from database
+        submission: Opportunity data from app_opportunities_trust table
 
     Returns:
-        Formatted submission data for agent analysis
+        Formatted opportunity data for AI profile generation
     """
-    # Combine title and text/content for full text analysis
+    # Use existing problem_description or combine title for full text analysis
     title = submission.get("title", "")
-    text = submission.get("text", "") or submission.get("content", "")
-    full_text = f"{title}\n\n{text}".strip()
+    text = submission.get("problem_description", "")
+    full_text = f"{title}\n\n{text}".strip() if text else title
 
-    # Format engagement data - use actual column names
-    # Note: 'score' field may contain upvotes, use as fallback
+    # Format engagement data using app_opportunities_trust column names
     engagement = {
-        "upvotes": submission.get("upvotes", submission.get("score", 0)) or 0,
-        "num_comments": submission.get("num_comments", submission.get("comments_count", 0)) or 0,
+        "upvotes": submission.get("reddit_score", 0) or 0,
+        "num_comments": submission.get("num_comments", 0) or 0,
     }
 
-    # Extract comments from problem_keywords and solution_mentions if available
+    # Include trust metadata for context
     comments = []
-    problem_keywords = submission.get("problem_keywords")
-    solution_mentions = submission.get("solution_mentions")
+    trust_score = submission.get("trust_score")
+    trust_badge = submission.get("trust_badge")
 
-    if problem_keywords:
-        comments.append(f"Problem identified: {problem_keywords}")
-    if solution_mentions:
-        comments.append(f"Solution discussed: {solution_mentions}")
+    if trust_score:
+        comments.append(f"Trust Score: {trust_score}")
+    if trust_badge:
+        comments.append(f"Trust Badge: {trust_badge}")
 
     return {
         "id": submission.get("submission_id", submission.get("id", "unknown")),
@@ -476,9 +473,10 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
     scored_opportunities: list[dict[str, Any]]
 ) -> int:
     """
-    Store opportunities with AI profiles to app_opportunities table via DLT.
-    Uses DLT merge disposition for automatic deduplication on submission_id.
-    Only stores opportunities that have LLM-generated profiles.
+    Update app_opportunities_trust table with AI-enriched profiles via DLT.
+    Uses DLT merge disposition to update existing records with LLM-generated content.
+    Preserves trust indicators (trust_score, trust_badge, activity_score) from original data.
+    Only updates opportunities that have AI-generated fields.
 
     Args:
         scored_opportunities: List of scored opportunities (some with AI profiles)
@@ -486,36 +484,86 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
     Returns:
         Number of AI profiles stored
     """
-    from core.dlt_app_opportunities import load_app_opportunities
+    import dlt
+    from core.dlt_collection import create_dlt_pipeline
+    from config import SUPABASE_URL, SUPABASE_KEY
+    from supabase import create_client
 
-    # Transform to app_opportunities format
+    # Fetch current trust data from database to preserve it
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # Filter to only opportunities with AI-generated fields
     ai_profiles = []
     for opp in scored_opportunities:
-        # Only include if it has AI-generated fields
-        if not opp.get("problem_description"):
+        # Only include if it has AI-generated fields and valid submission_id
+        if not opp.get("problem_description") or not opp.get("submission_id"):
             continue
 
-        ai_profiles.append({
-            "submission_id": opp.get("submission_id", ""),  # Use REAL Reddit ID, not opportunity_id
-            "problem_description": opp.get("problem_description", ""),
-            "app_concept": opp.get("app_concept", ""),
-            "core_functions": opp.get("function_list", []),
-            "value_proposition": opp.get("value_proposition", ""),
-            "target_user": opp.get("target_user", ""),
-            "monetization_model": opp.get("monetization_model", ""),
+        # Fetch existing trust data for this submission_id
+        submission_id = opp.get("submission_id")
+        try:
+            existing = supabase.table("app_opportunities_trust").select(
+                "trust_score, trust_badge, activity_score, engagement_level, "
+                "trust_level, trend_velocity, problem_validity, discussion_quality, "
+                "ai_confidence_level, trust_validation_timestamp, trust_validation_method, "
+                "subreddit, reddit_score, num_comments, title"
+            ).eq("submission_id", submission_id).execute()
+
+            trust_data = existing.data[0] if existing.data else {}
+        except Exception as e:
+            print(f"⚠️  Could not fetch trust data for {submission_id}: {e}")
+            trust_data = {}
+
+        # Merge AI profile with preserved trust indicators
+        ai_profile = {
+            "submission_id": submission_id,
+            "problem_description": opp.get("problem_description"),
+            "app_concept": opp.get("app_concept"),
+            "core_functions": ", ".join(opp.get("function_list", [])) if isinstance(opp.get("function_list"), list) else str(opp.get("function_list", "")),
+            "value_proposition": opp.get("value_proposition"),
+            "target_user": opp.get("target_user"),
+            "monetization_model": opp.get("monetization_model"),
             "opportunity_score": float(opp.get("final_score", 0)),
-            "title": opp.get("app_name", ""),
-            "subreddit": opp.get("submission_id", "").split("_")[0] if "_" in opp.get("submission_id", "") else "",
-            "reddit_score": int(opp.get("original_score", 0)),
-            "status": "discovered"
-        })
+            "title": trust_data.get("title", opp.get("app_name", "")),
+            "status": "ai_enriched",
+            # Preserve trust layer fields
+            "trust_score": trust_data.get("trust_score"),
+            "trust_badge": trust_data.get("trust_badge"),
+            "activity_score": trust_data.get("activity_score"),
+            "engagement_level": trust_data.get("engagement_level"),
+            "trust_level": trust_data.get("trust_level"),
+            "trend_velocity": trust_data.get("trend_velocity"),
+            "problem_validity": trust_data.get("problem_validity"),
+            "discussion_quality": trust_data.get("discussion_quality"),
+            "ai_confidence_level": trust_data.get("ai_confidence_level"),
+            "trust_validation_timestamp": trust_data.get("trust_validation_timestamp"),
+            "trust_validation_method": trust_data.get("trust_validation_method"),
+            # Preserve submission metadata
+            "subreddit": trust_data.get("subreddit"),
+            "reddit_score": trust_data.get("reddit_score"),
+            "num_comments": trust_data.get("num_comments"),
+        }
+        ai_profiles.append(ai_profile)
 
     if not ai_profiles:
+        print("⚠️  No AI profiles to store (no opportunities with AI-generated fields)")
         return 0
 
-    # Load via DLT with automatic deduplication
-    success = load_app_opportunities(ai_profiles)
-    return len(ai_profiles) if success else 0
+    # Create DLT resource for app_opportunities_trust with merge disposition
+    @dlt.resource(
+        name="app_opportunities_trust",
+        write_disposition="merge",
+        primary_key="submission_id"
+    )
+    def ai_enriched_opportunities():
+        yield ai_profiles
+
+    # Load via DLT pipeline
+    pipeline = create_dlt_pipeline()
+    load_info = pipeline.run(ai_enriched_opportunities())
+
+    print(f"✓ Updated {len(ai_profiles)} opportunities with AI profiles in app_opportunities_trust")
+    return len(ai_profiles)
 
 
 def process_batch(
@@ -583,8 +631,8 @@ def process_batch(
             sector = map_subreddit_to_sector(submission.get("subreddit", ""))
             analysis["sector"] = sector
 
-            # Prepare for DLT storage
-            submission_id = submission.get("id")
+            # Prepare for DLT storage - use submission_id from app_opportunities_trust
+            submission_id = submission.get("submission_id", submission.get("id"))
             scored_opp = prepare_analysis_for_storage(
                 submission_id,
                 analysis,

@@ -1,14 +1,27 @@
 # RedditHarbor Database Schema Dumps
 
-Generated: 2025-11-12 16:02:14
+Last Updated: 2025-11-13 11:48:46
 
 ## Available Dump Files
 
+### Current Schema (Production Ready)
 - **updated_schema_with_trust_layer_20251112_160214.sql** (83,121 bytes, 2025-11-12 16:02)
   - Complete database schema including trust layer integration
   - Contains all tables: submissions, comments, redditors, app_opportunities
   - Includes trust validation columns: trust_level, trust_score, trust_badge, activity_score
   - Includes performance indexes for trust layer queries
+
+### Pre-Cleanup Snapshot (November 13, 2025)
+- **pre_cleanup_schema_20251113_114846.sql** (2.3K)
+  - app_opportunities_trust table schema before data cleanup
+- **pre_cleanup_table_details_20251113_114846.txt** (3.8K)
+  - Detailed table structure with column descriptions
+- **pre_cleanup_data_stats_20251113_114846.txt** (138 bytes)
+  - Statistical snapshot of old data (47.8% scoring 70+, n=23)
+- **PRE_CLEANUP_SNAPSHOT_20251113.md**
+  - Complete documentation of database state before cleanup
+  - Explains why old data was discarded (mixed code versions, test data contamination)
+  - Related to production readiness audit findings
 
 ## Trust Layer Schema Features
 

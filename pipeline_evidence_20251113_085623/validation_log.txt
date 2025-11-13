@@ -1,0 +1,119 @@
+2025-11-13 08:56:26,723 - INFO - EVIDENCE: 🚀 STARTING COMPREHENSIVE EVIDENCE-BASED VALIDATION
+2025-11-13 08:56:26,723 - INFO - EVIDENCE: Mapping Enhanced Chunks Documentation → DLT Trust Pipeline
+2025-11-13 08:56:26,723 - INFO - EVIDENCE: ================================================================================
+2025-11-13 08:56:26,723 - INFO - EVIDENCE: 🔍 CRITICAL VALIDATION: Activity Constraint Enforcement
+2025-11-13 08:56:26,723 - INFO - EVIDENCE: ✅ PASS - Configuration: DLT_MIN_ACTIVITY_SCORE set to 25.0 (Value: 25.0)
+Traceback (most recent call last):
+  File "/home/carlos/projects/redditharbor/core/dlt_collection.py", line 223, in collect_problem_posts
+    for submission in submissions:
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/praw/models/listing/generator.py", line 66, in __next__
+    self._next_batch()
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/praw/models/listing/generator.py", line 90, in _next_batch
+    self._listing = self._reddit.get(self.url, params=self.params)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/praw/util/deprecate_args.py", line 46, in wrapped
+    return func(**dict(zip(_old_args, args)), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/praw/reddit.py", line 731, in get
+    return self._objectify_request(method="GET", params=params, path=path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/praw/reddit.py", line 514, in _objectify_request
+    self.request(
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/praw/util/deprecate_args.py", line 46, in wrapped
+    return func(**dict(zip(_old_args, args)), **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/praw/reddit.py", line 963, in request
+    return self._core.request(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/prawcore/sessions.py", line 328, in request
+    return self._request_with_retries(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/carlos/projects/redditharbor/.venv/lib/python3.12/site-packages/prawcore/sessions.py", line 267, in _request_with_retries
+    raise self.STATUS_EXCEPTIONS[response.status_code](response)
+prawcore.exceptions.Redirect: Redirect to /subreddits/search
+2025-11-13 08:56:27,622 - INFO - EVIDENCE: ❌ FAIL - Activity Constraint Enforcement: Enforcement rate: 0.0% (target: ≥95.0%) (Value: 0)
+2025-11-13 08:56:27,623 - INFO - EVIDENCE: 🔍 CRITICAL VALIDATION: Realistic Score Distribution
+2025-11-13 08:56:27,783 - INFO - EVIDENCE: HTTP Request: GET http://127.0.0.1:54321/rest/v1/app_opportunities?select=opportunity_score "HTTP/1.1 200 OK"
+2025-11-13 08:56:27,784 - INFO - EVIDENCE: ❌ FAIL - Score Distribution: No opportunity scores found in database
+2025-11-13 08:56:27,784 - INFO - EVIDENCE: 🔍 CRITICAL VALIDATION: Cost Optimization Through Pre-Filtering
+2025-11-13 08:56:27,787 - INFO - EVIDENCE: ✅ PASS - Cost Configuration: Pre-filter thresholds: Engagement≥10, Comments≥3, Keywords≥2
+2025-11-13 08:56:27,864 - INFO - EVIDENCE: HTTP Request: GET http://127.0.0.1:54321/rest/v1/submissions?select=title%2Cscore%2Cnum_comments%2Cselftext&limit=100 "HTTP/1.1 400 Bad Request"
+2025-11-13 08:56:27,866 - INFO - EVIDENCE: ❌ FAIL - Cost Optimization: Validation failed: {'message': 'column submissions.selftext does not exist', 'code': '42703', 'hint': None, 'details': None}
+2025-11-13 08:56:27,866 - INFO - EVIDENCE: 🔍 CRITICAL VALIDATION: Trust Layer Separation
+2025-11-13 08:56:27,956 - INFO - EVIDENCE: HTTP Request: GET http://127.0.0.1:54321/rest/v1/app_opportunities?select=opportunity_score%2Ctrust_score%2Ctrust_level "HTTP/1.1 200 OK"
+2025-11-13 08:56:27,957 - INFO - EVIDENCE: ❌ FAIL - Trust Layer Separation: No combined score data available
+2025-11-13 08:56:27,957 - INFO - EVIDENCE: 🔍 VALIDATION: Pipeline Performance
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: ✅ PASS - Performance: Total time: 0.70s for 4 posts
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: ✅ PASS - Performance: Time per post: 0.17s (target: ≤10.0s) (Value: 0.17477470636367798)
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: 
+================================================================================
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: 📋 EVIDENCE-BASED VALIDATION REPORT
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: ================================================================================
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: ❌ PRODUCTION READINESS: FAILED - CRITICAL ISSUES FOUND
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: 📊 COMPLIANCE SCORE: 30.0/100
+2025-11-13 08:56:28,657 - INFO - EVIDENCE: ⏱️  VALIDATION TIME: 1.93s
+2025-11-13 08:56:28,658 - INFO - EVIDENCE: 
+🔍 CRITICAL VALIDATION RESULTS:
+2025-11-13 08:56:28,658 - INFO - EVIDENCE:   Activity Constraint Enforcement: ❌ FAIL
+2025-11-13 08:56:28,658 - INFO - EVIDENCE:   Realistic Score Distribution: ❌ FAIL
+2025-11-13 08:56:28,658 - INFO - EVIDENCE:   Cost Optimization: ❌ FAIL
+2025-11-13 08:56:28,658 - INFO - EVIDENCE:   Trust Layer Separation: ❌ FAIL
+2025-11-13 08:56:28,658 - INFO - EVIDENCE:   Pipeline Performance: ✅ PASS
+2025-11-13 08:56:28,658 - INFO - EVIDENCE: 
+🚨 CRITICAL FAILURES REQUIRING IMMEDIATE ATTENTION:
+2025-11-13 08:56:28,658 - INFO - EVIDENCE:   ❌ Activity constraint enforcement: 0.0% < 95.0%
+2025-11-13 08:56:28,658 - INFO - EVIDENCE:   ❌ Cost optimization error: {'message': 'column submissions.selftext does not exist', 'code': '42703', 'hint': None, 'details': None}
+2025-11-13 08:56:28,658 - INFO - EVIDENCE: 
+📊 EVIDENCE COLLECTED: 8 measurements
+2025-11-13 08:56:28,659 - INFO - EVIDENCE: 📋 EVIDENCE CATEGORIES: 7 different areas tested
+2025-11-13 08:56:28,659 - INFO - EVIDENCE: ⚡ PERFORMANCE: 0.17s per post
+2025-11-13 08:56:28,659 - INFO - EVIDENCE: ================================================================================
+2025-11-13 08:56:28,659 - INFO - EVIDENCE: 🛠️  RECOMMENDATION: Address critical failures before production deployment
+2025-11-13 08:56:28,659 - INFO - EVIDENCE: 💡 IMPACT: Each critical failure represents significant production risk
+2025-11-13 08:56:28,659 - INFO - EVIDENCE: 💾 Validation results saved to pipeline_evidence_20251113_085623/validation_results.json
+2025-11-13 08:56:28,660 - INFO - EVIDENCE: 📋 Evidence report saved to pipeline_evidence_20251113_085623/evidence_report.json
+Warning: Could not import dependencies: No module named 'redditharbor.dock.pipeline'
+Collecting problem posts from 2 subreddits...
+Limit: 5 posts per subreddit
+Sort type: new
+--------------------------------------------------------------------------------
+
+Processing r/test...
+✓ Checked 5 posts, found 0 problem posts
+
+Processing r/lowactivity...
+✗ Error processing r/lowactivity: Redirect to /subreddits/search
+
+Total problem posts collected: 0
+================================================================================
+STEP 1: DLT Collection
+Activity validation will be applied in trust layer (threshold: 25.0)
+================================================================================
+Collecting problem posts from 1 subreddits...
+Limit: 5 posts per subreddit
+Sort type: new
+--------------------------------------------------------------------------------
+
+Processing r/SaaS...
+✓ Checked 5 posts, found 4 problem posts
+
+Total problem posts collected: 4
+
+✓ Collection completed in 0.70s
+  - Posts collected: 4
+  - Rate: 5.7 posts/sec
+  - Activity threshold: 25.0 (applied in trust layer)
+
+================================================================================
+STEP 2: AI Opportunity Analysis
+SCORE_THRESHOLD: 40.0 (Original RedditHarbor filtering)
+================================================================================
+✅ LLM Profiler initialized
+  🔍 Pre-filtering 4 posts for AI analysis...
+    ❌ Post 1: Quality score 40.5 - filtered (saves AI cost)
+    ❌ Post 2: Quality score 40.5 - filtered (saves AI cost)
+    ❌ Post 3: Quality score 60.5 - filtered (saves AI cost)
+    ❌ Post 4: Quality score 40.0 - filtered (saves AI cost)
+  📊 Pre-filtering: 0/4 posts passed (0.0%)
+  💰 Cost savings: 4 AI calls avoided
+  ❌ No posts passed pre-filtering - terminating AI analysis
