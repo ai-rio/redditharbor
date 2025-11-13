@@ -571,7 +571,7 @@ def process_batch(
     agent: OpportunityAnalyzerAgent,
     batch_number: int,
     llm_profiler: LLMProfiler | None = None,
-    high_score_threshold: float = 40.0
+    ai_profile_threshold: float = 40.0
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Process a batch of submissions through the opportunity analyzer.
@@ -597,6 +597,7 @@ def process_batch(
     analysis_results = []
     scored_opportunities = []
     high_score_count = 0
+    total_submissions = len(submissions)
 
     for submission in submissions:
         try:
@@ -609,7 +610,7 @@ def process_batch(
             # Check if this is a high-scoring opportunity
             final_score = analysis.get("final_score", 0)
             print(f"  📊 {formatted['title'][:60]}... Score: {final_score:.1f}")
-            if llm_profiler and final_score >= high_score_threshold:
+            if llm_profiler and final_score >= ai_profile_threshold:
                 high_score_count += 1
                 print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
 
@@ -626,6 +627,9 @@ def process_batch(
                 except Exception as e:
                     print(f"  ⚠️  LLM profiling failed: {e}")
                     # Continue with basic scoring
+            else:
+                # Score too low for AI enrichment
+                print(f"  📊 Score {final_score:.1f} below AI threshold ({ai_profile_threshold}) - basic scoring only")
 
             # Map subreddit to sector
             sector = map_subreddit_to_sector(submission.get("subreddit", ""))
@@ -658,8 +662,14 @@ def process_batch(
             })
             continue
 
+    print(f"\n  📊 AI Enrichment Summary:")
+    print(f"    - Total submissions: {total_submissions}")
+    print(f"    - AI threshold: {ai_profile_threshold}")
+    print(f"    - Qualified for AI: {high_score_count}/{total_submissions} ({(high_score_count/total_submissions*100):.1f}%)")
     if high_score_count > 0:
-        print(f"\n  ✨ Generated {high_score_count} AI profiles for high-scoring opportunities")
+        print(f"    - ✅ Generated {high_score_count} AI profiles")
+    else:
+        print(f"    - ⚠️  No AI profiles generated (all scores below threshold)")
 
     return analysis_results, scored_opportunities
 
