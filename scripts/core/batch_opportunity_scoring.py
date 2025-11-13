@@ -209,7 +209,39 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
             offset += batch_size
 
         print(f"Successfully fetched {len(all_submissions)} total submissions")
-        return all_submissions
+
+        # Content-based deduplication to remove cross-posted content
+        print(f"🔍 Checking for content duplicates...")
+        unique_submissions = []
+        seen_titles = set()
+
+        for submission in all_submissions:
+            # Focus on title similarity for cross-post deduplication
+            title = submission.get("title", "").strip().lower()
+
+            # Remove common filler words and normalize
+            title_words = set(title.split())
+
+            # Remove common filler words that don't affect meaning
+            filler_words = {'i', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'could', 'must', 'shall'}
+
+            # Create title signature from meaningful words only
+            title_signature = tuple(sorted(title_words - filler_words))
+
+            # Use only title signature for deduplication (cross-posts typically have identical titles)
+            content_key = title_signature
+
+            if content_key not in seen_titles:
+                seen_titles.add(content_key)
+                unique_submissions.append(submission)
+            else:
+                print(f"  🔄 Removed duplicate: '{title[:50]}...' (r/{submission.get('subreddit')})")
+
+        if len(unique_submissions) < len(all_submissions):
+            print(f"✅ Removed {len(all_submissions) - len(unique_submissions)} content duplicates")
+            print(f"📊 Unique submissions: {len(unique_submissions)} from {len(all_submissions)} total")
+
+        return unique_submissions
 
     except Exception as e:
         print(f"Error fetching submissions: {e}")
@@ -597,9 +629,10 @@ def process_batch(
         high_score_threshold: Score threshold for LLM profiling (default: 40.0)
 
     Returns:
-        Tuple of (analysis_results, scored_opportunities_for_dlt)
+        Tuple of (analysis_results, scored_opportunities_for_dlt, ai_profiles_count)
         - analysis_results: List with full analysis metadata
         - scored_opportunities_for_dlt: List formatted for DLT pipeline
+        - ai_profiles_count: Number of AI profiles generated in this batch
     """
     analysis_results = []
     scored_opportunities = []
@@ -682,12 +715,23 @@ def process_batch(
     print(f"    - Total submissions: {total_submissions}")
     print(f"    - AI threshold: {ai_profile_threshold}")
     print(f"    - Qualified for AI: {high_score_count}/{total_submissions} ({(high_score_count/total_submissions*100):.1f}%)")
-    if high_score_count > 0:
-        print(f"    - ✅ Generated {high_score_count} AI profiles")
-    else:
-        print(f"    - ⚠️  No AI profiles generated (all scores below threshold)")
 
-    return analysis_results, scored_opportunities
+    if high_score_count > 0:
+        print(f"    - ✅ Generated {high_score_count} AI profiles with LLM enrichment")
+    else:
+        print(f"    - ⚠️  WARNING: No AI profiles generated!")
+        print(f"    - 🔍 ALL {total_submissions} opportunities scored below the {ai_profile_threshold} threshold")
+        print(f"    - 💡 Consider:")
+        print(f"      - Lowering AI threshold: SCORE_THRESHOLD={max(20.0, ai_profile_threshold - 10.0)}")
+        print(f"      - Collecting higher-quality Reddit data")
+        print(f"      - Improving opportunity scoring algorithm")
+        print(f"      - Checking subreddit selection for better pain points")
+
+        # Additional insights for low scores
+        avg_score = sum(r.get("final_score", 0) for r in analysis_results if "final_score" in r) / len(analysis_results)
+        print(f"    - 📈 Average score: {avg_score:.1f} (threshold gap: {ai_profile_threshold - avg_score:.1f})")
+
+    return analysis_results, scored_opportunities, high_score_count
 
 
 def generate_summary_report(
@@ -828,6 +872,9 @@ def main():
     import os
     score_threshold = float(os.getenv("SCORE_THRESHOLD", "40.0"))
 
+    # Track AI profile generation for final reporting
+    ai_profiles_generated = 0
+
     print("\n" + "="*80)
     print("BATCH OPPORTUNITY SCORING - DLT-POWERED")
     print("="*80 + "\n")
@@ -898,10 +945,11 @@ def main():
         batch_num = (i // batch_size) + 1
 
         try:
-            # Process batch (returns analysis results and scored opportunities)
-            results, scored_opps = process_batch(batch, agent, batch_num, llm_profiler, score_threshold)
+            # Process batch (returns analysis results, scored opportunities, and AI profile count)
+            results, scored_opps, ai_profiles_count = process_batch(batch, agent, batch_num, llm_profiler, score_threshold)
             all_results.extend(results)
             all_scored_opportunities.extend(scored_opps)
+            ai_profiles_generated += ai_profiles_count
 
         except Exception as e:
             print(f"\n✗ Error processing batch {batch_num}: {e}")
@@ -973,6 +1021,24 @@ def main():
 
     if load_success:
         print("✓ Batch opportunity scoring completed successfully!")
+
+        # AI Profile Generation Status
+        if ai_profiles_generated == 0:
+            print(f"\n{'='*80}")
+            print("⚠️  AI PROFILE GENERATION WARNING")
+            print(f"{'='*80}")
+            print(f"No AI profiles were generated in this run.")
+            print(f"🔍 Threshold: {score_threshold}")
+            print(f"📊 Opportunities processed: {len(submissions)}")
+            print(f"📈 Best score: {max(r.get('final_score', 0) for r in all_results):.1f}")
+            print(f"🎯 Recommended actions:")
+            print(f"  • Run with lower threshold: SCORE_THRESHOLD={max(20.0, score_threshold - 15.0)}")
+            print(f"  • Collect data from higher-engagement subreddits")
+            print(f"  • Target posts with stronger pain indicators")
+            print(f"  • Consider current market conditions and trending topics")
+            print(f"{'='*80}")
+        else:
+            print(f"\n✅ Generated {ai_profiles_generated} AI profiles successfully!")
     else:
         print("⚠️  Batch opportunity scoring completed with warnings (DLT load failed)")
 

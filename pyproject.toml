@@ -34,32 +34,26 @@ dependencies = [
     # Reddit API
     "praw>=7.6.0",
     "asyncpraw>=7.6.0",
-
     # Data processing
     "pandas>=1.5.0",
     "numpy>=1.21.0",
-
     # Database and storage
     "supabase>=1.0.0",
     "psycopg2-binary>=2.9.0",
-
     # Privacy and PII handling
     "spacy>=3.4.0",
-
     # Web requests and scraping
     "requests>=2.28.0",
     "beautifulsoup4>=4.11.0",
-
+    # JSON repair for LLM responses
+    "json-repair>=0.24.0",
     # Data validation
     "pydantic>=1.10.0",
     "marshmallow>=3.17.0",
-
     # Configuration
     "python-dotenv>=0.19.0",
-
     # Logging and monitoring
     "structlog>=22.1.0",
-
     # Testing (dev dependencies will be in separate group)
 ]
 

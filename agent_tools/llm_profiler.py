@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from json_repair import repair_json
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -29,6 +30,13 @@ class LLMProfiler:
 
         if not self.api_key:
             raise ValueError("OPENROUTER_API_KEY not found in environment")
+
+        # List of generic app names to avoid
+        self.generic_names = {
+            'taskflow', 'smartflow', 'protool', 'workflow', 'taskmaster', 'smartapp',
+            'taskapp', 'flowapp', 'workapp', 'proapp', 'smarttask', 'taskpro',
+            'flowpro', 'workpro', 'efficiencyapp', 'productivityapp', 'taskmanager'
+        }
 
     def generate_app_profile(
         self,
@@ -53,7 +61,7 @@ class LLMProfiler:
 
         try:
             response = self._call_llm(prompt)
-            profile = self._parse_response(response)
+            profile = self._parse_response(response, title, text)
             return profile
 
         except Exception as e:
@@ -81,7 +89,8 @@ class LLMProfiler:
 
 Generate a JSON response with exactly these fields:
 
-1. **app_name** (1-3 words): Short, catchy name for the app
+1. **app_name** (1-3 words): UNIQUE, problem-specific name that directly reflects the core solution. Use descriptive naming patterns like: [Problem] + [Solution Type] or [Action] + [Benefit]. Examples: "TimeLens", "AutomateFlow", "FocusTrack", "PriorityGrid", "WorkflowSync". AVOID generic names like "TaskFlow", "SmartApp", "ProTool" that could apply to any problem.
+
 2. **problem_description** (1-2 sentences): The core problem or pain point expressed
 3. **app_concept** (2-3 sentences): Specific app idea that solves this problem
 4. **core_functions** (array of 1-3 strings): Focused functions with CLEAR BOUNDARIES that solve specific, non-overlapping aspects of the problem. Each function should have: (1) Specific problem it solves, (2) Clear scope boundaries, (3) One measurable outcome. Functions should work together logically (analyze → build → monitor) with no overlap.
@@ -95,6 +104,7 @@ Generate a JSON response with exactly these fields:
 - App concept must directly solve the stated problem
 - Functions must be actionable and implementable
 - Keep all fields concise
+- **APP NAME MUST BE UNIQUE AND PROBLEM-SPECIFIC**: The name should immediately tell users what problem it solves. Generic names like "TaskFlow", "SmartFlow", "ProTool" are unacceptable. Use descriptive combinations like: TimeFocus, WorkflowWizard, PriorityMaster, AutomationHub, ScheduleSync.
 
 **Function Count Guidelines:**
 - Choose the MINIMUM number of functions (1-3) that genuinely solve the core problem
@@ -148,7 +158,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
 
         raise Exception("Unexpected error in API call")
 
-    def _parse_response(self, response: str) -> dict[str, Any]:
+    def _parse_response(self, response: str, title: str, text: str) -> dict[str, Any]:
         """Parse LLM response into structured profile"""
         # Clean up markdown code blocks if present
         response = response.strip()
@@ -161,6 +171,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
         response = response.strip()
 
         try:
+            # Use json_repair to fix malformed JSON from LLMs
             profile = json.loads(response)
 
             # Validate required fields
@@ -188,12 +199,86 @@ Return ONLY valid JSON, no markdown, no explanation."""
             elif len(profile["core_functions"]) > 3:
                 profile["core_functions"] = profile["core_functions"][:3]
 
+            # Validate and improve app name uniqueness
+            profile = self._validate_and_improve_app_name(profile, title, text)
+
             return profile
 
         except json.JSONDecodeError as e:
-            raise Exception(f"Failed to parse LLM response as JSON: {e}")
+            # Try to repair malformed JSON using json_repair
+            try:
+                repaired_json = repair_json(response)
+                profile = json.loads(repaired_json)
+            except Exception:
+                raise Exception(f"Failed to parse LLM response as JSON: {e}")
         except ValueError as e:
             raise Exception(f"Invalid profile structure: {e}")
+
+    def _validate_and_improve_app_name(self, profile: dict[str, Any], title: str, text: str) -> dict[str, Any]:
+        """
+        Validate app name for uniqueness and problem specificity.
+        If generic, generate a more descriptive name based on the problem.
+        """
+        app_name = profile.get("app_name", "").lower().replace(" ", "")
+
+        # Check if it's a generic name
+        if app_name in self.generic_names or len(app_name) < 4:
+            # Generate a descriptive name based on the problem
+            problem_keywords = self._extract_problem_keywords(title, text)
+            solution_type = self._identify_solution_type(profile.get("app_concept", ""))
+
+            # Create unique name
+            if problem_keywords and solution_type:
+                new_name = f"{problem_keywords[0]}{solution_type}"
+            elif problem_keywords:
+                new_name = f"{problem_keywords[0]}Hub"
+            else:
+                new_name = "SmartFlow"
+
+            profile["app_name"] = new_name
+            print(f"  🔄 Improved generic app name to: {new_name}")
+
+        return profile
+
+    def _extract_problem_keywords(self, title: str, text: str) -> list[str]:
+        """Extract meaningful keywords related to the problem domain."""
+        problem_words = []
+
+        # Common problem domains and their keywords
+        domain_keywords = {
+            'time': ['time', 'schedule', 'deadline', 'punctual', 'hours'],
+            'task': ['task', 'todo', 'project', 'work', 'activity'],
+            'focus': ['focus', 'concentrate', 'distraction', 'attention'],
+            'automate': ['automation', 'repetitive', 'manual', 'workflow'],
+            'priority': ['priority', 'urgent', 'important', 'ranking'],
+            'track': ['track', 'monitor', 'measure', 'progress'],
+            'organize': ['organize', 'manage', 'coordinate', 'structure']
+        }
+
+        combined_text = (title + " " + text[:200]).lower()
+
+        for domain, keywords in domain_keywords.items():
+            if any(keyword in combined_text for keyword in keywords):
+                problem_words.append(domain.capitalize())
+
+        return problem_words[:2]  # Return top 2 relevant domains
+
+    def _identify_solution_type(self, app_concept: str) -> str:
+        """Identify the type of solution based on the app concept."""
+        concept_lower = app_concept.lower()
+
+        if any(word in concept_lower for word in ['track', 'monitor', 'measure']):
+            return 'Track'
+        elif any(word in concept_lower for word in ['automate', 'automatic', 'workflow']):
+            return 'Flow'
+        elif any(word in concept_lower for word in ['organize', 'manage', 'structure']):
+            return 'Hub'
+        elif any(word in concept_lower for word in ['focus', 'concentrate', 'priority']):
+            return 'Focus'
+        elif any(word in concept_lower for word in ['time', 'schedule', 'plan']):
+            return 'Sync'
+        else:
+            return 'Pro'
 
 
 # Example usage
