@@ -434,6 +434,24 @@ worktrees/
 # Error Log
 error_log/
 
+# Temporary development files and worktree leftovers
+*direct_postgres_loader*
+*opportunity_dashboard_*realistic*
+*_backup_*.py
+*_test_*.py
+*_temporary_*.py
+worktree_*
+
+# Enhanced Chunks test framework generated files
+tests/enhanced_chunks_validation/logs/
+tests/enhanced_chunks_validation/test_results_*.json
+tests/enhanced_chunks_validation/*_test_run_*.log
+
+# Marimo notebook temporary files
+marimo_notebooks/*.log
+marimo_notebooks/.marimo/
+marimo_notebooks/__pycache__/
+
 # =============================================================================
 # DATABASE-GENERATED REPORTS & DUMPS
 # =============================================================================
