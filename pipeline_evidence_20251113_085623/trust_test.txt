@@ -1,8 +1,0 @@
-2025-11-13 08:56:34,284 - INFO - EVIDENCE: 🔍 CRITICAL VALIDATION: Trust Layer Separation
-2025-11-13 08:56:34,408 - INFO - EVIDENCE: HTTP Request: GET http://127.0.0.1:54321/rest/v1/app_opportunities?select=opportunity_score%2Ctrust_score%2Ctrust_level "HTTP/1.1 200 OK"
-2025-11-13 08:56:34,409 - INFO - EVIDENCE: ❌ FAIL - Trust Layer Separation: No combined score data available
-Warning: Could not import dependencies: No module named 'redditharbor.dock.pipeline'
-Trust Layer Separation: ❌ FAIL
-Independence Rate: 0.0%
-High AI/Low Trust: 0
-Low AI/High Trust: 0

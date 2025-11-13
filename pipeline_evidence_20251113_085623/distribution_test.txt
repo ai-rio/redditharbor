@@ -1,8 +1,0 @@
-2025-11-13 08:56:32,292 - INFO - EVIDENCE: 🔍 CRITICAL VALIDATION: Realistic Score Distribution
-2025-11-13 08:56:32,486 - INFO - EVIDENCE: HTTP Request: GET http://127.0.0.1:54321/rest/v1/app_opportunities?select=opportunity_score "HTTP/1.1 200 OK"
-2025-11-13 08:56:32,486 - INFO - EVIDENCE: ❌ FAIL - Score Distribution: No opportunity scores found in database
-Warning: Could not import dependencies: No module named 'redditharbor.dock.pipeline'
-Score Distribution: ❌ FAIL
-70+ Score Rate: 0.0% (should be ≤3%)
-Average Score: 0.0
-Total Scores Analyzed: 0
