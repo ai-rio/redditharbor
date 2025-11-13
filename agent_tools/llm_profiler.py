@@ -88,7 +88,6 @@ Generate a JSON response with exactly these fields:
 5. **value_proposition** (1-2 sentences): Why users need this, what benefit they get
 6. **target_user** (1 sentence): Primary user persona
 7. **monetization_model** (1 sentence): Recommended revenue model with pricing
-8. **final_score** (number 0-100): Overall opportunity score based on market potential
 
 **Critical Rules:**
 - Be SPECIFIC. No generic functions like "Core function 1" or "User management"
@@ -172,8 +171,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
                 "core_functions",
                 "value_proposition",
                 "target_user",
-                "monetization_model",
-                "final_score"
+                "monetization_model"
             ]
 
             for field in required:

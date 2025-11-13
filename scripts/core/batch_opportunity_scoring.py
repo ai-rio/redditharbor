@@ -614,7 +614,7 @@ def process_batch(
                 high_score_count += 1
                 print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
 
-                # Generate real AI app profile
+                # Generate real AI app profile (using system score as context)
                 try:
                     ai_profile = llm_profiler.generate_app_profile(
                         text=formatted["text"],
