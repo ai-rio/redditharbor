@@ -52,7 +52,8 @@ collector.store_to_database(data, database_url="your_db_url")
 
 - **[API Reference](./api/README.md)** - Complete API documentation and function reference
 - **[Component Guide](./components/README.md)** - Reusable UI components and modular system architecture
-- **[User Guides](./guides/README.md)** - Step-by-step tutorials and how-to guides
+- **[User Guides](./guides/README.md)** - Step-by-step tutorials and comprehensive how-to guides
+- **[Development & Operations](./guides/development-operations/README.md)** - Development workflows, testing, and deployment guides
 - **[Architecture](./architecture/README.md)** - System design and architecture decisions
 - **[Technical Specifications](./technical/README.md)** - System architecture, deployment guides, and technical specifications
 - **[Testing Reports](./test-results/README.md)** - Comprehensive testing results, quality metrics, and validation reports
@@ -71,22 +72,21 @@ collector.store_to_database(data, database_url="your_db_url")
 
 ### Setup & Verification
 
-- **[Setup Guide](./guides/setup-guide.md)** - Complete multi-project setup instructions
-- **[Setup Checklist](./guides/setup-checklist.md)** - Verification checklist for complete setup
-- **[Verification Report](./guides/verification-report.md)** - Manual verification and certification report
-- **[Security Guide](./guides/security-guide.md)** - Comprehensive security and privacy protection
+- **[Getting Started Guides](./guides/getting-started/)** - Complete setup instructions and quick start guides
+- **[Setup Checklist](./guides/getting-started/setup-checklist.md)** - Verification checklist for complete setup
+- **[Verification Report](./guides/monitoring-quality/verification-report.md)** - Manual verification and certification report
+- **[Security Guide](./guides/security-compliance/security-guide.md)** - Comprehensive security and privacy protection
 
 ### Development Documentation
 
+- **[Development & Operations](./guides/development-operations/README.md)** - Development workflows, testing, and deployment
 - **[Contributing Guide](./contributing/README.md)** - How to contribute to RedditHarbor
-- **[Project Setup](./guides/setup-guide.md)** - Development environment setup
-- **[Testing Guide](./guides/testing.md)** - Testing procedures and best practices *(Coming Soon)*
+- **[Testing Procedures](./guides/development-operations/e2e-workflow-implementation-guide.md)** - End-to-end testing and validation
 
 ### DLT Integration & Pipeline
 
+- **[DLT Integration Guides](./guides/integrations-tools/)** - Complete DLT integration and migration documentation
 - **[DLT Consolidation Complete](./architecture/dlt-consolidation-complete.md)** - All 6 scripts migrated to DLT pipeline
-- **[DLT Migration Guide](./guides/dlt-migration-guide.md)** - 7 validated DLT patterns and implementation examples
-- **[DLT Deployment & Operations](./guides/dlt-deployment-operations.md)** - Production deployment and monitoring guide
 - **[DLT Architecture](./architecture/dlt-consolidated-architecture.md)** - System design and data flow documentation
 
 ### Testing & Analysis Reports
@@ -161,24 +161,24 @@ collector.store_to_database(data, database_url="your_db_url")
 
 ### For New Users
 
-1. **Read the [Setup Guide](./guides/setup-guide.md)** - Complete setup instructions
-2. **Check the [Setup Checklist](./guides/setup-checklist.md)** - Verify your setup
-3. **Review the [Verification Report](./guides/verification-report.md)** - System certification details
-4. **Explore [Research Types](./guides/research-types.md)** - Available research capabilities
+1. **Read the [Getting Started Guides](./guides/getting-started/)** - Complete setup instructions and quick starts
+2. **Check the [Setup Checklist](./guides/getting-started/setup-checklist.md)** - Verify your setup
+3. **Review the [Verification Report](./guides/monitoring-quality/verification-report.md)** - System certification details
+4. **Explore [Research Types](./guides/research-analysis/research-types.md)** - Available research capabilities
 
 ### For Developers
 
-1. **Check the [API Reference](./api/README.md)** - Detailed function documentation
-2. **Review [Component Documentation](./components/README.md)** - Component details
+1. **Check the [Development & Operations Guide](./guides/development-operations/README.md)** - Development workflows and testing
+2. **Review the [API Reference](./api/README.md)** - Detailed function documentation
 3. **Read [Architecture Guide](./architecture/README.md)** - System design
 4. **Follow [Contributing Guidelines](./contributing/README.md)** - How to contribute
 
 ### For Researchers
 
-1. **Start with [Research Types Guide](./guides/research-types.md)** - Research methodologies
-2. **Review [Security Guide](./guides/security-guide.md)** - Privacy and ethics
-3. **Check [Setup Guide](./guides/setup-guide.md)** - Multi-project setup
-4. **Verify with [Setup Checklist](./guides/setup-checklist.md)** - Ensure completeness
+1. **Start with [Research Types Guide](./guides/research-analysis/research-types.md)** - Research methodologies
+2. **Review [Security Guide](./guides/security-compliance/security-guide.md)** - Privacy and ethics
+3. **Check [Getting Started Guide](./guides/getting-started/setup-guide.md)** - Multi-project setup
+4. **Verify with [Setup Checklist](./guides/getting-started/setup-checklist.md)** - Ensure completeness
 
 ---
 
@@ -248,7 +248,7 @@ RedditHarbor supports various research types:
 <div style="background: #F5F5F5; padding: 15px; border-radius: 8px; margin: 20px 0;">
   <h4 style="color: #1A1A1A; margin-top: 0;">📚 Learn More</h4>
   <p style="margin: 0; color: #1A1A1A;">
-    Explore all research possibilities in our comprehensive <a href="./guides/research-types.md" style="color: #004E89;">Research Types Guide</a>
+    Explore all research possibilities in our comprehensive <a href="./guides/research-analysis/research-types.md" style="color: #004E89;">Research Types Guide</a>
   </p>
 </div>
 
@@ -276,7 +276,7 @@ RedditHarbor includes pre-configured project templates:
     <li><strong>Security:</strong> Comprehensive protection implemented</li>
   </ul>
   <p style="margin: 10px 0 0 0; color: #1A1A1A;">
-    <a href="./guides/verification-report.md" style="color: #004E89;">View detailed verification report →</a>
+    <a href="./guides/monitoring-quality/verification-report.md" style="color: #004E89;">View detailed verification report →</a>
   </p>
 </div>
 
@@ -295,7 +295,7 @@ We welcome contributions! Please read our [Contributing Guide](./contributing/RE
 
 <div style="background: #F7B801; padding: 10px; border-radius: 6px; margin: 15px 0; text-align: center;">
   <strong style="color: #1A1A1A;">Questions? Need Help?</strong><br>
-  <span style="color: #1A1A1A;">Check our <a href="./guides/setup-checklist.md" style="color: #004E89;">Setup Checklist</a> or <a href="./contributing/README.md" style="color: #004E89;">Contact Us</a></span>
+  <span style="color: #1A1A1A;">Check our <a href="./guides/getting-started/setup-checklist.md" style="color: #004E89;">Setup Checklist</a> or <a href="./contributing/README.md" style="color: #004E89;">Contact Us</a></span>
 </div>
 
 ---
