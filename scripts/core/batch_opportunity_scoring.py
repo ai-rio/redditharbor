@@ -42,7 +42,7 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
     from tqdm import tqdm
 
-from agent_tools.llm_profiler import LLMProfiler
+from agent_tools.llm_profiler_enhanced import EnhancedLLMProfiler
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from config import SUPABASE_KEY, SUPABASE_URL
 
@@ -365,6 +365,9 @@ def prepare_analysis_for_storage(
         function_count = core_functions if isinstance(core_functions, int) else 1
         function_list = [f"Core function {i+1}" for i in range(function_count)]
 
+    # Extract cost tracking data if available
+    cost_data = analysis.get("cost_tracking", {})
+
     # Prepare data for workflow_results table
     analysis_data = {
         "opportunity_id": opportunity_id,  # For workflow_results deduplication
@@ -395,6 +398,19 @@ def prepare_analysis_for_storage(
         "value_proposition": analysis.get("value_proposition", "")[:500],
         "target_user": analysis.get("target_user", "")[:255],
         "monetization_model": analysis.get("monetization_model", "")[:255],
+        # Cost tracking data (from EnhancedLLMProfiler)
+        "llm_model_used": cost_data.get("model_used"),
+        "llm_provider": cost_data.get("provider", "openrouter"),
+        "llm_prompt_tokens": cost_data.get("prompt_tokens", 0),
+        "llm_completion_tokens": cost_data.get("completion_tokens", 0),
+        "llm_total_tokens": cost_data.get("total_tokens", 0),
+        "llm_input_cost_usd": cost_data.get("input_cost_usd", 0.0),
+        "llm_output_cost_usd": cost_data.get("output_cost_usd", 0.0),
+        "llm_total_cost_usd": cost_data.get("total_cost_usd", 0.0),
+        "llm_latency_seconds": cost_data.get("latency_seconds", 0.0),
+        "llm_timestamp": cost_data.get("timestamp"),
+        "llm_pricing_info": cost_data.get("model_pricing_per_m_tokens", {}),
+        "cost_tracking_enabled": bool(cost_data),
     }
 
     return analysis_data
@@ -609,7 +625,7 @@ def process_batch(
     submissions: list[dict[str, Any]],
     agent: OpportunityAnalyzerAgent,
     batch_number: int,
-    llm_profiler: LLMProfiler | None = None,
+    llm_profiler: EnhancedLLMProfiler | None = None,
     ai_profile_threshold: float = 40.0
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
@@ -654,16 +670,23 @@ def process_batch(
                 high_score_count += 1
                 print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
 
-                # Generate real AI app profile (using system score as context)
+                # Generate real AI app profile with cost tracking
                 try:
-                    ai_profile = llm_profiler.generate_app_profile(
+                    ai_profile, cost_data = llm_profiler.generate_app_profile_with_costs(
                         text=formatted["text"],
                         title=formatted["title"],
                         subreddit=formatted["subreddit"],
                         score=final_score
                     )
-                    # Merge AI profile into analysis
+                    # Merge AI profile into analysis and store cost data
                     analysis.update(ai_profile)
+                    analysis["cost_tracking"] = cost_data  # Ensure cost data is preserved
+
+                    # Log cost information
+                    cost_usd = cost_data.get("total_cost_usd", 0.0)
+                    tokens = cost_data.get("total_tokens", 0)
+                    print(f"  💰 AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)")
+
                 except Exception as e:
                     print(f"  ⚠️  LLM profiling failed: {e}")
                     # Continue with basic scoring
@@ -897,7 +920,7 @@ def main():
         # Initialize LLM profiler for high-score opportunities
         llm_profiler = None
         try:
-            llm_profiler = LLMProfiler()
+            llm_profiler = EnhancedLLMProfiler()
             print("✓ Connections initialized successfully")
             print("  - Supabase: Connected")
             print("  - OpportunityAnalyzerAgent: Ready")
@@ -958,6 +981,19 @@ def main():
 
     # Calculate processing time
     processing_time = time.time() - start_time
+
+    # Generate cost summary if AI profiles were generated
+    cost_summary = None
+    if ai_profiles_generated > 0 and llm_profiler:
+        cost_summary = llm_profiler.get_cost_summary(all_scored_opportunities)
+        print(f"\n💰 AI ENRICHMENT COST SUMMARY")
+        print(f"   Total Cost: ${cost_summary['total_cost_usd']:.6f}")
+        print(f"   Total Tokens: {cost_summary['total_tokens']:,}")
+        print(f"   Avg Cost per Profile: ${cost_summary['avg_cost_per_profile']:.6f}")
+
+        # Log model breakdown
+        for model, stats in cost_summary['model_breakdown'].items():
+            print(f"   {model}: {stats['count']} profiles, ${stats['cost']:.6f}, {stats['tokens']} tokens")
 
     # Load all scored opportunities to Supabase via DLT (batch operation)
     print(f"\n{'='*80}")
