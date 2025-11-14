@@ -89,13 +89,13 @@ Created working queries that don't rely on functions to ensure immediate access 
 ### Scripts
 - `/home/carlos/projects/redditharbor/scripts/test_cost_tracking_functions.sql` - Validation script
 - `/home/carlos/projects/redditharbor/scripts/fix_cost_tracking_functions.sql` - Fix content
-- `/home/carlos/projects/redditharbor/scripts/apply_fix_directly.py` - Python applicator
-- `/home/carlos/projects/redditharbor/scripts/test_and_fix_cost_tracking.py` - Test script
+- `/home/carlos/projects/redditharbor/archive/cost_tracking_cleanup_2025_11_13/apply_fix_directly.py` - Python applicator (archived)
+- `/home/carlos/projects/redditharbor/archive/cost_tracking_cleanup_2025_11_13/test_and_fix_cost_tracking.py` - Test script (archived)
 - `/home/carlos/projects/redditharbor/scripts/reset_and_apply_fixes.sh` - Auto-apply script
 
 ### Documentation
 - `/home/carlos/projects/redditharbor/docs/cost_tracking_queries.md` - Working examples and guide
-- `/home/carlos/projects/redditharbor/COST_TRACKING_FIX_SUMMARY.md` - This summary
+- `/home/carlos/projects/redditharbor/docs/implementation/COST_TRACKING_FIX_SUMMARY.md` - This summary
 
 ## How to Apply the Fix
 

@@ -107,6 +107,9 @@ collector.store_to_database(data, database_url="your_db_url")
 - **[Bug Fixes & Critical Updates](./implementation/#-bug-fixes--critical-updates)** - Recent bug fixes and system improvements
 - **[DLT Integration](./implementation/#-dlt-integration-documentation)** - Complete DLT pipeline implementation
 - **[Migration Reports](./implementation/#-migration--workflow-documentation)** - Migration execution and workflow summaries
+- **[Cost Tracking Implementation](./COST_TRACKING_DEPLOYMENT.md)** - Complete cost tracking observability implementation
+- **[Cost Analytics Guide](./cost_tracking_analytics.md)** - Analytics and monitoring for cost tracking
+- **[Cost Tracking Queries](./cost_tracking_queries.md)** - SQL queries for cost analysis and reporting
 
 ### Archive & Historical Documentation
 

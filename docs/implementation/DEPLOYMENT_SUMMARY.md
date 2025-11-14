@@ -94,7 +94,7 @@ ORDER BY total_cost_usd DESC;
 
 ### Documentation
 - `docs/COST_TRACKING_DEPLOYMENT.md` - Complete deployment guide
-- `DEPLOYMENT_SUMMARY.md` - This summary document
+- `/home/carlos/projects/redditharbor/docs/implementation/DEPLOYMENT_SUMMARY.md` - This summary document
 
 ## 🔧 Configuration Requirements
 

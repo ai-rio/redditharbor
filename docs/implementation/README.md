@@ -76,3 +76,10 @@ The `implementation/` directory contains comprehensive documentation of RedditHa
 
 - **[Complete DLT Implementation Summary](./complete-dlt-implementation-summary.md)** - Comprehensive DLT implementation summary
 - **[Phase2 Implementation Summary](./phase2-implementation-summary.md)** - Phase 2 implementation completion report
+
+### 💰 Cost Tracking & Observability Implementation
+
+- **[Cost Tracking Fix Summary](./COST_TRACKING_FIX_SUMMARY.md)** - Complete cost tracking implementation and fix summary
+- **[Deployment Summary](./DEPLOYMENT_SUMMARY.md)** - Cost tracking deployment and integration summary
+- **[Monetizable Collection Implementation](./monetizable-collection-implementation.md)** - Monetizable features collection implementation
+- **[Generated Insights Summary](./generated-insights-summary.md)** - AI insights generation implementation

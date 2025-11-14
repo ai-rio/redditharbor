@@ -253,3 +253,12 @@ This archive follows the doc-organizer pattern with:
 - Detailed archival rationale
 - Production replacement guidance
 - Reactivation instructions
+
+### cost_tracking_cleanup_2025_11_13/ (2 files)
+Cost tracking implementation cleanup files moved during project organization.
+
+- `apply_fix_directly.py` - Direct database fix application utility
+- `test_and_fix_cost_tracking.py` - Cost tracking testing and fixing script
+
+These were utility scripts used during the cost tracking feature implementation and are no longer needed in the active codebase.
+
