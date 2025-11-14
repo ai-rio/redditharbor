@@ -57,6 +57,8 @@ dependencies = [
     # Logging and monitoring
     "structlog>=22.1.0",
     # Testing (dev dependencies will be in separate group)
+    "dspy-ai>=2.5.0",
+    "dlt>=1.18.0",
 ]
 
 # Optional dependencies

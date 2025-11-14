@@ -19,6 +19,7 @@ DLT Migration Benefits:
 CRITICAL: Uses centralized score_calculator module for consistency.
 """
 
+import os
 import sys
 import time
 from datetime import datetime
