@@ -46,8 +46,27 @@ from agent_tools.llm_profiler_enhanced import EnhancedLLMProfiler
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from config import SUPABASE_KEY, SUPABASE_URL
 
+# Hybrid strategy imports (Option A & B)
+from agent_tools.monetization_llm_analyzer import MonetizationLLMAnalyzer
+from core.lead_extractor import LeadExtractor, convert_to_database_record
+
 # DLT constraint validator
 from core.dlt.constraint_validator import app_opportunities_with_constraint
+
+# Hybrid Strategy Configuration
+HYBRID_STRATEGY_CONFIG = {
+    "option_a": {
+        "enabled": os.getenv("MONETIZATION_LLM_ENABLED", "true").lower() == "true",
+        "threshold": float(os.getenv("MONETIZATION_LLM_THRESHOLD", "60.0")),
+        "model": os.getenv("MONETIZATION_LLM_MODEL", "openai/gpt-4o-mini"),
+        "openrouter_key": os.getenv("OPENROUTER_API_KEY"),
+    },
+    "option_b": {
+        "enabled": os.getenv("LEAD_EXTRACTION_ENABLED", "true").lower() == "true",
+        "threshold": float(os.getenv("LEAD_EXTRACTION_THRESHOLD", "60.0")),
+        "slack_webhook": os.getenv("SLACK_WEBHOOK_URL"),
+    }
+}
 
 # DLT imports for pipeline-based loading
 # DLT opportunity pipeline
@@ -621,6 +640,86 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
     return len(ai_profiles)
 
 
+def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[str, int]:
+    """
+    Store hybrid strategy results (Option A & B) to their respective database tables.
+
+    This function extracts LLM analysis and lead data from the analysis results
+    and stores them in the appropriate hybrid strategy tables.
+
+    Args:
+        all_results: List of analysis results containing hybrid_results
+
+    Returns:
+        Dictionary with counts of stored records by type
+    """
+    llm_analyses = []
+    customer_leads = []
+
+    # Extract hybrid results from analysis
+    for result in all_results:
+        hybrid_results = result.get("hybrid_results", {})
+
+        # Option A: LLM Monetization Analysis
+        if "llm_analysis" in hybrid_results:
+            llm_record = hybrid_results["llm_analysis"]
+            llm_analyses.append(llm_record)
+
+        # Option B: Customer Lead Extraction
+        if "lead" in hybrid_results:
+            lead_record = hybrid_results["lead"]
+            customer_leads.append(lead_record)
+
+    stored_counts = {"llm_analyses": 0, "customer_leads": 0}
+
+    # Store Option A: LLM Monetization Analysis
+    if llm_analyses:
+        try:
+            @dlt.resource(
+                name="llm_monetization_analysis",
+                write_disposition="merge",
+                primary_key="opportunity_id"
+            )
+            def llm_analysis_resource():
+                yield from llm_analyses
+
+            pipeline = create_dlt_pipeline()
+            load_info = pipeline.run(llm_analysis_resource())
+            stored_counts["llm_analyses"] = len(llm_analyses)
+            print(f"✓ Stored {len(llm_analyses)} LLM monetization analyses")
+
+        except Exception as e:
+            print(f"⚠️  Failed to store LLM analyses: {e}")
+
+    # Store Option B: Customer Leads
+    if customer_leads:
+        try:
+            @dlt.resource(
+                name="customer_leads",
+                write_disposition="merge",
+                primary_key="opportunity_id"
+            )
+            def customer_leads_resource():
+                yield from customer_leads
+
+            pipeline = create_dlt_pipeline()
+            load_info = pipeline.run(customer_leads_resource())
+            stored_counts["customer_leads"] = len(customer_leads)
+            print(f"✓ Stored {len(customer_leads)} customer leads")
+
+            # Log hot leads summary
+            hot_leads = [lead for lead in customer_leads
+                        if lead.get("urgency_level") in ["high", "critical"]
+                        and lead.get("lead_score", 0) >= 75]
+            if hot_leads:
+                print(f"🔥 HOT LEADS: {len(hot_leads)} high-priority leads ready for outreach!")
+
+        except Exception as e:
+            print(f"⚠️  Failed to store customer leads: {e}")
+
+    return stored_counts
+
+
 def process_batch(
     submissions: list[dict[str, Any]],
     agent: OpportunityAnalyzerAgent,
@@ -666,6 +765,118 @@ def process_batch(
             # Check if this is a high-scoring opportunity
             final_score = analysis.get("final_score", 0)
             print(f"  📊 {formatted['title'][:60]}... Score: {final_score:.1f}")
+
+            # HYBRID STRATEGY: Run Option A & B analysis on qualified opportunities
+            if final_score >= 60:  # Threshold for both Option A and B
+                hybrid_results = {}
+
+                # Option A: LLM Monetization Analysis (if enabled)
+                if HYBRID_STRATEGY_CONFIG["option_a"]["enabled"] and HYBRID_STRATEGY_CONFIG["option_a"]["openrouter_key"]:
+                    try:
+                        if not hasattr(process_batch, '_llm_analyzer'):
+                            process_batch._llm_analyzer = MonetizationLLMAnalyzer(
+                                model=HYBRID_STRATEGY_CONFIG["option_a"]["model"]
+                            )
+
+                        llm_result = process_batch._llm_analyzer.analyze(
+                            text=formatted["text"],
+                            subreddit=formatted["subreddit"],
+                            keyword_monetization_score=analysis.get("monetization_potential", 0)
+                        )
+
+                        # Update monetization score with LLM result
+                        analysis["monetization_potential"] = llm_result.llm_monetization_score
+                        analysis["customer_segment"] = llm_result.customer_segment
+                        analysis["llm_analysis"] = {
+                            "willingness_to_pay": llm_result.willingness_to_pay_score,
+                            "payment_sentiment": llm_result.sentiment_toward_payment,
+                            "price_points": llm_result.mentioned_price_points,
+                            "urgency": llm_result.urgency_level,
+                            "confidence": llm_result.confidence
+                        }
+
+                        # Store LLM analysis record for database
+                        hybrid_results["llm_analysis"] = {
+                            "opportunity_id": f"opp_{submission.get('submission_id', submission.get('id'))}",
+                            "submission_id": submission.get("submission_id", submission.get("id")),
+                            "llm_monetization_score": llm_result.llm_monetization_score,
+                            "keyword_monetization_score": analysis.get("monetization_potential", 0),
+                            "customer_segment": llm_result.customer_segment,
+                            "willingness_to_pay_score": llm_result.willingness_to_pay_score,
+                            "price_sensitivity_score": llm_result.price_sensitivity_score,
+                            "revenue_potential_score": llm_result.revenue_potential_score,
+                            "payment_sentiment": llm_result.sentiment_toward_payment,
+                            "urgency_level": llm_result.urgency_level,
+                            "existing_payment_behavior": llm_result.existing_payment_behavior,
+                            "mentioned_price_points": llm_result.mentioned_price_points,
+                            "payment_friction_indicators": llm_result.payment_friction_indicators,
+                            "confidence": llm_result.confidence,
+                            "reasoning": llm_result.reasoning,
+                            "subreddit_multiplier": llm_result.subreddit_multiplier,
+                            "model_used": HYBRID_STRATEGY_CONFIG["option_a"]["model"],
+                            "score_delta": llm_result.llm_monetization_score - analysis.get("monetization_potential", 0)
+                        }
+
+                        print(f"  💰 Option A: LLM Score {llm_result.llm_monetization_score:.1f} (Δ{llm_result.llm_monetization_score - analysis.get('monetization_potential', 0):+.1f})")
+
+                    except Exception as e:
+                        print(f"  ⚠️  Option A LLM analysis failed: {e}")
+
+                # Option B: Customer Lead Extraction (if enabled)
+                if HYBRID_STRATEGY_CONFIG["option_b"]["enabled"]:
+                    try:
+                        if not hasattr(process_batch, '_lead_extractor'):
+                            process_batch._lead_extractor = LeadExtractor()
+
+                        # Convert submission to post format for lead extractor
+                        post = {
+                            "id": formatted["id"],
+                            "author": formatted.get("author", "unknown"),
+                            "title": formatted["title"],
+                            "selftext": formatted["text"],
+                            "subreddit": formatted["subreddit"],
+                            "created_utc": formatted.get("created_utc")
+                        }
+
+                        # Extract lead signals
+                        lead = process_batch._lead_extractor.extract_from_reddit_post(
+                            post=post,
+                            opportunity_score=final_score
+                        )
+
+                        # Convert to database record
+                        lead_record = convert_to_database_record(lead)
+                        lead_record["opportunity_id"] = f"opp_{submission.get('submission_id', submission.get('id'))}"
+
+                        hybrid_results["lead"] = lead_record
+
+                        print(f"  👥 Option B: Lead Score {lead.lead_score}/100 ({lead.urgency_level} urgency)")
+
+                        # Optional: Send Slack alert for hot leads
+                        if (lead.urgency_level in ['high', 'critical'] and
+                            lead.lead_score >= 75 and
+                            HYBRID_STRATEGY_CONFIG["option_b"]["slack_webhook"]):
+                            try:
+                                from core.lead_extractor import format_lead_for_slack
+                                import requests
+
+                                slack_msg = format_lead_for_slack(lead)
+                                webhook_url = HYBRID_STRATEGY_CONFIG["option_b"]["slack_webhook"]
+
+                                response = requests.post(webhook_url, json=slack_msg, timeout=10)
+                                if response.status_code == 200:
+                                    print(f"  📱 Hot lead alert sent to Slack!")
+                                else:
+                                    print(f"  ⚠️  Slack notification failed: {response.status_code}")
+                            except Exception as slack_e:
+                                print(f"  ⚠️  Slack notification error: {slack_e}")
+
+                    except Exception as e:
+                        print(f"  ⚠️  Option B lead extraction failed: {e}")
+
+                # Store hybrid results in analysis for later processing
+                if hybrid_results:
+                    analysis["hybrid_results"] = hybrid_results
             if llm_profiler and final_score >= ai_profile_threshold:
                 high_score_count += 1
                 print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
@@ -1021,6 +1232,21 @@ def main():
         print(f"✓ Stored {ai_stored_count} AI-generated app profiles (deduplicated on submission_id)")
     else:
         print("  No AI profiles to store (score threshold not met)")
+
+    # HYBRID STRATEGY: Store Option A & B results to their respective tables
+    print(f"\n{'='*60}")
+    print("HYBRID STRATEGY - STORING OPTION A & B RESULTS")
+    print(f"{'='*60}")
+
+    hybrid_counts = store_hybrid_results_to_database(all_results)
+    print(f"\n📊 Hybrid Strategy Summary:")
+    print(f"   Option A (LLM Analysis): {hybrid_counts['llm_analyses']} records stored")
+    print(f"   Option B (Customer Leads): {hybrid_counts['customer_leads']} records stored")
+
+    if hybrid_counts['llm_analyses'] > 0 or hybrid_counts['customer_leads'] > 0:
+        print(f"   ✅ Hybrid strategy successfully enhanced {hybrid_counts['llm_analyses'] + hybrid_counts['customer_leads']} opportunities")
+    else:
+        print(f"   ⚠️  No hybrid results stored (opportunities below 60-point threshold)")
 
     # Refresh problem metrics for credibility tracking
     submission_ids = [sub.get("id") for sub in submissions if sub.get("id")]

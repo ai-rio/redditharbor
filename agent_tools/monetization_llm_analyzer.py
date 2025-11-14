@@ -26,6 +26,11 @@ from typing import Any, Optional
 
 import dspy
 
+# Configure OpenRouter API key if available
+if os.getenv("OPENROUTER_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
+    os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
@@ -209,7 +214,21 @@ class MonetizationLLMAnalyzer:
 
         Args:
             model: DSPy model string (default: openai/gpt-4o-mini for cost efficiency)
+                   For OpenRouter use: "openai/claude-3-haiku" or "anthropic/claude-3.5-sonnet"
         """
+        # Configure OpenRouter if specified
+        if "openrouter" in model.lower() or "anthropic" in model.lower():
+            # Convert to OpenRouter format if needed
+            if not model.startswith("openai/"):
+                # DSPy with OpenRouter needs openai/ prefix for Anthropic models
+                if "claude" in model.lower():
+                    model = f"openai/{model}"
+
+            # Set OpenRouter environment variables
+            if os.getenv("OPENROUTER_API_KEY"):
+                os.environ["OPENAI_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
+                os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
+
         # Configure DSPy
         self.lm = dspy.LM(model=model)
         dspy.configure(lm=self.lm)
@@ -430,8 +449,8 @@ def demo_analyzer():
 
     except Exception as e:
         print(f"\n❌ Error: {e}")
-        print("\nNote: This requires DSPy and an OpenAI API key in .env")
-        print("To test locally: Set OPENAI_API_KEY in your .env file")
+        print("\nNote: This requires DSPy and an OpenRouter API key in .env")
+        print("To test locally: Set OPENROUTER_API_KEY in your .env file")
 
 
 if __name__ == "__main__":
