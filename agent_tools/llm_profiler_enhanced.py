@@ -212,34 +212,70 @@ Generate a JSON response with exactly these fields:
 
 **Function Count Guidelines:**
 
-START WITH 1 FUNCTION - only add more if absolutely necessary.
+Determine the optimal number of core functions (1-3) based on the problem's actual complexity and user workflow requirements.
 
 **DECISION FRAMEWORK:**
-1. Count the number of DISTINCT user actions needed to solve the problem
-2. If related actions can be combined into one workflow → 1 function
-3. If actions require completely different interfaces/inputs → consider 2 functions
-4. Only use 3 functions if there are truly independent problem domains
+
+1. **Identify Distinct User Workflows**
+   - Each workflow should have a clear trigger, input, process, and outcome
+   - Workflows are distinct if they serve different user goals or require different contexts
+
+2. **Apply the Separation Test**
+   - Could these workflows run independently without each other?
+   - Do they require different data inputs or user interfaces?
+   - Would a user benefit from one without needing the others?
+
+3. **Apply the Combination Test**
+   - Do these workflows need to happen in sequence?
+   - Do they share the same data and context?
+   - Would splitting them create unnecessary complexity for users?
+
+**DECISION CRITERIA:**
+
+**Choose 1 Function When:**
+- The problem has a single, focused user goal
+- Related actions naturally flow in one continuous workflow
+- All features serve the same primary outcome
+
+**Choose 2 Functions When:**
+- The problem involves two distinct user goals or workflows
+- Functions serve complementary but separable purposes
+- Each function could independently provide value
+
+**Choose 3 Functions When:**
+- The problem spans multiple independent domains
+- Each function addresses a different aspect of the problem
+- Functions work together as an ecosystem but remain self-contained
 
 **CONCRETE EXAMPLES:**
 
-1-Function Apps (PREFERRED - aim for this):
+**1-Function Apps (~60% of problems):**
 - Problem: "I forget to water my plants" → Function: "Send watering reminders based on plant type"
 - Problem: "I can't track my daily calories" → Function: "Log food and show calorie total"
 - Problem: "I lose track of parking spot" → Function: "Save and retrieve parking location"
-- Problem: "I overspend on subscriptions" → Function: "Track recurring charges and show monthly total"
 
-2-Function Apps (only if problem has TWO distinct needs):
+**2-Function Apps (~30% of problems):**
 - Problem: "I forget bills AND want to see spending patterns" → Functions: "1) Send bill reminders, 2) Visualize spending trends"
 - Problem: "I can't find recipes for ingredients I have" → Functions: "1) Scan/input ingredients, 2) Match to recipes"
+- Problem: "I want to save money but don't know where I overspend" → Functions: "1) Categorize transactions, 2) Generate savings recommendations"
 
-3-Function Apps (RARE - only for genuinely complex problems):
+**3-Function Apps (~10% of problems):**
 - Problem: "Roommates argue about chores, don't know who did what, and dispute fairness" → Functions: "1) Assign chores, 2) Track completion, 3) Calculate equity scores"
+- Problem: "Remote teams struggle with timezone coordination, availability tracking, and meeting scheduling" → Functions: "1) Display team timezones, 2) Sync availability calendars, 3) Suggest optimal meeting times"
+
+**VALIDATION CHECKLIST:**
+
+Before finalizing your function count, ask:
+- ✓ Does each function solve a specific, non-overlapping problem?
+- ✓ Can I clearly explain when a user would use each function separately?
+- ✓ Would combining functions create confusion or reduce clarity?
+- ✓ Would separating functions make the app unnecessarily complex?
 
 **CRITICAL RULES:**
-- If you're tempted to add a 2nd function, ask: "Could this be a feature of the 1st function instead?"
-- If you're considering 3 functions, ask: "Are we solving ONE problem or multiple separate problems?"
-- Default to 1 function unless you can clearly justify why 2+ are essential
+- Each function must have clear boundaries and a specific problem it solves
+- Functions should have one measurable outcome
 - Helper features, settings, or view options DO NOT count as separate functions
+- The number should reflect the problem's natural structure, not arbitrary limits
 
 Return ONLY valid JSON, no markdown, no explanation."""
 
