@@ -130,6 +130,24 @@ The RedditHarbor trust pipeline has been successfully implemented and is fully o
 
 The trust pipeline is now fully operational and production-ready. All schema compatibility issues have been resolved with minimal disruption to existing functionality.
 
-**Last Updated**: 2025-11-12 20:14:51 UTC
+**Last Updated**: 2025-11-14 09:13:24 UTC
 **Implementation Status**: ✅ COMPLETE
 **Quality Assurance**: ✅ VERIFIED
+
+## 🔄 Latest Schema Update (2025-11-14)
+
+### Database Schema Refresh
+- **New Schema Dump**: `current_complete_schema_20251114_091324.sql` (6,928 lines)
+- **Table Details**: Updated with current database state
+- **Statistics**: Generated current table statistics and row counts
+- **Docker Access**: Confirmed database connectivity via Docker container
+
+### Current Database Tables
+- Total tables: 21 including core Reddit data and trust pipeline tables
+- Major tables: `redditors`, `submissions`, `comments`, `app_opportunities`, `app_opportunities_trust`
+- Supporting tables: Trust validation components and DLT pipeline metadata
+
+### Access Methods
+- **Docker Container**: `supabase_db_carlos` (running on port 54322)
+- **Direct Access**: `docker exec supabase_db_carlos psql -U postgres -d postgres`
+- **Schema Dump**: Complete SQL structure captured and timestamped

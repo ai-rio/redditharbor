@@ -1,0 +1,26 @@
+                                                                                List of relations
+ Schema |            Name             | Type  |  Owner   | Persistence | Access method |    Size    |                                Description                                 
+--------+-----------------------------+-------+----------+-------------+---------------+------------+----------------------------------------------------------------------------
+ public | _dlt_loads                  | table | postgres | permanent   | heap          | 16 kB      | 
+ public | _dlt_pipeline_state         | table | postgres | permanent   | heap          | 8192 bytes | 
+ public | _dlt_version                | table | postgres | permanent   | heap          | 32 kB      | 
+ public | _migrations_log             | table | postgres | permanent   | heap          | 8192 bytes | 
+ public | app_opportunities           | table | postgres | permanent   | heap          | 8192 bytes | LLM-generated app opportunities from Reddit posts analyzed by Claude Haiku
+ public | app_opportunities_trust     | table | postgres | permanent   | heap          | 128 kB     | 
+ public | comments                    | table | postgres | permanent   | heap          | 8192 bytes | Reddit comments including replies and discussion threads
+ public | competitive_landscape       | table | postgres | permanent   | heap          | 8192 bytes | Analysis of existing solutions in the market
+ public | cross_platform_verification | table | postgres | permanent   | heap          | 8192 bytes | Cross-platform verification (Twitter, LinkedIn, Product Hunt, etc.)
+ public | feature_gaps                | table | postgres | permanent   | heap          | 8192 bytes | Missing features in existing solutions identified from user discussions
+ public | market_validations          | table | postgres | permanent   | heap          | 8192 bytes | Primary validation metrics for opportunities
+ public | monetization_patterns       | table | postgres | permanent   | heap          | 8192 bytes | Identified monetization models and revenue estimates
+ public | opportunities               | table | postgres | permanent   | heap          | 8192 bytes | Identified monetizable app development opportunities from Reddit
+ public | opportunity_scores          | table | postgres | permanent   | heap          | 8192 bytes | Multi-dimensional scoring for each opportunity
+ public | redditors                   | table | postgres | permanent   | heap          | 8192 bytes | Anonymized Reddit user profiles and metadata
+ public | score_components            | table | postgres | permanent   | heap          | 8192 bytes | Detailed breakdown of each scoring metric with evidence
+ public | submissions                 | table | postgres | permanent   | heap          | 8192 bytes | Reddit posts and submissions analyzed for opportunities
+ public | subreddits                  | table | postgres | permanent   | heap          | 8192 bytes | Target subreddits for monetizable app research
+ public | technical_assessments       | table | postgres | permanent   | heap          | 8192 bytes | Technical feasibility and development complexity assessment
+ public | user_willingness_to_pay     | table | postgres | permanent   | heap          | 8192 bytes | Direct user statements about payment willingness and price points
+ public | workflow_results            | table | postgres | permanent   | heap          | 120 kB     | 
+(21 rows)
+

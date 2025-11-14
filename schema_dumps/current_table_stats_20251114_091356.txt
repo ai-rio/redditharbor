@@ -1,0 +1,25 @@
+ schemaname |          tablename          | total_inserts | total_updates | total_deletes | live_rows | dead_rows 
+------------+-----------------------------+---------------+---------------+---------------+-----------+-----------
+ public     | _dlt_loads                  |             9 |             0 |             0 |         9 |         0
+ public     | app_opportunities_trust     |            28 |             0 |            21 |         7 |        21
+ public     | workflow_results            |            35 |             0 |            28 |         7 |        28
+ public     | _dlt_version                |             3 |             0 |             0 |         3 |         0
+ public     | _migrations_log             |             1 |             0 |             0 |         1 |         0
+ public     | opportunity_scores          |             0 |             0 |             0 |         0 |         0
+ public     | score_components            |             0 |             0 |             0 |         0 |         0
+ public     | market_validations          |             0 |             0 |             0 |         0 |         0
+ public     | cross_platform_verification |             0 |             0 |             0 |         0 |         0
+ public     | competitive_landscape       |             0 |             0 |             0 |         0 |         0
+ public     | feature_gaps                |             0 |             0 |             0 |         0 |         0
+ public     | monetization_patterns       |             0 |             0 |             0 |         0 |         0
+ public     | user_willingness_to_pay     |             0 |             0 |             0 |         0 |         0
+ public     | technical_assessments       |             0 |             0 |             0 |         0 |         0
+ public     | app_opportunities           |             0 |             0 |             0 |         0 |         0
+ public     | subreddits                  |             0 |             0 |             0 |         0 |         0
+ public     | _dlt_pipeline_state         |             0 |             0 |             0 |         0 |         0
+ public     | redditors                   |             0 |             0 |             0 |         0 |         0
+ public     | submissions                 |             0 |             0 |             0 |         0 |         0
+ public     | comments                    |             0 |             0 |             0 |         0 |         0
+ public     | opportunities               |             0 |             0 |             0 |         0 |         0
+(21 rows)
+

@@ -1,0 +1,25 @@
+ schemaname |          tablename          | tableowner | tablespace | hasindexes | hasrules | hastriggers 
+------------+-----------------------------+------------+------------+------------+----------+-------------
+ public     | _dlt_loads                  | postgres   |            | f          | f        | f
+ public     | _dlt_pipeline_state         | postgres   |            | t          | f        | f
+ public     | _dlt_version                | postgres   |            | f          | f        | f
+ public     | _migrations_log             | postgres   |            | t          | f        | f
+ public     | app_opportunities           | postgres   |            | t          | f        | f
+ public     | app_opportunities_trust     | postgres   |            | t          | f        | f
+ public     | comments                    | postgres   |            | t          | f        | t
+ public     | competitive_landscape       | postgres   |            | t          | f        | t
+ public     | cross_platform_verification | postgres   |            | t          | f        | t
+ public     | feature_gaps                | postgres   |            | t          | f        | t
+ public     | market_validations          | postgres   |            | t          | f        | t
+ public     | monetization_patterns       | postgres   |            | t          | f        | t
+ public     | opportunities               | postgres   |            | t          | f        | t
+ public     | opportunity_scores          | postgres   |            | t          | f        | t
+ public     | redditors                   | postgres   |            | t          | f        | t
+ public     | score_components            | postgres   |            | t          | f        | t
+ public     | submissions                 | postgres   |            | t          | f        | t
+ public     | subreddits                  | postgres   |            | t          | f        | t
+ public     | technical_assessments       | postgres   |            | t          | f        | t
+ public     | user_willingness_to_pay     | postgres   |            | t          | f        | t
+ public     | workflow_results            | postgres   |            | t          | f        | f
+(21 rows)
+
