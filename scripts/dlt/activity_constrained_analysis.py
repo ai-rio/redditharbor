@@ -21,7 +21,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 import praw
 
-from agent_tools.llm_profiler import LLMProfiler
+from agent_tools.llm_profiler_enhanced import EnhancedLLMProfiler as LLMProfiler
 from config.settings import SUPABASE_KEY, SUPABASE_URL
 from core.activity_validation import calculate_activity_score
 from supabase import create_client

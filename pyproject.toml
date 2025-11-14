@@ -47,6 +47,8 @@ dependencies = [
     "beautifulsoup4>=4.11.0",
     # JSON repair for LLM responses
     "json-repair>=0.24.0",
+    # LLM unified API and cost tracking
+    "litellm>=1.45.0",
     # Data validation
     "pydantic>=1.10.0",
     "marshmallow>=3.17.0",
