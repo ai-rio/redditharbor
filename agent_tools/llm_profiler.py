@@ -107,12 +107,35 @@ Generate a JSON response with exactly these fields:
 - **APP NAME MUST BE UNIQUE AND PROBLEM-SPECIFIC**: The name should immediately tell users what problem it solves. Generic names like "TaskFlow", "SmartFlow", "ProTool" are unacceptable. Use descriptive combinations like: TimeFocus, WorkflowWizard, PriorityMaster, AutomationHub, ScheduleSync.
 
 **Function Count Guidelines:**
-- Choose the MINIMUM number of functions (1-3) that genuinely solve the core problem
-- Simple problems (single pain point) → 1 function is ideal
-- Moderate problems (related pain points) → 2 functions may be needed
-- Complex problems (multiple distinct needs) → 3 functions might be required
-- Do NOT artificially inflate or deflate function count - match it to problem complexity
-- Quality over quantity: fewer focused functions beat more scattered ones
+
+START WITH 1 FUNCTION - only add more if absolutely necessary.
+
+**DECISION FRAMEWORK:**
+1. Count the number of DISTINCT user actions needed to solve the problem
+2. If related actions can be combined into one workflow → 1 function
+3. If actions require completely different interfaces/inputs → consider 2 functions
+4. Only use 3 functions if there are truly independent problem domains
+
+**CONCRETE EXAMPLES:**
+
+1-Function Apps (PREFERRED - aim for this):
+- Problem: "I forget to water my plants" → Function: "Send watering reminders based on plant type"
+- Problem: "I can't track my daily calories" → Function: "Log food and show calorie total"
+- Problem: "I lose track of parking spot" → Function: "Save and retrieve parking location"
+- Problem: "I overspend on subscriptions" → Function: "Track recurring charges and show monthly total"
+
+2-Function Apps (only if problem has TWO distinct needs):
+- Problem: "I forget bills AND want to see spending patterns" → Functions: "1) Send bill reminders, 2) Visualize spending trends"
+- Problem: "I can't find recipes for ingredients I have" → Functions: "1) Scan/input ingredients, 2) Match to recipes"
+
+3-Function Apps (RARE - only for genuinely complex problems):
+- Problem: "Roommates argue about chores, don't know who did what, and dispute fairness" → Functions: "1) Assign chores, 2) Track completion, 3) Calculate equity scores"
+
+**CRITICAL RULES:**
+- If you're tempted to add a 2nd function, ask: "Could this be a feature of the 1st function instead?"
+- If you're considering 3 functions, ask: "Are we solving ONE problem or multiple separate problems?"
+- Default to 1 function unless you can clearly justify why 2+ are essential
+- Helper features, settings, or view options DO NOT count as separate functions
 
 Return ONLY valid JSON, no markdown, no explanation."""
 
