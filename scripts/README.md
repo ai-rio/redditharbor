@@ -43,12 +43,14 @@ python trust/trust_layer_integration.py
 | Category | Purpose | Scripts |
 |----------|---------|---------|
 | **Core** | Essential system operation | 3 scripts |
-| **DLT** | Data pipeline processing | 9 scripts |
+| **DLT** | Data pipeline processing | 6 scripts |
 | **Trust** | Credibility validation | 2 scripts |
-| **Analysis** | Data analysis | 1 script |
-| **Testing** | Validation | 2 scripts |
-| **Database** | Maintenance | 1 script |
-| **Archive** | Deprecated | 2 scripts |
+| **Analysis** | Data analysis and monitoring | 2 scripts |
+| **Testing** | Validation and demos | 5 scripts |
+| **Database** | Schema management and deployment | 6 scripts |
+| **Collection** | Data collection utilities | 1 script |
+| **Reports** | Analysis reports and documentation | 1 file |
+| **Archive** | One-time utilities and deprecated scripts | 9 scripts |
 
 ## 🎯 Recommended Workflows
 
@@ -65,11 +67,20 @@ python trust/trust_layer_integration.py
 ### 3. Analysis and Reporting
 ```bash
 python analysis/generate_reports.py
+python analysis/monitor_hybrid_strategy.py  # Monitor hybrid strategy performance
 ```
 
-### 4. Testing
+### 4. Database Management
+```bash
+python database/deploy_trust_schema_fix.py      # Deploy trust schema fixes
+python database/investigate_schemas.py          # Investigate database schemas
+python database/investigate_trust_schema.py     # Investigate trust indicator schema
+```
+
+### 5. Testing
 ```bash
 python testing/analyze_opportunities.py
+python testing/demo_hybrid_strategy.py  # Demo of hybrid strategy options
 python dlt/test_trust_validation_real.py
 ```
 
@@ -96,12 +107,20 @@ cp .env.example .env
 
 ## 📊 System Status
 
-Last organized: 2025-11-12 13:34:10
+Last organized: 2025-11-14 21:31:00
 
-- **Total Scripts**: 21
-- **Essential Scripts**: 14
-- **Support Scripts**: 5
-- **Archived Scripts**: 2
+- **Total Scripts**: 35
+- **Essential Scripts**: 25
+- **Support Scripts**: 1
+- **Archived Scripts**: 9
+
+### Recent Organization (2025-11-14)
+
+Moved 9 uncategorized scripts from root directory to appropriate categories:
+- **testing/**: demo_hybrid_strategy.py (hybrid strategy demo)
+- **database/**: deploy_trust_schema_fix.py, investigate_schemas.py, investigate_trust_schema.py
+- **analysis/**: monitor_hybrid_strategy.py (performance monitoring)
+- **archive/**: chunk_claude_docs.py, enhance_chunk_index.py, organize_scripts.py, script_analysis.py (one-time utilities)
 
 ## 🚨 Important Notes
 
