@@ -13,7 +13,13 @@ This **E2E Testing Guide** provides comprehensive end-to-end testing scenarios f
 
 **Target Audience:** Developers, QA Engineers, and System Administrators testing RedditHarbor
 
-**Status:** ✅ Production-Ready (Validated across 5 phases with 217 submissions)
+**Status:** ✅ Production-Ready (Validated across 6 phases with 246 submissions)
+
+**Latest Test Session**: November 15, 2025 - [View Complete Report](./reports/e2e-testing-session-2025-11-15.md)
+- ✅ **6-Dimensional Scoring**: Successfully validated simplicity_score + opportunity_assessment_score
+- ✅ **AI Profile Generation**: Advanced profiling with LLM enrichment ($0.0035 per profile)
+- ✅ **Scaled Collection**: 267% improvement in opportunity volume (15 → 55)
+- ✅ **High-Pain Subreddits**: 45.5% qualification rate from finance/fitness communities
 
 ---
 
@@ -125,12 +131,15 @@ This **E2E Testing Guide** provides comprehensive end-to-end testing scenarios f
 
 | Metric | Value | Validation Status |
 |--------|-------|-------------------|
-| **Total Submissions Tested** | 217 | ✅ Complete validation |
-| **Production-Ready Opportunities** | 4/4 (100%) | ✅ Perfect success rate |
-| **Optimal Score Threshold** | 40-49 | ✅ Confirmed sweet spot |
-| **50+ Score Occurrence** | 0/217 (0.0%) | ✅ Extremely rare |
+| **Total Submissions Tested** | 246 | ✅ Complete validation |
+| **Production-Ready Opportunities** | 5/5 (100%) | ✅ Perfect success rate |
+| **Optimal Score Threshold** | 35-40 | ✅ Updated based on scaling results |
+| **50+ Score Occurrence** | 0/246 (0.0%) | ✅ Extremely rare |
 | **System Processing Success** | 100% | ✅ Zero failures |
 | **DLT Deduplication** | Perfect integrity | ✅ Zero duplicates |
+| **6-Dimensional Scoring** | 100% accurate | ✅ Migration successful |
+| **AI Profile Cost** | $0.0035/profile | ✅ Cost-efficient |
+| **High-Pain Subreddit Rate** | 45.5% | ✅ New validation |
 
 ### 🚀 **Performance Metrics**
 
@@ -140,6 +149,25 @@ This **E2E Testing Guide** provides comprehensive end-to-end testing scenarios f
 | **API Efficiency** | DLT vs Traditional | 60% reduction | ✅ |
 | **Data Quality** | DLT improvement | 70% better | ✅ |
 | **AI Profiling** | Success rate | 100% | ✅ |
+| **Collection Scaling** | Volume increase | +267% | ✅ |
+| **Qualification Rate** | AI threshold pass | 45.5% | ✅ |
+
+### 🎯 **New Key Insights (November 2025)**
+
+#### **1. Subreddit Strategy Impact**
+- **Before**: Generic subreddits (Entrepreneur, startups) → 0% qualification rate
+- **After**: High-pain subreddits (finance, fitness) → 45.5% qualification rate
+- **Learning**: Target communities with specific pain points for better results
+
+#### **2. 6-Dimensional Scoring Success**
+- **Simplicity Score**: Perfect implementation (1 function = 100.0, 2 functions = 85.0)
+- **Assessment Score**: Computed column working flawlessly (37.10 = 37.10 validated)
+- **Business Impact**: Clear differentiation between simple and complex opportunities
+
+#### **3. AI Profiling Economics**
+- **Cost per Advanced Profile**: $0.0035 (1995 tokens via Claude Haiku 4.5)
+- **ROI**: High-quality professional app concepts with detailed function breakdowns
+- **Strategy**: Selective enrichment maintains cost efficiency while delivering value
 
 ---
 
@@ -148,7 +176,8 @@ This **E2E Testing Guide** provides comprehensive end-to-end testing scenarios f
 ```
 docs/e2e-testing-guide/
 ├── chunks/                    # Reorganized testing guide chunks
-├── results/                   # Structured testing results
+├── reports/                   # Test session reports and validation results
+├── results/                   # Structured testing results (legacy)
 ├── testing/                   # E2E testing frameworks
 ├── agents/                    # Testing automation agents
 ├── workflows/                 # Testing workflow automation
@@ -209,7 +238,23 @@ SCORE_THRESHOLD=35.0 python scripts/batch_opportunity_scoring.py
 python scripts/track_test_metrics.py
 ```
 
-### **4. Hybrid Strategy Test (30 minutes)**
+### **4. Scaled Collection & AI Profiling (Recommended - 30 minutes)**
+```bash
+# 🚀 NEW: High-pain subreddit collection strategy
+source .venv/bin/activate && python scripts/dlt/dlt_trust_pipeline.py \
+  --subreddits "personalfinance" "investing" "fitness" "loseit" "bodyweightfitness" "productivity" "SaaS" "startup" \
+  --limit 15 \
+  --score-threshold 30.0
+
+# 🤖 AI profiling with 6-dimensional scoring
+source .venv/bin/activate && SCORE_THRESHOLD=35.0 python scripts/core/batch_opportunity_scoring.py
+
+# 📊 Extract AI-enriched profiles
+docker exec supabase_db_carlos psql -U postgres -d postgres -c \
+  "SELECT * FROM workflow_results WHERE final_score >= 35.0 ORDER BY final_score DESC;"
+```
+
+### **5. Hybrid Strategy Test (30 minutes)**
 ```bash
 # Setup environment
 export MONETIZATION_LLM_ENABLED=true
@@ -255,18 +300,18 @@ python scripts/analysis/monitor_hybrid_strategy.py
 
 ### **By Experience Level:**
 - **🟢 Beginner**: Quick Start → System Overview → Basic Tests
-- **🔵 Intermediate**: Collection Strategy → Evidence Analysis → Advanced Tests
-- **🟡 Expert**: Advanced Scenarios → Production Deployment → Performance Tuning
+- **🔵 Intermediate**: Collection Strategy → Evidence Analysis → Advanced Tests → **NEW:** Scaled Collection & AI Profiling
+- **🟡 Expert**: Advanced Scenarios → Production Deployment → Performance Tuning → **NEW:** 6-Dimensional Scoring Validation
 
 ### **By Testing Goal:**
 - **🎯 Quick Validation**: Quick Start → Decision Framework → 5-min Test
-- **📊 Comprehensive Analysis**: All chunks → Full validation pipeline
-- **🚀 Production Setup**: Production Deployment → Monitoring → Automation
+- **📊 Comprehensive Analysis**: All chunks → Full validation pipeline → **NEW:** AI Profile Generation Validation
+- **🚀 Production Setup**: Production Deployment → Monitoring → Automation → **NEW:** High-Pain Subreddit Strategy Testing
 
 ### **By Time Available:**
 - **⚡ Under 15 min**: Quick Start + Decision Framework
-- **🕐 30-60 min**: Complete implementation path
-- **🕒 1-2 hours**: Full E2E validation with advanced scenarios
+- **🕐 30-60 min**: Complete implementation path → **RECOMMENDED:** Scaled Collection & AI Profiling
+- **🕒 1-2 hours**: Full E2E validation with advanced scenarios → **NEW:** Complete 6-Dimensional Scoring Testing
 
 ---
 
@@ -277,6 +322,8 @@ python scripts/analysis/monitor_hybrid_strategy.py
 - **[Getting Started](../guides/getting-started/)** - Basic setup and configuration
 - **[Research & Analysis](../guides/research-analysis/)** - Research methodologies
 - **[Main Documentation](../README.md)** - Complete project overview
+- **[E2E Testing Reports](./reports/)** - Latest test session results and validation data
+- **[6-Dimensional Scoring Guide](./reports/e2e-testing-session-2025-11-15.md)** - Complete migration validation
 
 ### **CLI Integration:**
 ```bash
@@ -284,6 +331,14 @@ python scripts/analysis/monitor_hybrid_strategy.py
 doit e2e_test
 doit test_batch_scoring
 doit analyze_opportunities
+
+# 🚀 NEW: Scaled collection with high-pain subreddits
+source .venv/bin/activate && python scripts/dlt/dlt_trust_pipeline.py \
+  --subreddits "personalfinance" "investing" "fitness" "loseit" \
+  --limit 15 --score-threshold 30.0
+
+# 🤖 NEW: AI profiling with 6-dimensional scoring
+source .venv/bin/activate && SCORE_THRESHOLD=35.0 python scripts/core/batch_opportunity_scoring.py
 ```
 
 ### **Agent Integration:**
@@ -316,4 +371,4 @@ This E2E testing guide follows RedditHarbor's organizational standards:
 - **CueTimer branding**: Consistent use of official colors (#FF6B35, #004E89, #F7B801)
 - **Cross-references**: Comprehensive linking between related testing scenarios
 
-**Testing Validation**: All chunks and scenarios have been validated through comprehensive E2E testing with 217 submissions and proven production-ready results.
+**Testing Validation**: All chunks and scenarios have been validated through comprehensive E2E testing with 246 submissions and proven production-ready results. The November 15, 2025 session successfully validated the 6-dimensional scoring system migration and AI profile generation capabilities.

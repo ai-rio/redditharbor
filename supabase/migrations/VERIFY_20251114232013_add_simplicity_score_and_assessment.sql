@@ -60,13 +60,13 @@ WHERE schemaname = 'public'
 -- ==============================================================================
 
 SELECT
-    COALESCE(core_functions, function_count) as func_count,
+    COALESCE(jsonb_array_length(function_list), function_count) as func_count,
     simplicity_score,
     COUNT(*) as record_count,
     ROUND(COUNT(*)::NUMERIC / SUM(COUNT(*)) OVER () * 100, 2) as percentage
 FROM workflow_results
 WHERE simplicity_score IS NOT NULL
-GROUP BY COALESCE(core_functions, function_count), simplicity_score
+GROUP BY COALESCE(jsonb_array_length(function_list), function_count), simplicity_score
 ORDER BY func_count;
 
 -- Expected mappings:
@@ -167,7 +167,7 @@ SELECT
     market_gap,
     technical_feasibility,
     final_score as legacy_score,
-    COALESCE(core_functions, function_count) as func_count,
+    COALESCE(jsonb_array_length(function_list), function_count) as func_count,
     processed_at
 FROM workflow_results
 WHERE opportunity_assessment_score IS NOT NULL

@@ -44,17 +44,17 @@ COMMENT ON COLUMN workflow_results.simplicity_score IS
 -- ==============================================================================
 -- STEP 3: Backfill simplicity_score from existing function_count data
 -- ==============================================================================
--- Use core_functions if available (new data), fallback to function_count (legacy)
+-- Use function_list if available (new data), fallback to function_count (legacy)
 
 UPDATE workflow_results
 SET simplicity_score = CASE
-    -- Prefer core_functions (bigint) over function_count (integer) for newer records
-    WHEN core_functions IS NOT NULL THEN
+    -- Prefer function_list (jsonb array length) over function_count for newer records
+    WHEN function_list IS NOT NULL THEN
         CASE
-            WHEN core_functions = 1 THEN 100.0
-            WHEN core_functions = 2 THEN 85.0
-            WHEN core_functions = 3 THEN 70.0
-            WHEN core_functions >= 4 THEN 0.0
+            WHEN jsonb_array_length(function_list) = 1 THEN 100.0
+            WHEN jsonb_array_length(function_list) = 2 THEN 85.0
+            WHEN jsonb_array_length(function_list) = 3 THEN 70.0
+            WHEN jsonb_array_length(function_list) >= 4 THEN 0.0
             ELSE 0.0
         END
     -- Fallback to function_count for older records
@@ -179,11 +179,11 @@ END $$;
 --
 -- 3. Compare function_count vs simplicity_score (validation):
 -- SELECT
---     COALESCE(core_functions, function_count) as func_count,
+--     COALESCE(jsonb_array_length(function_list), function_count) as func_count,
 --     simplicity_score,
 --     COUNT(*) as record_count
 -- FROM workflow_results
--- GROUP BY COALESCE(core_functions, function_count), simplicity_score
+-- GROUP BY COALESCE(jsonb_array_length(function_list), function_count), simplicity_score
 -- ORDER BY func_count;
 --
 -- 4. Top 10 opportunities by new assessment score:
