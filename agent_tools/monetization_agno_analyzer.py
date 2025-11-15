@@ -318,6 +318,14 @@ class MonetizationAgnoAnalyzer:
             agentops_api_key: Optional AgentOps API key. If not provided,
                              uses AGENTOPS_API_KEY env var
         """
+        # Force Agno to use OpenRouter by setting environment variables
+        # This prevents Agno from auto-detecting and using OpenAI endpoints
+        os.environ["OPENAI_API_KEY"] = os.getenv("OPENROUTER_API_KEY", "")
+        os.environ["OPENAI_BASE_URL"] = "https://openrouter.ai/api/v1"
+
+        # Disable OpenAI auto-instrumentation for AgentOps compatibility
+        os.environ["AGENTOPS_AUTO_INSTRUMENT_OPENAI"] = "false"
+
         # Determine model using centralized config
         if model is None:
             model = getattr(
@@ -336,7 +344,12 @@ class MonetizationAgnoAnalyzer:
         # Initialize AgentOps if API key is provided
         if self.agentops_api_key:
             try:
-                agentops.init(self.agentops_api_key, tags=["reddit-monetization"])
+                # Initialize AgentOps with disabled OpenAI instrumentation for OpenRouter compatibility
+                agentops.init(
+                    self.agentops_api_key,
+                    tags=["reddit-monetization"],
+                    instrument_llm_calls=False  # Disable auto-instrumentation to avoid OpenAI validation conflicts
+                )
                 self.agentops_enabled = True
                 logger.info("AgentOps initialized for cost tracking")
             except Exception as e:
@@ -378,7 +391,9 @@ class MonetizationAgnoAnalyzer:
         # Track analysis session
         self.session_id = f"monetization_analysis_{datetime.now().isoformat()}"
         if self.agentops_enabled:
-            agentops.create_session(self.session_id)
+            # Note: create_session is deprecated, using start_trace instead
+            # self.session_id = agentops.start_trace("monetization_analysis")
+            pass
 
     def analyze(
         self,
@@ -400,7 +415,8 @@ class MonetizationAgnoAnalyzer:
         try:
             # Start AgentOps tracking
             if self.agentops_enabled:
-                agentops.start_session(self.session_id, tags=["monetization_analysis"])
+                # Use start_trace for newer AgentOps versions
+                self.session_id = agentops.start_trace("monetization_analysis", tags=["monetization_analysis"])
 
             # Create analysis prompt
             analysis_prompt = f"""
@@ -484,8 +500,8 @@ class MonetizationAgnoAnalyzer:
         """
         try:
             if self.agentops_enabled:
-                agentops.start_session(
-                    self.session_id, tags=["monetization_analysis_stream"]
+                self.session_id = agentops.start_trace(
+                    "monetization_analysis_stream", tags=["monetization_analysis_stream"]
                 )
 
             # Create analysis prompt

@@ -44,18 +44,18 @@ except ImportError:
     from tqdm import tqdm
 
 from agent_tools.llm_profiler_enhanced import EnhancedLLMProfiler
-from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
-from config import SUPABASE_KEY, SUPABASE_URL
 
 # Hybrid strategy imports (Option A & B)
 from agent_tools.monetization_analyzer_factory import get_monetization_analyzer
-from core.lead_extractor import LeadExtractor, convert_to_database_record
+from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from config import SUPABASE_KEY, SUPABASE_URL
 
 # DLT constraint validator
 from core.dlt.constraint_validator import app_opportunities_with_constraint
 
 # HTTP client configuration for connection pool management
 from core.http_client_config import initialize_http_clients
+from core.lead_extractor import LeadExtractor, convert_to_database_record
 
 # Hybrid Strategy Configuration
 HYBRID_STRATEGY_CONFIG = {
@@ -234,7 +234,7 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
         print(f"Successfully fetched {len(all_submissions)} total submissions")
 
         # Content-based deduplication to remove cross-posted content
-        print(f"🔍 Checking for content duplicates...")
+        print("🔍 Checking for content duplicates...")
         unique_submissions = []
         seen_titles = set()
 
@@ -246,7 +246,7 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
             title_words = set(title.split())
 
             # Remove common filler words that don't affect meaning
-            filler_words = {'i', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'could', 'must', 'shall'}
+            filler_words = {'i', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'must', 'shall'}
 
             # Create title signature from meaningful words only
             title_signature = tuple(sorted(title_words - filler_words))
@@ -563,8 +563,9 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
         Number of AI profiles stored
     """
     import dlt
+
+    from config import SUPABASE_KEY, SUPABASE_URL
     from core.dlt_collection import create_dlt_pipeline
-    from config import SUPABASE_URL, SUPABASE_KEY
     from supabase import create_client
 
     # Fetch current trust data from database to preserve it
@@ -771,7 +772,7 @@ def process_batch(
             print(f"  📊 {formatted['title'][:60]}... Score: {final_score:.1f}")
 
             # HYBRID STRATEGY: Run Option A & B analysis on qualified opportunities
-            if final_score >= 60:  # Threshold for both Option A and B
+            if final_score >= ai_profile_threshold:  # Use AI profile threshold for consistency
                 hybrid_results = {}
 
                 # Option A: LLM Monetization Analysis (if enabled)
@@ -861,15 +862,16 @@ def process_batch(
                             lead.lead_score >= 75 and
                             HYBRID_STRATEGY_CONFIG["option_b"]["slack_webhook"]):
                             try:
-                                from core.lead_extractor import format_lead_for_slack
                                 import requests
+
+                                from core.lead_extractor import format_lead_for_slack
 
                                 slack_msg = format_lead_for_slack(lead)
                                 webhook_url = HYBRID_STRATEGY_CONFIG["option_b"]["slack_webhook"]
 
                                 response = requests.post(webhook_url, json=slack_msg, timeout=10)
                                 if response.status_code == 200:
-                                    print(f"  📱 Hot lead alert sent to Slack!")
+                                    print("  📱 Hot lead alert sent to Slack!")
                                 else:
                                     print(f"  ⚠️  Slack notification failed: {response.status_code}")
                             except Exception as slack_e:
@@ -887,20 +889,106 @@ def process_batch(
 
                 # Generate real AI app profile with cost tracking
                 try:
-                    ai_profile, cost_data = llm_profiler.generate_app_profile_with_costs(
-                        text=formatted["text"],
-                        title=formatted["title"],
-                        subreddit=formatted["subreddit"],
-                        score=final_score
-                    )
+                    # Prepare Agno evidence if available from hybrid analysis
+                    agno_evidence = None
+                    if hybrid_results and "llm_analysis" in hybrid_results:
+                        # Extract the Agno analysis data that was used for Option A
+                        agno_evidence = {
+                            "willingness_to_pay_score": hybrid_results["llm_analysis"].get("willingness_to_pay_score", 50),
+                            "customer_segment": hybrid_results["llm_analysis"].get("customer_segment", "Unknown"),
+                            "sentiment_toward_payment": hybrid_results["llm_analysis"].get("payment_sentiment", "Neutral"),
+                            "urgency_level": hybrid_results["llm_analysis"].get("urgency_level", "Low"),
+                            "mentioned_price_points": hybrid_results["llm_analysis"].get("mentioned_price_points", []),
+                            "existing_payment_behavior": hybrid_results["llm_analysis"].get("existing_payment_behavior", "Not specified"),
+                            "payment_friction_indicators": hybrid_results["llm_analysis"].get("payment_friction_indicators", []),
+                            "confidence": hybrid_results["llm_analysis"].get("confidence", 0.7)
+                        }
+                        print(f"  🧠 Evidence-based profiling: Using Agno analysis (WTP: {agno_evidence['willingness_to_pay_score']}/100, Segment: {agno_evidence['customer_segment']})")
+
+                    # Use the enhanced evidence-based profiling method
+                    if agno_evidence:
+                        # Use dedicated evidence-based method
+                        ai_profile = llm_profiler.generate_app_profile_with_evidence(
+                            text=formatted["text"],
+                            title=formatted["title"],
+                            subreddit=formatted["subreddit"],
+                            score=final_score,
+                            agno_analysis=agno_evidence
+                        )
+                        # Extract cost data from profile (embedded by evidence-based method)
+                        cost_data = ai_profile.get("cost_tracking", {})
+                        print("  ✅ Enhanced evidence-based profiling completed")
+                    else:
+                        # Fallback to standard method with cost tracking
+                        ai_profile, cost_data = llm_profiler.generate_app_profile_with_costs(
+                            text=formatted["text"],
+                            title=formatted["title"],
+                            subreddit=formatted["subreddit"],
+                            score=final_score,
+                            agno_analysis=agno_evidence
+                        )
+                        print("  🤖 Standard AI profiling (no evidence available)")
                     # Merge AI profile into analysis and store cost data
                     analysis.update(ai_profile)
                     analysis["cost_tracking"] = cost_data  # Ensure cost data is preserved
 
+                    # Enhanced evidence validation logging
+                    if agno_evidence and "evidence_validation" in ai_profile:
+                        validation = ai_profile["evidence_validation"]
+                        alignment_score = validation.get("alignment_score", 0)
+                        validation_status = validation.get("overall_status", "unknown")
+                        discrepancies = validation.get("discrepancies", [])
+                        warnings = validation.get("warnings", [])
+                        confidence_metrics = validation.get("confidence_metrics", {})
+                        evidence_strength = validation.get("evidence_strength", "medium")
+
+                        # Determine validation icon based on alignment
+                        if alignment_score >= 80:
+                            validation_icon = "🟢"
+                        elif alignment_score >= 60:
+                            validation_icon = "🟡"
+                        else:
+                            validation_icon = "🔴"
+
+                        print(f"  {validation_icon} Evidence Validation: {validation_status.replace('_', ' ').title()} ({alignment_score:.1f}% alignment)")
+                        print(f"     Evidence Strength: {evidence_strength.title()} (Confidence: {confidence_metrics.get('evidence_confidence', 0):.2f})")
+
+                        # Show detailed validation results
+                        validations = validation.get("validations", {})
+                        if validations:
+                            print("     Validation Details:")
+                            for validation_name, validation_data in validations.items():
+                                if isinstance(validation_data, dict) and "score" in validation_data:
+                                    score = validation_data["score"] * 100  # Convert to percentage
+                                    status_icon = "✅" if validation_data.get("aligned", False) else "❌"
+                                    print(f"       {status_icon} {validation_name.replace('_', ' ').title()}: {score:.0f}%")
+
+                        # Show discrepancies
+                        if discrepancies:
+                            print(f"  ⚠️  Evidence Discrepancies: {len(discrepancies)} flagged")
+                            for discrepancy in discrepancies[:2]:  # Show first 2
+                                print(f"     - {discrepancy}")
+                            if len(discrepancies) > 2:
+                                print(f"     ... and {len(discrepancies) - 2} more discrepancies")
+
+                        # Show warnings
+                        if warnings:
+                            print(f"  ⚡ Evidence Warnings: {len(warnings)} noted")
+                            for warning in warnings[:1]:  # Show first warning
+                                print(f"     - {warning}")
+                            if len(warnings) > 1:
+                                print(f"     ... and {len(warnings) - 1} more warnings")
+
+                        # Log evidence summary if available
+                        if "evidence_summary" in ai_profile:
+                            evidence_summary = ai_profile["evidence_summary"]
+                            print(f"  📊 Evidence Summary: {evidence_summary.get('validation_score', 0):.1f}% validation score")
+
                     # Log cost information
                     cost_usd = cost_data.get("total_cost_usd", 0.0)
                     tokens = cost_data.get("total_tokens", 0)
-                    print(f"  💰 AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)")
+                    evidence_indicator = "🧠" if agno_evidence else "🤖"
+                    print(f"  {evidence_indicator} AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)")
 
                 except Exception as e:
                     print(f"  ⚠️  LLM profiling failed: {e}")
@@ -949,7 +1037,7 @@ def process_batch(
             })
             continue
 
-    print(f"\n  📊 AI Enrichment Summary:")
+    print("\n  📊 AI Enrichment Summary:")
     print(f"    - Total submissions: {total_submissions}")
     print(f"    - AI threshold: {ai_profile_threshold}")
     print(f"    - Qualified for AI: {high_score_count}/{total_submissions} ({(high_score_count/total_submissions*100):.1f}%)")
@@ -957,13 +1045,13 @@ def process_batch(
     if high_score_count > 0:
         print(f"    - ✅ Generated {high_score_count} AI profiles with LLM enrichment")
     else:
-        print(f"    - ⚠️  WARNING: No AI profiles generated!")
+        print("    - ⚠️  WARNING: No AI profiles generated!")
         print(f"    - 🔍 ALL {total_submissions} opportunities scored below the {ai_profile_threshold} threshold")
-        print(f"    - 💡 Consider:")
+        print("    - 💡 Consider:")
         print(f"      - Lowering AI threshold: SCORE_THRESHOLD={max(20.0, ai_profile_threshold - 10.0)}")
-        print(f"      - Collecting higher-quality Reddit data")
-        print(f"      - Improving opportunity scoring algorithm")
-        print(f"      - Checking subreddit selection for better pain points")
+        print("      - Collecting higher-quality Reddit data")
+        print("      - Improving opportunity scoring algorithm")
+        print("      - Checking subreddit selection for better pain points")
 
         # Additional insights for low scores
         avg_score = sum(r.get("final_score", 0) for r in analysis_results if "final_score" in r) / len(analysis_results)
@@ -1204,7 +1292,7 @@ def main():
     cost_summary = None
     if ai_profiles_generated > 0 and llm_profiler:
         cost_summary = llm_profiler.get_cost_summary(all_scored_opportunities)
-        print(f"\n💰 AI ENRICHMENT COST SUMMARY")
+        print("\n💰 AI ENRICHMENT COST SUMMARY")
         print(f"   Total Cost: ${cost_summary['total_cost_usd']:.6f}")
         print(f"   Total Tokens: {cost_summary['total_tokens']:,}")
         print(f"   Avg Cost per Profile: ${cost_summary['avg_cost_per_profile']:.6f}")
@@ -1212,6 +1300,42 @@ def main():
         # Log model breakdown
         for model, stats in cost_summary['model_breakdown'].items():
             print(f"   {model}: {stats['count']} profiles, ${stats['cost']:.6f}, {stats['tokens']} tokens")
+
+        # Evidence-based analysis metrics
+        evidence_based_profiles = sum(1 for opp in all_scored_opportunities if opp.get("evidence_based", False))
+        if evidence_based_profiles > 0:
+            print("\n🧠 EVIDENCE-BASED PROFILING METRICS")
+            print(f"   Evidence-based profiles: {evidence_based_profiles}/{ai_profiles_generated} ({(evidence_based_profiles/ai_profiles_generated*100):.1f}%)")
+            print(f"   Standard AI profiles: {ai_profiles_generated - evidence_based_profiles}")
+
+            # Calculate evidence validation metrics
+            validation_scores = []
+            discrepancy_count = 0
+            for opp in all_scored_opportunities:
+                if opp.get("evidence_validation"):
+                    validation_scores.append(opp["evidence_validation"].get("alignment_score", 0))
+                    discrepancy_count += len(opp["evidence_validation"].get("discrepancies", []))
+
+            if validation_scores:
+                avg_alignment = sum(validation_scores) / len(validation_scores)
+                print(f"   Average evidence alignment: {avg_alignment:.1f}%")
+                print(f"   Total evidence discrepancies: {discrepancy_count}")
+
+                # Count alignment status categories
+                alignment_categories = {}
+                for opp in all_scored_opportunities:
+                    if opp.get("evidence_validation"):
+                        status = opp["evidence_validation"].get("overall_status", "unknown")
+                        alignment_categories[status] = alignment_categories.get(status, 0) + 1
+
+                if alignment_categories:
+                    print("   Alignment distribution:")
+                    for status, count in alignment_categories.items():
+                        print(f"     - {status.replace('_', ' ').title()}: {count}")
+        else:
+            print("\n📊 AI PROFILING NOTE")
+            print("   Standard AI profiling only (no Agno evidence integration)")
+            print("   Enable MONETIZATION_LLM_ENABLED=true for evidence-based analysis")
 
     # Load all scored opportunities to Supabase via DLT (batch operation)
     print(f"\n{'='*80}")
@@ -1246,14 +1370,14 @@ def main():
     print(f"{'='*60}")
 
     hybrid_counts = store_hybrid_results_to_database(all_results)
-    print(f"\n📊 Hybrid Strategy Summary:")
+    print("\n📊 Hybrid Strategy Summary:")
     print(f"   Option A (LLM Analysis): {hybrid_counts['llm_analyses']} records stored")
     print(f"   Option B (Customer Leads): {hybrid_counts['customer_leads']} records stored")
 
     if hybrid_counts['llm_analyses'] > 0 or hybrid_counts['customer_leads'] > 0:
         print(f"   ✅ Hybrid strategy successfully enhanced {hybrid_counts['llm_analyses'] + hybrid_counts['customer_leads']} opportunities")
     else:
-        print(f"   ⚠️  No hybrid results stored (opportunities below 60-point threshold)")
+        print("   ⚠️  No hybrid results stored (opportunities below 60-point threshold)")
 
     # Refresh problem metrics for credibility tracking
     submission_ids = [sub.get("id") for sub in submissions if sub.get("id")]
@@ -1296,15 +1420,15 @@ def main():
             print(f"\n{'='*80}")
             print("⚠️  AI PROFILE GENERATION WARNING")
             print(f"{'='*80}")
-            print(f"No AI profiles were generated in this run.")
+            print("No AI profiles were generated in this run.")
             print(f"🔍 Threshold: {score_threshold}")
             print(f"📊 Opportunities processed: {len(submissions)}")
             print(f"📈 Best score: {max(r.get('final_score', 0) for r in all_results):.1f}")
-            print(f"🎯 Recommended actions:")
+            print("🎯 Recommended actions:")
             print(f"  • Run with lower threshold: SCORE_THRESHOLD={max(20.0, score_threshold - 15.0)}")
-            print(f"  • Collect data from higher-engagement subreddits")
-            print(f"  • Target posts with stronger pain indicators")
-            print(f"  • Consider current market conditions and trending topics")
+            print("  • Collect data from higher-engagement subreddits")
+            print("  • Target posts with stronger pain indicators")
+            print("  • Consider current market conditions and trending topics")
             print(f"{'='*80}")
         else:
             print(f"\n✅ Generated {ai_profiles_generated} AI profiles successfully!")
