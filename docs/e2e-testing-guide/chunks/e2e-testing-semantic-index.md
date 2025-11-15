@@ -80,6 +80,19 @@ This index provides navigation to all user-focused testing chunks with clear cat
 ### 🟠 Expert Topics (Advanced)
 **Purpose:** Advanced testing scenarios and optimization
 
+#### Hybrid Strategy E2E Testing
+**File:** [hybrid-strategy-testing-guide.md](./hybrid-strategy-testing-guide.md)
+**Experience Level:** Advanced
+**Time Commitment:** 30-45 minutes
+**Use Case:** LLM Monetization + Lead Extraction testing
+**Key Topics:**
+- Option A: LLM-enhanced monetization scoring validation
+- Option B: Customer lead extraction testing
+- DLT database integration (customer_leads, llm_monetization_analysis)
+- Cost optimization testing (GPT-4o-mini vs Claude Haiku 4.5)
+- Slack alert validation and hot lead detection
+- Production deployment checklist and ROI analysis
+
 #### Advanced Testing Scenarios
 **File:** [advanced-testing-scenarios.md](./advanced-testing-scenarios.md)
 **Experience Level:** Expert
@@ -234,6 +247,7 @@ docs/e2e-testing-guide/
 │   ├── dlt-activity-validation-system.md             # 🔵 Core Implementation
 │   ├── collection-strategy-implementation.md         # 🔵 Core Implementation
 │   ├── evidence-based-findings-analysis.md           # 🟡 Analysis & Results
+│   ├── hybrid-strategy-testing-guide.md              # 🟠 Expert Topics
 │   ├── advanced-testing-scenarios.md                  # 🟠 Expert Topics
 │   ├── production-deployment-support.md              # 🟠 Expert Topics
 │   └── e2e-testing-semantic-index.md                # 📋 Navigation (this file)

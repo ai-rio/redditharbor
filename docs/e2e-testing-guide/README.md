@@ -49,11 +49,12 @@ This **E2E Testing Guide** provides comprehensive end-to-end testing scenarios f
   <h3 style="color: #1A1A1A; margin-top: 0;">🏭 Production Path</h3>
   <p style="color: #666; margin-bottom: 15px;">Production deployment and monitoring setup</p>
   <ol style="color: #1A1A1A; padding-left: 20px;">
+    <li><a href="./chunks/hybrid-strategy-testing-guide.md" style="color: #004E89;">Hybrid Strategy Testing</a></li>
     <li><a href="./chunks/production-deployment-support.md" style="color: #004E89;">Deployment Guide</a></li>
     <li><a href="./chunks/evidence-based-findings-analysis.md" style="color: #004E89;">Quality Metrics</a></li>
     <li><a href="./chunks/advanced-testing-scenarios.md" style="color: #004E89;">Performance Testing</a></li>
   </ol>
-  <p style="margin: 15px 0 0 0;"><strong>Time:</strong> 30-45 minutes</p>
+  <p style="margin: 15px 0 0 0;"><strong>Time:</strong> 45-60 minutes</p>
 </div>
 
 </div>
@@ -98,6 +99,13 @@ This **E2E Testing Guide** provides comprehensive end-to-end testing scenarios f
 
 ### 🟠 **Expert Topics** (Advanced)
 **Purpose:** Advanced testing scenarios and optimization
+
+- **[Hybrid Strategy E2E Testing](./chunks/hybrid-strategy-testing-guide.md)**
+  - Option A: LLM-enhanced monetization scoring validation
+  - Option B: Customer lead extraction testing
+  - DLT database integration (customer_leads, llm_monetization_analysis)
+  - Cost optimization testing (GPT-4o-mini vs Claude Haiku 4.5)
+  - Slack alert validation and production deployment
 
 - **[Advanced Testing Scenarios](./chunks/advanced-testing-scenarios.md)**
   - DLT + AI integration testing
@@ -199,6 +207,24 @@ SCORE_THRESHOLD=35.0 python scripts/batch_opportunity_scoring.py
 
 # Phase 4: Results analysis
 python scripts/track_test_metrics.py
+```
+
+### **4. Hybrid Strategy Test (30 minutes)**
+```bash
+# Setup environment
+export MONETIZATION_LLM_ENABLED=true
+export LEAD_EXTRACTION_ENABLED=true
+export OPENROUTER_API_KEY=your_key_here
+
+# Run migrations
+psql $DATABASE_URL -f supabase/migrations/20251114200000_add_customer_leads_table.sql
+psql $DATABASE_URL -f supabase/migrations/20251114200001_add_llm_monetization_analysis.sql
+
+# Test hybrid strategy
+python scripts/testing/test_hybrid_strategy_with_high_scores.py
+
+# Monitor results
+python scripts/analysis/monitor_hybrid_strategy.py
 ```
 
 ---
