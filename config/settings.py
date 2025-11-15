@@ -126,6 +126,24 @@ LEAD_EXTRACTION_THRESHOLD = float(os.getenv("LEAD_EXTRACTION_THRESHOLD", "60.0")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 
 # =============================================================================
+# AGNO AND AGENTOPS CONFIGURATION
+# =============================================================================
+# Cost tracking and multi-agent architecture configuration
+
+# AgentOps API Key for comprehensive cost tracking
+# Optional: If not provided, cost tracking will be disabled
+AGENTOPS_API_KEY = os.getenv("AGENTOPS_API_KEY")
+
+# Monetization analyzer framework selection
+# "dspy" for original DSPy implementation
+# "agno" for new multi-agent architecture with cost tracking
+MONETIZATION_FRAMEWORK = os.getenv("MONETIZATION_FRAMEWORK", "agno")
+
+# Agno-specific settings
+AGNO_TIMEOUT = int(os.getenv("AGNO_TIMEOUT", "30"))  # Timeout in seconds
+AGNO_MAX_RETRIES = int(os.getenv("AGNO_MAX_RETRIES", "3"))  # Max retry attempts
+
+# =============================================================================
 # HTTP CLIENT CONFIGURATION (Connection Pool Management)
 # =============================================================================
 # Configure connection pooling to prevent exhaustion with multiple LLM clients

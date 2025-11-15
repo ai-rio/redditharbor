@@ -59,6 +59,10 @@ dependencies = [
     # Testing (dev dependencies will be in separate group)
     "dspy-ai>=2.5.0",
     "dlt>=1.18.0",
+    # Agno multi-agent framework
+    "agno>=0.1.0",
+    # AgentOps cost tracking
+    "agentops>=0.2.0",
 ]
 
 # Optional dependencies
@@ -95,6 +99,11 @@ Repository = "https://github.com/redditharbor/redditharbor"
 
 [project.scripts]
 redditharbor = "core.cli:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.4",
+]
 
 # Tool configurations
 [tool.ruff]

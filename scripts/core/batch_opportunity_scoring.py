@@ -48,7 +48,7 @@ from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from config import SUPABASE_KEY, SUPABASE_URL
 
 # Hybrid strategy imports (Option A & B)
-from agent_tools.monetization_llm_analyzer import MonetizationLLMAnalyzer
+from agent_tools.monetization_analyzer_factory import get_monetization_analyzer
 from core.lead_extractor import LeadExtractor, convert_to_database_record
 
 # DLT constraint validator
@@ -778,7 +778,7 @@ def process_batch(
                 if HYBRID_STRATEGY_CONFIG["option_a"]["enabled"] and HYBRID_STRATEGY_CONFIG["option_a"]["openrouter_key"]:
                     try:
                         if not hasattr(process_batch, '_llm_analyzer'):
-                            process_batch._llm_analyzer = MonetizationLLMAnalyzer(
+                            process_batch._llm_analyzer = get_monetization_analyzer(
                                 model=HYBRID_STRATEGY_CONFIG["option_a"]["model"]
                             )
 
