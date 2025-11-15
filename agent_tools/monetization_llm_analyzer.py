@@ -26,15 +26,23 @@ from typing import Any, Optional
 
 import dspy
 
-# Configure OpenRouter API key if available
-if os.getenv("OPENROUTER_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
-    os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
-
-# Add project root to path
+# Add project root to path FIRST (before config imports)
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+# Import centralized configuration
+try:
+    from config import settings
+    # Configure OpenRouter for DSPy (it expects OpenAI-compatible API)
+    if settings.OPENROUTER_API_KEY:
+        os.environ["OPENAI_API_KEY"] = settings.OPENROUTER_API_KEY
+        os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
+except ImportError:
+    # Fallback for standalone usage
+    if os.getenv("OPENROUTER_API_KEY"):
+        os.environ["OPENAI_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
+        os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
 
 
 # =============================================================================
@@ -208,28 +216,42 @@ class MonetizationLLMAnalyzer:
     - Detects existing payment behavior
     """
 
-    def __init__(self, model: str = "openai/gpt-4o-mini"):
+    def __init__(self, model: str = None):
         """
-        Initialize analyzer with DSPy
+        Initialize analyzer with DSPy and centralized configuration.
 
         Args:
-            model: DSPy model string (default: openai/gpt-4o-mini for cost efficiency)
-                   For OpenRouter use: "openai/claude-3-haiku" or "anthropic/claude-3.5-sonnet"
+            model: Optional model override. If not provided, uses priority:
+                   1. Explicit model parameter
+                   2. MONETIZATION_LLM_MODEL from settings
+                   3. OPENROUTER_MODEL from settings
+                   4. Default: anthropic/claude-haiku-4.5
         """
-        # Configure OpenRouter if specified
-        if "openrouter" in model.lower() or "anthropic" in model.lower():
-            # Convert to OpenRouter format if needed
-            if not model.startswith("openai/"):
-                # DSPy with OpenRouter needs openai/ prefix for Anthropic models
-                if "claude" in model.lower():
-                    model = f"openai/{model}"
+        # Determine model using centralized config with proper priority
+        if model is None:
+            try:
+                # Use centralized settings (loads .env.local then .env)
+                from config import settings
+                model = settings.MONETIZATION_LLM_MODEL
+            except (ImportError, AttributeError):
+                # Fallback to environment variables directly
+                model = (
+                    os.getenv("MONETIZATION_LLM_MODEL") or
+                    os.getenv("OPENROUTER_MODEL") or
+                    "anthropic/claude-haiku-4.5"
+                )
 
-            # Set OpenRouter environment variables
-            if os.getenv("OPENROUTER_API_KEY"):
-                os.environ["OPENAI_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
-                os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
+        # DSPy expects OpenAI-compatible format when using OpenRouter
+        # OpenRouter routes based on model string (e.g., anthropic/claude-haiku-4.5)
+        # We prefix with "openai/" for DSPy compatibility
+        if not model.startswith("openai/"):
+            model = f"openai/{model}"
 
-        # Configure DSPy
+        # Store model for reference
+        self.model = model
+
+        # Configure DSPy with connection pool management
+        # Note: DSPy uses httpx internally, which we'll configure below
         self.lm = dspy.LM(model=model)
         dspy.configure(lm=self.lm)
 

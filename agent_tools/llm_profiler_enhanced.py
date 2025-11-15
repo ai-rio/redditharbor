@@ -20,17 +20,19 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# Import project settings
+# Import project settings and HTTP client configuration
 import config.settings as settings
+# Import triggers auto-configuration of HTTP clients
+import core.http_client_config  # noqa: F401
 
 
 class EnhancedLLMProfiler:
     """AI-powered app profile generation with comprehensive cost tracking"""
 
     def __init__(self):
-        # Configure LiteLLM with OpenRouter
-        self.api_key = os.getenv("OPENROUTER_API_KEY")
-        self.model = os.getenv("OPENROUTER_MODEL", "anthropic/claude-haiku-4.5")
+        # Use centralized configuration
+        self.api_key = settings.OPENROUTER_API_KEY
+        self.model = settings.OPENROUTER_MODEL
 
         # Model cost configuration (per 1M tokens)
         self.model_costs = {
@@ -51,9 +53,12 @@ class EnhancedLLMProfiler:
         if not self.api_key:
             raise ValueError("OPENROUTER_API_KEY not found in environment")
 
-        # Configure LiteLLM settings
+        # Configure LiteLLM settings with managed HTTP client
         litellm.api_base = "https://openrouter.ai/api/v1"
         litellm.set_verbose = False  # Set to True for debugging
+
+        # HTTP client is configured globally via core.http_client_config
+        # No need to set it per-instance
 
         # List of generic app names to avoid (same as original)
         self.generic_names = {

@@ -54,6 +54,9 @@ from core.lead_extractor import LeadExtractor, convert_to_database_record
 # DLT constraint validator
 from core.dlt.constraint_validator import app_opportunities_with_constraint
 
+# HTTP client configuration for connection pool management
+from core.http_client_config import initialize_http_clients
+
 # Hybrid Strategy Configuration
 HYBRID_STRATEGY_CONFIG = {
     "option_a": {
@@ -1103,6 +1106,9 @@ def main():
     """
     Main execution function for batch opportunity scoring (DLT-powered).
     """
+    # Initialize HTTP clients FIRST to prevent connection pool exhaustion
+    initialize_http_clients()
+
     # Read score threshold from environment variable (default: 40.0)
     import os
     score_threshold = float(os.getenv("SCORE_THRESHOLD", "40.0"))
