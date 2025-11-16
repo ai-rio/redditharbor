@@ -46,6 +46,7 @@ except ImportError:
 
 try:
     import agentops
+    from agentops import trace, agent, tool
 except ImportError:
     print("❌ agentops not installed. Install with: pip install agentops")
     sys.exit(1)
@@ -75,6 +76,7 @@ except ImportError:
 # =============================================================================
 
 
+@agent(name="WTP Analyst")
 class WillingnessToPayAgent(Agent):
     """Analyzes user willingness to pay with sentiment awareness"""
 
@@ -112,6 +114,7 @@ class WillingnessToPayAgent(Agent):
         )
 
 
+@agent(name="Market Segment Analyst")
 class MarketSegmentAgent(Agent):
     """Classifies B2B vs B2C market segment"""
 
@@ -154,6 +157,7 @@ class MarketSegmentAgent(Agent):
         )
 
 
+@agent(name="Price Point Analyst")
 class PricePointAgent(Agent):
     """Extracts mentioned price points and budget signals"""
 
@@ -192,6 +196,7 @@ class PricePointAgent(Agent):
         )
 
 
+@agent(name="Payment Behavior Analyst")
 class PaymentBehaviorAgent(Agent):
     """Analyzes existing payment behavior and switching willingness"""
 
@@ -345,13 +350,14 @@ class MonetizationAgnoAnalyzer:
         if self.agentops_api_key:
             try:
                 # Initialize AgentOps with disabled OpenAI instrumentation for OpenRouter compatibility
+                # We'll use manual SDK instrumentation with decorators instead
                 agentops.init(
                     self.agentops_api_key,
-                    tags=["reddit-monetization"],
+                    tags=["reddit-monetization", "agno-multi-agent"],
                     instrument_llm_calls=False  # Disable auto-instrumentation to avoid OpenAI validation conflicts
                 )
                 self.agentops_enabled = True
-                logger.info("AgentOps initialized for cost tracking")
+                logger.info("AgentOps initialized with manual SDK instrumentation")
             except Exception as e:
                 logger.warning(f"Failed to initialize AgentOps: {e}")
                 self.agentops_enabled = False
@@ -395,6 +401,19 @@ class MonetizationAgnoAnalyzer:
             # self.session_id = agentops.start_trace("monetization_analysis")
             pass
 
+    @tool(name="parse_team_response")
+    def _parse_team_response(self, response):
+        """Parse team response with AgentOps tracking"""
+        # This will be implemented below
+        pass
+
+    @tool(name="calculate_scores")
+    def _calculate_scores(self, analysis_data, subreddit):
+        """Calculate composite scores with AgentOps tracking"""
+        # This will be implemented below
+        pass
+
+    @trace(name="monetization_analysis")
     def analyze(
         self,
         text: str,

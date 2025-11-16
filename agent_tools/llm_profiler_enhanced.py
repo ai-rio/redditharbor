@@ -14,6 +14,14 @@ from typing import Any
 import litellm
 from json_repair import repair_json
 
+# AgentOps for manual instrumentation
+try:
+    import agentops
+    from agentops import trace, tool
+    AGENTOPS_AVAILABLE = True
+except ImportError:
+    AGENTOPS_AVAILABLE = False
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
@@ -67,6 +75,7 @@ class EnhancedLLMProfiler:
             'flowpro', 'workpro', 'efficiencyapp', 'productivityapp', 'taskmanager'
         }
 
+    @trace(name="ai_profile_generation")
     def generate_app_profile_with_costs(
         self,
         text: str,
@@ -486,6 +495,7 @@ Return ONLY valid JSON, no markdown, no explanation."""
         except ValueError as e:
             raise Exception(f"Invalid profile structure: {e}")
 
+    @tool(name="evidence_alignment_validation")
     def _validate_evidence_alignment(self, profile: dict[str, Any], agno_analysis: dict[str, Any]) -> dict[str, Any]:
         """
         Comprehensive validation that the AI profile aligns with Agno evidence.
