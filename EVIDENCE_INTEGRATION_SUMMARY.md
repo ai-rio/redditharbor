@@ -17,18 +17,45 @@ Successfully implemented evidence-based AI profiling integration between the Agn
 
 ## 🔧 Implementation Details
 
+### Enhanced Agno Multi-Agent Analyzer (`agent_tools/monetization_agno_analyzer.py`)
+
+**Key Changes:**
+1. **AgentOps SDK Instrumentation**: Added comprehensive decorators for full visibility
+2. **Multi-Agent Architecture**: 4 specialized agents with individual tracking
+3. **OpenRouter Compatibility**: Fixed AgentOps initialization for OpenRouter API
+4. **Evidence Package Creation**: Consolidates all agent findings into structured evidence
+
+**AgentOps Decorators:**
+- `@agent(name="WTP Analyst")` for WillingnessToPayAgent
+- `@agent(name="Market Segment Analyst")` for MarketSegmentAgent
+- `@agent(name="Price Point Analyst")` for PricePointAgent
+- `@agent(name="Payment Behavior Analyst")` for PaymentBehaviorAgent
+- `@trace(name="monetization_analysis")` for main analysis method
+- `@tool(name="parse_team_response")` and `@tool(name="calculate_scores")` for key functions
+
+**Agent Evidence Generation:**
+- **WTP Agent**: Analyzes willingness to pay with sentiment awareness
+- **Segment Agent**: Classifies B2B vs B2C market segments
+- **Price Agent**: Extracts mentioned price points and budget signals
+- **Behavior Agent**: Analyzes existing payment behavior and switching willingness
+
 ### Enhanced LLM Profiler (`agent_tools/llm_profiler_enhanced.py`)
 
 **Key Changes:**
 1. **Evidence Parameter Support**: Added `agno_analysis` parameter to all generation methods
 2. **Enhanced Prompt Engineering**: Prompts now include evidence section with Agno findings
 3. **Evidence Validation Logic**: Comprehensive validation ensures AI profiles align with evidence
-4. **Backward Compatibility**: Works with or without Agno evidence
+4. **AgentOps SDK Integration**: Added trace and tool decorators for comprehensive monitoring
+5. **Backward Compatibility**: Works with or without Agno evidence
 
 **New Methods:**
 - `_validate_evidence_alignment()`: Validates AI profiles against Agno evidence
 - Enhanced `_build_prompt()`: Includes evidence when available
 - Enhanced `generate_app_profile_with_costs()`: Accepts and uses evidence
+
+**AgentOps Decorators:**
+- `@trace(name="ai_profile_generation")` for main profile generation
+- `@tool(name="evidence_alignment_validation")` for evidence validation process
 
 **Evidence Validation Features:**
 - Customer segment alignment checking
@@ -45,6 +72,7 @@ Successfully implemented evidence-based AI profiling integration between the Agn
 2. **Enhanced Logging**: Shows evidence validation results
 3. **Cost Tracking**: Maintains AgentOps integration with evidence data
 4. **Metrics Reporting**: Includes evidence-based profiling statistics
+5. **Threshold Fix**: Changed hybrid strategy threshold from 60.0 to AI profile threshold (25.0) for consistency
 
 **Integration Flow:**
 1. Run Agno monetization analysis (Option A of hybrid strategy)
@@ -112,6 +140,68 @@ The integration maintains full backward compatibility:
 - **Real-time Validation**: Evidence validation performed during profile generation
 - **Alignment Metrics**: Track evidence alignment across batches
 - **Discrepancy Analytics**: Monitor common validation issues
+
+## 🔧 AgentOps SDK Instrumentation Enhancement
+
+### Problem Solved
+**Before:** AgentOps dashboard showed "may not be fully instrumented" with only a single session span, indicating poor visibility into LLM calls, tools, and agents.
+
+**After:** Comprehensive AgentOps SDK instrumentation provides full visibility across the entire multi-agent workflow with detailed spans for each component.
+
+### Implementation Details
+
+#### **AgentOps Decorators Integration**
+
+**Agno Multi-Agent System (`monetization_agno_analyzer.py`):**
+```python
+@agent(name="WTP Analyst")
+class WillingnessToPayAgent(Agent):
+    # Analyzes willingness to pay with sentiment awareness
+
+@agent(name="Market Segment Analyst")
+class MarketSegmentAgent(Agent):
+    # Classifies B2B vs B2C market segments
+
+@agent(name="Price Point Analyst")
+class PricePointAgent(Agent):
+    # Extracts mentioned price points and budget signals
+
+@agent(name="Payment Behavior Analyst")
+class PaymentBehaviorAgent(Agent):
+    # Analyzes existing payment behavior and switching willingness
+```
+
+**LLM Profiler (`llm_profiler_enhanced.py`):**
+```python
+@trace(name="ai_profile_generation")
+def generate_app_profile_with_costs(self, ...):
+    # Main AI profile generation method
+
+@tool(name="evidence_alignment_validation")
+def _validate_evidence_alignment(self, ...):
+    # Evidence validation process tracking
+```
+
+#### **AgentOps Configuration Fix**
+- **OpenRouter Compatibility**: Fixed initialization to work with OpenRouter API instead of OpenAI
+- **Environment Variables**: Proper configuration for `AGENTOPS_AUTO_INSTRUMENT_OPENAI=false`
+- **SDK Integration**: Manual decorator-based tracking instead of auto-instrumentation
+
+### Enhanced Dashboard Visibility
+
+**What's Now Visible:**
+- ✅ **Multi-Agent Spans**: Individual tracking for each of the 4 specialized agents
+- ✅ **Tool-Level Monitoring**: Detailed spans for parsing, scoring, and validation functions
+- ✅ **Trace-Level Insights**: Complete workflow tracing from analysis to profile generation
+- ✅ **Evidence Validation Tracking**: Real-time monitoring of evidence alignment process
+- ✅ **Performance Metrics**: Timing and cost information per component
+- ✅ **Enhanced Metadata**: Rich tagging for filtering and analysis
+
+### Cost Tracking Integration
+- **Per-Agent Costs**: Individual cost tracking for each specialized analysis agent
+- **Token Usage Monitoring**: Detailed token counts for each component
+- **Evidence Validation Costs**: Separate tracking for validation overhead
+- **Performance Insights**: Identification of bottlenecks and optimization opportunities
 
 ## 📋 Usage Instructions
 
@@ -337,6 +427,28 @@ flowchart TD
     - Cost tracking per component
     - Alignment score distribution analytics
 
+### AgentOps Instrumentation Insights
+
+12. **Manual SDK Instrumentation Beats Auto-Instrumentation**
+    - Manual decorator-based tracking provides better control than auto-instrumentation
+    - Custom decorators enable precise component-level monitoring
+    - Environment-specific configuration prevents API conflicts (OpenRouter vs OpenAI)
+
+13. **Multi-Agent Visibility Drives Optimization**
+    - Individual agent performance tracking identifies bottlenecks
+    - Tool-level monitoring reveals optimization opportunities
+    - Trace-level insights enable systematic performance improvement
+
+14. **Dashboard Visibility Transforms Operations**
+    - Single session span → comprehensive multi-span visibility
+    - Manual inspection → automated performance monitoring
+    - Black-box analysis → detailed component breakdown
+
+15. **API Compatibility Management is Critical**
+    - OpenRouter API requires special AgentOps configuration
+    - Environment variables (`AGENTOPS_AUTO_INSTRUMENT_OPENAI=false`) prevent conflicts
+    - Proper API key management prevents authentication failures
+
 ## 🎯 Conclusion
 
 The evidence-based AI profiling integration successfully bridges the gap between the Agno monetization analyzer and the LLM profiler. This enhancement:
@@ -346,7 +458,10 @@ The evidence-based AI profiling integration successfully bridges the gap between
 3. **✅ Maintains backward compatibility** for existing workflows
 4. **✅ Enhances accuracy** through data-driven insights
 5. **✅ Includes robust error handling** and graceful fallbacks
+6. **✅ Delivers full AgentOps visibility** with comprehensive multi-agent monitoring
 
 The integration is **production-ready** and provides a significant improvement in AI profile quality by ensuring they are grounded in actual market evidence rather than operating in isolation.
 
 **Key Impact:** The evidence-based approach transforms AI profile generation from isolated text analysis into a sophisticated, data-driven system that validates profiles against concrete market evidence, resulting in more accurate, actionable, and trustworthy AI-generated insights.
+
+**AgentOps Enhancement:** The comprehensive SDK instrumentation transforms monitoring from a single session span to detailed multi-agent visibility, enabling systematic performance optimization and real-time operational insights across the entire evidence-based profiling workflow.
