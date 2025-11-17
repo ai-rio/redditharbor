@@ -155,3 +155,25 @@ AGNO_MAX_RETRIES = int(os.getenv("AGNO_MAX_RETRIES", "3"))  # Max retry attempts
 HTTP_MAX_CONNECTIONS = int(os.getenv("HTTP_MAX_CONNECTIONS", "100"))
 HTTP_MAX_KEEPALIVE = int(os.getenv("HTTP_MAX_KEEPALIVE", "20"))
 HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", "30"))
+
+# =============================================================================
+# JINA READER API CONFIGURATION (Data-Driven Market Validation)
+# =============================================================================
+# Jina AI Reader API for fetching and extracting web content
+# - r.jina.ai: Reads and extracts content from URLs (500 RPM free tier)
+# - s.jina.ai: Web search with LLM-optimized results (100 RPM free tier)
+# Used for data-driven monetization validation with real market evidence
+# =============================================================================
+
+JINA_API_KEY = os.getenv("JINA_API_KEY", "")
+JINA_READER_BASE_URL = "https://r.jina.ai/"
+JINA_SEARCH_BASE_URL = "https://s.jina.ai/"
+JINA_READ_RPM_LIMIT = int(os.getenv("JINA_READ_RPM_LIMIT", "500"))
+JINA_SEARCH_RPM_LIMIT = int(os.getenv("JINA_SEARCH_RPM_LIMIT", "100"))
+JINA_REQUEST_TIMEOUT = int(os.getenv("JINA_REQUEST_TIMEOUT", "30"))
+
+# Market validation settings
+MARKET_VALIDATION_ENABLED = os.getenv("MARKET_VALIDATION_ENABLED", "true").lower() == "true"
+MARKET_VALIDATION_CACHE_TTL = int(os.getenv("MARKET_VALIDATION_CACHE_TTL", "86400"))  # 24 hours default
+MARKET_VALIDATION_MIN_COMPETITORS = int(os.getenv("MARKET_VALIDATION_MIN_COMPETITORS", "3"))
+MARKET_VALIDATION_MAX_SEARCHES = int(os.getenv("MARKET_VALIDATION_MAX_SEARCHES", "10"))

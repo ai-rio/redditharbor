@@ -19,6 +19,7 @@ DLT Migration Benefits:
 CRITICAL: Uses centralized score_calculator module for consistency.
 """
 
+import logging
 import os
 import sys
 import time
@@ -48,6 +49,9 @@ from agent_tools.llm_profiler_enhanced import EnhancedLLMProfiler
 # Hybrid strategy imports (Option A & B)
 from agent_tools.monetization_analyzer_factory import get_monetization_analyzer
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+
+# Market data validation (Phase 3: Data-Driven Validation)
+from agent_tools.market_data_validator import MarketDataValidator, ValidationEvidence
 from config import SUPABASE_KEY, SUPABASE_URL
 
 # DLT constraint validator
@@ -69,6 +73,11 @@ HYBRID_STRATEGY_CONFIG = {
         "enabled": os.getenv("LEAD_EXTRACTION_ENABLED", "true").lower() == "true",
         "threshold": float(os.getenv("LEAD_EXTRACTION_THRESHOLD", "60.0")),
         "slack_webhook": os.getenv("SLACK_WEBHOOK_URL"),
+    },
+    "market_validation": {
+        "enabled": os.getenv("MARKET_VALIDATION_ENABLED", "true").lower() == "true",
+        "threshold": float(os.getenv("MARKET_VALIDATION_THRESHOLD", "60.0")),
+        "jina_api_key": os.getenv("JINA_API_KEY", ""),
     }
 }
 
@@ -436,6 +445,21 @@ def prepare_analysis_for_storage(
         "cost_tracking_enabled": bool(cost_data),
     }
 
+    # Market validation evidence (from MarketDataValidator)
+    market_evidence = analysis.get("market_validation_evidence")
+    if market_evidence:
+        analysis_data.update({
+            "market_validation_score": float(market_evidence.get("validation_score", 0)),
+            "market_data_quality_score": float(market_evidence.get("data_quality_score", 0)),
+            "market_validation_reasoning": market_evidence.get("reasoning", "")[:1000],
+            "market_competitors_found": market_evidence.get("competitors_found", []),
+            "market_size_tam": market_evidence.get("tam_value"),
+            "market_size_growth": market_evidence.get("growth_rate"),
+            "market_similar_launches": market_evidence.get("similar_launches_count", 0),
+            "market_validation_cost_usd": float(market_evidence.get("total_cost", 0)),
+            "market_validation_timestamp": market_evidence.get("timestamp"),
+        })
+
     return analysis_data
 
 
@@ -645,6 +669,64 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
     return len(ai_profiles)
 
 
+def perform_market_validation(opportunity_data: dict) -> ValidationEvidence | None:
+    """
+    Perform market data validation for high-scoring opportunities.
+
+    This function validates monetization potential using real market data:
+    - Competitor pricing analysis
+    - Market size estimation
+    - Similar product launches
+    - Industry benchmarks
+
+    Args:
+        opportunity_data: Dictionary containing:
+            - app_concept: Description of the app concept
+            - target_market: B2B, B2C, etc.
+            - problem_description: The problem being solved
+
+    Returns:
+        ValidationEvidence with market data and scores, or None on failure
+    """
+    # Check if market validation is enabled
+    if not HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]:
+        return None
+
+    # Check if Jina API key is configured
+    if not HYBRID_STRATEGY_CONFIG["market_validation"]["jina_api_key"]:
+        logger = logging.getLogger(__name__)
+        logger.warning("Market validation skipped: No JINA_API_KEY configured")
+        return None
+
+    # Extract required fields
+    app_concept = opportunity_data.get("app_concept", "")
+    target_market = opportunity_data.get("target_market", "B2C")
+    problem_description = opportunity_data.get("problem_description", "")
+
+    # Skip if missing critical data
+    if not app_concept or not problem_description:
+        return None
+
+    try:
+        # Initialize validator (lazy initialization)
+        if not hasattr(perform_market_validation, '_validator'):
+            perform_market_validation._validator = MarketDataValidator()
+
+        # Perform validation
+        evidence = perform_market_validation._validator.validate_opportunity(
+            app_concept=app_concept,
+            target_market=target_market,
+            problem_description=problem_description
+        )
+
+        return evidence
+
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Market validation failed: {e}")
+        return None
+
+
 def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[str, int]:
     """
     Store hybrid strategy results (Option A & B) to their respective database tables.
@@ -731,7 +813,7 @@ def process_batch(
     batch_number: int,
     llm_profiler: EnhancedLLMProfiler | None = None,
     ai_profile_threshold: float = 40.0
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int, dict[str, Any]]:
     """
     Process a batch of submissions through the opportunity analyzer.
 
@@ -749,15 +831,27 @@ def process_batch(
         high_score_threshold: Score threshold for LLM profiling (default: 40.0)
 
     Returns:
-        Tuple of (analysis_results, scored_opportunities_for_dlt, ai_profiles_count)
+        Tuple of (analysis_results, scored_opportunities_for_dlt, ai_profiles_count, market_validation_stats)
         - analysis_results: List with full analysis metadata
         - scored_opportunities_for_dlt: List formatted for DLT pipeline
         - ai_profiles_count: Number of AI profiles generated in this batch
+        - market_validation_stats: Dictionary with market validation metrics
     """
     analysis_results = []
     scored_opportunities = []
     high_score_count = 0
     total_submissions = len(submissions)
+
+    # Market validation tracking
+    market_validation_stats = {
+        "validation_count": 0,
+        "total_validation_score": 0.0,
+        "total_data_quality_score": 0.0,
+        "total_validation_cost": 0.0,
+        "competitors_found": 0,
+        "market_sizes_found": 0,
+        "similar_launches_found": 0,
+    }
 
     for submission in submissions:
         try:
@@ -990,6 +1084,63 @@ def process_batch(
                     evidence_indicator = "🧠" if agno_evidence else "🤖"
                     print(f"  {evidence_indicator} AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)")
 
+                    # PHASE 3: Market Data Validation (after AI profiling)
+                    # Only perform if we have app_concept from AI profile
+                    market_validation_threshold = HYBRID_STRATEGY_CONFIG["market_validation"]["threshold"]
+                    if (HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"] and
+                        final_score >= market_validation_threshold and
+                        ai_profile.get("app_concept")):
+
+                        print(f"  📊 Performing market validation (score {final_score:.1f} >= threshold {market_validation_threshold})...")
+
+                        # Prepare data for market validation
+                        validation_input = {
+                            "app_concept": ai_profile.get("app_concept", ""),
+                            "target_market": ai_profile.get("target_user", "B2C"),
+                            "problem_description": ai_profile.get("problem_description", formatted["text"][:500])
+                        }
+
+                        market_evidence = perform_market_validation(validation_input)
+
+                        if market_evidence:
+                            # Store evidence in analysis for downstream processing
+                            evidence_dict = {
+                                "validation_score": market_evidence.validation_score,
+                                "data_quality_score": market_evidence.data_quality_score,
+                                "reasoning": market_evidence.reasoning,
+                                "total_cost": market_evidence.total_cost,
+                                "timestamp": market_evidence.timestamp.isoformat() if market_evidence.timestamp else None,
+                                "competitors_found": [p.company_name for p in market_evidence.competitor_pricing],
+                                "tam_value": market_evidence.market_size.tam_value if market_evidence.market_size else None,
+                                "growth_rate": market_evidence.market_size.growth_rate if market_evidence.market_size else None,
+                                "similar_launches_count": len(market_evidence.similar_launches),
+                            }
+                            analysis["market_validation_evidence"] = evidence_dict
+
+                            # Update tracking stats
+                            market_validation_stats["validation_count"] += 1
+                            market_validation_stats["total_validation_score"] += market_evidence.validation_score
+                            market_validation_stats["total_data_quality_score"] += market_evidence.data_quality_score
+                            market_validation_stats["total_validation_cost"] += market_evidence.total_cost
+                            market_validation_stats["competitors_found"] += len(market_evidence.competitor_pricing)
+                            if market_evidence.market_size:
+                                market_validation_stats["market_sizes_found"] += 1
+                            market_validation_stats["similar_launches_found"] += len(market_evidence.similar_launches)
+
+                            # Log validation results
+                            print(f"  📈 Market Validation: {market_evidence.validation_score:.1f}/100 (quality: {market_evidence.data_quality_score:.1f}/100)")
+                            print(f"     Competitors: {', '.join(evidence_dict['competitors_found'][:3]) if evidence_dict['competitors_found'] else 'None found'}")
+                            if evidence_dict["tam_value"]:
+                                print(f"     Market Size: {evidence_dict['tam_value']} ({evidence_dict.get('growth_rate', 'N/A')})")
+                            print(f"     Similar Launches: {evidence_dict['similar_launches_count']} found")
+                            print(f"     Validation Cost: ${market_evidence.total_cost:.6f}")
+                        else:
+                            print(f"  ⚠️  Market validation skipped or failed")
+                    elif not HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]:
+                        pass  # Silently skip if disabled
+                    elif not HYBRID_STRATEGY_CONFIG["market_validation"]["jina_api_key"]:
+                        pass  # Already warned in perform_market_validation
+
                 except Exception as e:
                     print(f"  ⚠️  LLM profiling failed: {e}")
                     # Continue with basic scoring
@@ -1057,7 +1208,20 @@ def process_batch(
         avg_score = sum(r.get("final_score", 0) for r in analysis_results if "final_score" in r) / len(analysis_results)
         print(f"    - 📈 Average score: {avg_score:.1f} (threshold gap: {ai_profile_threshold - avg_score:.1f})")
 
-    return analysis_results, scored_opportunities, high_score_count
+    # Market validation summary for this batch
+    if market_validation_stats["validation_count"] > 0:
+        print("\n  📊 Market Validation Summary (This Batch):")
+        print(f"    - Validations performed: {market_validation_stats['validation_count']}")
+        avg_val_score = market_validation_stats["total_validation_score"] / market_validation_stats["validation_count"]
+        avg_quality_score = market_validation_stats["total_data_quality_score"] / market_validation_stats["validation_count"]
+        print(f"    - Avg validation score: {avg_val_score:.1f}/100")
+        print(f"    - Avg data quality: {avg_quality_score:.1f}/100")
+        print(f"    - Competitors found: {market_validation_stats['competitors_found']}")
+        print(f"    - Market sizes found: {market_validation_stats['market_sizes_found']}")
+        print(f"    - Similar launches: {market_validation_stats['similar_launches_found']}")
+        print(f"    - Total validation cost: ${market_validation_stats['total_validation_cost']:.6f}")
+
+    return analysis_results, scored_opportunities, high_score_count, market_validation_stats
 
 
 def generate_summary_report(
@@ -1213,6 +1377,18 @@ def main():
     print("  ✓ Constraint Validation: DLT-Native (1-3 Function Rule)")
     print("  ✓ Deduplication: Merge disposition")
     print(f"  ✓ AI Profile Threshold: {score_threshold}")
+
+    # Market Validation Configuration
+    market_val_enabled = HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]
+    market_val_threshold = HYBRID_STRATEGY_CONFIG["market_validation"]["threshold"]
+    jina_configured = bool(HYBRID_STRATEGY_CONFIG["market_validation"]["jina_api_key"])
+
+    if market_val_enabled and jina_configured:
+        print(f"  ✓ Market Validation: Enabled (threshold: {market_val_threshold})")
+    elif market_val_enabled and not jina_configured:
+        print(f"  ⚠️ Market Validation: Enabled but JINA_API_KEY not configured")
+    else:
+        print("  ✗ Market Validation: Disabled")
     print("")
 
     start_time = time.time()
@@ -1264,6 +1440,17 @@ def main():
     batch_size = 100
     num_batches = (len(submissions) + batch_size - 1) // batch_size
 
+    # Aggregate market validation statistics
+    total_market_validation_stats = {
+        "validation_count": 0,
+        "total_validation_score": 0.0,
+        "total_data_quality_score": 0.0,
+        "total_validation_cost": 0.0,
+        "competitors_found": 0,
+        "market_sizes_found": 0,
+        "similar_launches_found": 0,
+    }
+
     print(f"Total batches: {num_batches}")
     print(f"Batch size: {batch_size} submissions")
     print("Starting processing with progress bar...\n")
@@ -1274,11 +1461,15 @@ def main():
         batch_num = (i // batch_size) + 1
 
         try:
-            # Process batch (returns analysis results, scored opportunities, and AI profile count)
-            results, scored_opps, ai_profiles_count = process_batch(batch, agent, batch_num, llm_profiler, score_threshold)
+            # Process batch (returns analysis results, scored opportunities, AI profile count, and market validation stats)
+            results, scored_opps, ai_profiles_count, batch_market_stats = process_batch(batch, agent, batch_num, llm_profiler, score_threshold)
             all_results.extend(results)
             all_scored_opportunities.extend(scored_opps)
             ai_profiles_generated += ai_profiles_count
+
+            # Aggregate market validation statistics
+            for key in total_market_validation_stats:
+                total_market_validation_stats[key] += batch_market_stats.get(key, 0)
 
         except Exception as e:
             print(f"\n✗ Error processing batch {batch_num}: {e}")
@@ -1336,6 +1527,31 @@ def main():
             print("\n📊 AI PROFILING NOTE")
             print("   Standard AI profiling only (no Agno evidence integration)")
             print("   Enable MONETIZATION_LLM_ENABLED=true for evidence-based analysis")
+
+    # Market Validation Summary (Phase 3)
+    if total_market_validation_stats["validation_count"] > 0:
+        print("\n📊 MARKET VALIDATION SUMMARY (Phase 3)")
+        print(f"   Total Validations: {total_market_validation_stats['validation_count']}")
+        avg_val_score = total_market_validation_stats["total_validation_score"] / total_market_validation_stats["validation_count"]
+        avg_quality = total_market_validation_stats["total_data_quality_score"] / total_market_validation_stats["validation_count"]
+        print(f"   Avg Validation Score: {avg_val_score:.1f}/100")
+        print(f"   Avg Data Quality: {avg_quality:.1f}/100")
+        print(f"   Total Competitors Found: {total_market_validation_stats['competitors_found']}")
+        print(f"   Market Sizes Discovered: {total_market_validation_stats['market_sizes_found']}")
+        print(f"   Similar Product Launches: {total_market_validation_stats['similar_launches_found']}")
+        print(f"   Total Validation Cost: ${total_market_validation_stats['total_validation_cost']:.6f}")
+
+        # Calculate combined cost (AI profiling + market validation)
+        if cost_summary:
+            combined_cost = cost_summary['total_cost_usd'] + total_market_validation_stats['total_validation_cost']
+            print(f"\n   Combined Analysis Cost: ${combined_cost:.6f}")
+            print(f"     - AI Profiling: ${cost_summary['total_cost_usd']:.6f}")
+            print(f"     - Market Validation: ${total_market_validation_stats['total_validation_cost']:.6f}")
+    elif HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]:
+        print("\n📊 MARKET VALIDATION NOTE")
+        print("   No market validations performed (opportunities below threshold or missing app_concept)")
+        if not HYBRID_STRATEGY_CONFIG["market_validation"]["jina_api_key"]:
+            print("   WARNING: JINA_API_KEY not configured - market validation disabled")
 
     # Load all scored opportunities to Supabase via DLT (batch operation)
     print(f"\n{'='*80}")
