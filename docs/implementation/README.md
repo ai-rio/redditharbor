@@ -42,7 +42,11 @@ The `implementation/` directory contains comprehensive documentation of RedditHa
 
 ### 🏗️ Additional Implementation Documentation
 
-#### Recent File Organization Updates
+#### Recent MCP Integration Updates
+- **[Jina MCP Cleanup Analysis](./jina-mcp-cleanup-analysis.md)** - **🆕 Complete cleanup and architecture decisions for MCP integration**
+- **MCP Integration Summary** - Moved to [docs/integrations/jina/mcp-integration-summary.md](../integrations/jina/mcp-integration-summary.md)
+
+#### DLT System Updates
 - **[dlt-fix-summary.txt](./dlt-fix-summary.txt)** - DLT system fix and optimization summary
 - **[dlt-pipeline-bug-fix-report.md](./dlt-pipeline-bug-fix-report.md)** - Complete DLT pipeline bug fix documentation
 

@@ -63,6 +63,7 @@ dependencies = [
     "agno>=0.1.0",
     # AgentOps cost tracking
     "agentops>=0.2.0",
+    "mcp>=1.21.2",
 ]
 
 # Optional dependencies

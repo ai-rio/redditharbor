@@ -22,6 +22,7 @@ from datetime import UTC, datetime
 import litellm
 
 from agent_tools.jina_reader_client import JinaReaderClient, get_jina_client
+from agent_tools.jina_hybrid_client import JinaHybridClient, get_jina_hybrid_client
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -107,15 +108,27 @@ class MarketDataValidator:
     5. Synthesizes evidence into validation scores
     """
 
-    def __init__(self, jina_client: JinaReaderClient | None = None):
+    def __init__(self, jina_client: JinaReaderClient | JinaHybridClient | None = None, enable_mcp_experimental: bool = False):
         """
         Initialize the MarketDataValidator.
 
         Args:
-            jina_client: Optional JinaReaderClient instance. If not provided,
-                        uses the singleton instance.
+            jina_client: Optional JinaReaderClient or JinaHybridClient instance.
+                        If not provided, uses the hybrid client with direct HTTP primary.
+            enable_mcp_experimental: Whether to enable experimental MCP features in hybrid client
         """
-        self.jina_client = jina_client or get_jina_client()
+        if jina_client is None:
+            # Use hybrid client by default for better reliability and future MCP support
+            try:
+                self.jina_client = get_jina_hybrid_client(enable_mcp_experimental=enable_mcp_experimental)
+                logger.info("MarketDataValidator using JinaHybridClient")
+            except Exception as e:
+                logger.warning(f"Failed to initialize hybrid client, falling back to direct client: {e}")
+                self.jina_client = get_jina_client()
+                logger.info("MarketDataValidator using direct JinaReaderClient")
+        else:
+            self.jina_client = jina_client
+
         self.llm_model = settings.OPENROUTER_MODEL
         self.total_tokens = 0
         self.total_cost = 0.0
