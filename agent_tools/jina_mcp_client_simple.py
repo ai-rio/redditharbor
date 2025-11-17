@@ -116,7 +116,7 @@ class JinaMCPClientSimple:
                 elif isinstance(result, list):
                     tools = [tool.get("name", str(tool)) for tool in result if isinstance(tool, dict) and "name" in tool]
 
-                # Check for required Jina tools
+                # Check for required Jina tools (correct names from jina-mcp-tools)
                 required_tools = ["jina_reader", "jina_search"]
                 found_tools = [tool for tool in required_tools if tool in tools]
 

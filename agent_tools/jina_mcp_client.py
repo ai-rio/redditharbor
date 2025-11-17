@@ -110,7 +110,7 @@ class JinaMCPClient:
         try:
             # Initialize MCP tools for Jina AI server
             self._mcp_tools = MCPTools(
-                command="npx -y @jina-ai/mcp-server",
+                command="npx -y jina-mcp-tools",
                 transport="stdio",
                 timeout_seconds=self.timeout,
                 env={},  # Empty environment dict, defaults will be merged
@@ -121,10 +121,10 @@ class JinaMCPClient:
             if hasattr(self._mcp_tools, 'tools'):
                 available_tools = list(self._mcp_tools.tools.keys())
 
-            # Check for required Jina tools
+            # Check for required Jina tools (actual tool names from jina-mcp-tools)
             required_tools = [
-                "mcp__jina-ai__read_url",
-                "mcp__jina-ai__search_web"
+                "jina_reader",
+                "jina_search"
             ]
 
             found_tools = [tool for tool in required_tools if tool in available_tools]
@@ -201,8 +201,8 @@ class JinaMCPClient:
             JinaResponse or None if failed
         """
         try:
-            # Call MCP tool
-            result = self._call_mcp_tool("mcp__jina-ai__read_url", url=url)
+            # Call MCP tool with correct tool name
+            result = self._call_mcp_tool("jina_reader", url=url)
 
             if not result:
                 return None
@@ -238,8 +238,8 @@ class JinaMCPClient:
             List of SearchResult objects or None if failed
         """
         try:
-            # Call MCP tool
-            result = self._call_mcp_tool("mcp__jina-ai__search_web", query=query)
+            # Call MCP tool with correct tool name and parameters
+            result = self._call_mcp_tool("jina_search", query=query, num_results=num_results)
 
             if not result:
                 return None

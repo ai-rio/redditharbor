@@ -107,6 +107,7 @@ class JinaHybridClient:
         """Check if Jina MCP tools are available and their capabilities"""
         try:
             import subprocess
+            import json
 
             logger.info("Checking Jina MCP server capabilities...")
 
@@ -128,20 +129,43 @@ class JinaHybridClient:
                 if version_output:
                     self.mcp_capability.mcp_server_version = version_output
 
-                # Try to get tool list
+                # Try to get tool list by testing actual MCP communication
                 try:
+                    # Test MCP tools list request
+                    mcp_request = {"method": "tools/list"}
                     tools_result = subprocess.run(
-                        ["npx", "-y", "jina-mcp-tools", "--help"],
+                        ["npx", "-y", "jina-mcp-tools"],
+                        input=json.dumps(mcp_request),
                         capture_output=True,
                         text=True,
                         timeout=10
                     )
 
-                    if "jina_reader" in tools_result.stdout and "jina_search" in tools_result.stdout:
-                        self.mcp_capability.available_tools = ["jina_reader", "jina_search"]
-                        self.mcp_capability.status_message = "Jina MCP tools detected with reader and search capabilities"
+                    if tools_result.returncode == 0:
+                        try:
+                            response = json.loads(tools_result.stdout)
+                            if "result" in response and "tools" in response["result"]:
+                                tools = [tool.get("name", "") for tool in response["result"]["tools"]]
+                                jina_tools = [tool for tool in tools if tool in ["jina_reader", "jina_search"]]
+
+                                if jina_tools:
+                                    self.mcp_capability.available_tools = jina_tools
+                                    self.mcp_capability.status_message = f"Jina MCP tools detected: {jina_tools}"
+                                else:
+                                    self.mcp_capability.status_message = "Jina MCP server connected but no jina tools found"
+                            else:
+                                self.mcp_capability.status_message = "Unexpected MCP response format"
+                        except json.JSONDecodeError:
+                            # If JSON parsing fails, check if tools are mentioned in stdout
+                            if "jina_reader" in tools_result.stdout and "jina_search" in tools_result.stdout:
+                                self.mcp_capability.available_tools = ["jina_reader", "jina_search"]
+                                self.mcp_capability.status_message = "Jina MCP tools detected via output parsing"
+                            else:
+                                self.mcp_capability.status_message = "Could not parse MCP tools list"
+                        else:
+                            self.mcp_capability.status_message = f" MCP tools command failed: {tools_result.stderr}"
                     else:
-                        self.mcp_capability.status_message = "Jina MCP tools detected but expected tools not found"
+                        self.mcp_capability.status_message = "MCP tools command failed"
 
                 except Exception as e:
                     logger.debug(f"Could not get tool list from MCP server: {e}")
@@ -175,7 +199,7 @@ class JinaHybridClient:
 
     def _experimental_mcp_read_url(self, url: str) -> JinaResponse | None:
         """
-        Experimental MCP URL reading.
+        Experimental MCP URL reading using subprocess calls.
 
         This method attempts to use MCP when enabled, but falls back to HTTP
         if MCP is not available or fails.
@@ -189,19 +213,97 @@ class JinaHybridClient:
         if not self.enable_mcp_experimental or not self.mcp_capability.jina_mcp_tools_available:
             return None
 
-        try:
-            # For now, return None to use direct HTTP client
-            # This is a placeholder for future MCP implementation
-            logger.debug(f"MCP read not implemented, falling back to HTTP for {url}")
+        if "jina_reader" not in self.mcp_capability.available_tools:
+            logger.debug(f"jina_reader tool not available in MCP capabilities")
             return None
 
+        try:
+            import subprocess
+            import json
+
+            logger.debug(f"Attempting MCP read via jina_reader for {url}")
+
+            # Call jina_reader tool via MCP
+            mcp_request = {
+                "method": "tools/call",
+                "params": {
+                    "name": "jina_reader",
+                    "arguments": {
+                        "url": url
+                    }
+                }
+            }
+
+            result = subprocess.run(
+                ["npx", "-y", "jina-mcp-tools"],
+                input=json.dumps(mcp_request),
+                capture_output=True,
+                text=True,
+                timeout=self.timeout
+            )
+
+            if result.returncode != 0:
+                logger.warning(f"MCP process failed for {url}: {result.stderr}")
+                return None
+
+            # Parse MCP response
+            try:
+                response = json.loads(result.stdout)
+                content = ""
+
+                # Extract content from MCP response format
+                if "result" in response:
+                    if isinstance(response["result"], dict):
+                        if "content" in response["result"]:
+                            content = response["result"]["content"]
+                        elif "text" in response["result"]:
+                            content = response["result"]["text"]
+                        else:
+                            content = str(response["result"])
+                    else:
+                        content = str(response["result"])
+                else:
+                    content = result.stdout
+
+                if content:
+                    # Extract title from content (reuse original logic)
+                    title = self._extract_title_from_content(content)
+
+                    return JinaResponse(
+                        content=content,
+                        url=url,
+                        title=title,
+                        cached=False,
+                        word_count=len(content.split())
+                    )
+                else:
+                    logger.warning(f"No content received from MCP for {url}")
+                    return None
+
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse MCP response for {url}: {e}")
+                # Fallback: treat raw output as content
+                if result.stdout.strip():
+                    title = self._extract_title_from_content(result.stdout)
+                    return JinaResponse(
+                        content=result.stdout,
+                        url=url,
+                        title=title,
+                        cached=False,
+                        word_count=len(result.stdout.split())
+                    )
+                return None
+
+        except subprocess.TimeoutExpired:
+            logger.warning(f"MCP read timed out for {url}")
+            return None
         except Exception as e:
             logger.warning(f"Experimental MCP read failed for {url}: {e}")
             return None
 
     def _experimental_mcp_search_web(self, query: str, num_results: int = 5) -> list[SearchResult] | None:
         """
-        Experimental MCP web search.
+        Experimental MCP web search using subprocess calls.
 
         This method attempts to use MCP when enabled, but falls back to HTTP
         if MCP is not available or fails.
@@ -216,12 +318,86 @@ class JinaHybridClient:
         if not self.enable_mcp_experimental or not self.mcp_capability.jina_mcp_tools_available:
             return None
 
-        try:
-            # For now, return None to use direct HTTP client
-            # This is a placeholder for future MCP implementation
-            logger.debug(f"MCP search not implemented, falling back to HTTP for '{query}'")
+        if "jina_search" not in self.mcp_capability.available_tools:
+            logger.debug(f"jina_search tool not available in MCP capabilities")
             return None
 
+        try:
+            import subprocess
+            import json
+
+            logger.debug(f"Attempting MCP search via jina_search for '{query}'")
+
+            # Call jina_search tool via MCP
+            mcp_request = {
+                "method": "tools/call",
+                "params": {
+                    "name": "jina_search",
+                    "arguments": {
+                        "query": query,
+                        "num_results": num_results
+                    }
+                }
+            }
+
+            result = subprocess.run(
+                ["npx", "-y", "jina-mcp-tools"],
+                input=json.dumps(mcp_request),
+                capture_output=True,
+                text=True,
+                timeout=self.timeout
+            )
+
+            if result.returncode != 0:
+                logger.warning(f"MCP search process failed for '{query}': {result.stderr}")
+                return None
+
+            # Parse MCP response
+            try:
+                response = json.loads(result.stdout)
+                content = ""
+
+                # Extract content from MCP response format
+                if "result" in response:
+                    if isinstance(response["result"], dict):
+                        if "content" in response["result"]:
+                            content = response["result"]["content"]
+                        elif "results" in response["result"]:
+                            # Format structured results for parsing
+                            results_data = response["result"]["results"]
+                            formatted_results = []
+                            for i, item in enumerate(results_data, 1):
+                                title = item.get("title", "")
+                                url = item.get("url", "")
+                                snippet = item.get("snippet", "")
+                                formatted_results.append(f"[{i}] Title: {title}")
+                                formatted_results.append(f"[{i}] URL Source: {url}")
+                                formatted_results.append(f"[{i}] Description: {snippet}")
+                            content = "\n".join(formatted_results)
+                        else:
+                            content = str(response["result"])
+                    else:
+                        content = str(response["result"])
+                else:
+                    content = result.stdout
+
+                if content:
+                    # Parse search results (reuse original logic)
+                    return self._parse_search_results(content)
+                else:
+                    logger.warning(f"No content received from MCP search for '{query}'")
+                    return None
+
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse MCP search response for '{query}': {e}")
+                # Fallback: treat raw output as content
+                if result.stdout.strip():
+                    return self._parse_search_results(result.stdout)
+                return None
+
+        except subprocess.TimeoutExpired:
+            logger.warning(f"MCP search timed out for '{query}'")
+            return None
         except Exception as e:
             logger.warning(f"Experimental MCP search failed for '{query}': {e}")
             return None
@@ -456,6 +632,53 @@ class JinaHybridClient:
             )
 
         return results
+
+    def _extract_title_from_content(self, content: str) -> str | None:
+        """
+        Extract page title from Jina Reader response.
+
+        Reuses the same logic as the original JinaReaderClient.
+        """
+        if not content:
+            return None
+
+        lines = content.split("\n")
+        if not lines:
+            return None
+
+        # Strategy 1: Check for "Title: ..." format (newer Jina format)
+        for _i, line in enumerate(lines[:10]):  # Check first 10 lines
+            line = line.strip()
+            if line.startswith("Title:"):
+                title = line[6:].strip()
+                if title:
+                    logger.debug(f"Extracted title from 'Title:' format: {title[:50]}")
+                    return title
+
+        # Strategy 2: Check for markdown header "# Title"
+        first_line = lines[0].strip()
+        if first_line.startswith("# "):
+            title = first_line[2:].strip()
+            if title:
+                logger.debug(f"Extracted title from markdown header: {title[:50]}")
+                return title
+
+        # Strategy 3: Check for any header in first few lines
+        for line in lines[:5]:
+            line = line.strip()
+            if line.startswith("## "):
+                title = line[3:].strip()
+                if title:
+                    logger.debug(f"Extracted title from H2 header: {title[:50]}")
+                    return title
+            elif line.startswith("### "):
+                title = line[4:].strip()
+                if title:
+                    logger.debug(f"Extracted title from H3 header: {title[:50]}")
+                    return title
+
+        logger.debug("No title found in content")
+        return None
 
     def get_rate_limit_status(self) -> dict:
         """Get current rate limit status including MCP capabilities"""
