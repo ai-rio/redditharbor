@@ -21,12 +21,18 @@ Cost: ~$0.01 per analysis with transparent tracking
 import asyncio
 import json
 import os
+import re
+import statistics
 import sys
+from collections import Counter
 from collections.abc import AsyncGenerator
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+# Import json-repair for robust LLM JSON parsing
+from json_repair import repair_json
 
 # Third-party imports
 try:
@@ -46,7 +52,7 @@ except ImportError:
 
 try:
     import agentops
-    from agentops import trace, agent, tool
+    from agentops import agent, tool, trace
 except ImportError:
     print("❌ agentops not installed. Install with: pip install agentops")
     sys.exit(1)
@@ -102,13 +108,17 @@ class WillingnessToPayAgent(Agent):
             - Budget constraints reduce WTP score
             - Urgency increases WTP score
 
-            Return your analysis in JSON format:
+            CRITICAL: You MUST return your analysis in JSON format with EXACT field names:
             {
-                "sentiment": "Positive|Neutral|Negative",
-                "willingness_score": 85,
+                "sentiment_toward_payment": "Positive|Neutral|Negative",
+                "willingness_to_pay_score": 85,
                 "evidence": ["key phrase 1", "key phrase 2"],
                 "reasoning": "Detailed explanation of the score"
             }
+
+            The field names MUST be exactly:
+            - "sentiment_toward_payment" (NOT "sentiment")
+            - "willingness_to_pay_score" (NOT "willingness_score")
             """,
             model=OpenAIChat(id=model, api_key=api_key, base_url=base_url),
         )
@@ -138,20 +148,33 @@ class MarketSegmentAgent(Agent):
             - Company size, team mentions, enterprise tools
             - Business metrics, ROI, revenue impact
             - Professional contexts, work-related discussions
+            - Budget approval processes
+            - Team collaboration needs
+            - Enterprise-level requirements
 
             B2C indicators:
             - Personal use, individual needs, hobbies
             - Personal budget constraints, individual preferences
             - Consumer features, personal benefits
             - Non-work contexts
+            - Individual decision-making
+            - Personal subscription management
 
-            Return your analysis in JSON format:
+            Mixed indicators:
+            - Both business and personal use cases mentioned
+            - Work-life balance tools
+            - Apps used for both professional and personal purposes
+
+            CRITICAL: You MUST return your analysis in JSON format with EXACT field names:
             {
-                "segment": "B2B|B2C|Mixed|Unknown",
+                "customer_segment": "B2B|B2C|Mixed|Unknown",
                 "confidence": 0.85,
                 "indicators": ["indicator 1", "indicator 2"],
                 "segment_score": 90
             }
+
+            The field name MUST be exactly:
+            - "customer_segment" (NOT "segment")
             """,
             model=OpenAIChat(id=model, api_key=api_key, base_url=base_url),
         )
@@ -182,15 +205,18 @@ class PricePointAgent(Agent):
             - Comparison to competitor pricing
             - Budget approval mentions
 
-            Return your analysis in JSON format:
+            CRITICAL: You MUST return your analysis in JSON format with EXACT field names:
             {
-                "price_points": [
+                "mentioned_price_points": [
                     {"price": "$300/month", "context": "current spending on Asana"},
                     {"price": "$150/month", "context": "target budget"}
                 ],
                 "budget_ceiling": "$150/month",
                 "pricing_model": "Subscription"
             }
+
+            The field name MUST be exactly:
+            - "mentioned_price_points" (NOT "price_points")
             """,
             model=OpenAIChat(id=model, api_key=api_key, base_url=base_url),
         )
@@ -406,41 +432,501 @@ class MonetizationAgnoAnalyzer:
 
     @tool(name="parse_team_response", cost=0.001)
     def _parse_team_response(self, response):
-        """Parse team response with AgentOps tracking"""
-        # FIXED: Add actual implementation
+        """Parse team response with robust JSON repair and field mapping"""
         try:
-            # Parse JSON response if possible, otherwise use text parsing
-            if isinstance(response, dict):
-                return response
+            # Handle different response types from Agno agents
+            if hasattr(response, 'content'):
+                content = response.content
             elif isinstance(response, str):
-                # Try to extract JSON from string
-                import json
-                try:
-                    return json.loads(response)
-                except json.JSONDecodeError:
-                    # Fallback to simple text parsing
-                    return {
-                        "wtp_score": 75,
-                        "segment": "B2C",
-                        "price_points": [],
-                        "current_spending": "Unknown",
-                        "sentiment": "Neutral",
-                        "confidence": 0.7,
-                        "reasoning": response[:200] + "..." if len(response) > 200 else response
-                    }
+                content = response
+            elif isinstance(response, dict):
+                content = json.dumps(response)
             else:
-                return {"raw_response": str(response)}
+                content = str(response)
+
+            logger.info(f"Parsing response content (length: {len(content)})")
+
+            # Extract JSON from response content
+            parsed_data = self._extract_json_from_response(content)
+
+            # Map field names and validate structure
+            mapped_data = self._map_field_names(parsed_data)
+
+            # Apply consensus calculation from multiple agents
+            consensus_data = self._calculate_consensus_from_agents(content, mapped_data)
+
+            logger.info(f"Successfully parsed response with {len(consensus_data)} fields")
+            return consensus_data
+
         except Exception as e:
-            logger.warning(f"Failed to parse team response: {e}")
+            logger.error(f"Failed to parse team response: {e}")
+            # Return safe fallback structure
+            return self._get_fallback_response(str(e))
+
+    def _extract_json_from_response(self, content: str) -> dict[str, Any]:
+        """Extract and repair JSON from agent response content"""
+        try:
+            # First try direct JSON parsing
+            if content.strip().startswith('{'):
+                parsed = json.loads(content)
+                return self._ensure_dict_type(parsed)
+
+            # Look for JSON blocks in the content
+            json_start = content.find('{')
+            if json_start == -1:
+                # No JSON found, treat as text response
+                return self._parse_text_response(content)
+
+            json_end = content.rfind('}') + 1
+            if json_end <= json_start:
+                return self._parse_text_response(content)
+
+            json_str = content[json_start:json_end]
+
+            try:
+                # Try direct parsing first
+                parsed = json.loads(json_str)
+                return self._ensure_dict_type(parsed)
+            except json.JSONDecodeError:
+                # Use json-repair for malformed LLM JSON
+                logger.info("JSON malformed, attempting repair...")
+                repaired = repair_json(json_str)
+                parsed = json.loads(repaired)
+                logger.info(f"Successfully repaired JSON with {len(parsed) if isinstance(parsed, (dict, list)) else 0} fields")
+                return self._ensure_dict_type(parsed)
+
+        except Exception as e:
+            logger.warning(f"JSON extraction failed: {e}")
+            return self._parse_text_response(content)
+
+    def _ensure_dict_type(self, parsed_data: Any) -> dict[str, Any]:
+        """Ensure parsed JSON data is always a dictionary, handling lists gracefully"""
+        if isinstance(parsed_data, dict):
+            return parsed_data
+        elif isinstance(parsed_data, list):
+            # Handle case where JSON repair returns a list
+            if len(parsed_data) == 0:
+                logger.warning("Empty list returned from JSON repair, treating as empty dict")
+                return {}
+            elif len(parsed_data) == 1 and isinstance(parsed_data[0], dict):
+                # Single dictionary in list - extract it
+                logger.info("Extracting single dictionary from list")
+                return parsed_data[0]
+            else:
+                # Multiple items in list - try to merge dictionaries or convert first item
+                logger.warning(f"List with {len(parsed_data)} items returned, attempting to extract meaningful data")
+
+                # Look for dictionary items in the list
+                dict_items = [item for item in parsed_data if isinstance(item, dict)]
+                if dict_items:
+                    # Merge all dictionaries (later items override earlier ones)
+                    merged_dict = {}
+                    for item in dict_items:
+                        merged_dict.update(item)
+                    logger.info(f"Merged {len(dict_items)} dictionaries from list")
+                    return merged_dict
+                else:
+                    # No dictionaries in list, create a structured response
+                    return {
+                        "mentioned_price_points": [str(item) for item in parsed_data if item],
+                        "raw_response_list": parsed_data,
+                        "parsing_note": "Converted from list response"
+                    }
+        else:
+            # Handle other types (string, number, etc.)
+            logger.warning(f"Unexpected type {type(parsed_data)} returned from JSON parsing")
             return {
-                "wtp_score": 50,
-                "segment": "Unknown",
-                "price_points": [],
-                "current_spending": "Unknown",
-                "sentiment": "Neutral",
-                "confidence": 0.5,
-                "reasoning": f"Parsing failed: {str(e)}"
+                "raw_response": parsed_data,
+                "parsing_note": f"Converted from {type(parsed_data).__name__} response"
             }
+
+    def _map_field_names(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Map various field name variations to expected field names"""
+        field_mappings = {
+            # Sentiment field mappings
+            "sentiment": "sentiment_toward_payment",
+            "payment_sentiment": "sentiment_toward_payment",
+            "payment_attitude": "sentiment_toward_payment",
+
+            # Willingness to pay field mappings
+            "willingness_score": "willingness_to_pay_score",
+            "wtp_score": "willingness_to_pay_score",
+            "willingness": "willingness_to_pay_score",
+
+            # Customer segment field mappings
+            "segment": "customer_segment",
+            "market_segment": "customer_segment",
+            "business_type": "customer_segment",
+
+            # Price points field mappings
+            "price_points": "mentioned_price_points",
+            "prices": "mentioned_price_points",
+            "pricing": "mentioned_price_points",
+
+            # Payment behavior field mappings
+            "spending": "current_spending",
+            "existing_spending": "current_spending",
+            "payment_behavior": "current_spending",
+
+            # Revenue potential field mappings
+            "revenue_score": "revenue_potential_score",
+            "potential": "revenue_potential_score",
+        }
+
+        mapped_data = {}
+
+        # Apply field mappings
+        for key, value in data.items():
+            mapped_key = field_mappings.get(key, key)
+            mapped_data[mapped_key] = value
+
+        # Validate and normalize specific fields
+        mapped_data = self._normalize_field_values(mapped_data)
+
+        return mapped_data
+
+    def _normalize_field_values(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Normalize and validate specific field values"""
+        # Normalize sentiment values - handle both strings and lists
+        sentiment_value = data.get("sentiment_toward_payment", "")
+        if isinstance(sentiment_value, list):
+            # Join list items and convert to string
+            sentiment = " ".join(str(item) for item in sentiment_value).lower()
+        elif isinstance(sentiment_value, str):
+            sentiment = sentiment_value.lower()
+        else:
+            sentiment = str(sentiment_value).lower()
+
+        if any(word in sentiment for word in ["positive", "willing", "favorable"]):
+            data["sentiment_toward_payment"] = "Positive"
+        elif any(word in sentiment for word in ["negative", "unwilling", "reluctant"]):
+            data["sentiment_toward_payment"] = "Negative"
+        else:
+            data["sentiment_toward_payment"] = "Neutral"
+
+        # Normalize customer segment values - handle both strings and lists
+        segment_value = data.get("customer_segment", "")
+        if isinstance(segment_value, list):
+            # Join list items and convert to string
+            segment = " ".join(str(item) for item in segment_value).lower()
+        elif isinstance(segment_value, str):
+            segment = segment_value.lower()
+        else:
+            segment = str(segment_value).lower()
+
+        if "b2b" in segment or "business" in segment:
+            data["customer_segment"] = "B2B"
+        elif "b2c" in segment or "consumer" in segment:
+            data["customer_segment"] = "B2C"
+        elif "mixed" in segment:
+            data["customer_segment"] = "Mixed"
+        else:
+            data["customer_segment"] = "Unknown"
+
+        # Normalize score values to 0-100 range
+        for score_field in ["willingness_to_pay_score", "revenue_potential_score"]:
+            if score_field in data:
+                try:
+                    score = float(data[score_field])
+                    score = max(0, min(100, score))  # Clamp to 0-100
+                    data[score_field] = score
+                except (ValueError, TypeError):
+                    data[score_field] = 50.0  # Default fallback
+
+        # Normalize price points to list of strings
+        if "mentioned_price_points" in data:
+            price_points = data["mentioned_price_points"]
+            if isinstance(price_points, str):
+                data["mentioned_price_points"] = [price_points]
+            elif isinstance(price_points, list):
+                data["mentioned_price_points"] = [str(p) for p in price_points]
+            else:
+                data["mentioned_price_points"] = []
+
+        return data
+
+    def _calculate_consensus_from_agents(self, content: str, mapped_data: dict[str, Any]) -> dict[str, Any]:
+        """Calculate consensus from multiple agent responses"""
+        try:
+            # Look for individual agent sections in the content
+            agent_sections = self._extract_agent_sections(content)
+
+            if len(agent_sections) > 1:
+                # Multiple agents detected - calculate consensus
+                consensus_data = self._calculate_multi_agent_consensus(agent_sections, mapped_data)
+                logger.info(f"Calculated consensus from {len(agent_sections)} agents")
+                return consensus_data
+            else:
+                # Single agent response - return mapped data with confidence boost
+                confidence = float(mapped_data.get("confidence", 0.7))
+                # Slightly reduce confidence for single agent analysis
+                mapped_data["confidence"] = max(0.5, confidence * 0.9)
+                return mapped_data
+
+        except Exception as e:
+            logger.warning(f"Consensus calculation failed: {e}")
+            # Return mapped data with reduced confidence
+            mapped_data["confidence"] = 0.5
+            return mapped_data
+
+    def _extract_agent_sections(self, content: str) -> list[dict[str, Any]]:
+        """Extract individual agent responses from combined content"""
+        agent_sections = []
+
+        # Look for agent-specific markers in the content
+        agent_markers = [
+            "WTP Analysis:", "Willingness to Pay Analysis:",
+            "Market Segment:", "Market Segment Analysis:",
+            "Price Analysis:", "Price Point Analysis:",
+            "Payment Behavior:", "Payment Behavior Analysis:"
+        ]
+
+        sections = content.split('\n\n')
+        for section in sections:
+            section = section.strip()
+            if any(marker in section for marker in agent_markers):
+                try:
+                    # Try to parse this section as JSON
+                    parsed = self._extract_json_from_response(section)
+                    # Ensure we always have a dictionary
+                    dict_data = self._ensure_dict_type(parsed) if not isinstance(parsed, dict) else parsed
+                    if dict_data:
+                        agent_sections.append(dict_data)
+                except Exception as e:
+                    # Skip unparsable sections but log for debugging
+                    logger.warning(f"Failed to parse agent section: {e}")
+                    continue
+
+        return agent_sections
+
+    def _calculate_multi_agent_consensus(self, agent_sections: list[dict[str, Any]], base_data: dict[str, Any]) -> dict[str, Any]:
+        """Calculate consensus values from multiple agent analyses"""
+        consensus_data = base_data.copy()
+
+        # Calculate consensus for numerical scores
+        score_fields = ["willingness_to_pay_score", "revenue_potential_score"]
+        for field in score_fields:
+            scores = []
+            for section in agent_sections:
+                # Ensure section is a dictionary before accessing items
+                if not isinstance(section, dict):
+                    logger.warning(f"Skipping non-dict section in consensus calculation: {type(section)}")
+                    continue
+                if field in section:
+                    try:
+                        score = float(section[field])
+                        scores.append(score)
+                    except (ValueError, TypeError):
+                        continue
+
+            if scores:
+                # Use median with outlier detection
+                scores.sort()
+                n = len(scores)
+                if n >= 3:
+                    # Remove outliers (values > 2 std deviations from mean)
+                    mean = statistics.mean(scores)
+                    stdev = statistics.stdev(scores) if len(set(scores)) > 1 else 0
+
+                    filtered_scores = [s for s in scores if abs(s - mean) <= 2 * stdev]
+                    if filtered_scores:
+                        scores = filtered_scores
+
+                if scores:
+                    consensus_data[field] = statistics.median(scores)
+
+        # Calculate consensus for categorical fields
+        categorical_fields = ["customer_segment", "sentiment_toward_payment"]
+        for field in categorical_fields:
+            values = []
+            for section in agent_sections:
+                # Ensure section is a dictionary before accessing items
+                if not isinstance(section, dict):
+                    logger.warning(f"Skipping non-dict section in categorical consensus: {type(section)}")
+                    continue
+                value = section.get(field)
+                if value:
+                    values.append(value)
+
+            if values:
+                # Use most common value
+                consensus_data[field] = Counter(values).most_common(1)[0][0]
+
+        # Boost confidence based on agreement level
+        consensus_data["confidence"] = min(0.95, 0.7 + (len(agent_sections) - 1) * 0.05)
+
+        # Add metadata about consensus calculation
+        consensus_data["consensus_metadata"] = {
+            "agent_count": len(agent_sections),
+            "agreement_level": self._calculate_agreement_level(agent_sections, consensus_data),
+            "outliers_detected": len(agent_sections) - len([s for s in agent_sections if self._is_outlier(s, consensus_data)])
+        }
+
+        return consensus_data
+
+    def _calculate_agreement_level(self, agent_sections: list[dict[str, Any]], consensus: dict[str, Any]) -> str:
+        """Calculate agreement level between agents"""
+        if len(agent_sections) < 2:
+            return "single_agent"
+
+        agreement_score = 0
+        total_comparisons = 0
+
+        # Compare numerical scores
+        for field in ["willingness_to_pay_score", "revenue_potential_score"]:
+            values = [section.get(field) for section in agent_sections if section.get(field) is not None]
+            if len(values) > 1:
+                try:
+                    values = [float(v) for v in values]
+                    max_diff = max(values) - min(values)
+                    if max_diff <= 10:  # Within 10 points
+                        agreement_score += 1
+                    elif max_diff <= 20:  # Within 20 points
+                        agreement_score += 0.5
+                    total_comparisons += 1
+                except (ValueError, TypeError):
+                    pass
+
+        # Compare categorical fields
+        for field in ["customer_segment", "sentiment_toward_payment"]:
+            values = [section.get(field) for section in agent_sections if section.get(field)]
+            if len(values) > 1:
+                unique_values = set(values)
+                if len(unique_values) == 1:
+                    agreement_score += 1
+                elif len(unique_values) == 2:
+                    agreement_score += 0.5
+                total_comparisons += 1
+
+        if total_comparisons == 0:
+            return "unknown"
+
+        agreement_ratio = agreement_score / total_comparisons
+
+        if agreement_ratio >= 0.9:
+            return "high"
+        elif agreement_ratio >= 0.7:
+            return "medium"
+        elif agreement_ratio >= 0.5:
+            return "low"
+        else:
+            return "very_low"
+
+    def _is_outlier(self, agent_data: dict[str, Any], consensus: dict[str, Any]) -> bool:
+        """Determine if an agent's response is an outlier"""
+        # Ensure both inputs are dictionaries
+        if not isinstance(agent_data, dict) or not isinstance(consensus, dict):
+            logger.warning(f"Invalid data types in outlier detection: agent_data={type(agent_data)}, consensus={type(consensus)}")
+            return False
+
+        outlier_count = 0
+        total_checks = 0
+
+        # Check numerical scores
+        for field in ["willingness_to_pay_score", "revenue_potential_score"]:
+            if field in agent_data and field in consensus:
+                try:
+                    agent_val = float(agent_data[field])
+                    consensus_val = float(consensus[field])
+                    if abs(agent_val - consensus_val) > 30:  # More than 30 points difference
+                        outlier_count += 1
+                    total_checks += 1
+                except (ValueError, TypeError):
+                    pass
+
+        # Check categorical fields
+        for field in ["customer_segment", "sentiment_toward_payment"]:
+            if field in agent_data and field in consensus:
+                if agent_data[field] != consensus[field]:
+                    outlier_count += 1
+                total_checks += 1
+
+        if total_checks == 0:
+            return False
+
+        return outlier_count > total_checks * 0.6  # > 60% disagreement
+
+    def _parse_text_response(self, content: str) -> dict[str, Any]:
+        """Parse non-JSON text response using keyword extraction"""
+        data = {}
+        content_lower = content.lower()
+
+        # Extract sentiment
+        if any(word in content_lower for word in ["positive", "willing", "happy", "ready"]):
+            data["sentiment_toward_payment"] = "Positive"
+        elif any(word in content_lower for word in ["negative", "unwilling", "refuse", "not willing"]):
+            data["sentiment_toward_payment"] = "Negative"
+        else:
+            data["sentiment_toward_payment"] = "Neutral"
+
+        # Extract segment
+        if any(word in content_lower for word in ["b2b", "business", "company", "team", "enterprise"]):
+            data["customer_segment"] = "B2B"
+        elif any(word in content_lower for word in ["b2c", "personal", "individual", "consumer"]):
+            data["customer_segment"] = "B2C"
+        elif "mixed" in content_lower:
+            data["customer_segment"] = "Mixed"
+        else:
+            data["customer_segment"] = "Unknown"
+
+        # Extract willingness score (look for numbers)
+        scores = re.findall(r'\b(\d{1,3})\b', content)
+        if scores:
+            # Take the highest score that makes sense for willingness to pay
+            valid_scores = [int(s) for s in scores if 0 <= int(s) <= 100]
+            if valid_scores:
+                data["willingness_to_pay_score"] = max(valid_scores)
+            else:
+                data["willingness_to_pay_score"] = 50
+        else:
+            data["willingness_to_pay_score"] = 50
+
+        # Extract price mentions
+        prices = re.findall(r'\$(\d+(?:,\d{3})*(?:\.\d{2})?)', content)
+        if prices:
+            data["mentioned_price_points"] = [f"${p}" for p in prices]
+        else:
+            data["mentioned_price_points"] = []
+
+        # Extract spending mentions
+        spending_patterns = [
+            r'\$(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:\/(?:month|year|mo|yr))?'
+        ]
+        for pattern in spending_patterns:
+            matches = re.findall(pattern, content)
+            if matches:
+                data["current_spending"] = f"${matches[0]}/month"
+                break
+        else:
+            data["current_spending"] = "Unknown"
+
+        # Set reasonable defaults
+        data.update({
+            "revenue_potential_score": data.get("willingness_to_pay_score", 50),
+            "confidence": 0.6,  # Lower confidence for text parsing
+            "reasoning": f"Parsed from text: {content[:100]}..." if len(content) > 100 else f"Parsed from text: {content}"
+        })
+
+        return data
+
+    def _get_fallback_response(self, error_msg: str) -> dict[str, Any]:
+        """Get safe fallback response structure"""
+        return {
+            "willingness_to_pay_score": 50.0,
+            "customer_segment": "Unknown",
+            "mentioned_price_points": [],
+            "current_spending": "Unknown",
+            "sentiment_toward_payment": "Neutral",
+            "revenue_potential_score": 50.0,
+            "confidence": 0.5,
+            "reasoning": f"Parsing failed with error: {error_msg}",
+            "error_occurred": True,
+            "consensus_metadata": {
+                "agent_count": 0,
+                "agreement_level": "parsing_failed",
+                "outliers_detected": 0
+            }
+        }
 
     @tool(name="calculate_scores", cost=0.002)
     def _calculate_scores(self, analysis_data, subreddit):
@@ -448,8 +934,8 @@ class MonetizationAgnoAnalyzer:
         # FIXED: Add actual implementation
         try:
             # Extract or calculate individual scores
-            wtp_score = float(analysis_data.get("wtp_score", 70))
-            segment_score = 85 if analysis_data.get("segment") == "B2B" else 75
+            wtp_score = float(analysis_data.get("willingness_to_pay_score", 70))
+            segment_score = 85 if analysis_data.get("customer_segment") == "B2B" else 75
             price_sensitivity = float(analysis_data.get("price_sensitivity", 60))
 
             # Subreddit multipliers for enhanced accuracy
@@ -648,7 +1134,7 @@ class MonetizationAgnoAnalyzer:
             # Extract additional insights
             friction_indicators = self._extract_friction_indicators(text)
             urgency = self._determine_urgency(
-                text, analysis_data.get("wtp_evidence", "")
+                text, analysis_data.get("evidence", "")
             )
 
             # Build result
@@ -657,13 +1143,13 @@ class MonetizationAgnoAnalyzer:
                 market_segment_score=scores["segment_score"],
                 price_sensitivity_score=scores["price_sensitivity"],
                 revenue_potential_score=scores["revenue_potential"],
-                customer_segment=analysis_data.get("segment", "Unknown"),
-                mentioned_price_points=analysis_data.get("price_points", []),
+                customer_segment=analysis_data.get("customer_segment", "Unknown"),
+                mentioned_price_points=analysis_data.get("mentioned_price_points", []),
                 existing_payment_behavior=analysis_data.get(
                     "current_spending", "Unknown"
                 ),
                 urgency_level=urgency,
-                sentiment_toward_payment=analysis_data.get("sentiment", "Neutral"),
+                sentiment_toward_payment=analysis_data.get("sentiment_toward_payment", "Neutral"),
                 payment_friction_indicators=friction_indicators,
                 llm_monetization_score=scores["composite_score"],
                 confidence=analysis_data.get("confidence", 0.7),
@@ -680,7 +1166,7 @@ class MonetizationAgnoAnalyzer:
                     logger.warning(f"Failed to end AgentOps trace cleanly: {e}")
                 self.agentops_trace = None
 
-            logger.info(f"Analysis completed successfully with AgentOps tracking")
+            logger.info("Analysis completed successfully with AgentOps tracking")
             return result
 
         except Exception as e:
@@ -814,65 +1300,16 @@ class MonetizationAgnoAnalyzer:
         response = agent.run(prompt)
         return self._parse_agent_response(response)
 
-    def _parse_team_response(self, response: RunResponse) -> dict[str, Any]:
-        """Parse team response into structured data"""
-        try:
-            # Extract JSON from response
-            content = (
-                response.content if hasattr(response, "content") else str(response)
-            )
-
-            # Try to parse as JSON
-            if content.startswith("{"):
-                return json.loads(content)
-
-            # Extract JSON from text response
-            start_idx = content.find("{")
-            end_idx = content.rfind("}") + 1
-            if start_idx != -1 and end_idx != 0:
-                json_str = content[start_idx:end_idx]
-                return json.loads(json_str)
-
-            # Fallback parsing
-            return self._extract_data_from_text(content)
-
-        except Exception as e:
-            logger.warning(f"Failed to parse team response: {e}")
-            return {}
-
-    def _parse_agent_response(self, response: RunResponse) -> dict[str, Any]:
-        """Parse individual agent response"""
+    def _parse_agent_response(self, response) -> dict[str, Any]:
+        """Parse individual agent response using the main parsing logic"""
         return self._parse_team_response(response)
-
-    def _extract_data_from_text(self, text: str) -> dict[str, Any]:
-        """Extract structured data from unstructured text response"""
-        # This is a fallback method to extract data from non-JSON responses
-        data = {}
-
-        # Extract sentiment
-        if any(word in text.lower() for word in ["positive", "willing", "happy"]):
-            data["sentiment"] = "Positive"
-        elif any(word in text.lower() for word in ["negative", "unwilling", "refuse"]):
-            data["sentiment"] = "Negative"
-        else:
-            data["sentiment"] = "Neutral"
-
-        # Extract segment
-        if "b2b" in text.lower():
-            data["segment"] = "B2B"
-        elif "b2c" in text.lower():
-            data["segment"] = "B2C"
-        else:
-            data["segment"] = "Unknown"
-
-        return data
 
     def _calculate_scores(
         self, analysis_data: dict[str, Any], subreddit: str
     ) -> dict[str, float]:
         """Calculate composite scores from agent analysis"""
         # Extract individual scores with defaults
-        wtp_score = float(analysis_data.get("willingness_score", 50))
+        wtp_score = float(analysis_data.get("willingness_to_pay_score", 50))
         segment_score = float(analysis_data.get("segment_score", 50))
         behavior_score = float(analysis_data.get("behavior_score", 50))
 
@@ -880,7 +1317,7 @@ class MonetizationAgnoAnalyzer:
         price_sensitivity = 100 - (wtp_score * 0.5)
 
         # Revenue potential based on segment
-        segment_type = analysis_data.get("segment", "Unknown")
+        segment_type = analysis_data.get("customer_segment", "Unknown")
         if segment_type == "B2B":
             revenue_potential = (
                 segment_score * 0.35 + wtp_score * 0.35 + behavior_score * 0.30
