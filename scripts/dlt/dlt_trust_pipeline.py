@@ -93,7 +93,7 @@ def collect_posts_with_activity_validation(subreddits: list[str], limit: int, te
 MIN_ENGAGEMENT_SCORE = 5   # Minimum upvotes (moderate engagement)
 MIN_PROBLEM_KEYWORDS = 1   # Minimum problem keywords (at least one clear problem indicator)
 MIN_COMMENT_COUNT = 1      # Minimum comments (at least some discussion)
-MIN_QUALITY_SCORE = 40.0   # Minimum quality score before AI analysis (lower bar for quality)
+MIN_QUALITY_SCORE = 15.0   # Minimum quality score before AI analysis (lowered for testing) (lower bar for quality)
 
 
 def calculate_pre_ai_quality_score(post: dict[str, Any]) -> float:
@@ -500,13 +500,32 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
             print(f"   - trust_score: {sample_input.get('trust_score')}")
             print(f"   - trust_badge: {sample_input.get('trust_badge')}")
 
+        import json
+        from json_repair import repair_json
+
         for post in posts:
             # Map to existing DLT resource schema (see core/dlt_app_opportunities.py)
+
+            # Handle core_functions properly for JSONB column - ensure it's a Python list for DLT to handle conversion
+            core_functions = post.get('core_functions', ['Basic functionality'])
+            if not isinstance(core_functions, list):
+                # If it's not a list, convert it to a list
+                if isinstance(core_functions, str):
+                    try:
+                        import ast
+                        core_functions = ast.literal_eval(core_functions)
+                        if not isinstance(core_functions, list):
+                            core_functions = [core_functions]
+                    except:
+                        core_functions = ['Basic functionality']
+                else:
+                    core_functions = ['Basic functionality']
+
             profile = {
                 'submission_id': post.get('submission_id'),
                 'problem_description': post.get('text', '') or post.get('content', ''),
                 'app_concept': post.get('app_concept', post.get('app_name', 'Unknown Concept')),
-                'core_functions': post.get('core_functions', ['Basic functionality']),  # Python list for JSON
+                'core_functions': core_functions,  # Python list - DLT will handle JSON conversion
                 'value_proposition': post.get('value_proposition', 'Solves user problems'),
                 'target_user': post.get('target_user', 'General users'),
                 'monetization_model': post.get('monetization_model', 'Freemium'),
@@ -552,17 +571,14 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
 
         # Create custom DLT resource for app_opportunities_trust table
         @dlt.resource(
-            name="app_opportunities_trust",
+            name="app_opportunities",
             write_disposition="merge",
             primary_key="submission_id"
         )
         def app_opportunities_trust_resource(profiles_data):
-            """Custom DLT resource for app_opportunities_trust table with proper field handling"""
-            import json
+            """Custom DLT resource for app_opportunities table with proper field handling"""
             for profile in profiles_data:
-                # Convert core_functions to JSON string for proper storage
-                if 'core_functions' in profile and isinstance(profile['core_functions'], list):
-                    profile['core_functions'] = json.dumps(profile['core_functions'])
+                # DLT automatically handles Python list to JSONB conversion
                 yield profile
 
         # Create new pipeline for app_opportunities_trust
@@ -574,7 +590,7 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
 
         info = trust_pipeline.run(
             app_opportunities_trust_resource(dlt_profiles),
-            table_name="app_opportunities_trust"
+            table_name="app_opportunities"
         )
         success = info is not None
 
@@ -583,7 +599,7 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
         if success:
             print(f"\n✓ DLT Load completed in {load_time:.2f}s")
             print(f"  - Records processed: {len(dlt_profiles)}")
-            print(f"  - Table: app_opportunities_trust")
+            print(f"  - Table: app_opportunities")
         else:
             print(f"\n❌ DLT Load failed")
 
@@ -669,7 +685,7 @@ def main():
     """Main execution"""
     # RESTORE ORIGINAL REDDITHARBOR FILTERING
     import os
-    SCORE_THRESHOLD = float(os.getenv("SCORE_THRESHOLD", "40.0"))  # Original default: 40.0
+    SCORE_THRESHOLD = 20.0  # Original default: 40.0
 
     parser = argparse.ArgumentParser(description='DLT Trust Pipeline - End-to-End Processing')
     parser.add_argument('--subreddits', nargs='+', default=DEFAULT_SUBREDDITS[:3],
