@@ -180,14 +180,17 @@ mcp_servers:
       command: npx
       args:
         - -y
-        - mcp-remote@latest
+        - mcp-remote
+        - https://mcp.jina.ai/sse
+        - --header
+        - 'Authorization: Bearer ${JINA_API_KEY}'
       env:
         JINA_API_KEY: ${JINA_API_KEY}
-      transport: http
+      transport: stdio
       url: https://mcp.jina.ai/sse
       enabled: true
       targets:
-        - claude
+        - .mcp.json
     - name: agentops-mcp
       description: AgentOps MCP server for AI agent observability, tracing, and performance debugging
       command: npx
@@ -199,4 +202,4 @@ mcp_servers:
       transport: stdio
       enabled: true
       targets:
-        - claude
+        - .mcp.json
