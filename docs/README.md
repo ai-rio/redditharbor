@@ -52,12 +52,14 @@ collector.store_to_database(data, database_url="your_db_url")
 
 - **[API Reference](./api/README.md)** - Complete API documentation and function reference
 - **[Component Guide](./components/README.md)** - Reusable UI components and modular system architecture
+  - **[Agents Overview](./components/agents-overview.md)** - Multi-agent system components and architecture
 - **[User Guides](./guides/README.md)** - Step-by-step tutorials and comprehensive how-to guides
 - **[Development & Operations](./guides/development-operations/README.md)** - Development workflows, testing, and deployment guides
 - **[Architecture](./architecture/README.md)** - System design and architecture decisions
 - **[Technical Specifications](./technical/README.md)** - System architecture, deployment guides, and technical specifications
 - **[Testing Reports](./test-results/README.md)** - Comprehensive testing results, quality metrics, and validation reports
 - **[Implementation](./implementation/README.md)** - Technical implementation and migration documentation
+  - **[MCP Integration Fixes](./implementation/mcp-integration-fixes-summary.md)** - Model Context Protocol integration improvements and fixes
 
 ### Business & Strategy
 
@@ -89,6 +91,7 @@ collector.store_to_database(data, database_url="your_db_url")
   - **[Agno Integration](./integrations/agno/)** - Multi-agent LLM framework for monetization analysis
   - **[AgentOps Integration](./integrations/agentops/)** - AI agent observability and cost tracking
   - **[Jina Integration](./integrations/jina/)** - Reader API for real market data validation
+  - **[Gemini Integration](./integrations/gemini-integration.md)** - Google Gemini AI integration documentation
 
 ### DLT Integration & Pipeline
 

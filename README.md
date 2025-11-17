@@ -393,6 +393,8 @@ See **[docs/README.md](./docs/README.md)** for complete documentation index and 
 - **[docs/architecture/README.md](./docs/architecture/README.md)** - System architecture overview
 - **[docs/architecture/requirements.txt](./docs/architecture/requirements.txt)** - Project dependencies
 - **[docs/guides/research-types.md](./docs/guides/research-types.md)** - Research capabilities
+- **[docs/components/agents-overview.md](./docs/components/agents-overview.md)** - Multi-agent system components and architecture
+- **[docs/integrations/gemini-integration.md](./docs/integrations/gemini-integration.md)** - Google Gemini AI integration documentation
 
 ### 📊 Implementation & Research
 
@@ -403,6 +405,7 @@ See **[docs/README.md](./docs/README.md)** for complete documentation index and 
 - **[docs/implementation/PHASE_3_DLT_CLI_COMPLETION.md](./docs/implementation/PHASE_3_DLT_CLI_COMPLETION.md)** - DLT CLI completion report
 - **[docs/implementation/SCRIPTS_ORGANIZATION_SUMMARY.md](./docs/implementation/SCRIPTS_ORGANIZATION_SUMMARY.md)** - Scripts organization summary
 - **[docs/implementation/SCRIPTS_QUICK_REFERENCE.md](./docs/implementation/SCRIPTS_QUICK_REFERENCE.md)** - Scripts quick reference guide
+- **[docs/implementation/mcp-integration-fixes-summary.md](./docs/implementation/mcp-integration-fixes-summary.md)** - Model Context Protocol integration improvements
 
 ### 🤝 Development
 
