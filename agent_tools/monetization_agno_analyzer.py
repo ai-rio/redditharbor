@@ -1151,6 +1151,11 @@ async def demo_streaming():
         print(f"\n❌ Streaming Error: {e}")
 
 
+def create_monetization_analyzer():
+    """Factory function for integration health monitor"""
+    return MonetizationAgnoAnalyzer()
+
+
 if __name__ == "__main__":
     demo_analyzer()
 
