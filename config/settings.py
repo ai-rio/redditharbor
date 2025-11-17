@@ -1,20 +1,36 @@
 # RedditHarbor Configuration
-# Load environment variables
+# Load environment variables with proper priority
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load from .env if it exists
-load_dotenv('.env')
+# =============================================================================
+# ENVIRONMENT LOADING STRATEGY
+# =============================================================================
+# Priority order (first found wins):
+# 1. .env.local (local development, gitignored, contains secrets)
+# 2. .env (template/defaults, committed to repo, NO secrets)
+# 3. Defaults in this file (fallback)
+#
+# This allows:
+# - Developers to use .env.local for local secrets (never committed)
+# - Production to use environment variables directly
+# - .env to serve as documentation template
+# =============================================================================
+
+project_root = Path(__file__).parent.parent
+
+# Load .env.local first (if exists), then .env (if exists)
+load_dotenv(project_root / '.env.local', override=True)
+load_dotenv(project_root / '.env', override=False)  # Don't override .env.local
 
 # Reddit API Configuration
-# Get from environment or use placeholders
 REDDIT_PUBLIC = os.getenv("REDDIT_PUBLIC", "your_reddit_public_key_here")
 REDDIT_SECRET = os.getenv("REDDIT_SECRET", "your_reddit_secret_key_here")
 REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "project:RedditHarbor (by /u/your_username)")
 
 # Supabase Configuration
-# Get from environment or use defaults
 SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your_supabase_service_role_key_here")
 
@@ -60,3 +76,104 @@ DLT_QUALITY_COMMENTS_PER_POST = int(os.getenv("DLT_QUALITY_COMMENTS_PER_POST", "
 DLT_ENABLED = os.getenv("DLT_ENABLED", "false").lower() == "true"  # Enable/disable DLT collection
 DLT_USE_ACTIVITY_VALIDATION = os.getenv("DLT_USE_ACTIVITY_VALIDATION", "true").lower() == "true"  # Enable activity-aware validation
 DLT_MAX_SUBREDDITS_PER_RUN = int(os.getenv("DLT_MAX_SUBREDDITS_PER_RUN", "50"))  # Maximum subreddits to process per run
+
+# =============================================================================
+# LLM CONFIGURATION (OpenRouter for unified model access)
+# =============================================================================
+# RedditHarbor uses OpenRouter as the unified LLM gateway, which provides:
+# - Access to multiple model providers (Anthropic, OpenAI, Google, etc.)
+# - Unified API for cost tracking and model management
+# - Pay-as-you-go pricing without multiple subscriptions
+# - Automatic failover and load balancing
+#
+# Configuration Priority:
+# 1. Component-specific model (e.g., MONETIZATION_LLM_MODEL)
+# 2. Global model (OPENROUTER_MODEL)
+# 3. Default (anthropic/claude-haiku-4.5 for cost efficiency)
+# =============================================================================
+
+# OpenRouter API Key (Required)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+# Primary LLM Model (used by EnhancedLLMProfiler and as fallback)
+# Available models via OpenRouter:
+# - anthropic/claude-haiku-4.5 (fast, cheap: $1/$5 per 1M tokens)
+# - anthropic/claude-3.5-sonnet (balanced: $3/$15 per 1M tokens)
+# - openai/gpt-4o-mini (very cheap: $0.15/$0.60 per 1M tokens)
+# - openai/gpt-4o (powerful: $2.50/$10 per 1M tokens)
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "anthropic/claude-haiku-4.5")
+
+# =============================================================================
+# HYBRID STRATEGY CONFIGURATION
+# =============================================================================
+
+# Option A: LLM-Enhanced Monetization Analysis
+# Uses DSPy with 4 analyzers for sophisticated monetization scoring
+MONETIZATION_LLM_ENABLED = os.getenv("MONETIZATION_LLM_ENABLED", "true").lower() == "true"
+MONETIZATION_LLM_THRESHOLD = float(os.getenv("MONETIZATION_LLM_THRESHOLD", "60.0"))
+
+# Monetization analyzer can use different model for cost optimization
+# If not set, inherits from OPENROUTER_MODEL
+# Set to gpt-4o-mini if you want cheaper monetization analysis
+MONETIZATION_LLM_MODEL = os.getenv("MONETIZATION_LLM_MODEL", OPENROUTER_MODEL)
+
+# Option B: Customer Lead Extraction
+# Regex-based extraction (zero LLM cost)
+LEAD_EXTRACTION_ENABLED = os.getenv("LEAD_EXTRACTION_ENABLED", "true").lower() == "true"
+LEAD_EXTRACTION_THRESHOLD = float(os.getenv("LEAD_EXTRACTION_THRESHOLD", "60.0"))
+
+# Optional: Slack webhook for hot lead notifications
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+
+# =============================================================================
+# AGNO AND AGENTOPS CONFIGURATION
+# =============================================================================
+# Cost tracking and multi-agent architecture configuration
+
+# AgentOps API Key for comprehensive cost tracking
+# Optional: If not provided, cost tracking will be disabled
+AGENTOPS_API_KEY = os.getenv("AGENTOPS_API_KEY")
+
+# Monetization analyzer framework selection
+# "dspy" for original DSPy implementation
+# "agno" for new multi-agent architecture with cost tracking
+MONETIZATION_FRAMEWORK = os.getenv("MONETIZATION_FRAMEWORK", "agno")
+
+# Agno-specific settings
+AGNO_TIMEOUT = int(os.getenv("AGNO_TIMEOUT", "30"))  # Timeout in seconds
+AGNO_MAX_RETRIES = int(os.getenv("AGNO_MAX_RETRIES", "3"))  # Max retry attempts
+
+# =============================================================================
+# HTTP CLIENT CONFIGURATION (Connection Pool Management)
+# =============================================================================
+# Configure connection pooling to prevent exhaustion with multiple LLM clients
+# - max_connections: Total connections across all hosts
+# - max_keepalive_connections: Reusable connections (improves performance)
+# - Timeout: Prevent hanging requests
+# =============================================================================
+
+HTTP_MAX_CONNECTIONS = int(os.getenv("HTTP_MAX_CONNECTIONS", "100"))
+HTTP_MAX_KEEPALIVE = int(os.getenv("HTTP_MAX_KEEPALIVE", "20"))
+HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", "30"))
+
+# =============================================================================
+# JINA READER API CONFIGURATION (Data-Driven Market Validation)
+# =============================================================================
+# Jina AI Reader API for fetching and extracting web content
+# - r.jina.ai: Reads and extracts content from URLs (500 RPM free tier)
+# - s.jina.ai: Web search with LLM-optimized results (100 RPM free tier)
+# Used for data-driven monetization validation with real market evidence
+# =============================================================================
+
+JINA_API_KEY = os.getenv("JINA_API_KEY", "")
+JINA_READER_BASE_URL = "https://r.jina.ai/"
+JINA_SEARCH_BASE_URL = "https://s.jina.ai/"
+JINA_READ_RPM_LIMIT = int(os.getenv("JINA_READ_RPM_LIMIT", "500"))
+JINA_SEARCH_RPM_LIMIT = int(os.getenv("JINA_SEARCH_RPM_LIMIT", "100"))
+JINA_REQUEST_TIMEOUT = int(os.getenv("JINA_REQUEST_TIMEOUT", "30"))
+
+# Market validation settings
+MARKET_VALIDATION_ENABLED = os.getenv("MARKET_VALIDATION_ENABLED", "true").lower() == "true"
+MARKET_VALIDATION_CACHE_TTL = int(os.getenv("MARKET_VALIDATION_CACHE_TTL", "86400"))  # 24 hours default
+MARKET_VALIDATION_MIN_COMPETITORS = int(os.getenv("MARKET_VALIDATION_MIN_COMPETITORS", "3"))
+MARKET_VALIDATION_MAX_SEARCHES = int(os.getenv("MARKET_VALIDATION_MAX_SEARCHES", "10"))

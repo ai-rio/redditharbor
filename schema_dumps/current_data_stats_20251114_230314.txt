@@ -1,0 +1,8 @@
+ total_rows |        table_name         
+------------+---------------------------
+         22 | app_opportunities_trust
+          0 | customer_leads
+          0 | llm_monetization_analysis
+         17 | workflow_results
+(4 rows)
+

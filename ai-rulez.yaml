@@ -90,6 +90,37 @@ rules:
     - name: Documentation Structure
       priority: medium
       content: 'Organize documentation in docs/ with subdirectories: api/ for API docs, guides/ for tutorials, architecture/ for design decisions, contributing/ for contribution guidelines, assets/ for images and diagrams. Use CueTimer brand colors (#FF6B35, #004E89, #F7B801) consistently in documentation.'
+    - name: Documentation Organization Enforcement
+      priority: high
+      content: |-
+        Enforce strict documentation organization following doc-organizer skill standards:
+
+        **File Naming**: Use kebab-case for all documentation files (e.g., `user-guide.md`, not `UserGuide.md` or `user_guide.md`). Exceptions: `README.md`, `CHANGELOG.md`, `LICENSE`.
+
+        **Directory Structure**:
+        - `docs/` root must contain only `README.md` (no orphan files)
+        - `docs/api/` - API documentation
+        - `docs/architecture/` - System design and architecture decisions
+        - `docs/components/` - Component documentation
+        - `docs/contributing/` - Contribution guidelines
+        - `docs/guides/` - User guides and tutorials
+        - `docs/implementation/` - Implementation details
+        - `docs/integrations/` - Third-party service integrations (agno/, agentops/, jina/)
+        - `docs/assets/` - Images, diagrams, and visual resources
+
+        **Script Organization**:
+        - Root directory must have no orphan `.py`, `.sh`, `.sql`, or `.log` files
+        - `scripts/` directory must have no orphan files (only subdirectories)
+        - Test scripts go to `scripts/testing/` or `tests/`
+        - Database scripts go to `scripts/database/`
+        - Archived scripts go to `scripts/archive/` with README documentation
+
+        **Archive Consolidation**:
+        - All archived Python scripts must be in `scripts/archive/`
+        - Root `archive/` is for project artifacts only (logs, SQL dumps, reports)
+        - Every archive directory must have a README.md explaining contents
+
+        **Validation**: Run `/organize-docs --check` before commits to ensure compliance.
 sections:
     - name: Reddit API Setup
       priority: high
@@ -175,3 +206,31 @@ mcp_servers:
         - -y
         - ai-rulez@latest
         - mcp
+    - name: jina-ai
+      description: Jina AI MCP server providing access to Reader, Search, Embeddings, and Reranker APIs
+      command: npx
+      args:
+        - -y
+        - mcp-remote
+        - https://mcp.jina.ai/sse
+        - --header
+        - 'Authorization: Bearer ${JINA_API_KEY}'
+      env:
+        JINA_API_KEY: ${JINA_API_KEY}
+      transport: stdio
+      url: https://mcp.jina.ai/sse
+      enabled: true
+      targets:
+        - .mcp.json
+    - name: agentops-mcp
+      description: AgentOps MCP server for AI agent observability, tracing, and performance debugging
+      command: npx
+      args:
+        - -y
+        - agentops-mcp
+      env:
+        AGENTOPS_API_KEY: ${AGENTOPS_API_KEY}
+      transport: stdio
+      enabled: true
+      targets:
+        - .mcp.json

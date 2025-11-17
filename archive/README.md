@@ -1,8 +1,43 @@
-# Archived Scripts - RedditHarbor
+# Project Archive - RedditHarbor
 
-This directory contains archived scripts that are no longer actively used in the RedditHarbor pipeline. They are preserved for historical reference and potential future use.
+This directory contains archived **project artifacts** (logs, SQL dumps, reports) that are no longer actively used.
+
+**Note**: All Python scripts have been consolidated to `scripts/archive/` for better organization. This directory now focuses on non-code artifacts.
+
+## Recent Changes (2025-11-16)
+
+- **Python scripts moved** to `scripts/archive/` (14 scripts consolidated)
+- **Log files consolidated** to `logs/` subdirectory
+- **SQL dumps preserved** in `sql_dumps/`
+- **Historical subdirectories** maintained in `archive/` subdirectory
 
 ## Directory Structure
+
+### Current Contents
+
+- **README.md** - This file
+- **script_organization_report.md** - Documentation of script organization
+- **logs/** - Consolidated log files
+- **sql_dumps/** - Database SQL dumps
+- **cost_tracking_cleanup_2025_11_13/** - Cost tracking migration artifacts
+- **recent_cleanup/** - Recently cleaned up files
+- **archive/** - Historical subdirectories with categorized content
+
+### Log Files (Preserved for Historical Reference)
+
+- `batch_scoring.log` - Batch scoring operation logs
+- `batch_scoring_all.log` - Complete batch scoring logs
+- `dashboard8081.log` - Dashboard service logs
+- `marimo.log` - Marimo notebook logs
+
+## Archived Code (Now in scripts/archive/)
+
+All Python scripts have been moved to `scripts/archive/` including:
+- Analysis scripts (`analyze_function_distribution.py`, etc.)
+- Test scripts (`certify_problem_first.py`, `test_*.py`, etc.)
+- Utility scripts (`check_*.py`, `fix_*.py`, etc.)
+
+## Historical Subdirectories (archive/archive/)
 
 ### test_infrastructure/ (6 scripts) - NEW
 DLT integration and pipeline testing scripts used during development.

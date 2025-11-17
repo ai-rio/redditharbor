@@ -52,12 +52,14 @@ collector.store_to_database(data, database_url="your_db_url")
 
 - **[API Reference](./api/README.md)** - Complete API documentation and function reference
 - **[Component Guide](./components/README.md)** - Reusable UI components and modular system architecture
+  - **[Agents Overview](./components/agents-overview.md)** - Multi-agent system components and architecture
 - **[User Guides](./guides/README.md)** - Step-by-step tutorials and comprehensive how-to guides
 - **[Development & Operations](./guides/development-operations/README.md)** - Development workflows, testing, and deployment guides
 - **[Architecture](./architecture/README.md)** - System design and architecture decisions
 - **[Technical Specifications](./technical/README.md)** - System architecture, deployment guides, and technical specifications
 - **[Testing Reports](./test-results/README.md)** - Comprehensive testing results, quality metrics, and validation reports
 - **[Implementation](./implementation/README.md)** - Technical implementation and migration documentation
+  - **[MCP Integration Fixes](./implementation/mcp-integration-fixes-summary.md)** - Model Context Protocol integration improvements and fixes
 
 ### Business & Strategy
 
@@ -83,6 +85,14 @@ collector.store_to_database(data, database_url="your_db_url")
 - **[Contributing Guide](./contributing/README.md)** - How to contribute to RedditHarbor
 - **[Testing Procedures](./guides/development-operations/e2e-workflow-implementation-guide.md)** - End-to-end testing and validation
 
+### External Integrations
+
+- **[Integrations Overview](./integrations/README.md)** - Third-party service integration documentation
+  - **[Agno Integration](./integrations/agno/)** - Multi-agent LLM framework for monetization analysis
+  - **[AgentOps Integration](./integrations/agentops/)** - AI agent observability and cost tracking
+  - **[Jina Integration](./integrations/jina/)** - Reader API for real market data validation
+  - **[Gemini Integration](./integrations/gemini-integration.md)** - Google Gemini AI integration documentation
+
 ### DLT Integration & Pipeline
 
 - **[DLT Integration Guides](./guides/integrations-tools/)** - Complete DLT integration and migration documentation
@@ -107,9 +117,10 @@ collector.store_to_database(data, database_url="your_db_url")
 - **[Bug Fixes & Critical Updates](./implementation/#-bug-fixes--critical-updates)** - Recent bug fixes and system improvements
 - **[DLT Integration](./implementation/#-dlt-integration-documentation)** - Complete DLT pipeline implementation
 - **[Migration Reports](./implementation/#-migration--workflow-documentation)** - Migration execution and workflow summaries
-- **[Cost Tracking Implementation](./COST_TRACKING_DEPLOYMENT.md)** - Complete cost tracking observability implementation
-- **[Cost Analytics Guide](./cost_tracking_analytics.md)** - Analytics and monitoring for cost tracking
-- **[Cost Tracking Queries](./cost_tracking_queries.md)** - SQL queries for cost analysis and reporting
+- **[Cost Tracking Documentation](./guides/cost-tracking/README.md)** - Complete cost tracking observability implementation
+  - **[Deployment Guide](./guides/cost-tracking/deployment-guide.md)** - Setup and deployment instructions
+  - **[Analytics Guide](./guides/cost-tracking/analytics-guide.md)** - Analytics and monitoring for cost tracking
+  - **[SQL Queries](./guides/cost-tracking/sql-queries.md)** - SQL queries for cost analysis and reporting
 
 ### Archive & Historical Documentation
 
