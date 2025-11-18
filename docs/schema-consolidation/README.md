@@ -598,6 +598,50 @@ ORDER BY validation_types DESC;
 - Completed migration analysis
 - Drafted consolidation plan
 
+### [session-progress-2025-11-17.md](./session-progress-2025-11-17.md)
+**Schema Consolidation Session Progress**
+
+Session log documenting the complete schema consolidation process including analysis, planning, and execution phases for RedditHarbor database schema optimization.
+
+**Use this for**:
+- Understanding consolidation timeline and progress
+- Session reference for similar projects
+- Progress tracking methodology
+
+---
+
+## Additional Test Results & Analysis
+
+### [baseline_test_results.md](./baseline_test_results.md)
+**Core Functions Format Testing Results**
+
+Comprehensive test results documenting the core_functions serialization format inconsistency issue and validation of the fix implementation across different pipeline components.
+
+**Use this for**:
+- Understanding core_functions format problems
+- Validating fix implementation
+- Reference for format standardization testing
+
+### [core-functions-fix-certification.md](./core-functions-fix-certification.md)
+**Core Functions Fix Implementation Certification**
+
+Complete certification documentation for the core_functions format fix, including testing procedures, validation results, and production readiness assessment.
+
+**Use this for**:
+- Production deployment certification
+- Fix validation procedures
+- Quality assurance documentation
+
+### [core-functions-fix-summary.md](./core-functions-fix-summary.md)
+**Core Functions Fix Implementation Summary**
+
+Executive summary of the core_functions format fix implementation, including problem analysis, solution approach, and impact assessment on the RedditHarbor pipeline.
+
+**Use this for**:
+- Quick overview of fix implementation
+- Executive summary for stakeholders
+- Impact assessment documentation
+
 ---
 
 ## Contributing

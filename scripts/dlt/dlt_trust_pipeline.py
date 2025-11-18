@@ -39,6 +39,7 @@ from config.settings import DEFAULT_SUBREDDITS, DLT_MIN_ACTIVITY_SCORE
 from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
 from core.dlt_app_opportunities import load_app_opportunities, app_opportunities_resource
 from core.trust_layer import TrustLayerValidator
+from core.utils.core_functions_serialization import standardize_core_functions, deserialize_core_functions
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -263,7 +264,7 @@ def analyze_opportunities_with_ai(posts: list[dict[str, Any]], test_mode: bool =
                     # Core opportunity fields
                     'app_concept': analysis_result.get('title', 'App Concept'),
                     'problem_description': analysis_result.get('title', 'Problem Description'),
-                    'core_functions': analysis_result.get('core_functions', ['Basic functionality']),
+                    'core_functions': standardize_core_functions(analysis_result.get('core_functions', ['Basic functionality'])),
                     'value_proposition': f"Addresses user needs in {analysis_result.get('subreddit', 'target market')}",
                     'target_user': 'Users experiencing described problems',
                     'monetization_model': 'Subscription-based approach recommended',
@@ -506,26 +507,20 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
         for post in posts:
             # Map to existing DLT resource schema (see core/dlt_app_opportunities.py)
 
-            # Handle core_functions properly for JSONB column - ensure it's a Python list for DLT to handle conversion
-            core_functions = post.get('core_functions', ['Basic functionality'])
-            if not isinstance(core_functions, list):
-                # If it's not a list, convert it to a list
-                if isinstance(core_functions, str):
-                    try:
-                        import ast
-                        core_functions = ast.literal_eval(core_functions)
-                        if not isinstance(core_functions, list):
-                            core_functions = [core_functions]
-                    except:
-                        core_functions = ['Basic functionality']
-                else:
-                    core_functions = ['Basic functionality']
+            # Handle core_functions using the standard serialization utility
+            core_functions_json = post.get('core_functions', ['Basic functionality'])
+            if isinstance(core_functions_json, str):
+                # If it's already a JSON string from our standardization, use it directly
+                core_functions_list = deserialize_core_functions(core_functions_json)
+            else:
+                # If it's a list or other format, standardize it
+                core_functions_list = core_functions_json if isinstance(core_functions_json, list) else ['Basic functionality']
 
             profile = {
                 'submission_id': post.get('submission_id'),
                 'problem_description': post.get('text', '') or post.get('content', ''),
                 'app_concept': post.get('app_concept', post.get('app_name', 'Unknown Concept')),
-                'core_functions': core_functions,  # Python list - DLT will handle JSON conversion
+                'core_functions': core_functions_list,  # Python list - DLT will handle JSON conversion
                 'value_proposition': post.get('value_proposition', 'Solves user problems'),
                 'target_user': post.get('target_user', 'General users'),
                 'monetization_model': post.get('monetization_model', 'Freemium'),

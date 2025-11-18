@@ -36,6 +36,9 @@ from dotenv import load_dotenv
 
 load_dotenv(project_root / '.env.local')
 
+# Import core functions serialization utilities
+from core.utils.core_functions_serialization import standardize_core_functions
+
 try:
     from tqdm import tqdm
 except ImportError:
@@ -622,7 +625,7 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
             "submission_id": submission_id,
             "problem_description": opp.get("problem_description"),
             "app_concept": opp.get("app_concept"),
-            "core_functions": ", ".join(opp.get("function_list", [])) if isinstance(opp.get("function_list"), list) else str(opp.get("function_list", "")),
+            "core_functions": standardize_core_functions(opp.get("function_list", [])),
             "value_proposition": opp.get("value_proposition"),
             "target_user": opp.get("target_user"),
             "monetization_model": opp.get("monetization_model"),

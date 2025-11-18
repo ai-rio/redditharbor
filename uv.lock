@@ -2855,6 +2855,8 @@ prompt-optimization = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
     { name = "ruff" },
 ]
 
@@ -2895,7 +2897,11 @@ requires-dist = [
 provides-extras = ["dlt", "orchestration", "prompt-optimization", "dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ruff", specifier = ">=0.14.4" }]
+dev = [
+    { name = "pytest", specifier = ">=9.0.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.14.4" },
+]
 
 [[package]]
 name = "referencing"

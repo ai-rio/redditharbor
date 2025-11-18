@@ -16,6 +16,8 @@ import dlt
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from core.utils.core_functions_serialization import dlt_standardize_core_functions
+
 # DLT pipeline configuration
 PIPELINE_NAME = "reddit_harbor_app_opportunities"
 DESTINATION = "postgres"
@@ -51,14 +53,11 @@ def app_opportunities_resource(ai_profiles: list[dict[str, Any]]):
     Yields:
         Profile dictionaries with submission_id as primary key
     """
-    import json
-
     for profile in ai_profiles:
         # Only yield if it has AI-generated content
         if profile.get("problem_description"):
-            # Convert core_functions from Python list to JSON string for jsonb
-            if "core_functions" in profile and isinstance(profile["core_functions"], list):
-                profile["core_functions"] = json.dumps(profile["core_functions"])
+            # Standardize core_functions using the serialization utility
+            profile = dlt_standardize_core_functions(profile)
             yield profile
 
 
