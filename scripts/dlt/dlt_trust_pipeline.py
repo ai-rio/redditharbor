@@ -366,7 +366,7 @@ def apply_trust_validation(posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
             # Merge trust indicators with post data
             validated_post = post.copy()
             validated_post.update({
-                'trust_level': trust_indicators.trust_level.value,
+                'trust_level': trust_indicators.trust_level,  # TrustLevel is already a string enum
                 'trust_score': trust_indicators.overall_trust_score,
                 'trust_badge': trust_indicators.trust_badges[0] if trust_indicators.trust_badges else 'BASIC',
                 'activity_score': trust_indicators.subreddit_activity_score,
