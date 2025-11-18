@@ -19,7 +19,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-import os
+
 
 class SchemaDumper:
     def __init__(self, project_root: Path):
@@ -70,7 +70,7 @@ class SchemaDumper:
 
         filename = self.schema_dumps_dir / f"current_tables_list_{self.timestamp}.txt"
         with open(filename, 'w') as f:
-            f.write(f"# RedditHarbor Tables List\n")
+            f.write("# RedditHarbor Tables List\n")
             f.write(f"# Generated: {datetime.now().isoformat()}\n")
             f.write(f"# Command: {sql_query}\n\n")
             f.write(output)
@@ -97,7 +97,7 @@ class SchemaDumper:
 
         filename = self.schema_dumps_dir / f"current_views_list_{self.timestamp}.txt"
         with open(filename, 'w') as f:
-            f.write(f"# RedditHarbor Views List\n")
+            f.write("# RedditHarbor Views List\n")
             f.write(f"# Generated: {datetime.now().isoformat()}\n")
             f.write(f"# Command: {sql_query}\n\n")
             f.write(output)
@@ -124,7 +124,7 @@ class SchemaDumper:
 
         filename = self.schema_dumps_dir / f"current_indexes_list_{self.timestamp}.txt"
         with open(filename, 'w') as f:
-            f.write(f"# RedditHarbor Indexes List\n")
+            f.write("# RedditHarbor Indexes List\n")
             f.write(f"# Generated: {datetime.now().isoformat()}\n")
             f.write(f"# Command: {sql_query}\n\n")
             f.write(output)
@@ -159,7 +159,7 @@ class SchemaDumper:
 
         filename = self.schema_dumps_dir / f"current_table_structure_{self.timestamp}.txt"
         with open(filename, 'w') as f:
-            f.write(f"# RedditHarbor Table Structure\n")
+            f.write("# RedditHarbor Table Structure\n")
             f.write(f"# Generated: {datetime.now().isoformat()}\n")
             f.write(f"# Command: {sql_query}\n\n")
             f.write(output)
@@ -189,14 +189,14 @@ class SchemaDumper:
             ], capture_output=True, text=True, check=True)
 
             # Add header to the dump file
-            with open(filename, 'r') as f:
+            with open(filename) as f:
                 content = f.read()
 
             with open(filename, 'w') as f:
-                f.write(f"-- RedditHarbor Database Schema Dump\n")
+                f.write("-- RedditHarbor Database Schema Dump\n")
                 f.write(f"-- Generated: {datetime.now().isoformat()}\n")
-                f.write(f"-- Schema Version: v3.0.0\n")
-                f.write(f"-- Tool: pg_dump via Supabase CLI\n\n")
+                f.write("-- Schema Version: v3.0.0\n")
+                f.write("-- Tool: pg_dump via Supabase CLI\n\n")
                 f.write(content)
 
             print(f"✅ Full schema saved to: {filename}")

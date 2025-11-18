@@ -16,13 +16,13 @@ Requirements:
 """
 
 import argparse
+import json
 import subprocess
 import sys
-import json
-from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any
-import re
+from pathlib import Path
+from typing import Any
+
 
 class SchemaValidator:
     def __init__(self, project_root: Path):
@@ -32,7 +32,7 @@ class SchemaValidator:
         self.results_dir.mkdir(exist_ok=True)
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    def run_supabase_query(self, sql_query: str) -> List[Dict[str, Any]]:
+    def run_supabase_query(self, sql_query: str) -> list[dict[str, Any]]:
         """Execute a SQL query and return results as list of dictionaries."""
         try:
             clean_query = sql_query.strip().replace('"', '\\"').replace('\n', ' ')
@@ -59,7 +59,7 @@ class SchemaValidator:
             print("❌ Supabase CLI not found. Please install it with: npm install -g supabase")
             return []
 
-    def check_foreign_key_consistency(self) -> Dict[str, Any]:
+    def check_foreign_key_consistency(self) -> dict[str, Any]:
         """Check foreign key consistency and orphaned records."""
         print("🔗 Checking foreign key consistency...")
 
@@ -112,7 +112,7 @@ class SchemaValidator:
             'status': 'PASS' if len(issues) == 0 else 'FAIL'
         }
 
-    def check_index_coverage(self) -> Dict[str, Any]:
+    def check_index_coverage(self) -> dict[str, Any]:
         """Check index coverage for commonly queried columns."""
         print("📚 Checking index coverage...")
 
@@ -169,7 +169,7 @@ class SchemaValidator:
             'status': 'PASS' if len(missing_indexes) == 0 else 'WARNING'
         }
 
-    def check_table_consistency(self) -> Dict[str, Any]:
+    def check_table_consistency(self) -> dict[str, Any]:
         """Check for table consistency issues."""
         print("🔍 Checking table consistency...")
 
@@ -239,7 +239,7 @@ class SchemaValidator:
             'status': 'PASS' if len(issues) == 0 else 'WARNING'
         }
 
-    def check_data_quality(self) -> Dict[str, Any]:
+    def check_data_quality(self) -> dict[str, Any]:
         """Check data quality metrics."""
         print("📊 Checking data quality...")
 
@@ -302,7 +302,7 @@ class SchemaValidator:
 
         return quality_metrics
 
-    def generate_validation_report(self, results: Dict[str, Any]) -> str:
+    def generate_validation_report(self, results: dict[str, Any]) -> str:
         """Generate a comprehensive validation report."""
         report = f"""# RedditHarbor Schema Validation Report
 
@@ -332,7 +332,7 @@ class SchemaValidator:
                 report += f"**Status**: {status_icon} {status}\n\n"
 
                 # Include specific details based on check type
-                if 'issues' in result and result['issues']:
+                if result.get('issues'):
                     report += "### Issues Found:\n\n"
                     for issue in result['issues']:
                         if isinstance(issue, dict):
@@ -342,7 +342,7 @@ class SchemaValidator:
                             report += f"- {issue}\n"
                     report += "\n"
 
-                if 'missing_indexes' in result and result['missing_indexes']:
+                if result.get('missing_indexes'):
                     report += "### Missing Indexes:\n\n"
                     for missing in result['missing_indexes']:
                         report += f"- {missing}\n"

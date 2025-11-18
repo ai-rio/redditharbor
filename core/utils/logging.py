@@ -9,13 +9,12 @@ Version: 1.0.0
 
 import logging
 import sys
-from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from pathlib import Path
 
 
 def setup_logging(
-    name: Optional[str] = None,
+    name: str | None = None,
     level: int = logging.INFO,
     log_to_file: bool = True,
     log_dir: str = "logs"

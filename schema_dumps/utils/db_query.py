@@ -16,12 +16,12 @@ Requirements:
 """
 
 import argparse
+import json
 import subprocess
 import sys
-import json
-from pathlib import Path
 from datetime import datetime
-import textwrap
+from pathlib import Path
+
 
 class DatabaseQuerier:
     def __init__(self, project_root: Path):
@@ -273,7 +273,7 @@ def main():
             print(f"❌ Query file not found: {args.file}")
             sys.exit(1)
 
-        with open(query_file, 'r') as f:
+        with open(query_file) as f:
             query = f.read()
 
         result = querier.run_supabase_query(query, "json" if args.json else "text")

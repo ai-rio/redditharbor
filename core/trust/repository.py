@@ -15,17 +15,17 @@ Usage:
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from core.trust.config import (
-    TrustTables,
-    TrustColumns,
     CORE_TRUST_COLUMNS,
     ENGAGEMENT_COLUMNS,
+    METADATA_COLUMNS,
     QUALITY_COLUMNS,
-    METADATA_COLUMNS
+    TrustColumns,
+    TrustTables,
 )
-from core.trust.models import TrustIndicators, TrustValidationRequest
+from core.trust.models import TrustIndicators
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class TrustRepositoryInterface(ABC):
     """Abstract interface for trust data operations."""
 
     @abstractmethod
-    def get_trust_indicators(self, submission_id: str) -> Optional[TrustIndicators]:
+    def get_trust_indicators(self, submission_id: str) -> TrustIndicators | None:
         """Get trust indicators for a submission."""
         pass
 
@@ -44,12 +44,12 @@ class TrustRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def update_trust_indicators(self, submission_id: str, updates: Dict[str, Any]) -> bool:
+    def update_trust_indicators(self, submission_id: str, updates: dict[str, Any]) -> bool:
         """Update specific trust indicators."""
         pass
 
     @abstractmethod
-    def get_batch_trust_indicators(self, submission_ids: List[str]) -> Dict[str, TrustIndicators]:
+    def get_batch_trust_indicators(self, submission_ids: list[str]) -> dict[str, TrustIndicators]:
         """Get trust indicators for multiple submissions."""
         pass
 
@@ -72,7 +72,7 @@ class SupabaseTrustRepository(TrustRepositoryInterface):
         self.client = supabase_client
         self.default_table = TrustTables.APP_OPPORTUNITIES
 
-    def get_trust_indicators(self, submission_id: str) -> Optional[TrustIndicators]:
+    def get_trust_indicators(self, submission_id: str) -> TrustIndicators | None:
         """Get trust indicators for a submission."""
         try:
             # Try app_opportunities table first (primary storage)
@@ -125,7 +125,7 @@ class SupabaseTrustRepository(TrustRepositoryInterface):
             logger.error(f"Error saving trust indicators for {submission_id}: {e}")
             return False
 
-    def update_trust_indicators(self, submission_id: str, updates: Dict[str, Any]) -> bool:
+    def update_trust_indicators(self, submission_id: str, updates: dict[str, Any]) -> bool:
         """Update specific trust indicators."""
         try:
             result = self.client.table(self.default_table).update(
@@ -143,7 +143,7 @@ class SupabaseTrustRepository(TrustRepositoryInterface):
             logger.error(f"Error updating trust indicators for {submission_id}: {e}")
             return False
 
-    def get_batch_trust_indicators(self, submission_ids: List[str]) -> Dict[str, TrustIndicators]:
+    def get_batch_trust_indicators(self, submission_ids: list[str]) -> dict[str, TrustIndicators]:
         """Get trust indicators for multiple submissions."""
         try:
             # Build IN clause query
@@ -198,7 +198,7 @@ class SupabaseTrustRepository(TrustRepositoryInterface):
             logger.error(f"Error checking trust indicators existence for {submission_id}: {e}")
             return False
 
-    def _dict_to_indicators(self, data: Dict[str, Any]) -> TrustIndicators:
+    def _dict_to_indicators(self, data: dict[str, Any]) -> TrustIndicators:
         """Convert database dictionary to TrustIndicators model."""
         # Filter out None values and handle type conversion
         filtered_data = {}
@@ -281,7 +281,7 @@ class MultiTableTrustRepository(TrustRepositoryInterface):
         self.staging_table = TrustTables.PUBLIC_STAGING_APP_OPPORTUNITIES
         self.submissions_table = TrustTables.SUBMISSIONS
 
-    def get_trust_indicators(self, submission_id: str) -> Optional[TrustIndicators]:
+    def get_trust_indicators(self, submission_id: str) -> TrustIndicators | None:
         """Get trust indicators from any available table."""
         # Try primary table first
         indicators = self._get_from_table(submission_id, self.primary_table)
@@ -305,12 +305,12 @@ class MultiTableTrustRepository(TrustRepositoryInterface):
         repo = SupabaseTrustRepository(self.client)
         return repo.save_trust_indicators(submission_id, indicators)
 
-    def update_trust_indicators(self, submission_id: str, updates: Dict[str, Any]) -> bool:
+    def update_trust_indicators(self, submission_id: str, updates: dict[str, Any]) -> bool:
         """Update trust indicators in primary table."""
         repo = SupabaseTrustRepository(self.client)
         return repo.update_trust_indicators(submission_id, updates)
 
-    def get_batch_trust_indicators(self, submission_ids: List[str]) -> Dict[str, TrustIndicators]:
+    def get_batch_trust_indicators(self, submission_ids: list[str]) -> dict[str, TrustIndicators]:
         """Get trust indicators from primary table."""
         repo = SupabaseTrustRepository(self.client)
         return repo.get_batch_trust_indicators(submission_ids)
@@ -328,7 +328,7 @@ class MultiTableTrustRepository(TrustRepositoryInterface):
             self._exists_in_table(submission_id, self.submissions_table)
         )
 
-    def _get_from_table(self, submission_id: str, table_name: str) -> Optional[TrustIndicators]:
+    def _get_from_table(self, submission_id: str, table_name: str) -> TrustIndicators | None:
         """Get trust indicators from specific table."""
         try:
             columns = CORE_TRUST_COLUMNS + ENGAGEMENT_COLUMNS + QUALITY_COLUMNS + METADATA_COLUMNS

@@ -5,10 +5,9 @@ Enhanced DLT pipeline with comprehensive cost tracking for LLM operations
 """
 
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import dlt
 
@@ -16,8 +15,8 @@ import dlt
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.dlt import PK_OPPORTUNITY_ID, opportunity_resource_config
-from config.settings import SUPABASE_URL, SUPABASE_KEY
+from config.settings import SUPABASE_KEY, SUPABASE_URL
+from core.dlt import PK_OPPORTUNITY_ID
 
 
 @dlt.resource(
@@ -25,7 +24,7 @@ from config.settings import SUPABASE_URL, SUPABASE_KEY
     write_disposition="merge",
     primary_key=PK_OPPORTUNITY_ID
 )
-def workflow_results_with_cost_tracking(opportunities: List[Dict[str, Any]]):
+def workflow_results_with_cost_tracking(opportunities: list[dict[str, Any]]):
     """
     DLT resource for loading workflow results with cost tracking.
 
@@ -95,9 +94,9 @@ def create_cost_tracking_pipeline() -> dlt.Pipeline:
 
 
 def load_opportunities_with_costs(
-    opportunities: List[Dict[str, Any]],
-    pipeline: Optional[dlt.Pipeline] = None
-) -> Dict[str, Any]:
+    opportunities: list[dict[str, Any]],
+    pipeline: dlt.Pipeline | None = None
+) -> dict[str, Any]:
     """
     Load opportunities with cost tracking to Supabase.
 
@@ -121,7 +120,7 @@ def load_opportunities_with_costs(
     return load_info
 
 
-def validate_cost_data(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
+def validate_cost_data(opportunities: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Validate cost tracking data in opportunities.
 
@@ -185,9 +184,9 @@ def validate_cost_data(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def generate_cost_report(
-    opportunities: List[Dict[str, Any]],
+    opportunities: list[dict[str, Any]],
     title: str = "Cost Tracking Report"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate comprehensive cost tracking report.
 

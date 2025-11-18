@@ -24,8 +24,8 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Final, Literal
 from enum import Enum, auto
+from typing import Final, Literal
 
 
 class PrimaryKeyType(Enum):

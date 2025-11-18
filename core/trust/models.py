@@ -18,19 +18,16 @@ Usage:
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from decimal import Decimal
-from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from core.trust.config import (
-    TrustBadge,
-    TrustLevel,
+    AIConfidenceLevel,
+    DiscussionQuality,
     EngagementLevel,
     ProblemValidity,
-    DiscussionQuality,
-    AIConfidenceLevel,
+    TrustLevel,
+    TrustValidationConfig,
     TrustWeights,
-    TrustValidationConfig
 )
 
 
@@ -41,7 +38,7 @@ class TrustIndicators:
     # Core trust metrics
     trust_score: float = 0.0
     trust_level: TrustLevel = TrustLevel.LOW
-    trust_badges: List[str] = field(default_factory=list)
+    trust_badges: list[str] = field(default_factory=list)
 
     # Activity indicators
     activity_score: float = 0.0
@@ -113,7 +110,7 @@ class TrustIndicators:
             if self.engagement_level not in [e.value for e in EngagementLevel]:
                 self.engagement_level = EngagementLevel.MINIMAL.value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary with snake_case keys."""
         return {
             "trust_score": self.trust_score,
@@ -141,7 +138,7 @@ class TrustIndicators:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TrustIndicators":
+    def from_dict(cls, data: dict[str, Any]) -> "TrustIndicators":
         """Create from dictionary, handling type conversion."""
         # Convert string enums to enum objects
         trust_level = data.get("trust_level", "low")
@@ -187,16 +184,16 @@ class TrustValidationRequest:
     subreddit: str
     upvotes: int
     comments_count: int
-    created_utc: Union[float, str]
-    text: Optional[str] = None
-    title: Optional[str] = None
+    created_utc: float | str
+    text: str | None = None
+    title: str | None = None
 
     # AI analysis data
-    ai_analysis: Optional[Dict[str, Any]] = None
+    ai_analysis: dict[str, Any] | None = None
 
     # Optional configuration overrides
-    activity_threshold: Optional[float] = None
-    trust_weights: Optional[Dict[str, float]] = None
+    activity_threshold: float | None = None
+    trust_weights: dict[str, float] | None = None
 
     def __post_init__(self):
         """Validate request after initialization."""
@@ -209,7 +206,7 @@ class TrustValidationRequest:
         if self.comments_count < 0:
             raise ValueError("comments_count cannot be negative")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "submission_id": self.submission_id,
@@ -232,17 +229,17 @@ class TrustValidationResult:
     # Core results
     indicators: TrustIndicators
     success: bool = True
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
     # Processing metadata
-    processing_time_ms: Optional[float] = None
+    processing_time_ms: float | None = None
     validation_version: str = "1.0"
 
     # Source data tracking
     source_submission_id: str = ""
     source_table: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "indicators": self.indicators.to_dict(),
@@ -298,7 +295,7 @@ class TrustScoreWeights:
             if not (TrustWeights.MIN_WEIGHT <= weight <= TrustWeights.MAX_WEIGHT):
                 raise ValueError(f"Each weight must be between {TrustWeights.MIN_WEIGHT}-{TrustWeights.MAX_WEIGHT}, got {weight}")
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Convert to dictionary."""
         return {
             "subreddit_activity": self.subreddit_activity,
@@ -310,7 +307,7 @@ class TrustScoreWeights:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, float]) -> "TrustScoreWeights":
+    def from_dict(cls, data: dict[str, float]) -> "TrustScoreWeights":
         """Create from dictionary."""
         return cls(
             subreddit_activity=data.get("subreddit_activity", TrustWeights.DEFAULT_WEIGHTS["subreddit_activity"]),
@@ -326,12 +323,12 @@ class TrustScoreWeights:
 class TrustBadgeConfigModel:
     """Data model for trust badge configuration."""
 
-    activity_thresholds: Dict[str, float] = field(default_factory=lambda: TrustValidationConfig.ACTIVITY_BADGE_THRESHOLDS.copy())
-    engagement_thresholds: Dict[str, float] = field(default_factory=lambda: TrustValidationConfig.ENGAGEMENT_BADGE_THRESHOLDS.copy())
-    trend_thresholds: Dict[str, float] = field(default_factory=lambda: TrustValidationConfig.TREND_BADGE_THRESHOLDS.copy())
-    ai_confidence_thresholds: Dict[str, float] = field(default_factory=lambda: TrustValidationConfig.AI_CONFIDENCE_THRESHOLDS.copy())
+    activity_thresholds: dict[str, float] = field(default_factory=lambda: TrustValidationConfig.ACTIVITY_BADGE_THRESHOLDS.copy())
+    engagement_thresholds: dict[str, float] = field(default_factory=lambda: TrustValidationConfig.ENGAGEMENT_BADGE_THRESHOLDS.copy())
+    trend_thresholds: dict[str, float] = field(default_factory=lambda: TrustValidationConfig.TREND_BADGE_THRESHOLDS.copy())
+    ai_confidence_thresholds: dict[str, float] = field(default_factory=lambda: TrustValidationConfig.AI_CONFIDENCE_THRESHOLDS.copy())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "activity_thresholds": self.activity_thresholds,
@@ -342,6 +339,6 @@ class TrustBadgeConfigModel:
 
 
 # Type aliases for better readability
-TrustData = Dict[str, Any]
-TrustColumnMap = Dict[str, str]
-TrustTableMapping = Dict[str, Dict[str, str]]
+TrustData = dict[str, Any]
+TrustColumnMap = dict[str, str]
+TrustTableMapping = dict[str, dict[str, str]]

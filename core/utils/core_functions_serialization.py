@@ -10,10 +10,10 @@ Purpose: Fix core_functions format inconsistency identified in schema consolidat
 """
 
 import json
-from typing import Any, List, Union
+from typing import Any, Union
 
 
-def serialize_core_functions(functions: Union[List[str], str, None]) -> str:
+def serialize_core_functions(functions: list[str] | str | None) -> str:
     """
     Serialize core_functions to JSON string for JSONB storage.
 
@@ -79,7 +79,7 @@ def serialize_core_functions(functions: Union[List[str], str, None]) -> str:
     return json.dumps([])
 
 
-def deserialize_core_functions(json_str: str) -> List[str]:
+def deserialize_core_functions(json_str: str) -> list[str]:
     """
     Deserialize core_functions from JSON string.
 
@@ -111,7 +111,7 @@ def deserialize_core_functions(json_str: str) -> List[str]:
     return []
 
 
-def validate_core_functions(functions: List[str]) -> List[str]:
+def validate_core_functions(functions: list[str]) -> list[str]:
     """
     Validate and clean core_functions list.
 
@@ -141,7 +141,7 @@ def validate_core_functions(functions: List[str]) -> List[str]:
 
 
 # Type hints for better IDE support
-CoreFunctionsType = Union[List[str], str, None]
+CoreFunctionsType = Union[list[str], str, None]
 SerializedCoreFunctions = str
 
 

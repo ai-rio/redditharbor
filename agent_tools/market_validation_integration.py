@@ -19,8 +19,7 @@ and the new market validation capabilities.
 import json
 import logging
 import os
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from agent_tools.market_data_validator import MarketDataValidator, ValidationEvidence
 from agent_tools.market_validation_persistence import MarketValidationPersistence
@@ -63,7 +62,7 @@ class MarketValidationIntegration:
             f"max_cost=${self.max_cost_per_batch}"
         )
 
-    def should_validate_opportunity(self, opportunity: Dict[str, Any]) -> Tuple[bool, str]:
+    def should_validate_opportunity(self, opportunity: dict[str, Any]) -> tuple[bool, str]:
         """
         Determine if an opportunity should be market validated.
 
@@ -124,8 +123,8 @@ class MarketValidationIntegration:
             return False
 
     def validate_single_opportunity(
-        self, opportunity: Dict[str, Any]
-    ) -> Tuple[Optional[ValidationEvidence], float]:
+        self, opportunity: dict[str, Any]
+    ) -> tuple[ValidationEvidence | None, float]:
         """
         Validate a single opportunity with cost tracking.
 
@@ -199,8 +198,8 @@ class MarketValidationIntegration:
             return False
 
     def validate_opportunities_batch(
-        self, opportunities: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, opportunities: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Validate a batch of opportunities with cost and performance controls.
 
@@ -292,7 +291,7 @@ class MarketValidationIntegration:
 
         return batch_results
 
-    def get_validation_summary(self) -> Dict[str, Any]:
+    def get_validation_summary(self) -> dict[str, Any]:
         """
         Get a summary of validation results for the current session.
 
@@ -322,7 +321,7 @@ class MarketValidationIntegration:
             }
         }
 
-    def get_top_validated_opportunities(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_top_validated_opportunities(self, limit: int = 10) -> list[dict[str, Any]]:
         """
         Get the top validated opportunities from the database.
 
@@ -343,7 +342,7 @@ class MarketValidationIntegration:
 # CONVENIENCE FUNCTIONS FOR BATCH PROCESSING
 # ============================================================================
 
-def integrate_market_validation_into_batch(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
+def integrate_market_validation_into_batch(opportunities: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Convenience function to integrate market validation into batch processing.
 
@@ -364,7 +363,7 @@ def integrate_market_validation_into_batch(opportunities: List[Dict[str, Any]]) 
     return results
 
 
-def validate_high_value_opportunities(min_score: float = 70.0) -> List[Dict[str, Any]]:
+def validate_high_value_opportunities(min_score: float = 70.0) -> list[dict[str, Any]]:
     """
     Validate only high-value opportunities.
 

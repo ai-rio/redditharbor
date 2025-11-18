@@ -18,25 +18,25 @@ Usage:
 import logging
 import time
 from datetime import UTC, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from core.trust.config import (
-    TrustLevel,
-    TrustBadge,
+    AIConfidenceLevel,
+    DiscussionQuality,
     EngagementLevel,
     ProblemValidity,
-    DiscussionQuality,
-    AIConfidenceLevel,
-    TrustWeights,
+    TrustBadge,
+    TrustBadgeConfig,
+    TrustLevel,
     TrustValidationConfig,
-    TrustBadgeConfig
+    TrustWeights,
 )
+from core.trust.models import TrustBadgeConfigModel as BadgeConfig
 from core.trust.models import (
     TrustIndicators,
+    TrustScoreWeights,
     TrustValidationRequest,
     TrustValidationResult,
-    TrustScoreWeights,
-    TrustBadgeConfigModel as BadgeConfig
 )
 from core.trust.repository import TrustRepositoryInterface
 
@@ -49,8 +49,8 @@ class TrustValidationService:
     def __init__(
         self,
         repository: TrustRepositoryInterface,
-        weights: Optional[TrustScoreWeights] = None,
-        badge_config: Optional[TrustBadgeConfig] = None,
+        weights: TrustScoreWeights | None = None,
+        badge_config: TrustBadgeConfig | None = None,
         activity_threshold: float = TrustValidationConfig.DEFAULT_ACTIVITY_THRESHOLD
     ):
         """Initialize trust validation service."""
@@ -60,7 +60,7 @@ class TrustValidationService:
         self.activity_threshold = activity_threshold
 
         # Validation history for audit trail
-        self.validation_history: List[TrustValidationResult] = []
+        self.validation_history: list[TrustValidationResult] = []
 
     def validate_opportunity_trust(self, request: TrustValidationRequest) -> TrustValidationResult:
         """
@@ -179,7 +179,7 @@ class TrustValidationService:
             self.validation_history.append(result)
             return result
 
-    def validate_batch_opportunities_trust(self, requests: List[TrustValidationRequest]) -> List[TrustValidationResult]:
+    def validate_batch_opportunities_trust(self, requests: list[TrustValidationRequest]) -> list[TrustValidationResult]:
         """
         Validate trust for multiple opportunities.
 
@@ -228,7 +228,7 @@ class TrustValidationService:
         """Save trust indicators to repository."""
         return self.repository.save_trust_indicators(submission_id, indicators)
 
-    def get_trust_indicators(self, submission_id: str) -> Optional[TrustIndicators]:
+    def get_trust_indicators(self, submission_id: str) -> TrustIndicators | None:
         """Get trust indicators from repository."""
         return self.repository.get_trust_indicators(submission_id)
 
@@ -236,8 +236,9 @@ class TrustValidationService:
         """Validate subreddit activity using Reddit API."""
         try:
             # Import here to avoid circular dependencies
-            from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
             import praw
+
+            from config.settings import REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT
 
             reddit = praw.Reddit(
                 client_id=REDDIT_PUBLIC,
@@ -509,7 +510,7 @@ class TrustValidationService:
         else:
             return AIConfidenceLevel.LOW.value
 
-    def _generate_trust_badges(self, indicators: TrustIndicators, badge_config: BadgeConfig) -> List[str]:
+    def _generate_trust_badges(self, indicators: TrustIndicators, badge_config: BadgeConfig) -> list[str]:
         """Generate trust badges based on validation results."""
         badges = []
 
@@ -596,7 +597,7 @@ class TrustValidationService:
             logger.error(f"Error calculating confidence score: {e}")
             return 0.0
 
-    def get_validation_history(self, limit: int = 100) -> List[TrustValidationResult]:
+    def get_validation_history(self, limit: int = 100) -> list[TrustValidationResult]:
         """Get validation history for audit trail."""
         return self.validation_history[-limit:]
 
@@ -605,7 +606,7 @@ class TrustValidationService:
         self.validation_history.clear()
         logger.info("Trust validation history cleared")
 
-    def get_service_stats(self) -> Dict[str, Any]:
+    def get_service_stats(self) -> dict[str, Any]:
         """Get service statistics."""
         history = self.validation_history
         total_validations = len(history)

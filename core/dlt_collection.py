@@ -31,10 +31,10 @@ import dlt
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.dlt import PK_SUBMISSION_ID, PK_COMMENT_ID, submission_resource_config
-
 # Load environment variables manually
 import os
+
+from core.dlt import PK_SUBMISSION_ID
 
 # Manually read .env file
 env_file = project_root / '.env'

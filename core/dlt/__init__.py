@@ -17,30 +17,30 @@ Usage:
 
 # Import constants for easy access
 from .constants import (
-    # Constants
-    PK_SUBMISSION_ID,
-    PK_OPPORTUNITY_ID,
     PK_COMMENT_ID,
     PK_DISPLAY_NAME,
     PK_ID,
-
-    # Types
-    PrimaryKeyType,
-    PrimaryKeyType as PrimaryKeyLiteralType,
-    SubmissionPK,
-    OpportunityPK,
+    PK_OPPORTUNITY_ID,
+    # Constants
+    PK_SUBMISSION_ID,
     CommentPK,
     DisplayNamePK,
     IdPK,
-
-    # Functions
-    validate_primary_key,
+    OpportunityPK,
+    # Types
+    PrimaryKeyType,
+    SubmissionPK,
     get_resource_primary_key,
     get_table_primary_key,
     migrate_legacy_primary_key,
-    validate_merge_disposition_compatibility,
-    submission_resource_config,
     opportunity_resource_config,
+    submission_resource_config,
+    validate_merge_disposition_compatibility,
+    # Functions
+    validate_primary_key,
+)
+from .constants import (
+    PrimaryKeyType as PrimaryKeyLiteralType,
 )
 
 __all__ = [

@@ -17,22 +17,19 @@ The old TrustLayerValidator class is now a wrapper around TrustValidationService
 
 import logging
 import warnings
-from typing import Any, Dict, List
+from typing import Any
 
 # Import new trust validation system
 from core.trust import (
-    TrustValidationService,
-    TrustRepositoryFactory,
     TrustIndicators,
-    TrustValidationRequest,
     TrustLevel,
-    TrustBadge,
-    TrustValidationResult
+    TrustRepositoryFactory,
+    TrustValidationRequest,
+    TrustValidationService,
 )
-from core.trust.config import TrustWeights, TrustValidationConfig
+from core.trust.config import TrustWeights
 
 # Import old classes for compatibility
-from core.trust.models import TrustIndicators as NewTrustIndicators
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -75,7 +72,7 @@ class TrustIndicators:
         # Trust metrics
         overall_trust_score: float = 0.0,
         trust_level: str = TrustLevel.LOW,
-        trust_badges: List[str] = None,
+        trust_badges: list[str] = None,
 
         # Validation metadata
         validation_timestamp: str = "",
@@ -131,7 +128,7 @@ class TrustLayerValidator:
         """Get or create the trust validation service."""
         if self._service is None:
             try:
-                from config.settings import SUPABASE_URL, SUPABASE_KEY
+                from config.settings import SUPABASE_KEY, SUPABASE_URL
                 from supabase import create_client
 
                 supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -151,7 +148,7 @@ class TrustLayerValidator:
 
         return self._service
 
-    def validate_opportunity_trust(self, submission_data: Dict[str, Any], ai_analysis: Dict[str, Any]) -> TrustIndicators:
+    def validate_opportunity_trust(self, submission_data: dict[str, Any], ai_analysis: dict[str, Any]) -> TrustIndicators:
         """
         Validate trust for a single opportunity (backward compatibility).
 
@@ -226,7 +223,7 @@ class TrustLayerValidator:
                 quality_constraints_met=False
             )
 
-    def generate_trust_report(self, opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def generate_trust_report(self, opportunities: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Generate comprehensive trust report (backward compatibility).
 
@@ -343,8 +340,8 @@ def migrate_to_new_trust_system():
 
 # Export old classes for backward compatibility
 __all__ = [
-    'TrustLayerValidator',
     'TrustIndicators',
+    'TrustLayerValidator',
     'TrustLevel',
     'migrate_to_new_trust_system'
 ]

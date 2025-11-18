@@ -18,9 +18,8 @@ Just parse the fields we're already collecting but not using.
 """
 
 import re
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Optional
 
 # =============================================================================
 # COMPETITOR DATABASES (expand based on your customers)
@@ -70,24 +69,24 @@ class LeadSignals:
     # Problem context
     problem_description: str
     full_text: str
-    current_solution: Optional[str] = None
-    competitor_mentioned: Optional[str] = None
+    current_solution: str | None = None
+    competitor_mentioned: str | None = None
 
     # Budget signals
-    budget_mentioned: Optional[str] = None
-    budget_amount: Optional[float] = None
-    budget_period: Optional[str] = None  # month, year
+    budget_mentioned: str | None = None
+    budget_amount: float | None = None
+    budget_period: str | None = None  # month, year
     budget_status: str = "unknown"  # mentioned, approved, constrained, unknown
 
     # Company/team indicators
-    team_size: Optional[int] = None
+    team_size: int | None = None
     company_indicators: list[str] = None
     decision_maker_likely: bool = False
 
     # Buying intent
     buying_intent_stage: str = "awareness"  # awareness, evaluation, ready_to_buy
     urgency_level: str = "low"  # low, medium, high, critical
-    timeline_mentioned: Optional[str] = None
+    timeline_mentioned: str | None = None
 
     # Pain points & requirements
     pain_points: list[str] = None
@@ -95,7 +94,7 @@ class LeadSignals:
 
     # Context
     subreddit: str = ""
-    posted_at: Optional[datetime] = None
+    posted_at: datetime | None = None
 
     # Scoring
     lead_score: float = 0.0
@@ -317,7 +316,7 @@ class LeadExtractor:
 
         return {}
 
-    def _extract_team_size(self, text: str) -> Optional[int]:
+    def _extract_team_size(self, text: str) -> int | None:
         """Extract team size from text"""
         for pattern in TEAM_SIZE_PATTERNS:
             match = re.search(pattern, text, re.IGNORECASE)
@@ -328,7 +327,7 @@ class LeadExtractor:
                     continue
         return None
 
-    def _extract_competitor(self, text: str, subreddit: str) -> Optional[str]:
+    def _extract_competitor(self, text: str, subreddit: str) -> str | None:
         """Extract competitor mention from text"""
         # Get relevant competitors for this subreddit
         competitors = get_competitors_for_subreddit(subreddit)
@@ -343,7 +342,7 @@ class LeadExtractor:
 
         return None
 
-    def _extract_timeline(self, text: str) -> Optional[str]:
+    def _extract_timeline(self, text: str) -> str | None:
         """Extract timeline mentions"""
         for pattern in TIMELINE_PATTERNS:
             match = re.search(pattern, text, re.IGNORECASE)

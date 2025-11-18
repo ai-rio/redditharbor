@@ -39,43 +39,40 @@ Usage:
 """
 
 from core.trust.config import (
-    TrustTables,
-    TrustColumns,
-    TrustLevel,
-    TrustBadge,
-    EngagementLevel,
-    ProblemValidity,
-    DiscussionQuality,
-    AIConfidenceLevel,
-    TrustWeights,
-    TrustValidationConfig,
+    ALL_TRUST_COLUMNS,
     CORE_TRUST_COLUMNS,
     ENGAGEMENT_COLUMNS,
-    QUALITY_COLUMNS,
     METADATA_COLUMNS,
-    ALL_TRUST_COLUMNS
+    QUALITY_COLUMNS,
+    AIConfidenceLevel,
+    DiscussionQuality,
+    EngagementLevel,
+    ProblemValidity,
+    TrustBadge,
+    TrustColumns,
+    TrustLevel,
+    TrustTables,
+    TrustValidationConfig,
+    TrustWeights,
 )
-
 from core.trust.models import (
+    TrustBadgeConfigModel,
+    TrustColumnMap,
+    TrustData,
     TrustIndicators,
+    TrustScoreWeights,
+    TrustTableMapping,
     TrustValidationRequest,
     TrustValidationResult,
-    TrustScoreWeights,
-    TrustBadgeConfigModel,
-    TrustData,
-    TrustColumnMap,
-    TrustTableMapping
 )
-
 from core.trust.repository import (
-    TrustRepositoryInterface,
-    SupabaseTrustRepository,
-    StagingTrustRepository,
-    TrustRepositoryFactory,
     MultiTableTrustRepository,
-    repository_error_handler
+    StagingTrustRepository,
+    SupabaseTrustRepository,
+    TrustRepositoryFactory,
+    TrustRepositoryInterface,
+    repository_error_handler,
 )
-
 from core.trust.validation import TrustValidationService
 
 __version__ = "1.0.0"

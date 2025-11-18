@@ -5,6 +5,7 @@ Prevents connection pool exhaustion when using multiple LLM clients (litellm + d
 """
 
 import httpx
+
 from config import settings
 
 
@@ -38,8 +39,8 @@ def configure_litellm_client():
     Call this once at module initialization.
     """
     try:
-        import litellm
         import httpx
+        import litellm
 
         # Create a persistent httpx client with proper connection pooling
         # This client will be reused across all litellm calls
@@ -101,7 +102,7 @@ def initialize_http_clients():
     print("\n" + "="*80)
     print("CONFIGURING HTTP CLIENTS FOR LLM LIBRARIES")
     print("="*80)
-    print(f"Settings:")
+    print("Settings:")
     print(f"  MAX_CONNECTIONS: {settings.HTTP_MAX_CONNECTIONS}")
     print(f"  MAX_KEEPALIVE: {settings.HTTP_MAX_KEEPALIVE}")
     print(f"  TIMEOUT: {settings.HTTP_TIMEOUT}s")
@@ -122,4 +123,4 @@ initialize_http_clients()
 
 
 # Export the initialization function
-__all__ = ['initialize_http_clients', 'get_configured_httpx_client']
+__all__ = ['get_configured_httpx_client', 'initialize_http_clients']

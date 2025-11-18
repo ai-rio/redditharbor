@@ -21,8 +21,8 @@ from datetime import UTC, datetime
 
 import litellm
 
-from agent_tools.jina_reader_client import JinaReaderClient, get_jina_client
 from agent_tools.jina_hybrid_client import JinaHybridClient, get_jina_hybrid_client
+from agent_tools.jina_reader_client import JinaReaderClient, get_jina_client
 from config import settings
 
 logger = logging.getLogger(__name__)

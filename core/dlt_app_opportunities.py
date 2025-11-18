@@ -16,7 +16,7 @@ import dlt
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.dlt import PK_SUBMISSION_ID, submission_resource_config
+from core.dlt import PK_SUBMISSION_ID
 from core.utils.core_functions_serialization import dlt_standardize_core_functions
 
 # DLT pipeline configuration
