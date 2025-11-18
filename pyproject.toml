@@ -64,6 +64,8 @@ dependencies = [
     # AgentOps cost tracking
     "agentops>=0.2.0",
     "mcp>=1.21.2",
+    "asyncpg>=0.30.0",
+    "psutil>=7.0.0",
 ]
 
 # Optional dependencies

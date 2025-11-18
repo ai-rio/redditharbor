@@ -177,3 +177,38 @@ MARKET_VALIDATION_ENABLED = os.getenv("MARKET_VALIDATION_ENABLED", "true").lower
 MARKET_VALIDATION_CACHE_TTL = int(os.getenv("MARKET_VALIDATION_CACHE_TTL", "86400"))  # 24 hours default
 MARKET_VALIDATION_MIN_COMPETITORS = int(os.getenv("MARKET_VALIDATION_MIN_COMPETITORS", "3"))
 MARKET_VALIDATION_MAX_SEARCHES = int(os.getenv("MARKET_VALIDATION_MAX_SEARCHES", "10"))
+
+# =============================================================================
+# DATABASE CONFIGURATION FUNCTION
+# =============================================================================
+
+def get_database_config():
+    """
+    Get database configuration for PostgreSQL connection.
+
+    Returns:
+        DatabaseConfig: Configuration object with connection parameters
+    """
+    class DatabaseConfig:
+        def __init__(self):
+            # Parse Supabase URL to extract connection details
+            supabase_url = SUPABASE_URL
+            if supabase_url.endswith('/'):
+                supabase_url = supabase_url[:-1]
+
+            # Extract host and port from Supabase URL
+            if 'localhost' in supabase_url or '127.0.0.1' in supabase_url:
+                # Local development setup
+                self.host = '127.0.0.1'
+                self.port = 54322  # Default Supabase local port
+            else:
+                # Production setup - parse from URL
+                # Expected format: https://<project>.supabase.co
+                self.host = supabase_url.replace('https://', '').replace('http://', '')
+                self.port = 5432  # Default PostgreSQL port
+
+            self.user = 'postgres'
+            self.password = 'postgres'
+            self.database = 'postgres'
+
+    return DatabaseConfig()
