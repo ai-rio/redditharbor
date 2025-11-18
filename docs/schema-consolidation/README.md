@@ -64,7 +64,309 @@ This directory contains comprehensive documentation of the RedditHarbor database
 
 ---
 
-## Documentation Structure
+## 📁 Documentation Structure
+
+The schema consolidation documentation is organized into logical categories for easy navigation:
+
+### 🗃️ **Core Schema Documentation** (Root Directory)
+Essential reference materials for schema understanding and planning:
+
+### [erd.md](./erd.md)
+**Complete Entity Relationship Diagram**
+
+Comprehensive Mermaid ERD showing all tables, columns, relationships, and constraints in the working schema. Includes:
+- Reddit data domain (submissions, comments, redditors, subreddits)
+- Opportunity analysis domain (opportunities, scoring, validation)
+- DLT pipeline domain (staging, metadata, child tables)
+- Complete foreign key relationships
+- Scoring methodology (6-dimension weighted system)
+- Data quality constraints and indexes
+
+**Use this for**:
+- Understanding schema architecture
+- Planning new features requiring database changes
+- Onboarding new developers
+- Troubleshooting relationship issues
+
+### [consolidation-plan.md](./consolidation-plan.md)
+**Migration Consolidation Strategy**
+
+Step-by-step plan for consolidating 20 migration files into a streamlined baseline migration. Includes:
+- Three consolidation options (full, logical grouping, hybrid)
+- Implementation plan with 5 phases
+- Testing and validation procedures
+- Rollback plan
+- Success criteria
+- Risk assessment
+- Timeline and effort estimates (8-12 hours)
+
+**Use this for**:
+- Executing schema consolidation
+- Creating baseline migrations for fresh deployments
+- Reducing migration overhead
+- Improving developer experience
+
+### [deliverables-summary.md](./deliverables-summary.md)
+**Schema Consolidation Deliverables**
+
+Executive summary of all deliverables and achievements from the schema consolidation effort.
+
+**Use this for**:
+- Quick overview of consolidation results
+- Executive reporting
+- Project milestone tracking
+
+### [pipeline-schema-dependencies.md](./pipeline-schema-dependencies.md) ⚠️ CRITICAL
+**Complete Pipeline Dependency Matrix**
+
+Comprehensive analysis of all 7 production pipelines and their database dependencies. Includes:
+- Table-by-table dependency analysis with line-level code references
+- Hard-coded column name inventory (145+ references)
+- DLT merge disposition dependencies (4 primary keys)
+- Trust validation system integration (12 columns)
+- Market validation persistence patterns
+- JSONB column dependencies
+- Breaking change risk assessment for each dependency
+- Safe refactoring recommendations
+
+**Use this for**:
+- REQUIRED before any schema changes
+- Understanding pipeline data flow
+- Identifying breaking changes
+- Planning column renames
+- Refactoring hard-coded references
+
+### [jsonb-schema-versions.md](./jsonb-schema-versions.md) ⚠️ HIGH PRIORITY
+**JSONB Column Schema Documentation**
+
+Version-controlled documentation for all 7 JSONB columns. Includes:
+- JSON structure specifications with types
+- Required vs optional fields
+- Backward compatibility rules
+- Code locations that parse each JSONB column
+- Schema evolution best practices
+- Migration strategies for structure changes
+- **CRITICAL**: Documents `core_functions` format inconsistency (3 different formats!)
+
+**Use this for**:
+- REQUIRED before modifying JSONB structures
+- Adding version fields to JSONB columns
+- Understanding parsing dependencies
+- Planning data migrations
+- Debugging JSONB parsing errors
+
+### [hardcoded-references-analysis.md](./hardcoded-references-analysis.md) ⚠️ HIGH PRIORITY
+**Hard-Coded Reference Inventory & Refactoring Guide**
+
+Complete inventory of all hard-coded schema references with refactoring recommendations. Includes:
+- 145+ hard-coded column name references with line numbers
+- 8 SQL queries with string column names
+- 4 DLT primary key strings
+- 30+ JSONB field access patterns
+- Schema constants module design
+- Query builder utilities
+- DLT configuration centralization
+- 5-phase refactoring timeline
+
+**Use this for**:
+- REQUIRED before schema consolidation
+- Planning code refactoring
+- Removing hard-coded strings
+- Standardizing column access
+- Creating query builders
+- Testing schema changes
+
+### [migration-analysis.md](./migration-analysis.md)
+**Historical Migration Evolution**
+
+Detailed analysis of all 20 migration files, organized chronologically by phase:
+1. Foundation (market validation, competitive analysis, monetization)
+2. Schema consolidation (DLT merge, data migration)
+3. DLT integration (pipeline metadata, staging tables)
+4. Credibility & trust layers (validation signals, trust scoring)
+5. Cost tracking & analytics (LLM monitoring, customer leads)
+6. Methodology alignment (6th dimension, simplicity scoring)
+
+**Use this for**:
+- Understanding why the schema evolved this way
+- Identifying migration drift and schema inconsistencies
+- Planning future migrations
+- Auditing schema changes
+
+### [risk-assessment.md](./risk-assessment.md)
+**Schema Consolidation Risk Assessment**
+
+Comprehensive risk analysis for the schema consolidation effort.
+
+**Use this for**:
+- Understanding consolidation risks
+- Planning mitigation strategies
+- Risk-based decision making
+
+### [documentation-audit.md](./documentation-audit.md)
+**Documentation Completeness Audit**
+
+Audit of all schema consolidation documentation for completeness and consistency.
+
+**Use this for**:
+- Validating documentation completeness
+- Ensuring consistency across documents
+- Quality assurance reviews
+
+---
+
+## 🔄 **Phase Implementation Documentation** ([phases/](./phases/))
+
+Detailed documentation of each implementation phase, including preparation, execution, and completion status.
+
+### [phase3-implementation-complete.md](./phases/phase3-implementation-complete.md)
+**Phase 3 Implementation Complete**
+
+Comprehensive documentation of the successful Phase 3 Week 1-2 schema consolidation implementation, including all verification results, performance improvements, and impact assessment.
+
+**Use this for**:
+- Understanding Phase 3 Week 1-2 completion status
+- Reviewing implementation verification results
+- Reference for production deployment decisions
+- Impact assessment and risk mitigation review
+
+### [phase3-week3-4-core-restructuring-preparation.md](./phases/phase3-week3-4-core-restructuring-preparation.md)
+**Phase 3 Week 3-4 Core Restructuring Preparation**
+
+Comprehensive preparation documentation for the core table restructuring execution, including detailed migration strategies, implementation procedures, and risk assessment.
+
+**Use this for**:
+- Understanding core restructuring strategy and execution plan
+- Reference for migration procedures and safety measures
+- Risk assessment and mitigation strategies
+- Performance optimization strategies
+
+### [phase3-week3-4-preparation-complete.md](./phases/phase3-week3-4-preparation-complete.md)
+**Phase 3 Week 3-4 Preparation Complete**
+
+Executive summary of the completed Phase 3 Week 3-4 core table restructuring preparation, confirming readiness for implementation and outlining next steps.
+
+**Use this for**:
+- Confirmation of preparation completion
+- Executive summary for stakeholders
+- Implementation readiness verification
+- Next steps and execution timeline
+
+### [phase3-week5-6-advanced-feature-migration-plan.md](./phases/phase3-week5-6-advanced-feature-migration-plan.md)
+**Phase 3 Week 5-6 Advanced Feature Migration Plan**
+
+Detailed migration plan for advanced features including Redis caching, materialized views, and performance optimization strategies.
+
+**Use this for**:
+- Advanced feature migration planning
+- Performance optimization strategies
+- Caching implementation guidance
+
+### [phase5-execution-log.md](./phases/phase5-execution-log.md)
+**Phase 5 Execution Log**
+
+Detailed execution log for Phase 5 implementation activities.
+
+**Use this for**:
+- Tracking implementation progress
+- Understanding execution sequence
+- Troubleshooting implementation issues
+
+### [phase5-implementation-summary.md](./phases/phase5-implementation-summary.md)
+**Phase 5 Implementation Summary**
+
+Summary of Phase 5 implementation results and achievements.
+
+**Use this for**:
+- Understanding Phase 5 outcomes
+- Executive summary of implementation results
+- Success metrics and achievements
+
+---
+
+## 🧪 **Testing & Validation Documentation** ([testing/](./testing/))
+
+Testing procedures, validation results, and certification documentation for schema changes and fixes.
+
+### [baseline-test-results.md](./testing/baseline-test-results.md)
+**Core Functions Format Testing Results**
+
+Comprehensive test results documenting the core_functions serialization format inconsistency issue and validation of the fix implementation across different pipeline components.
+
+**Use this for**:
+- Understanding core_functions format problems
+- Validating fix implementation
+- Reference for format standardization testing
+
+### [core-functions-fix-certification.md](./testing/core-functions-fix-certification.md)
+**Core Functions Fix Implementation Certification**
+
+Complete certification documentation for the core_functions format fix, including testing procedures, validation results, and production readiness assessment.
+
+**Use this for**:
+- Production deployment certification
+- Fix validation procedures
+- Quality assurance documentation
+
+### [core-functions-fix-summary.md](./testing/core-functions-fix-summary.md)
+**Core Functions Fix Implementation Summary**
+
+Executive summary of the core_functions format fix implementation, including problem analysis, solution approach, and impact assessment on the RedditHarbor pipeline.
+
+**Use this for**:
+- Quick overview of fix implementation
+- Executive summary for stakeholders
+- Impact assessment documentation
+
+### [trust-validation-decoupling-complete.md](./testing/trust-validation-decoupling-complete.md)
+**Trust Validation Decoupling Complete**
+
+Documentation of the successful trust validation system decoupling from database schema dependencies.
+
+**Use this for**:
+- Understanding trust validation architecture
+- Reference for similar decoupling efforts
+- System design documentation
+
+---
+
+## 🔄 **Transformation & Migration Documentation** ([transformation/](./transformation/))
+
+Documentation of major architectural transformations and migration activities.
+
+### [application-migration-guide.md](./transformation/application-migration-guide.md)
+**Application Migration Guide**
+
+Comprehensive guide for migrating applications to the new consolidated schema architecture.
+
+**Use this for**:
+- Application migration planning
+- Step-by-step migration procedures
+- Migration troubleshooting
+
+### [unified-erd-transformation-summary.md](./transformation/unified-erd-transformation-summary.md)
+**Unified ERD Transformation Summary**
+
+Summary of the ERD transformation process and resulting unified architecture.
+
+**Use this for**:
+- Understanding transformation results
+- Architecture change documentation
+- Design decision reference
+
+### [session-progress-2025-11-17.md](./transformation/session-progress-2025-11-17.md)
+**Schema Consolidation Session Progress**
+
+Session log documenting the complete schema consolidation process including analysis, planning, and execution phases for RedditHarbor database schema optimization.
+
+**Use this for**:
+- Understanding consolidation timeline and progress
+- Session reference for similar projects
+- Progress tracking methodology
+
+---
+
+## Legacy Documentation Structure
 
 ### [erd.md](./erd.md)
 **Complete Entity Relationship Diagram**
