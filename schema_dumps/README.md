@@ -14,11 +14,19 @@
 
 | File | Description | Size | Date |
 |------|-------------|------|------|
-| `unified_schema_v3.0.0_phase3_complete_20251118_085324.sql` | Complete unified schema dump (335KB) | 335KB | 2025-11-18 |
-| `current_tables_list_20251118_085332.txt` | All tables in unified schema | 4.3KB | 2025-11-18 |
-| `current_views_list_20251118_085338.txt` | All views including legacy compatibility | 678B | 2025-11-18 |
-| `current_indexes_list_20251118_085346.txt` | Strategic indexes for performance | 19KB | 2025-11-18 |
-| `current_table_structure_20251118_085410.txt` | Detailed column structure analysis | 81KB | 2025-11-18 |
+| `unified_schema_v3.0.0_complete_20251118_103425.sql` | Complete unified schema dump (195KB) | 195KB | 2025-11-18 |
+| `current_tables_list_20251118_103425.txt` | All tables in unified schema | 9.8KB | 2025-11-18 |
+| `current_views_list_20251118_103425.txt` | All views including legacy compatibility | 91KB | 2025-11-18 |
+| `current_indexes_list_20251118_103425.txt` | Strategic indexes for performance | 59KB | 2025-11-18 |
+| `current_table_structure_20251118_103425.txt` | Detailed column structure analysis | 242KB | 2025-11-18 |
+| `schema_dump_summary_20251118_103425.md` | Schema dump generation summary | 1KB | 2025-11-18 |
+
+### **🔧 Update Tools**
+
+| Tool | Description |
+|------|-------------|
+| `update_with_docker.sh` | **Docker-based schema dump utility** (recommended) - Uses Supabase containers to generate fresh schema dumps without hardcoded credentials |
+| `utils/` | Supabase CLI-based utilities for additional database operations |
 
 ### **📦 Archive Directory**
 All pre-Phase 3 schema files have been moved to `archive/` for historical reference:
@@ -164,10 +172,23 @@ The schema files provide baseline for:
 
 ## 🔄 **Usage Instructions**
 
+### **🐳 Docker-Based Schema Updates (Recommended)**
+```bash
+# Update schema dumps using Docker (automatically detects Supabase container)
+./update_with_docker.sh
+
+# The script will:
+# - Detect running Supabase container automatically
+# - Generate fresh schema dumps with timestamp
+# - Create tables, views, indexes, and structure reports
+# - Produce a complete SQL schema dump
+# - Clean up old redundant files
+```
+
 ### **For Schema Audits**
 ```bash
 # Load complete schema for review
-psql postgresql://postgres:postgres@127.0.0.1:54322/postgres < unified_schema_v3.0.0_phase3_complete_20251118_085324.sql
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres < unified_schema_v3.0.0_complete_20251118_103425.sql
 
 # Compare documentation vs implementation
 diff -u docs/schema-consolidation/erd.md <(grep -A 500 "CREATE TABLE" unified_schema_v3.0.0*.sql)
@@ -176,20 +197,152 @@ diff -u docs/schema-consolidation/erd.md <(grep -A 500 "CREATE TABLE" unified_sc
 ### **For Performance Testing**
 ```bash
 # Use table structure for query optimization analysis
-cat current_table_structure_20251118_085410.txt | grep -E "(opportunities_unified|opportunity_assessments)"
+cat current_table_structure_20251118_103425.txt | grep -E "(opportunities_unified|opportunity_assessments)"
 
 # Validate index coverage for performance testing
-cat current_indexes_list_20251118_085346.txt | grep -E "(GIN|composite|expression)"
+cat current_indexes_list_20251118_103425.txt | grep -E "(GIN|composite|expression)"
 ```
 
 ### **For Migration Planning**
 ```bash
 # Review legacy views for application compatibility
-cat current_views_list_20251118_085338.txt
+cat current_views_list_20251118_103425.txt
 
 # Compare with archive schemas for impact analysis
 diff -u archive/current_*_202511*.sql unified_schema_v3.0.0*.sql
 ```
+
+---
+
+## 🛠️ **Database Access & Utilities**
+
+### **🚀 Supabase CLI-Based Tools (Recommended)**
+
+All database operations now use Supabase CLI for consistent, secure access without hardcoded credentials.
+
+#### **Schema Dump Utility**
+```bash
+# Dump all schema components
+python utils/schema_dump.py --mode all
+
+# Dump specific components
+python utils/schema_dump.py --mode tables    # Tables list
+python utils/schema_dump.py --mode views     # Views list
+python utils/schema_dump.py --mode indexes   # Indexes list
+python utils/schema_dump.py --mode structure # Table structure
+python utils/schema_dump.py --mode full      # Complete schema
+
+# Generate timestamped dumps
+python utils/schema_dump.py  # Creates files with current timestamp
+```
+
+#### **Database Query Utility**
+```bash
+# Run single query
+python utils/db_query.py --query "SELECT COUNT(*) FROM opportunities_unified"
+
+# Run query from file
+python utils/db_query.py --file queries/monthly_report.sql
+
+# Interactive mode
+python utils/db_query.py --interactive
+
+# Run preset useful queries
+python utils/db_query.py --preset
+
+# Save results to file
+python utils/db_query.py --query "SELECT * FROM opportunities_unified LIMIT 10" --save
+
+# JSON output format
+python utils/db_query.py --query "SELECT COUNT(*) FROM opportunities_unified" --json
+```
+
+#### **Schema Validation Utility**
+```bash
+# Run full validation suite
+python utils/schema_validator.py
+
+# Run specific checks
+python utils/schema_validator.py --check foreign-keys
+python utils/schema_validator.py --check indexes
+python utils/schema_validator.py --check consistency
+python utils/schema_validator.py --check data-quality
+
+# Save validation report
+python utils/schema_validator.py --save
+```
+
+#### **Interactive Database Access**
+The interactive query mode provides a convenient database shell:
+```bash
+python utils/db_query.py --interactive
+
+# Available commands:
+redditdb> SELECT COUNT(*) FROM opportunities_unified;
+redditdb> \tables    # List all tables
+redditdb> \schema    # Show table structure
+redditdb> \json      # Toggle JSON output
+redditdb> \help      # Show help
+redditdb> \exit      # Exit
+```
+
+### **🔧 Requirements**
+
+**Prerequisites**:
+- **Supabase CLI**: `npm install -g supabase`
+- **Local Supabase Instance**: `supabase start`
+- **Python 3.8+**: Required for utility scripts
+
+**Setup Commands**:
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Start local Supabase (if not already running)
+supabase start
+
+# Verify installation
+supabase --help
+python utils/schema_dump.py --help
+```
+
+### **📁 Generated Files Structure**
+
+```
+schema_dumps/
+├── utils/                           # New Supabase CLI utilities
+│   ├── schema_dump.py             # Schema dumping tool
+│   ├── db_query.py                # Database query tool
+│   └── schema_validator.py         # Schema validation tool
+├── query_results/                   # Query results (generated by db_query.py)
+├── validation_results/              # Validation reports (generated by schema_validator.py)
+├── current_*_20251118_*.txt          # Current schema files
+├── unified_schema_v3.0.0_*.sql       # Schema dumps
+└── README.md                        # This file
+```
+
+### **🚨 Migration from Direct Database Access**
+
+**Old Approach (Deprecated)**:
+```bash
+# Direct database connection (hardcoded credentials)
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres
+```
+
+**New Supabase CLI Approach (Recommended)**:
+```bash
+# Use Supabase CLI for consistent access
+python utils/db_query.py --query "SELECT COUNT(*) FROM opportunities_unified"
+python utils/schema_dump.py --mode tables
+```
+
+**Benefits**:
+- ✅ No hardcoded database credentials
+- ✅ Consistent access patterns across all tools
+- ✅ Automatic JSON formatting support
+- ✅ Interactive mode for exploration
+- ✅ Built-in error handling and validation
+- ✅ Timestamped results for audit trails
 
 ---
 

@@ -1,0 +1,85 @@
+🔍 Running: 
+                SELECT
+                    schemaname,
+                    tablename,
+                    tableowner,
+                    tablespace,
+                    hasindexes,
+                    hasrules,
+                    hastriggers
+                FROM pg_tables
+                WHERE schemaname NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+                ORDER BY schemaname, tablename
+            
+     schemaname      |                 tablename                 |        tableowner        | tablespace | hasindexes | hasrules | hastriggers 
+---------------------+-------------------------------------------+--------------------------+------------+------------+----------+-------------
+ _realtime           | extensions                                | supabase_admin           |            | t          | f        | t
+ _realtime           | schema_migrations                         | supabase_admin           |            | t          | f        | f
+ _realtime           | tenants                                   | supabase_admin           |            | t          | f        | t
+ auth                | audit_log_entries                         | supabase_auth_admin      |            | t          | f        | f
+ auth                | flow_state                                | supabase_auth_admin      |            | t          | f        | t
+ auth                | identities                                | supabase_auth_admin      |            | t          | f        | t
+ auth                | instances                                 | supabase_auth_admin      |            | t          | f        | f
+ auth                | mfa_amr_claims                            | supabase_auth_admin      |            | t          | f        | t
+ auth                | mfa_challenges                            | supabase_auth_admin      |            | t          | f        | t
+ auth                | mfa_factors                               | supabase_auth_admin      |            | t          | f        | t
+ auth                | one_time_tokens                           | supabase_auth_admin      |            | t          | f        | t
+ auth                | refresh_tokens                            | supabase_auth_admin      |            | t          | f        | t
+ auth                | saml_providers                            | supabase_auth_admin      |            | t          | f        | t
+ auth                | saml_relay_states                         | supabase_auth_admin      |            | t          | f        | t
+ auth                | schema_migrations                         | supabase_auth_admin      |            | t          | f        | f
+ auth                | sessions                                  | supabase_auth_admin      |            | t          | f        | t
+ auth                | sso_domains                               | supabase_auth_admin      |            | t          | f        | t
+ auth                | sso_providers                             | supabase_auth_admin      |            | t          | f        | t
+ auth                | users                                     | supabase_auth_admin      |            | t          | f        | t
+ net                 | _http_response                            | supabase_admin           |            | t          | f        | f
+ net                 | http_request_queue                        | supabase_admin           |            | f          | f        | f
+ public              | _migrations_log                           | postgres                 |            | t          | f        | f
+ public              | app_opportunities_backup_20251118_074449  | postgres                 |            | f          | f        | f
+ public              | comments                                  | postgres                 |            | t          | f        | t
+ public              | comments_backup_20251118_074449           | postgres                 |            | f          | f        | f
+ public              | competitive_landscape                     | postgres                 |            | t          | f        | t
+ public              | cross_platform_verification               | postgres                 |            | t          | f        | t
+ public              | feature_gaps                              | postgres                 |            | t          | f        | t
+ public              | market_validations                        | postgres                 |            | t          | f        | t
+ public              | market_validations_backup_20251118_074449 | postgres                 |            | f          | f        | f
+ public              | monetization_patterns                     | postgres                 |            | t          | f        | t
+ public              | opportunities_backup_20251118_074449      | postgres                 |            | f          | f        | f
+ public              | opportunities_unified                     | postgres                 |            | t          | f        | t
+ public              | opportunity_assessments                   | postgres                 |            | t          | f        | t
+ public              | opportunity_scores                        | postgres                 |            | t          | f        | t
+ public              | opportunity_scores_backup_20251118_074449 | postgres                 |            | f          | f        | f
+ public              | redditors                                 | postgres                 |            | t          | f        | t
+ public              | redditors_backup_20251118_074449          | postgres                 |            | f          | f        | f
+ public              | score_components                          | postgres                 |            | t          | f        | t
+ public              | score_components_backup_20251118_074449   | postgres                 |            | f          | f        | f
+ public              | submissions                               | postgres                 |            | t          | f        | t
+ public              | submissions_backup_20251118_074449        | postgres                 |            | f          | f        | f
+ public              | subreddits                                | postgres                 |            | t          | f        | t
+ public              | subreddits_backup_20251118_074449         | postgres                 |            | f          | f        | f
+ public              | technical_assessments                     | postgres                 |            | t          | f        | t
+ public              | user_willingness_to_pay                   | postgres                 |            | t          | f        | t
+ public              | workflow_results_backup_20251118_074449   | postgres                 |            | f          | f        | f
+ realtime            | messages                                  | supabase_realtime_admin  |            | t          | f        | f
+ realtime            | messages_2025_11_17                       | supabase_admin           |            | t          | f        | f
+ realtime            | messages_2025_11_18                       | supabase_admin           |            | t          | f        | f
+ realtime            | messages_2025_11_19                       | supabase_admin           |            | t          | f        | f
+ realtime            | messages_2025_11_20                       | supabase_admin           |            | t          | f        | f
+ realtime            | messages_2025_11_21                       | supabase_admin           |            | t          | f        | f
+ realtime            | schema_migrations                         | supabase_admin           |            | t          | f        | f
+ realtime            | subscription                              | supabase_admin           |            | t          | f        | t
+ storage             | buckets                                   | supabase_storage_admin   |            | t          | f        | t
+ storage             | buckets_analytics                         | supabase_storage_admin   |            | t          | f        | t
+ storage             | iceberg_namespaces                        | supabase_storage_admin   |            | t          | f        | t
+ storage             | iceberg_tables                            | supabase_storage_admin   |            | t          | f        | t
+ storage             | migrations                                | supabase_storage_admin   |            | t          | f        | f
+ storage             | objects                                   | supabase_storage_admin   |            | t          | f        | t
+ storage             | prefixes                                  | supabase_storage_admin   |            | t          | f        | t
+ storage             | s3_multipart_uploads                      | supabase_storage_admin   |            | t          | f        | t
+ storage             | s3_multipart_uploads_parts                | supabase_storage_admin   |            | t          | f        | t
+ supabase_functions  | hooks                                     | supabase_functions_admin |            | t          | f        | f
+ supabase_functions  | migrations                                | supabase_functions_admin |            | t          | f        | f
+ supabase_migrations | schema_migrations                         | postgres                 |            | t          | f        | f
+ vault               | secrets                                   | supabase_admin           |            | t          | f        | f
+(68 rows)
+
