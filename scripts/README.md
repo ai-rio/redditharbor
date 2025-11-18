@@ -34,6 +34,7 @@ python trust/trust_layer_integration.py
 - **`testing/`** - Testing and validation
 - **`database/`** - Database maintenance
 - **`collection/`** - Data collection utilities
+- **`migration/`** - Schema migration and phase implementation scripts
 
 ### Archive
 - **`archive/`** - Deprecated or one-time scripts
@@ -46,8 +47,9 @@ python trust/trust_layer_integration.py
 | **DLT** | Data pipeline processing | 6 scripts |
 | **Trust** | Credibility validation | 2 scripts |
 | **Analysis** | Data analysis and monitoring | 2 scripts |
-| **Testing** | Validation and demos | 5 scripts |
+| **Testing** | Validation and demos | 6 scripts |
 | **Database** | Schema management and deployment | 6 scripts |
+| **Migration** | Schema migration and phase implementations | 4 scripts |
 | **Collection** | Data collection utilities | 1 script |
 | **Reports** | Analysis reports and documentation | 1 file |
 | **Archive** | One-time utilities and deprecated scripts | 9 scripts |
@@ -77,10 +79,19 @@ python database/investigate_schemas.py          # Investigate database schemas
 python database/investigate_trust_schema.py     # Investigate trust indicator schema
 ```
 
-### 5. Testing
+### 5. Migration Scripts
+```bash
+python migration/phase3_core_restructuring.py    # Phase 3 core table restructuring
+python migration/phase3_schema_consolidation.py   # Phase 3 schema consolidation
+python migration/phase5_advanced_feature_migration.py  # Phase 5 advanced features
+python migration/migration_consolidation_test.py  # Migration testing and validation
+```
+
+### 6. Testing
 ```bash
 python testing/analyze_opportunities.py
 python testing/demo_hybrid_strategy.py  # Demo of hybrid strategy options
+python testing/produce_final_test_report.py  # Generate comprehensive test reports
 python dlt/test_trust_validation_real.py
 ```
 
