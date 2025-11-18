@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS subreddits (
     title TEXT,
     description TEXT,
     subscribers INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
