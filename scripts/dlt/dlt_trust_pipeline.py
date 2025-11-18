@@ -37,6 +37,7 @@ import dlt
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from config.settings import DEFAULT_SUBREDDITS, DLT_MIN_ACTIVITY_SCORE
 from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
+from core.dlt import PK_SUBMISSION_ID, submission_resource_config
 from core.dlt_app_opportunities import load_app_opportunities, app_opportunities_resource
 from core.trust_layer import TrustLayerValidator
 from core.utils.core_functions_serialization import standardize_core_functions, deserialize_core_functions
@@ -568,7 +569,7 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
         @dlt.resource(
             name="app_opportunities",
             write_disposition="merge",
-            primary_key="submission_id"
+            primary_key=PK_SUBMISSION_ID
         )
         def app_opportunities_trust_resource(profiles_data):
             """Custom DLT resource for app_opportunities table with proper field handling"""

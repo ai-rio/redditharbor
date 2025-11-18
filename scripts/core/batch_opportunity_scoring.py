@@ -38,6 +38,7 @@ load_dotenv(project_root / '.env.local')
 
 # Import core functions serialization utilities
 from core.utils.core_functions_serialization import standardize_core_functions
+from core.dlt import PK_SUBMISSION_ID, PK_OPPORTUNITY_ID
 
 try:
     from tqdm import tqdm
@@ -550,7 +551,7 @@ def load_scores_to_supabase_via_dlt(
         load_info = pipeline.run(
             app_opportunities_with_constraint(scored_opportunities),
             write_disposition="merge",
-            primary_key="opportunity_id"  # Deduplication key
+            primary_key=PK_OPPORTUNITY_ID  # Deduplication key
         )
 
         print(f"\n✓ Successfully processed {len(validated_opportunities)} opportunities")
@@ -659,7 +660,7 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
     @dlt.resource(
         name="app_opportunities",
         write_disposition="merge",
-        primary_key="submission_id"
+        primary_key=PK_SUBMISSION_ID
     )
     def ai_enriched_opportunities():
         yield ai_profiles
@@ -768,7 +769,7 @@ def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[
             @dlt.resource(
                 name="llm_monetization_analysis",
                 write_disposition="merge",
-                primary_key="opportunity_id"
+                primary_key=PK_OPPORTUNITY_ID
             )
             def llm_analysis_resource():
                 yield from llm_analyses
@@ -787,7 +788,7 @@ def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[
             @dlt.resource(
                 name="customer_leads",
                 write_disposition="merge",
-                primary_key="opportunity_id"
+                primary_key=PK_OPPORTUNITY_ID
             )
             def customer_leads_resource():
                 yield from customer_leads

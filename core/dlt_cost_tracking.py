@@ -16,13 +16,14 @@ import dlt
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from core.dlt import PK_OPPORTUNITY_ID, opportunity_resource_config
 from config.settings import SUPABASE_URL, SUPABASE_KEY
 
 
 @dlt.resource(
     name="workflow_results_with_costs",
     write_disposition="merge",
-    primary_key="opportunity_id"
+    primary_key=PK_OPPORTUNITY_ID
 )
 def workflow_results_with_cost_tracking(opportunities: List[Dict[str, Any]]):
     """
@@ -114,7 +115,7 @@ def load_opportunities_with_costs(
     load_info = pipeline.run(
         cost_tracking_source().workflow_results_with_costs(opportunities),
         write_disposition="merge",
-        primary_key="opportunity_id"
+        primary_key=PK_OPPORTUNITY_ID
     )
 
     return load_info

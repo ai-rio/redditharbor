@@ -16,6 +16,7 @@ import dlt
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from core.dlt import PK_SUBMISSION_ID, submission_resource_config
 from core.utils.core_functions_serialization import dlt_standardize_core_functions
 
 # DLT pipeline configuration
@@ -39,7 +40,7 @@ def create_app_opportunities_pipeline() -> dlt.Pipeline:
 @dlt.resource(
     name="app_opportunities",
     write_disposition="merge",  # Deduplication via primary key
-    primary_key="submission_id",  # Specify primary key for merge operations
+    primary_key=PK_SUBMISSION_ID,  # Specify primary key for merge operations
     # Remove complex column hints - let DLT infer from data
     # core_functions will be inferred as text from JSON string
 )
@@ -116,7 +117,7 @@ def load_app_opportunities(ai_profiles: list[dict[str, Any]]) -> bool:
         # Primary key = submission_id → automatic deduplication
         load_info = pipeline.run(
             app_opportunities_resource(ai_only),
-            primary_key="submission_id"
+            primary_key=PK_SUBMISSION_ID
         )
 
         print("✓ AI profiles loaded successfully!")

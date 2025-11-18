@@ -21,6 +21,7 @@ load_dotenv(project_root / '.env.local')
 
 import dlt
 
+from core.dlt import PK_ID
 from core.dlt_collection import collect_problem_posts
 
 # High-value niches from enhanced-chunks documentation
@@ -178,7 +179,7 @@ def collect_niche_data(niches: dict, posts_per_niche: int = 100, sort_type: str 
             transformed_posts,
             table_name="niche_submissions",
             write_disposition="append",
-            primary_key="id"
+            primary_key=PK_ID
         )
         loaded_count = len(transformed_posts)
         print(f"✅ Loaded {loaded_count} posts to database via DLT (table: niche_submissions)")
