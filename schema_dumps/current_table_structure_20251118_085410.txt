@@ -1,0 +1,956 @@
+                table_name                 |          column_name          |          data_type          
+-------------------------------------------+-------------------------------+-----------------------------
+ _migrations_log                           | migration_name                | character varying
+ _migrations_log                           | applied_at                    | timestamp with time zone
+ app_opportunities                         | id                            | uuid
+ app_opportunities                         | submission_id                 | text
+ app_opportunities                         | problem_description           | text
+ app_opportunities                         | app_concept                   | text
+ app_opportunities                         | core_functions                | jsonb
+ app_opportunities                         | value_proposition             | text
+ app_opportunities                         | target_user                   | text
+ app_opportunities                         | monetization_model            | text
+ app_opportunities                         | opportunity_score             | numeric
+ app_opportunities                         | title                         | text
+ app_opportunities                         | subreddit                     | text
+ app_opportunities                         | reddit_score                  | integer
+ app_opportunities                         | num_comments                  | integer
+ app_opportunities                         | created_at                    | timestamp with time zone
+ app_opportunities                         | analyzed_at                   | timestamp with time zone
+ app_opportunities                         | status                        | text
+ app_opportunities                         | notes                         | text
+ app_opportunities                         | _dlt_load_id                  | text
+ app_opportunities                         | _dlt_id                       | text
+ app_opportunities_backup_20251118_074244  | id                            | uuid
+ app_opportunities_backup_20251118_074244  | submission_id                 | text
+ app_opportunities_backup_20251118_074244  | problem_description           | text
+ app_opportunities_backup_20251118_074244  | app_concept                   | text
+ app_opportunities_backup_20251118_074244  | core_functions                | jsonb
+ app_opportunities_backup_20251118_074244  | value_proposition             | text
+ app_opportunities_backup_20251118_074244  | target_user                   | text
+ app_opportunities_backup_20251118_074244  | monetization_model            | text
+ app_opportunities_backup_20251118_074244  | opportunity_score             | numeric
+ app_opportunities_backup_20251118_074244  | title                         | text
+ app_opportunities_backup_20251118_074244  | subreddit                     | text
+ app_opportunities_backup_20251118_074244  | reddit_score                  | integer
+ app_opportunities_backup_20251118_074244  | num_comments                  | integer
+ app_opportunities_backup_20251118_074244  | created_at                    | timestamp with time zone
+ app_opportunities_backup_20251118_074244  | analyzed_at                   | timestamp with time zone
+ app_opportunities_backup_20251118_074244  | status                        | text
+ app_opportunities_backup_20251118_074244  | notes                         | text
+ app_opportunities_backup_20251118_074244  | _dlt_load_id                  | text
+ app_opportunities_backup_20251118_074244  | _dlt_id                       | text
+ app_opportunities_backup_20251118_074302  | id                            | uuid
+ app_opportunities_backup_20251118_074302  | submission_id                 | text
+ app_opportunities_backup_20251118_074302  | problem_description           | text
+ app_opportunities_backup_20251118_074302  | app_concept                   | text
+ app_opportunities_backup_20251118_074302  | core_functions                | jsonb
+ app_opportunities_backup_20251118_074302  | value_proposition             | text
+ app_opportunities_backup_20251118_074302  | target_user                   | text
+ app_opportunities_backup_20251118_074302  | monetization_model            | text
+ app_opportunities_backup_20251118_074302  | opportunity_score             | numeric
+ app_opportunities_backup_20251118_074302  | title                         | text
+ app_opportunities_backup_20251118_074302  | subreddit                     | text
+ app_opportunities_backup_20251118_074302  | reddit_score                  | integer
+ app_opportunities_backup_20251118_074302  | num_comments                  | integer
+ app_opportunities_backup_20251118_074302  | created_at                    | timestamp with time zone
+ app_opportunities_backup_20251118_074302  | analyzed_at                   | timestamp with time zone
+ app_opportunities_backup_20251118_074302  | status                        | text
+ app_opportunities_backup_20251118_074302  | notes                         | text
+ app_opportunities_backup_20251118_074302  | _dlt_load_id                  | text
+ app_opportunities_backup_20251118_074302  | _dlt_id                       | text
+ app_opportunities_backup_20251118_074344  | id                            | uuid
+ app_opportunities_backup_20251118_074344  | submission_id                 | text
+ app_opportunities_backup_20251118_074344  | problem_description           | text
+ app_opportunities_backup_20251118_074344  | app_concept                   | text
+ app_opportunities_backup_20251118_074344  | core_functions                | jsonb
+ app_opportunities_backup_20251118_074344  | value_proposition             | text
+ app_opportunities_backup_20251118_074344  | target_user                   | text
+ app_opportunities_backup_20251118_074344  | monetization_model            | text
+ app_opportunities_backup_20251118_074344  | opportunity_score             | numeric
+ app_opportunities_backup_20251118_074344  | title                         | text
+ app_opportunities_backup_20251118_074344  | subreddit                     | text
+ app_opportunities_backup_20251118_074344  | reddit_score                  | integer
+ app_opportunities_backup_20251118_074344  | num_comments                  | integer
+ app_opportunities_backup_20251118_074344  | created_at                    | timestamp with time zone
+ app_opportunities_backup_20251118_074344  | analyzed_at                   | timestamp with time zone
+ app_opportunities_backup_20251118_074344  | status                        | text
+ app_opportunities_backup_20251118_074344  | notes                         | text
+ app_opportunities_backup_20251118_074344  | _dlt_load_id                  | text
+ app_opportunities_backup_20251118_074344  | _dlt_id                       | text
+ app_opportunities_backup_20251118_074449  | id                            | uuid
+ app_opportunities_backup_20251118_074449  | submission_id                 | text
+ app_opportunities_backup_20251118_074449  | problem_description           | text
+ app_opportunities_backup_20251118_074449  | app_concept                   | text
+ app_opportunities_backup_20251118_074449  | core_functions                | jsonb
+ app_opportunities_backup_20251118_074449  | value_proposition             | text
+ app_opportunities_backup_20251118_074449  | target_user                   | text
+ app_opportunities_backup_20251118_074449  | monetization_model            | text
+ app_opportunities_backup_20251118_074449  | opportunity_score             | numeric
+ app_opportunities_backup_20251118_074449  | title                         | text
+ app_opportunities_backup_20251118_074449  | subreddit                     | text
+ app_opportunities_backup_20251118_074449  | reddit_score                  | integer
+ app_opportunities_backup_20251118_074449  | num_comments                  | integer
+ app_opportunities_backup_20251118_074449  | created_at                    | timestamp with time zone
+ app_opportunities_backup_20251118_074449  | analyzed_at                   | timestamp with time zone
+ app_opportunities_backup_20251118_074449  | status                        | text
+ app_opportunities_backup_20251118_074449  | notes                         | text
+ app_opportunities_backup_20251118_074449  | _dlt_load_id                  | text
+ app_opportunities_backup_20251118_074449  | _dlt_id                       | text
+ app_opportunities_legacy                  | submission_id                 | uuid
+ app_opportunities_legacy                  | app_concept                   | text
+ app_opportunities_legacy                  | core_functions                | jsonb
+ app_opportunities_legacy                  | problem_description           | text
+ app_opportunities_legacy                  | value_proposition             | text
+ app_opportunities_legacy                  | target_user                   | text
+ app_opportunities_legacy                  | monetization_model            | text
+ app_opportunities_legacy                  | trust_score                   | numeric
+ app_opportunities_legacy                  | trust_badge                   | character varying
+ app_opportunities_legacy                  | trust_level                   | character varying
+ app_opportunities_legacy                  | activity_score                | numeric
+ app_opportunities_legacy                  | engagement_level              | character varying
+ app_opportunities_legacy                  | trend_velocity                | numeric
+ app_opportunities_legacy                  | problem_validity              | character varying
+ app_opportunities_legacy                  | discussion_quality            | character varying
+ app_opportunities_legacy                  | ai_confidence_level           | character varying
+ app_opportunities_legacy                  | opportunity_score             | numeric
+ app_opportunities_legacy                  | status                        | character varying
+ app_opportunities_legacy                  | title                         | text
+ app_opportunities_legacy                  | subreddit                     | character varying
+ app_opportunities_legacy                  | reddit_score                  | jsonb
+ app_opportunities_legacy                  | num_comments                  | jsonb
+ comments                                  | id                            | uuid
+ comments                                  | submission_id                 | uuid
+ comments                                  | redditor_id                   | uuid
+ comments                                  | parent_comment_id             | uuid
+ comments                                  | content                       | text
+ comments                                  | content_raw                   | text
+ comments                                  | upvotes                       | integer
+ comments                                  | created_at                    | timestamp with time zone
+ comments                                  | sentiment_score               | numeric
+ comments                                  | workaround_mentions           | text
+ comments                                  | comment_depth                 | integer
+ comments                                  | link_id                       | character varying
+ comments                                  | comment_id                    | character varying
+ comments                                  | body                          | text
+ comments                                  | subreddit                     | character varying
+ comments                                  | parent_id                     | character varying
+ comments                                  | score                         | jsonb
+ comments                                  | edited                        | boolean
+ comments                                  | removed                       | character varying
+ comments_backup_20251118_074244           | id                            | uuid
+ comments_backup_20251118_074244           | submission_id                 | uuid
+ comments_backup_20251118_074244           | redditor_id                   | uuid
+ comments_backup_20251118_074244           | parent_comment_id             | uuid
+ comments_backup_20251118_074244           | content                       | text
+ comments_backup_20251118_074244           | content_raw                   | text
+ comments_backup_20251118_074244           | upvotes                       | integer
+ comments_backup_20251118_074244           | created_at                    | timestamp with time zone
+ comments_backup_20251118_074244           | sentiment_score               | numeric
+ comments_backup_20251118_074244           | workaround_mentions           | text
+ comments_backup_20251118_074244           | comment_depth                 | integer
+ comments_backup_20251118_074244           | link_id                       | character varying
+ comments_backup_20251118_074244           | comment_id                    | character varying
+ comments_backup_20251118_074244           | body                          | text
+ comments_backup_20251118_074244           | subreddit                     | character varying
+ comments_backup_20251118_074244           | parent_id                     | character varying
+ comments_backup_20251118_074244           | score                         | jsonb
+ comments_backup_20251118_074244           | edited                        | boolean
+ comments_backup_20251118_074244           | removed                       | character varying
+ comments_backup_20251118_074302           | id                            | uuid
+ comments_backup_20251118_074302           | submission_id                 | uuid
+ comments_backup_20251118_074302           | redditor_id                   | uuid
+ comments_backup_20251118_074302           | parent_comment_id             | uuid
+ comments_backup_20251118_074302           | content                       | text
+ comments_backup_20251118_074302           | content_raw                   | text
+ comments_backup_20251118_074302           | upvotes                       | integer
+ comments_backup_20251118_074302           | created_at                    | timestamp with time zone
+ comments_backup_20251118_074302           | sentiment_score               | numeric
+ comments_backup_20251118_074302           | workaround_mentions           | text
+ comments_backup_20251118_074302           | comment_depth                 | integer
+ comments_backup_20251118_074302           | link_id                       | character varying
+ comments_backup_20251118_074302           | comment_id                    | character varying
+ comments_backup_20251118_074302           | body                          | text
+ comments_backup_20251118_074302           | subreddit                     | character varying
+ comments_backup_20251118_074302           | parent_id                     | character varying
+ comments_backup_20251118_074302           | score                         | jsonb
+ comments_backup_20251118_074302           | edited                        | boolean
+ comments_backup_20251118_074302           | removed                       | character varying
+ comments_backup_20251118_074344           | id                            | uuid
+ comments_backup_20251118_074344           | submission_id                 | uuid
+ comments_backup_20251118_074344           | redditor_id                   | uuid
+ comments_backup_20251118_074344           | parent_comment_id             | uuid
+ comments_backup_20251118_074344           | content                       | text
+ comments_backup_20251118_074344           | content_raw                   | text
+ comments_backup_20251118_074344           | upvotes                       | integer
+ comments_backup_20251118_074344           | created_at                    | timestamp with time zone
+ comments_backup_20251118_074344           | sentiment_score               | numeric
+ comments_backup_20251118_074344           | workaround_mentions           | text
+ comments_backup_20251118_074344           | comment_depth                 | integer
+ comments_backup_20251118_074344           | link_id                       | character varying
+ comments_backup_20251118_074344           | comment_id                    | character varying
+ comments_backup_20251118_074344           | body                          | text
+ comments_backup_20251118_074344           | subreddit                     | character varying
+ comments_backup_20251118_074344           | parent_id                     | character varying
+ comments_backup_20251118_074344           | score                         | jsonb
+ comments_backup_20251118_074344           | edited                        | boolean
+ comments_backup_20251118_074344           | removed                       | character varying
+ comments_backup_20251118_074449           | id                            | uuid
+ comments_backup_20251118_074449           | submission_id                 | uuid
+ comments_backup_20251118_074449           | redditor_id                   | uuid
+ comments_backup_20251118_074449           | parent_comment_id             | uuid
+ comments_backup_20251118_074449           | content                       | text
+ comments_backup_20251118_074449           | content_raw                   | text
+ comments_backup_20251118_074449           | upvotes                       | integer
+ comments_backup_20251118_074449           | created_at                    | timestamp with time zone
+ comments_backup_20251118_074449           | sentiment_score               | numeric
+ comments_backup_20251118_074449           | workaround_mentions           | text
+ comments_backup_20251118_074449           | comment_depth                 | integer
+ comments_backup_20251118_074449           | link_id                       | character varying
+ comments_backup_20251118_074449           | comment_id                    | character varying
+ comments_backup_20251118_074449           | body                          | text
+ comments_backup_20251118_074449           | subreddit                     | character varying
+ comments_backup_20251118_074449           | parent_id                     | character varying
+ comments_backup_20251118_074449           | score                         | jsonb
+ comments_backup_20251118_074449           | edited                        | boolean
+ comments_backup_20251118_074449           | removed                       | character varying
+ competitive_landscape                     | id                            | uuid
+ competitive_landscape                     | opportunity_id                | uuid
+ competitive_landscape                     | competitor_name               | character varying
+ competitive_landscape                     | market_position               | text
+ competitive_landscape                     | pricing_model                 | character varying
+ competitive_landscape                     | strengths                     | text
+ competitive_landscape                     | weaknesses                    | text
+ competitive_landscape                     | market_share_estimate         | numeric
+ competitive_landscape                     | user_count_estimate           | integer
+ competitive_landscape                     | verification_status           | character varying
+ competitive_landscape                     | last_updated                  | timestamp with time zone
+ cross_platform_verification               | id                            | uuid
+ cross_platform_verification               | opportunity_id                | uuid
+ cross_platform_verification               | platform_name                 | character varying
+ cross_platform_verification               | validation_status             | character varying
+ cross_platform_verification               | data_points_count             | integer
+ cross_platform_verification               | data_points                   | text
+ cross_platform_verification               | verified_at                   | timestamp with time zone
+ cross_platform_verification               | confidence_score              | numeric
+ cross_platform_verification               | platform_notes                | text
+ feature_gaps                              | id                            | uuid
+ feature_gaps                              | opportunity_id                | uuid
+ feature_gaps                              | existing_solution             | character varying
+ feature_gaps                              | missing_feature               | text
+ feature_gaps                              | user_requests_count           | integer
+ feature_gaps                              | priority_level                | character varying
+ feature_gaps                              | user_evidence                 | text
+ feature_gaps                              | identified_at                 | timestamp with time zone
+ market_validations                        | id                            | uuid
+ market_validations                        | opportunity_id                | uuid
+ market_validations                        | validation_type               | character varying
+ market_validations                        | validation_source             | character varying
+ market_validations                        | validation_date               | timestamp with time zone
+ market_validations                        | validation_result             | text
+ market_validations                        | confidence_score              | numeric
+ market_validations                        | notes                         | text
+ market_validations                        | status                        | character varying
+ market_validations                        | evidence_url                  | text
+ market_validations_backup_20251118_074244 | id                            | uuid
+ market_validations_backup_20251118_074244 | opportunity_id                | uuid
+ market_validations_backup_20251118_074244 | validation_type               | character varying
+ market_validations_backup_20251118_074244 | validation_source             | character varying
+ market_validations_backup_20251118_074244 | validation_date               | timestamp with time zone
+ market_validations_backup_20251118_074244 | validation_result             | text
+ market_validations_backup_20251118_074244 | confidence_score              | numeric
+ market_validations_backup_20251118_074244 | notes                         | text
+ market_validations_backup_20251118_074244 | status                        | character varying
+ market_validations_backup_20251118_074244 | evidence_url                  | text
+ market_validations_backup_20251118_074302 | id                            | uuid
+ market_validations_backup_20251118_074302 | opportunity_id                | uuid
+ market_validations_backup_20251118_074302 | validation_type               | character varying
+ market_validations_backup_20251118_074302 | validation_source             | character varying
+ market_validations_backup_20251118_074302 | validation_date               | timestamp with time zone
+ market_validations_backup_20251118_074302 | validation_result             | text
+ market_validations_backup_20251118_074302 | confidence_score              | numeric
+ market_validations_backup_20251118_074302 | notes                         | text
+ market_validations_backup_20251118_074302 | status                        | character varying
+ market_validations_backup_20251118_074302 | evidence_url                  | text
+ market_validations_backup_20251118_074344 | id                            | uuid
+ market_validations_backup_20251118_074344 | opportunity_id                | uuid
+ market_validations_backup_20251118_074344 | validation_type               | character varying
+ market_validations_backup_20251118_074344 | validation_source             | character varying
+ market_validations_backup_20251118_074344 | validation_date               | timestamp with time zone
+ market_validations_backup_20251118_074344 | validation_result             | text
+ market_validations_backup_20251118_074344 | confidence_score              | numeric
+ market_validations_backup_20251118_074344 | notes                         | text
+ market_validations_backup_20251118_074344 | status                        | character varying
+ market_validations_backup_20251118_074344 | evidence_url                  | text
+ market_validations_backup_20251118_074449 | id                            | uuid
+ market_validations_backup_20251118_074449 | opportunity_id                | uuid
+ market_validations_backup_20251118_074449 | validation_type               | character varying
+ market_validations_backup_20251118_074449 | validation_source             | character varying
+ market_validations_backup_20251118_074449 | validation_date               | timestamp with time zone
+ market_validations_backup_20251118_074449 | validation_result             | text
+ market_validations_backup_20251118_074449 | confidence_score              | numeric
+ market_validations_backup_20251118_074449 | notes                         | text
+ market_validations_backup_20251118_074449 | status                        | character varying
+ market_validations_backup_20251118_074449 | evidence_url                  | text
+ migration_validation_report               | table_name                    | text
+ migration_validation_report               | total_rows                    | bigint
+ migration_validation_report               | with_subreddit_fk             | bigint
+ migration_validation_report               | missing_subreddit_fk          | bigint
+ migration_validation_report               | with_redditor_fk              | bigint
+ migration_validation_report               | missing_redditor_fk           | bigint
+ migration_validation_report               | with_submission_string_id     | bigint
+ migration_validation_report               | missing_submission_string_id  | bigint
+ monetization_patterns                     | id                            | uuid
+ monetization_patterns                     | opportunity_id                | uuid
+ monetization_patterns                     | model_type                    | character varying
+ monetization_patterns                     | price_range_min               | numeric
+ monetization_patterns                     | price_range_max               | numeric
+ monetization_patterns                     | revenue_estimate              | numeric
+ monetization_patterns                     | validation_status             | character varying
+ monetization_patterns                     | market_segment                | character varying
+ monetization_patterns                     | pricing_evidence              | text
+ monetization_patterns                     | potential_users               | integer
+ monetization_patterns                     | identified_at                 | timestamp with time zone
+ opportunities                             | id                            | uuid
+ opportunities                             | problem_statement             | text
+ opportunities                             | identified_from_submission_id | uuid
+ opportunities                             | created_at                    | timestamp with time zone
+ opportunities                             | status                        | character varying
+ opportunities                             | core_function_count           | integer
+ opportunities                             | simplicity_constraint_met     | boolean
+ opportunities                             | proposed_solution             | text
+ opportunities                             | target_audience               | text
+ opportunities                             | market_segment                | character varying
+ opportunities                             | last_reviewed_at              | timestamp with time zone
+ opportunities                             | opportunity_id                | character varying
+ opportunities                             | app_name                      | character varying
+ opportunities                             | business_category             | character varying
+ opportunities                             | source_subreddit              | character varying
+ opportunities_backup_20251118_074244      | id                            | uuid
+ opportunities_backup_20251118_074244      | problem_statement             | text
+ opportunities_backup_20251118_074244      | identified_from_submission_id | uuid
+ opportunities_backup_20251118_074244      | created_at                    | timestamp with time zone
+ opportunities_backup_20251118_074244      | status                        | character varying
+ opportunities_backup_20251118_074244      | core_function_count           | integer
+ opportunities_backup_20251118_074244      | simplicity_constraint_met     | boolean
+ opportunities_backup_20251118_074244      | proposed_solution             | text
+ opportunities_backup_20251118_074244      | target_audience               | text
+ opportunities_backup_20251118_074244      | market_segment                | character varying
+ opportunities_backup_20251118_074244      | last_reviewed_at              | timestamp with time zone
+ opportunities_backup_20251118_074244      | opportunity_id                | character varying
+ opportunities_backup_20251118_074244      | app_name                      | character varying
+ opportunities_backup_20251118_074244      | business_category             | character varying
+ opportunities_backup_20251118_074244      | source_subreddit              | character varying
+ opportunities_backup_20251118_074302      | id                            | uuid
+ opportunities_backup_20251118_074302      | problem_statement             | text
+ opportunities_backup_20251118_074302      | identified_from_submission_id | uuid
+ opportunities_backup_20251118_074302      | created_at                    | timestamp with time zone
+ opportunities_backup_20251118_074302      | status                        | character varying
+ opportunities_backup_20251118_074302      | core_function_count           | integer
+ opportunities_backup_20251118_074302      | simplicity_constraint_met     | boolean
+ opportunities_backup_20251118_074302      | proposed_solution             | text
+ opportunities_backup_20251118_074302      | target_audience               | text
+ opportunities_backup_20251118_074302      | market_segment                | character varying
+ opportunities_backup_20251118_074302      | last_reviewed_at              | timestamp with time zone
+ opportunities_backup_20251118_074302      | opportunity_id                | character varying
+ opportunities_backup_20251118_074302      | app_name                      | character varying
+ opportunities_backup_20251118_074302      | business_category             | character varying
+ opportunities_backup_20251118_074302      | source_subreddit              | character varying
+ opportunities_backup_20251118_074344      | id                            | uuid
+ opportunities_backup_20251118_074344      | problem_statement             | text
+ opportunities_backup_20251118_074344      | identified_from_submission_id | uuid
+ opportunities_backup_20251118_074344      | created_at                    | timestamp with time zone
+ opportunities_backup_20251118_074344      | status                        | character varying
+ opportunities_backup_20251118_074344      | core_function_count           | integer
+ opportunities_backup_20251118_074344      | simplicity_constraint_met     | boolean
+ opportunities_backup_20251118_074344      | proposed_solution             | text
+ opportunities_backup_20251118_074344      | target_audience               | text
+ opportunities_backup_20251118_074344      | market_segment                | character varying
+ opportunities_backup_20251118_074344      | last_reviewed_at              | timestamp with time zone
+ opportunities_backup_20251118_074344      | opportunity_id                | character varying
+ opportunities_backup_20251118_074344      | app_name                      | character varying
+ opportunities_backup_20251118_074344      | business_category             | character varying
+ opportunities_backup_20251118_074344      | source_subreddit              | character varying
+ opportunities_backup_20251118_074449      | id                            | uuid
+ opportunities_backup_20251118_074449      | problem_statement             | text
+ opportunities_backup_20251118_074449      | identified_from_submission_id | uuid
+ opportunities_backup_20251118_074449      | created_at                    | timestamp with time zone
+ opportunities_backup_20251118_074449      | status                        | character varying
+ opportunities_backup_20251118_074449      | core_function_count           | integer
+ opportunities_backup_20251118_074449      | simplicity_constraint_met     | boolean
+ opportunities_backup_20251118_074449      | proposed_solution             | text
+ opportunities_backup_20251118_074449      | target_audience               | text
+ opportunities_backup_20251118_074449      | market_segment                | character varying
+ opportunities_backup_20251118_074449      | last_reviewed_at              | timestamp with time zone
+ opportunities_backup_20251118_074449      | opportunity_id                | character varying
+ opportunities_backup_20251118_074449      | app_name                      | character varying
+ opportunities_backup_20251118_074449      | business_category             | character varying
+ opportunities_backup_20251118_074449      | source_subreddit              | character varying
+ opportunities_legacy                      | id                            | uuid
+ opportunities_legacy                      | title                         | text
+ opportunities_legacy                      | description                   | text
+ opportunities_legacy                      | problem_statement             | text
+ opportunities_legacy                      | target_audience               | text
+ opportunities_legacy                      | submission_id                 | uuid
+ opportunities_legacy                      | created_at                    | timestamp with time zone
+ opportunities_legacy                      | updated_at                    | timestamp with time zone
+ opportunities_unified                     | id                            | uuid
+ opportunities_unified                     | submission_id                 | uuid
+ opportunities_unified                     | title                         | text
+ opportunities_unified                     | problem_statement             | text
+ opportunities_unified                     | target_audience               | text
+ opportunities_unified                     | app_concept                   | text
+ opportunities_unified                     | core_functions                | jsonb
+ opportunities_unified                     | value_proposition             | text
+ opportunities_unified                     | target_user                   | text
+ opportunities_unified                     | monetization_model            | text
+ opportunities_unified                     | trust_score                   | numeric
+ opportunities_unified                     | trust_badge                   | character varying
+ opportunities_unified                     | trust_level                   | character varying
+ opportunities_unified                     | activity_score                | numeric
+ opportunities_unified                     | engagement_level              | character varying
+ opportunities_unified                     | trend_velocity                | numeric
+ opportunities_unified                     | problem_validity              | character varying
+ opportunities_unified                     | discussion_quality            | character varying
+ opportunities_unified                     | ai_confidence_level           | character varying
+ opportunities_unified                     | opportunity_score             | numeric
+ opportunities_unified                     | dimension_scores              | jsonb
+ opportunities_unified                     | opportunity_assessment_score  | numeric
+ opportunities_unified                     | status                        | character varying
+ opportunities_unified                     | created_at                    | timestamp with time zone
+ opportunities_unified                     | updated_at                    | timestamp with time zone
+ opportunity_assessments                   | id                            | uuid
+ opportunity_assessments                   | opportunity_id                | uuid
+ opportunity_assessments                   | market_demand_score           | numeric
+ opportunity_assessments                   | pain_intensity_score          | numeric
+ opportunity_assessments                   | monetization_potential_score  | numeric
+ opportunity_assessments                   | market_gap_score              | numeric
+ opportunity_assessments                   | technical_feasibility_score   | numeric
+ opportunity_assessments                   | simplicity_score              | numeric
+ opportunity_assessments                   | total_score                   | numeric
+ opportunity_assessments                   | validation_types              | jsonb
+ opportunity_assessments                   | validation_evidence           | jsonb
+ opportunity_assessments                   | validation_confidence         | numeric
+ opportunity_assessments                   | assessment_method             | character varying
+ opportunity_assessments                   | assessor_type                 | character varying
+ opportunity_assessments                   | last_assessed_at              | timestamp with time zone
+ opportunity_assessments                   | assessment_version            | integer
+ opportunity_assessments                   | score_breakdown               | jsonb
+ opportunity_assessments                   | created_at                    | timestamp with time zone
+ opportunity_assessments                   | updated_at                    | timestamp with time zone
+ opportunity_scores                        | id                            | uuid
+ opportunity_scores                        | opportunity_id                | uuid
+ opportunity_scores                        | market_demand_score           | integer
+ opportunity_scores                        | pain_intensity_score          | integer
+ opportunity_scores                        | monetization_potential_score  | integer
+ opportunity_scores                        | market_gap_score              | integer
+ opportunity_scores                        | technical_feasibility_score   | integer
+ opportunity_scores                        | simplicity_score              | integer
+ opportunity_scores                        | total_score                   | numeric
+ opportunity_scores                        | score_date                    | timestamp with time zone
+ opportunity_scores                        | score_version                 | character varying
+ opportunity_scores                        | scoring_notes                 | text
+ opportunity_scores_backup_20251118_074244 | id                            | uuid
+ opportunity_scores_backup_20251118_074244 | opportunity_id                | uuid
+ opportunity_scores_backup_20251118_074244 | market_demand_score           | integer
+ opportunity_scores_backup_20251118_074244 | pain_intensity_score          | integer
+ opportunity_scores_backup_20251118_074244 | monetization_potential_score  | integer
+ opportunity_scores_backup_20251118_074244 | market_gap_score              | integer
+ opportunity_scores_backup_20251118_074244 | technical_feasibility_score   | integer
+ opportunity_scores_backup_20251118_074244 | simplicity_score              | integer
+ opportunity_scores_backup_20251118_074244 | total_score                   | numeric
+ opportunity_scores_backup_20251118_074244 | score_date                    | timestamp with time zone
+ opportunity_scores_backup_20251118_074244 | score_version                 | character varying
+ opportunity_scores_backup_20251118_074244 | scoring_notes                 | text
+ opportunity_scores_backup_20251118_074302 | id                            | uuid
+ opportunity_scores_backup_20251118_074302 | opportunity_id                | uuid
+ opportunity_scores_backup_20251118_074302 | market_demand_score           | integer
+ opportunity_scores_backup_20251118_074302 | pain_intensity_score          | integer
+ opportunity_scores_backup_20251118_074302 | monetization_potential_score  | integer
+ opportunity_scores_backup_20251118_074302 | market_gap_score              | integer
+ opportunity_scores_backup_20251118_074302 | technical_feasibility_score   | integer
+ opportunity_scores_backup_20251118_074302 | simplicity_score              | integer
+ opportunity_scores_backup_20251118_074302 | total_score                   | numeric
+ opportunity_scores_backup_20251118_074302 | score_date                    | timestamp with time zone
+ opportunity_scores_backup_20251118_074302 | score_version                 | character varying
+ opportunity_scores_backup_20251118_074302 | scoring_notes                 | text
+ opportunity_scores_backup_20251118_074344 | id                            | uuid
+ opportunity_scores_backup_20251118_074344 | opportunity_id                | uuid
+ opportunity_scores_backup_20251118_074344 | market_demand_score           | integer
+ opportunity_scores_backup_20251118_074344 | pain_intensity_score          | integer
+ opportunity_scores_backup_20251118_074344 | monetization_potential_score  | integer
+ opportunity_scores_backup_20251118_074344 | market_gap_score              | integer
+ opportunity_scores_backup_20251118_074344 | technical_feasibility_score   | integer
+ opportunity_scores_backup_20251118_074344 | simplicity_score              | integer
+ opportunity_scores_backup_20251118_074344 | total_score                   | numeric
+ opportunity_scores_backup_20251118_074344 | score_date                    | timestamp with time zone
+ opportunity_scores_backup_20251118_074344 | score_version                 | character varying
+ opportunity_scores_backup_20251118_074344 | scoring_notes                 | text
+ opportunity_scores_backup_20251118_074449 | id                            | uuid
+ opportunity_scores_backup_20251118_074449 | opportunity_id                | uuid
+ opportunity_scores_backup_20251118_074449 | market_demand_score           | integer
+ opportunity_scores_backup_20251118_074449 | pain_intensity_score          | integer
+ opportunity_scores_backup_20251118_074449 | monetization_potential_score  | integer
+ opportunity_scores_backup_20251118_074449 | market_gap_score              | integer
+ opportunity_scores_backup_20251118_074449 | technical_feasibility_score   | integer
+ opportunity_scores_backup_20251118_074449 | simplicity_score              | integer
+ opportunity_scores_backup_20251118_074449 | total_score                   | numeric
+ opportunity_scores_backup_20251118_074449 | score_date                    | timestamp with time zone
+ opportunity_scores_backup_20251118_074449 | score_version                 | character varying
+ opportunity_scores_backup_20251118_074449 | scoring_notes                 | text
+ opportunity_scores_legacy                 | id                            | uuid
+ opportunity_scores_legacy                 | opportunity_id                | uuid
+ opportunity_scores_legacy                 | market_demand                 | numeric
+ opportunity_scores_legacy                 | pain_intensity                | numeric
+ opportunity_scores_legacy                 | competition_level             | numeric
+ opportunity_scores_legacy                 | technical_feasibility         | numeric
+ opportunity_scores_legacy                 | monetization_potential        | numeric
+ opportunity_scores_legacy                 | simplicity_score              | numeric
+ opportunity_scores_legacy                 | total_score                   | numeric
+ opportunity_scores_legacy                 | created_at                    | timestamp with time zone
+ opportunity_scores_legacy                 | updated_at                    | timestamp with time zone
+ redditors                                 | id                            | uuid
+ redditors                                 | username                      | character varying
+ redditors                                 | karma_score                   | integer
+ redditors                                 | account_age_days              | integer
+ redditors                                 | flair_type                    | character varying
+ redditors                                 | created_at                    | timestamp with time zone
+ redditors                                 | is_anonymous                  | boolean
+ redditors                                 | anonymized_id                 | text
+ redditors                                 | redditor_reddit_id            | character varying
+ redditors                                 | is_gold                       | boolean
+ redditors                                 | is_mod                        | jsonb
+ redditors                                 | trophy                        | jsonb
+ redditors                                 | removed                       | character varying
+ redditors                                 | name                          | character varying
+ redditors                                 | karma                         | jsonb
+ redditors_backup_20251118_074244          | id                            | uuid
+ redditors_backup_20251118_074244          | username                      | character varying
+ redditors_backup_20251118_074244          | karma_score                   | integer
+ redditors_backup_20251118_074244          | account_age_days              | integer
+ redditors_backup_20251118_074244          | flair_type                    | character varying
+ redditors_backup_20251118_074244          | created_at                    | timestamp with time zone
+ redditors_backup_20251118_074244          | is_anonymous                  | boolean
+ redditors_backup_20251118_074244          | anonymized_id                 | text
+ redditors_backup_20251118_074244          | redditor_reddit_id            | character varying
+ redditors_backup_20251118_074244          | is_gold                       | boolean
+ redditors_backup_20251118_074244          | is_mod                        | jsonb
+ redditors_backup_20251118_074244          | trophy                        | jsonb
+ redditors_backup_20251118_074244          | removed                       | character varying
+ redditors_backup_20251118_074244          | name                          | character varying
+ redditors_backup_20251118_074244          | karma                         | jsonb
+ redditors_backup_20251118_074302          | id                            | uuid
+ redditors_backup_20251118_074302          | username                      | character varying
+ redditors_backup_20251118_074302          | karma_score                   | integer
+ redditors_backup_20251118_074302          | account_age_days              | integer
+ redditors_backup_20251118_074302          | flair_type                    | character varying
+ redditors_backup_20251118_074302          | created_at                    | timestamp with time zone
+ redditors_backup_20251118_074302          | is_anonymous                  | boolean
+ redditors_backup_20251118_074302          | anonymized_id                 | text
+ redditors_backup_20251118_074302          | redditor_reddit_id            | character varying
+ redditors_backup_20251118_074302          | is_gold                       | boolean
+ redditors_backup_20251118_074302          | is_mod                        | jsonb
+ redditors_backup_20251118_074302          | trophy                        | jsonb
+ redditors_backup_20251118_074302          | removed                       | character varying
+ redditors_backup_20251118_074302          | name                          | character varying
+ redditors_backup_20251118_074302          | karma                         | jsonb
+ redditors_backup_20251118_074344          | id                            | uuid
+ redditors_backup_20251118_074344          | username                      | character varying
+ redditors_backup_20251118_074344          | karma_score                   | integer
+ redditors_backup_20251118_074344          | account_age_days              | integer
+ redditors_backup_20251118_074344          | flair_type                    | character varying
+ redditors_backup_20251118_074344          | created_at                    | timestamp with time zone
+ redditors_backup_20251118_074344          | is_anonymous                  | boolean
+ redditors_backup_20251118_074344          | anonymized_id                 | text
+ redditors_backup_20251118_074344          | redditor_reddit_id            | character varying
+ redditors_backup_20251118_074344          | is_gold                       | boolean
+ redditors_backup_20251118_074344          | is_mod                        | jsonb
+ redditors_backup_20251118_074344          | trophy                        | jsonb
+ redditors_backup_20251118_074344          | removed                       | character varying
+ redditors_backup_20251118_074344          | name                          | character varying
+ redditors_backup_20251118_074344          | karma                         | jsonb
+ redditors_backup_20251118_074449          | id                            | uuid
+ redditors_backup_20251118_074449          | username                      | character varying
+ redditors_backup_20251118_074449          | karma_score                   | integer
+ redditors_backup_20251118_074449          | account_age_days              | integer
+ redditors_backup_20251118_074449          | flair_type                    | character varying
+ redditors_backup_20251118_074449          | created_at                    | timestamp with time zone
+ redditors_backup_20251118_074449          | is_anonymous                  | boolean
+ redditors_backup_20251118_074449          | anonymized_id                 | text
+ redditors_backup_20251118_074449          | redditor_reddit_id            | character varying
+ redditors_backup_20251118_074449          | is_gold                       | boolean
+ redditors_backup_20251118_074449          | is_mod                        | jsonb
+ redditors_backup_20251118_074449          | trophy                        | jsonb
+ redditors_backup_20251118_074449          | removed                       | character varying
+ redditors_backup_20251118_074449          | name                          | character varying
+ redditors_backup_20251118_074449          | karma                         | jsonb
+ score_components                          | id                            | uuid
+ score_components                          | opportunity_id                | uuid
+ score_components                          | metric_name                   | character varying
+ score_components                          | metric_value                  | numeric
+ score_components                          | evidence_text                 | text
+ score_components                          | confidence_level              | numeric
+ score_components                          | source_submission_ids         | text
+ score_components                          | calculated_at                 | timestamp with time zone
+ score_components_backup_20251118_074244   | id                            | uuid
+ score_components_backup_20251118_074244   | opportunity_id                | uuid
+ score_components_backup_20251118_074244   | metric_name                   | character varying
+ score_components_backup_20251118_074244   | metric_value                  | numeric
+ score_components_backup_20251118_074244   | evidence_text                 | text
+ score_components_backup_20251118_074244   | confidence_level              | numeric
+ score_components_backup_20251118_074244   | source_submission_ids         | text
+ score_components_backup_20251118_074244   | calculated_at                 | timestamp with time zone
+ score_components_backup_20251118_074302   | id                            | uuid
+ score_components_backup_20251118_074302   | opportunity_id                | uuid
+ score_components_backup_20251118_074302   | metric_name                   | character varying
+ score_components_backup_20251118_074302   | metric_value                  | numeric
+ score_components_backup_20251118_074302   | evidence_text                 | text
+ score_components_backup_20251118_074302   | confidence_level              | numeric
+ score_components_backup_20251118_074302   | source_submission_ids         | text
+ score_components_backup_20251118_074302   | calculated_at                 | timestamp with time zone
+ score_components_backup_20251118_074344   | id                            | uuid
+ score_components_backup_20251118_074344   | opportunity_id                | uuid
+ score_components_backup_20251118_074344   | metric_name                   | character varying
+ score_components_backup_20251118_074344   | metric_value                  | numeric
+ score_components_backup_20251118_074344   | evidence_text                 | text
+ score_components_backup_20251118_074344   | confidence_level              | numeric
+ score_components_backup_20251118_074344   | source_submission_ids         | text
+ score_components_backup_20251118_074344   | calculated_at                 | timestamp with time zone
+ score_components_backup_20251118_074449   | id                            | uuid
+ score_components_backup_20251118_074449   | opportunity_id                | uuid
+ score_components_backup_20251118_074449   | metric_name                   | character varying
+ score_components_backup_20251118_074449   | metric_value                  | numeric
+ score_components_backup_20251118_074449   | evidence_text                 | text
+ score_components_backup_20251118_074449   | confidence_level              | numeric
+ score_components_backup_20251118_074449   | source_submission_ids         | text
+ score_components_backup_20251118_074449   | calculated_at                 | timestamp with time zone
+ submissions                               | id                            | uuid
+ submissions                               | subreddit_id                  | uuid
+ submissions                               | redditor_id                   | uuid
+ submissions                               | title                         | character varying
+ submissions                               | content                       | text
+ submissions                               | content_raw                   | text
+ submissions                               | upvotes                       | integer
+ submissions                               | downvotes                     | integer
+ submissions                               | comments_count                | integer
+ submissions                               | awards_count                  | integer
+ submissions                               | created_at                    | timestamp with time zone
+ submissions                               | post_type                     | character varying
+ submissions                               | sentiment_score               | numeric
+ submissions                               | problem_keywords              | text
+ submissions                               | solution_mentions             | text
+ submissions                               | url                           | text
+ submissions                               | is_nsfw                       | boolean
+ submissions                               | is_spoiler                    | boolean
+ submissions                               | submission_id                 | character varying
+ submissions                               | archived                      | boolean
+ submissions                               | removed                       | boolean
+ submissions                               | attachment                    | jsonb
+ submissions                               | poll                          | jsonb
+ submissions                               | flair                         | jsonb
+ submissions                               | awards                        | jsonb
+ submissions                               | score                         | jsonb
+ submissions                               | upvote_ratio                  | jsonb
+ submissions                               | num_comments                  | jsonb
+ submissions                               | edited                        | boolean
+ submissions                               | text                          | text
+ submissions                               | subreddit                     | character varying
+ submissions                               | permalink                     | text
+ submissions                               | opportunity_count             | integer
+ submissions                               | trust_score_avg               | numeric
+ submissions                               | discussion_quality_score      | numeric
+ submissions_backup_20251118_074244        | id                            | uuid
+ submissions_backup_20251118_074244        | subreddit_id                  | uuid
+ submissions_backup_20251118_074244        | redditor_id                   | uuid
+ submissions_backup_20251118_074244        | title                         | character varying
+ submissions_backup_20251118_074244        | content                       | text
+ submissions_backup_20251118_074244        | content_raw                   | text
+ submissions_backup_20251118_074244        | upvotes                       | integer
+ submissions_backup_20251118_074244        | downvotes                     | integer
+ submissions_backup_20251118_074244        | comments_count                | integer
+ submissions_backup_20251118_074244        | awards_count                  | integer
+ submissions_backup_20251118_074244        | created_at                    | timestamp with time zone
+ submissions_backup_20251118_074244        | post_type                     | character varying
+ submissions_backup_20251118_074244        | sentiment_score               | numeric
+ submissions_backup_20251118_074244        | problem_keywords              | text
+ submissions_backup_20251118_074244        | solution_mentions             | text
+ submissions_backup_20251118_074244        | url                           | text
+ submissions_backup_20251118_074244        | is_nsfw                       | boolean
+ submissions_backup_20251118_074244        | is_spoiler                    | boolean
+ submissions_backup_20251118_074244        | submission_id                 | character varying
+ submissions_backup_20251118_074244        | archived                      | boolean
+ submissions_backup_20251118_074244        | removed                       | boolean
+ submissions_backup_20251118_074244        | attachment                    | jsonb
+ submissions_backup_20251118_074244        | poll                          | jsonb
+ submissions_backup_20251118_074244        | flair                         | jsonb
+ submissions_backup_20251118_074244        | awards                        | jsonb
+ submissions_backup_20251118_074244        | score                         | jsonb
+ submissions_backup_20251118_074244        | upvote_ratio                  | jsonb
+ submissions_backup_20251118_074244        | num_comments                  | jsonb
+ submissions_backup_20251118_074244        | edited                        | boolean
+ submissions_backup_20251118_074244        | text                          | text
+ submissions_backup_20251118_074244        | subreddit                     | character varying
+ submissions_backup_20251118_074244        | permalink                     | text
+ submissions_backup_20251118_074302        | id                            | uuid
+ submissions_backup_20251118_074302        | subreddit_id                  | uuid
+ submissions_backup_20251118_074302        | redditor_id                   | uuid
+ submissions_backup_20251118_074302        | title                         | character varying
+ submissions_backup_20251118_074302        | content                       | text
+ submissions_backup_20251118_074302        | content_raw                   | text
+ submissions_backup_20251118_074302        | upvotes                       | integer
+ submissions_backup_20251118_074302        | downvotes                     | integer
+ submissions_backup_20251118_074302        | comments_count                | integer
+ submissions_backup_20251118_074302        | awards_count                  | integer
+ submissions_backup_20251118_074302        | created_at                    | timestamp with time zone
+ submissions_backup_20251118_074302        | post_type                     | character varying
+ submissions_backup_20251118_074302        | sentiment_score               | numeric
+ submissions_backup_20251118_074302        | problem_keywords              | text
+ submissions_backup_20251118_074302        | solution_mentions             | text
+ submissions_backup_20251118_074302        | url                           | text
+ submissions_backup_20251118_074302        | is_nsfw                       | boolean
+ submissions_backup_20251118_074302        | is_spoiler                    | boolean
+ submissions_backup_20251118_074302        | submission_id                 | character varying
+ submissions_backup_20251118_074302        | archived                      | boolean
+ submissions_backup_20251118_074302        | removed                       | boolean
+ submissions_backup_20251118_074302        | attachment                    | jsonb
+ submissions_backup_20251118_074302        | poll                          | jsonb
+ submissions_backup_20251118_074302        | flair                         | jsonb
+ submissions_backup_20251118_074302        | awards                        | jsonb
+ submissions_backup_20251118_074302        | score                         | jsonb
+ submissions_backup_20251118_074302        | upvote_ratio                  | jsonb
+ submissions_backup_20251118_074302        | num_comments                  | jsonb
+ submissions_backup_20251118_074302        | edited                        | boolean
+ submissions_backup_20251118_074302        | text                          | text
+ submissions_backup_20251118_074302        | subreddit                     | character varying
+ submissions_backup_20251118_074302        | permalink                     | text
+ submissions_backup_20251118_074344        | id                            | uuid
+ submissions_backup_20251118_074344        | subreddit_id                  | uuid
+ submissions_backup_20251118_074344        | redditor_id                   | uuid
+ submissions_backup_20251118_074344        | title                         | character varying
+ submissions_backup_20251118_074344        | content                       | text
+ submissions_backup_20251118_074344        | content_raw                   | text
+ submissions_backup_20251118_074344        | upvotes                       | integer
+ submissions_backup_20251118_074344        | downvotes                     | integer
+ submissions_backup_20251118_074344        | comments_count                | integer
+ submissions_backup_20251118_074344        | awards_count                  | integer
+ submissions_backup_20251118_074344        | created_at                    | timestamp with time zone
+ submissions_backup_20251118_074344        | post_type                     | character varying
+ submissions_backup_20251118_074344        | sentiment_score               | numeric
+ submissions_backup_20251118_074344        | problem_keywords              | text
+ submissions_backup_20251118_074344        | solution_mentions             | text
+ submissions_backup_20251118_074344        | url                           | text
+ submissions_backup_20251118_074344        | is_nsfw                       | boolean
+ submissions_backup_20251118_074344        | is_spoiler                    | boolean
+ submissions_backup_20251118_074344        | submission_id                 | character varying
+ submissions_backup_20251118_074344        | archived                      | boolean
+ submissions_backup_20251118_074344        | removed                       | boolean
+ submissions_backup_20251118_074344        | attachment                    | jsonb
+ submissions_backup_20251118_074344        | poll                          | jsonb
+ submissions_backup_20251118_074344        | flair                         | jsonb
+ submissions_backup_20251118_074344        | awards                        | jsonb
+ submissions_backup_20251118_074344        | score                         | jsonb
+ submissions_backup_20251118_074344        | upvote_ratio                  | jsonb
+ submissions_backup_20251118_074344        | num_comments                  | jsonb
+ submissions_backup_20251118_074344        | edited                        | boolean
+ submissions_backup_20251118_074344        | text                          | text
+ submissions_backup_20251118_074344        | subreddit                     | character varying
+ submissions_backup_20251118_074344        | permalink                     | text
+ submissions_backup_20251118_074449        | id                            | uuid
+ submissions_backup_20251118_074449        | subreddit_id                  | uuid
+ submissions_backup_20251118_074449        | redditor_id                   | uuid
+ submissions_backup_20251118_074449        | title                         | character varying
+ submissions_backup_20251118_074449        | content                       | text
+ submissions_backup_20251118_074449        | content_raw                   | text
+ submissions_backup_20251118_074449        | upvotes                       | integer
+ submissions_backup_20251118_074449        | downvotes                     | integer
+ submissions_backup_20251118_074449        | comments_count                | integer
+ submissions_backup_20251118_074449        | awards_count                  | integer
+ submissions_backup_20251118_074449        | created_at                    | timestamp with time zone
+ submissions_backup_20251118_074449        | post_type                     | character varying
+ submissions_backup_20251118_074449        | sentiment_score               | numeric
+ submissions_backup_20251118_074449        | problem_keywords              | text
+ submissions_backup_20251118_074449        | solution_mentions             | text
+ submissions_backup_20251118_074449        | url                           | text
+ submissions_backup_20251118_074449        | is_nsfw                       | boolean
+ submissions_backup_20251118_074449        | is_spoiler                    | boolean
+ submissions_backup_20251118_074449        | submission_id                 | character varying
+ submissions_backup_20251118_074449        | archived                      | boolean
+ submissions_backup_20251118_074449        | removed                       | boolean
+ submissions_backup_20251118_074449        | attachment                    | jsonb
+ submissions_backup_20251118_074449        | poll                          | jsonb
+ submissions_backup_20251118_074449        | flair                         | jsonb
+ submissions_backup_20251118_074449        | awards                        | jsonb
+ submissions_backup_20251118_074449        | score                         | jsonb
+ submissions_backup_20251118_074449        | upvote_ratio                  | jsonb
+ submissions_backup_20251118_074449        | num_comments                  | jsonb
+ submissions_backup_20251118_074449        | edited                        | boolean
+ submissions_backup_20251118_074449        | text                          | text
+ submissions_backup_20251118_074449        | subreddit                     | character varying
+ submissions_backup_20251118_074449        | permalink                     | text
+ subreddits                                | id                            | uuid
+ subreddits                                | name                          | character varying
+ subreddits                                | description                   | text
+ subreddits                                | subscriber_count              | integer
+ subreddits                                | category                      | character varying
+ subreddits                                | target_market_segment         | character varying
+ subreddits                                | created_at                    | timestamp with time zone
+ subreddits                                | last_scraped_at               | timestamp with time zone
+ subreddits                                | is_active                     | boolean
+ subreddits_backup_20251118_074244         | id                            | uuid
+ subreddits_backup_20251118_074244         | name                          | character varying
+ subreddits_backup_20251118_074244         | description                   | text
+ subreddits_backup_20251118_074244         | subscriber_count              | integer
+ subreddits_backup_20251118_074244         | category                      | character varying
+ subreddits_backup_20251118_074244         | target_market_segment         | character varying
+ subreddits_backup_20251118_074244         | created_at                    | timestamp with time zone
+ subreddits_backup_20251118_074244         | last_scraped_at               | timestamp with time zone
+ subreddits_backup_20251118_074244         | is_active                     | boolean
+ subreddits_backup_20251118_074302         | id                            | uuid
+ subreddits_backup_20251118_074302         | name                          | character varying
+ subreddits_backup_20251118_074302         | description                   | text
+ subreddits_backup_20251118_074302         | subscriber_count              | integer
+ subreddits_backup_20251118_074302         | category                      | character varying
+ subreddits_backup_20251118_074302         | target_market_segment         | character varying
+ subreddits_backup_20251118_074302         | created_at                    | timestamp with time zone
+ subreddits_backup_20251118_074302         | last_scraped_at               | timestamp with time zone
+ subreddits_backup_20251118_074302         | is_active                     | boolean
+ subreddits_backup_20251118_074344         | id                            | uuid
+ subreddits_backup_20251118_074344         | name                          | character varying
+ subreddits_backup_20251118_074344         | description                   | text
+ subreddits_backup_20251118_074344         | subscriber_count              | integer
+ subreddits_backup_20251118_074344         | category                      | character varying
+ subreddits_backup_20251118_074344         | target_market_segment         | character varying
+ subreddits_backup_20251118_074344         | created_at                    | timestamp with time zone
+ subreddits_backup_20251118_074344         | last_scraped_at               | timestamp with time zone
+ subreddits_backup_20251118_074344         | is_active                     | boolean
+ subreddits_backup_20251118_074449         | id                            | uuid
+ subreddits_backup_20251118_074449         | name                          | character varying
+ subreddits_backup_20251118_074449         | description                   | text
+ subreddits_backup_20251118_074449         | subscriber_count              | integer
+ subreddits_backup_20251118_074449         | category                      | character varying
+ subreddits_backup_20251118_074449         | target_market_segment         | character varying
+ subreddits_backup_20251118_074449         | created_at                    | timestamp with time zone
+ subreddits_backup_20251118_074449         | last_scraped_at               | timestamp with time zone
+ subreddits_backup_20251118_074449         | is_active                     | boolean
+ technical_assessments                     | id                            | uuid
+ technical_assessments                     | opportunity_id                | uuid
+ technical_assessments                     | api_integrations_required     | text
+ technical_assessments                     | regulatory_considerations     | text
+ technical_assessments                     | development_complexity        | character varying
+ technical_assessments                     | resource_requirements         | text
+ technical_assessments                     | estimated_timeline            | character varying
+ technical_assessments                     | feasibility_score             | integer
+ technical_assessments                     | technical_notes               | text
+ technical_assessments                     | risk_factors                  | text
+ technical_assessments                     | assessed_at                   | timestamp with time zone
+ technical_assessments                     | assessor                      | character varying
+ top_opportunities                         | id                            | uuid
+ top_opportunities                         | submission_id                 | text
+ top_opportunities                         | problem_description           | text
+ top_opportunities                         | app_concept                   | text
+ top_opportunities                         | core_functions                | jsonb
+ top_opportunities                         | value_proposition             | text
+ top_opportunities                         | target_user                   | text
+ top_opportunities                         | monetization_model            | text
+ top_opportunities                         | opportunity_score             | numeric
+ top_opportunities                         | title                         | text
+ top_opportunities                         | subreddit                     | text
+ top_opportunities                         | reddit_score                  | integer
+ top_opportunities                         | num_comments                  | integer
+ top_opportunities                         | created_at                    | timestamp with time zone
+ top_opportunities                         | status                        | text
+ user_willingness_to_pay                   | id                            | uuid
+ user_willingness_to_pay                   | opportunity_id                | uuid
+ user_willingness_to_pay                   | payment_mention_text          | text
+ user_willingness_to_pay                   | price_point                   | numeric
+ user_willingness_to_pay                   | user_context                  | text
+ user_willingness_to_pay                   | user_segment                  | character varying
+ user_willingness_to_pay                   | confidence_score              | numeric
+ user_willingness_to_pay                   | source_comment_id             | uuid
+ user_willingness_to_pay                   | mentioned_at                  | timestamp with time zone
+ workflow_results                          | id                            | uuid
+ workflow_results                          | opportunity_id                | character varying
+ workflow_results                          | app_name                      | character varying
+ workflow_results                          | function_count                | integer
+ workflow_results                          | function_list                 | jsonb
+ workflow_results                          | original_score                | double precision
+ workflow_results                          | final_score                   | double precision
+ workflow_results                          | status                        | character varying
+ workflow_results                          | constraint_applied            | boolean
+ workflow_results                          | ai_insight                    | text
+ workflow_results                          | processed_at                  | timestamp without time zone
+ workflow_results                          | market_demand                 | numeric
+ workflow_results                          | pain_intensity                | numeric
+ workflow_results                          | monetization_potential        | numeric
+ workflow_results                          | market_gap                    | numeric
+ workflow_results                          | technical_feasibility         | numeric
+ workflow_results_backup_20251118_074244   | id                            | uuid
+ workflow_results_backup_20251118_074244   | opportunity_id                | character varying
+ workflow_results_backup_20251118_074244   | app_name                      | character varying
+ workflow_results_backup_20251118_074244   | function_count                | integer
+ workflow_results_backup_20251118_074244   | function_list                 | jsonb
+ workflow_results_backup_20251118_074244   | original_score                | double precision
+ workflow_results_backup_20251118_074244   | final_score                   | double precision
+ workflow_results_backup_20251118_074244   | status                        | character varying
+ workflow_results_backup_20251118_074244   | constraint_applied            | boolean
+ workflow_results_backup_20251118_074244   | ai_insight                    | text
+ workflow_results_backup_20251118_074244   | processed_at                  | timestamp without time zone
+ workflow_results_backup_20251118_074244   | market_demand                 | numeric
+ workflow_results_backup_20251118_074244   | pain_intensity                | numeric
+ workflow_results_backup_20251118_074244   | monetization_potential        | numeric
+ workflow_results_backup_20251118_074244   | market_gap                    | numeric
+ workflow_results_backup_20251118_074244   | technical_feasibility         | numeric
+ workflow_results_backup_20251118_074302   | id                            | uuid
+ workflow_results_backup_20251118_074302   | opportunity_id                | character varying
+ workflow_results_backup_20251118_074302   | app_name                      | character varying
+ workflow_results_backup_20251118_074302   | function_count                | integer
+ workflow_results_backup_20251118_074302   | function_list                 | jsonb
+ workflow_results_backup_20251118_074302   | original_score                | double precision
+ workflow_results_backup_20251118_074302   | final_score                   | double precision
+ workflow_results_backup_20251118_074302   | status                        | character varying
+ workflow_results_backup_20251118_074302   | constraint_applied            | boolean
+ workflow_results_backup_20251118_074302   | ai_insight                    | text
+ workflow_results_backup_20251118_074302   | processed_at                  | timestamp without time zone
+ workflow_results_backup_20251118_074302   | market_demand                 | numeric
+ workflow_results_backup_20251118_074302   | pain_intensity                | numeric
+ workflow_results_backup_20251118_074302   | monetization_potential        | numeric
+ workflow_results_backup_20251118_074302   | market_gap                    | numeric
+ workflow_results_backup_20251118_074302   | technical_feasibility         | numeric
+ workflow_results_backup_20251118_074344   | id                            | uuid
+ workflow_results_backup_20251118_074344   | opportunity_id                | character varying
+ workflow_results_backup_20251118_074344   | app_name                      | character varying
+ workflow_results_backup_20251118_074344   | function_count                | integer
+ workflow_results_backup_20251118_074344   | function_list                 | jsonb
+ workflow_results_backup_20251118_074344   | original_score                | double precision
+ workflow_results_backup_20251118_074344   | final_score                   | double precision
+ workflow_results_backup_20251118_074344   | status                        | character varying
+ workflow_results_backup_20251118_074344   | constraint_applied            | boolean
+ workflow_results_backup_20251118_074344   | ai_insight                    | text
+ workflow_results_backup_20251118_074344   | processed_at                  | timestamp without time zone
+ workflow_results_backup_20251118_074344   | market_demand                 | numeric
+ workflow_results_backup_20251118_074344   | pain_intensity                | numeric
+ workflow_results_backup_20251118_074344   | monetization_potential        | numeric
+ workflow_results_backup_20251118_074344   | market_gap                    | numeric
+ workflow_results_backup_20251118_074344   | technical_feasibility         | numeric
+ workflow_results_backup_20251118_074449   | id                            | uuid
+ workflow_results_backup_20251118_074449   | opportunity_id                | character varying
+ workflow_results_backup_20251118_074449   | app_name                      | character varying
+ workflow_results_backup_20251118_074449   | function_count                | integer
+ workflow_results_backup_20251118_074449   | function_list                 | jsonb
+ workflow_results_backup_20251118_074449   | original_score                | double precision
+ workflow_results_backup_20251118_074449   | final_score                   | double precision
+ workflow_results_backup_20251118_074449   | status                        | character varying
+ workflow_results_backup_20251118_074449   | constraint_applied            | boolean
+ workflow_results_backup_20251118_074449   | ai_insight                    | text
+ workflow_results_backup_20251118_074449   | processed_at                  | timestamp without time zone
+ workflow_results_backup_20251118_074449   | market_demand                 | numeric
+ workflow_results_backup_20251118_074449   | pain_intensity                | numeric
+ workflow_results_backup_20251118_074449   | monetization_potential        | numeric
+ workflow_results_backup_20251118_074449   | market_gap                    | numeric
+ workflow_results_backup_20251118_074449   | technical_feasibility         | numeric
+ workflow_results_legacy                   | submission_id                 | uuid
+ workflow_results_legacy                   | function_list                 | jsonb
+ workflow_results_legacy                   | dimension_scores              | jsonb
+ workflow_results_legacy                   | opportunity_assessment_score  | numeric
+(952 rows)
+
