@@ -187,28 +187,52 @@ def get_database_config():
     Get database configuration for PostgreSQL connection.
 
     Returns:
-        DatabaseConfig: Configuration object with connection parameters
+        dict: Database connection parameters for asyncpg
     """
-    class DatabaseConfig:
-        def __init__(self):
-            # Parse Supabase URL to extract connection details
-            supabase_url = SUPABASE_URL
-            if supabase_url.endswith('/'):
-                supabase_url = supabase_url[:-1]
+    # Parse Supabase URL to extract connection details
+    supabase_url = SUPABASE_URL
+    if supabase_url.endswith('/'):
+        supabase_url = supabase_url[:-1]
 
-            # Extract host and port from Supabase URL
-            if 'localhost' in supabase_url or '127.0.0.1' in supabase_url:
-                # Local development setup
-                self.host = '127.0.0.1'
-                self.port = 54322  # Default Supabase local port
-            else:
-                # Production setup - parse from URL
-                # Expected format: https://<project>.supabase.co
-                self.host = supabase_url.replace('https://', '').replace('http://', '')
-                self.port = 5432  # Default PostgreSQL port
+    # Extract host and port from Supabase URL
+    if 'localhost' in supabase_url or '127.0.0.1' in supabase_url:
+        # Local development setup
+        host = '127.0.0.1'
+        port = 54322  # Default Supabase local port
+    else:
+        # Production setup - parse from URL
+        # Expected format: https://<project>.supabase.co
+        host = supabase_url.replace('https://', '').replace('http://', '')
+        port = 5432  # Default PostgreSQL port
 
-            self.user = 'postgres'
-            self.password = 'postgres'
-            self.database = 'postgres'
+    return {
+        'host': host,
+        'port': port,
+        'user': 'postgres',
+        'password': 'postgres',
+        'database': 'postgres',
+        'min_size': 2,
+        'max_size': 10
+    }
 
-    return DatabaseConfig()
+
+def get_redis_config():
+    """
+    Get Redis configuration for caching.
+
+    Returns:
+        dict: Redis connection parameters
+    """
+    # Redis configuration with local development defaults
+    host = os.getenv('REDIS_HOST', 'localhost')
+    port = int(os.getenv('REDIS_PORT', 6379))
+    db = int(os.getenv('REDIS_DB', 0))
+    password = os.getenv('REDIS_PASSWORD', None)
+
+    return {
+        'host': host,
+        'port': port,
+        'db': db,
+        'password': password,
+        'url': f"redis://{host}:{port}/{db}"
+    }

@@ -205,39 +205,66 @@ class AdvancedFeatureMigration:
 
         jsonb_domains = [
             # Evidence JSONB domain with structure validation
-            """
-            CREATE DOMAIN IF NOT EXISTS jsonb_evidence AS JSONB CHECK (
-                jsonb_typeof(VALUE) = 'object' AND
-                VALUE ? 'sources' AND
-                VALUE ? 'confidence_score' AND
-                VALUE ? 'validation_method'
-            )
-            """,
+            {
+                'name': 'jsonb_evidence',
+                'sql': """
+                    CREATE DOMAIN jsonb_evidence AS JSONB CHECK (
+                        jsonb_typeof(VALUE) = 'object' AND
+                        VALUE ? 'sources' AND
+                        VALUE ? 'confidence_score' AND
+                        VALUE ? 'validation_method'
+                    )
+                """
+            },
 
             # Competitor analysis JSONB domain
-            """
-            CREATE DOMAIN IF NOT EXISTS jsonb_competitor_analysis AS JSONB CHECK (
-                jsonb_typeof(VALUE) = 'object' AND
-                VALUE ? 'competitors' AND
-                VALUE ? 'feature_comparison' AND
-                VALUE ? 'market_position'
-            )
-            """,
+            {
+                'name': 'jsonb_competitor_analysis',
+                'sql': """
+                    CREATE DOMAIN jsonb_competitor_analysis AS JSONB CHECK (
+                        jsonb_typeof(VALUE) = 'object' AND
+                        VALUE ? 'competitors' AND
+                        VALUE ? 'feature_comparison' AND
+                        VALUE ? 'market_position'
+                    )
+                """
+            },
 
             # Technical requirements JSONB domain
-            """
-            CREATE DOMAIN IF NOT EXISTS jsonb_technical_requirements AS JSONB CHECK (
-                jsonb_typeof(VALUE) = 'object' AND
-                VALUE ? 'complexity_level' AND
-                VALUE ? 'estimated_effort' AND
-                VALUE ? 'skill_requirements'
-            )
-            """
+            {
+                'name': 'jsonb_technical_requirements',
+                'sql': """
+                    CREATE DOMAIN jsonb_technical_requirements AS JSONB CHECK (
+                        jsonb_typeof(VALUE) = 'object' AND
+                        VALUE ? 'complexity_level' AND
+                        VALUE ? 'estimated_effort' AND
+                        VALUE ? 'skill_requirements'
+                    )
+                """
+            }
         ]
 
-        for domain_sql in jsonb_domains:
-            await conn.execute(domain_sql)
-            self.logger.info("Created JSONB domain for validation")
+        created_count = 0
+        for domain in jsonb_domains:
+            try:
+                # Check if domain already exists
+                domain_exists = await conn.fetchval(
+                    "SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = $1)",
+                    domain['name']
+                )
+
+                if not domain_exists:
+                    await conn.execute(domain['sql'])
+                    created_count += 1
+                    self.logger.info(f"Created JSONB domain: {domain['name']}")
+                else:
+                    self.logger.info(f"JSONB domain already exists: {domain['name']}")
+
+            except Exception as e:
+                if "already exists" not in str(e):
+                    self.logger.warning(f"Failed to create domain {domain['name']}: {e}")
+
+        return {'domains_created': created_count}
 
     async def _create_jsonb_indexes(self, conn: asyncpg.Connection) -> Dict:
         """Create optimized GIN indexes for JSONB columns"""
@@ -249,16 +276,10 @@ class AdvancedFeatureMigration:
             ON comments USING GIN (score jsonb_path_ops)
             """,
 
-            # Opportunity scores evidence GIN index
+            # Market validations evidence GIN index
             """
-            CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_opportunity_scores_evidence_gin
-            ON opportunity_scores USING GIN (evidence jsonb_path_ops)
-            """,
-
-            # Market validations competitor features GIN index
-            """
-            CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_market_validations_competitors_gin
-            ON market_validations USING GIN (competitor_features jsonb_path_ops)
+            CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_market_validations_evidence_gin
+            ON market_validations USING GIN (evidence jsonb_path_ops)
             """,
 
             # Expression index for sentiment labels
@@ -268,11 +289,11 @@ class AdvancedFeatureMigration:
             WHERE (score->>'sentiment_label') IS NOT NULL
             """,
 
-            # Partial index for high-confidence evidence
+            # Partial index for high confidence evidence
             """
             CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_high_confidence_evidence
-            ON opportunity_scores USING GIN (evidence jsonb_path_ops)
-            WHERE (evidence->>'confidence_score')::numeric > 0.8
+            ON market_validations USING GIN (evidence jsonb_path_ops)
+            WHERE (evidence->>'confidence_level')::numeric > 0.8
             """
         ]
 
@@ -298,11 +319,12 @@ class AdvancedFeatureMigration:
         migration_results['comments'] = comments_result
 
         # Standardize opportunity_scores.evidence JSONB structure
-        evidence_result = await self._standardize_evidence_jsonb(conn)
+        # Skip evidence standardization for now - columns don't exist in current schema
+        evidence_result = 0
         migration_results['evidence'] = evidence_result
 
-        # Standardize market_validations JSONB structures
-        market_result = await self._standardize_market_jsonb(conn)
+        # Skip market validation standardization for now - columns don't match current schema
+        market_result = 0
         migration_results['market_validations'] = market_result
 
         return migration_results
@@ -312,28 +334,26 @@ class AdvancedFeatureMigration:
 
         update_sql = """
         UPDATE comments
-        SET score = COALESCE(
-            CASE
-                WHEN jsonb_typeof(score) = 'object' THEN score
-                ELSE jsonb_build_object(
-                    'sentiment_label',
-                    CASE
-                        WHEN score::numeric > 0.1 THEN 'positive'
-                        WHEN score::numeric < -0.1 THEN 'negative'
-                        ELSE 'neutral'
-                    END,
-                    'sentiment_score', COALESCE(score, 0),
-                    'confidence', 0.8,
-                    'analysis_method', 'legacy_migration'
-                )
-            END,
-            jsonb_build_object(
+        SET score = CASE
+            WHEN jsonb_typeof(score) = 'object' THEN score
+            WHEN jsonb_typeof(score) = 'number' THEN jsonb_build_object(
+                'sentiment_label',
+                CASE
+                    WHEN score::text::numeric > 0.1 THEN 'positive'
+                    WHEN score::text::numeric < -0.1 THEN 'negative'
+                    ELSE 'neutral'
+                END,
+                'sentiment_score', score::text::numeric,
+                'confidence', 0.8,
+                'analysis_method', 'legacy_migration'
+            )
+            ELSE jsonb_build_object(
                 'sentiment_label', 'neutral',
                 'sentiment_score', 0,
                 'confidence', 0.5,
                 'analysis_method', 'default'
             )
-        )
+        END
         WHERE score IS NOT NULL
           AND jsonb_typeof(score) != 'object'
         """
