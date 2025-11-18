@@ -22,7 +22,7 @@ This directory contains comprehensive documentation of the RedditHarbor database
 - [x] All JSONB schemas have been versioned
 - [x] The `core_functions` format inconsistency has been **RESOLVED**
 - [x] All DLT primary key dependencies have been **IDENTIFIED & REFACTORED**
-- [ ] Trust validation system dependencies have been mapped
+- [x] Trust validation system dependencies have been **MAPPED & DECOUPLED**
 - [ ] Market validation persistence patterns have been documented
 
 ### Critical Issues Identified
@@ -41,10 +41,12 @@ This directory contains comprehensive documentation of the RedditHarbor database
 - **Status**: ✅ Refactored to centralized constants module
 - **Resolution**: Created `core/dlt/constants.py` with type-safe PK management
 
-**3. Trust Validation System Coupling** (HIGH)
+**3. Trust Validation System Coupling** ✅ **RESOLVED**
 - **Problem**: 12 trust columns tightly coupled across 3 tables
 - **Impact**: Breaking any trust column stops trust validation pipeline
-- **Action**: Document all dependencies before changes (see `pipeline-schema-dependencies.md` Pipeline 3)
+- **Tables**: `submissions`, `app_opportunities`, `trust_validations`
+- **Status**: ✅ Decoupled through service layer and repository pattern
+- **Resolution**: Created `core/trust/` package with TrustValidationService and abstraction layer
 
 **4. GENERATED Column Dependencies** (HIGH)
 - **Problem**: `opportunity_assessment_score` formula references dimension score columns
