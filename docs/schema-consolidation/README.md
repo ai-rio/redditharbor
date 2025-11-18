@@ -16,28 +16,30 @@ This directory contains comprehensive documentation of the RedditHarbor database
 ### Schema Consolidation Prerequisites
 
 **DO NOT proceed with schema consolidation until**:
-- [ ] All 3 new documentation files have been reviewed: `pipeline-schema-dependencies.md`, `jsonb-schema-versions.md`, `hardcoded-references-analysis.md`
-- [ ] All 7 production pipelines have been tested and validated
-- [ ] All 145+ hard-coded column references have been documented
-- [ ] All JSONB schemas have been versioned
-- [ ] The `core_functions` format inconsistency has been resolved
-- [ ] All DLT primary key dependencies have been identified
+- [x] All 3 new documentation files have been reviewed: `pipeline-schema-dependencies.md`, `jsonb-schema-versions.md`, `hardcoded-references-analysis.md`
+- [x] All 7 production pipelines have been tested and validated
+- [x] All 145+ hard-coded column references have been documented
+- [x] All JSONB schemas have been versioned
+- [x] The `core_functions` format inconsistency has been **RESOLVED**
+- [x] All DLT primary key dependencies have been **IDENTIFIED & REFACTORED**
 - [ ] Trust validation system dependencies have been mapped
 - [ ] Market validation persistence patterns have been documented
 
 ### Critical Issues Identified
 
-**1. core_functions Format Inconsistency** (CRITICAL)
+**1. core_functions Format Inconsistency** ✅ **RESOLVED**
 - **Problem**: 3 different serialization formats for same column
 - **Impact**: Data inconsistency, query failures, parsing errors
 - **Files**: `dlt_trust_pipeline.py` (Python list), `dlt_app_opportunities.py` (JSON string), `batch_opportunity_scoring.py` (CSV string)
-- **Action**: MUST standardize before consolidation (see `jsonb-schema-versions.md` Section 1)
+- **Status**: ✅ Standardized to JSON string → JSONB format across all pipelines
+- **Resolution**: Created `core/utils/core_functions_serialization.py` with comprehensive utilities
 
-**2. DLT Merge Disposition Dependencies** (CRITICAL)
-- **Problem**: Hard-coded primary key strings in 4 DLT resources
+**2. DLT Merge Disposition Dependencies** ✅ **RESOLVED**
+- **Problem**: Hard-coded primary key strings in 4+ DLT resources
 - **Impact**: Renaming primary keys breaks DLT merge logic, creates duplicates
-- **Columns**: `submission_id`, `opportunity_id`
-- **Action**: Refactor to constants before any renames (see `hardcoded-references-analysis.md` Part 3)
+- **Columns**: `submission_id`, `opportunity_id`, `comment_id`, `redditor_id`
+- **Status**: ✅ Refactored to centralized constants module
+- **Resolution**: Created `core/dlt/constants.py` with type-safe PK management
 
 **3. Trust Validation System Coupling** (HIGH)
 - **Problem**: 12 trust columns tightly coupled across 3 tables
