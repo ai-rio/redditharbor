@@ -1812,117 +1812,137 @@ def process_batch(
                     analysis["hybrid_results"] = hybrid_results
             if llm_profiler and final_score >= ai_profile_threshold:
                 high_score_count += 1
-                print(f"  🎯 High score ({final_score:.1f}) - generating AI profile...")
 
-                # Generate real AI app profile with cost tracking
-                try:
-                    # Prepare Agno evidence if available from hybrid analysis
-                    agno_evidence = None
-                    if hybrid_results and "llm_analysis" in hybrid_results:
-                        # Extract the Agno analysis data that was used for Option A
-                        agno_evidence = {
-                            "willingness_to_pay_score": hybrid_results[
-                                "llm_analysis"
-                            ].get("willingness_to_pay_score", 50),
-                            "customer_segment": hybrid_results["llm_analysis"].get(
-                                "customer_segment", "Unknown"
-                            ),
-                            "sentiment_toward_payment": hybrid_results[
-                                "llm_analysis"
-                            ].get("payment_sentiment", "Neutral"),
-                            "urgency_level": hybrid_results["llm_analysis"].get(
-                                "urgency_level", "Low"
-                            ),
-                            "mentioned_price_points": hybrid_results[
-                                "llm_analysis"
-                            ].get("mentioned_price_points", []),
-                            "existing_payment_behavior": hybrid_results[
-                                "llm_analysis"
-                            ].get("existing_payment_behavior", "Not specified"),
-                            "payment_friction_indicators": hybrid_results[
-                                "llm_analysis"
-                            ].get("payment_friction_indicators", []),
-                            "confidence": hybrid_results["llm_analysis"].get(
-                                "confidence", 0.7
-                            ),
-                        }
+                # AI PROFILER DEDUPLICATION INTEGRATION
+                # Check if we should run fresh AI profiling or skip for duplicates
+                should_run_profiler, concept_id = should_run_profiler_analysis(submission, supabase)
+
+                if should_run_profiler:
+                    # Fresh AI profiling needed
+                    print(f"  🎯 High score ({final_score:.1f}) - generating fresh AI profile...")
+
+                    # Generate real AI app profile with cost tracking
+                    try:
+                        # Prepare Agno evidence if available from hybrid analysis
+                        agno_evidence = None
+                        if hybrid_results and "llm_analysis" in hybrid_results:
+                            # Extract the Agno analysis data that was used for Option A
+                            agno_evidence = {
+                                "willingness_to_pay_score": hybrid_results[
+                                    "llm_analysis"
+                                ].get("willingness_to_pay_score", 50),
+                                "customer_segment": hybrid_results["llm_analysis"].get(
+                                    "customer_segment", "Unknown"
+                                ),
+                                "sentiment_toward_payment": hybrid_results[
+                                    "llm_analysis"
+                                ].get("payment_sentiment", "Neutral"),
+                                "urgency_level": hybrid_results["llm_analysis"].get(
+                                    "urgency_level", "Low"
+                                ),
+                                "mentioned_price_points": hybrid_results[
+                                    "llm_analysis"
+                                ].get("mentioned_price_points", []),
+                                "existing_payment_behavior": hybrid_results[
+                                    "llm_analysis"
+                                ].get("existing_payment_behavior", "Not specified"),
+                                "payment_friction_indicators": hybrid_results[
+                                    "llm_analysis"
+                                ].get("payment_friction_indicators", []),
+                                "confidence": hybrid_results["llm_analysis"].get(
+                                    "confidence", 0.7
+                                ),
+                            }
                         print(
                             f"  🧠 Evidence-based profiling: Using Agno analysis (WTP: {agno_evidence['willingness_to_pay_score']}/100, Segment: {agno_evidence['customer_segment']})"
                         )
 
                     # Use the enhanced evidence-based profiling method
-                    if agno_evidence:
-                        # Use dedicated evidence-based method
-                        ai_profile = llm_profiler.generate_app_profile_with_evidence(
-                            text=formatted["text"],
-                            title=formatted["title"],
-                            subreddit=formatted["subreddit"],
-                            score=final_score,
-                            agno_analysis=agno_evidence,
-                        )
-                        # Extract cost data from profile (embedded by evidence-based method)
-                        cost_data = ai_profile.get("cost_tracking", {})
-                        print("  ✅ Enhanced evidence-based profiling completed")
-                    else:
-                        # Fallback to standard method with cost tracking
-                        ai_profile, cost_data = (
-                            llm_profiler.generate_app_profile_with_costs(
+                        if agno_evidence:
+                            # Use dedicated evidence-based method
+                            ai_profile = llm_profiler.generate_app_profile_with_evidence(
                                 text=formatted["text"],
                                 title=formatted["title"],
                                 subreddit=formatted["subreddit"],
                                 score=final_score,
                                 agno_analysis=agno_evidence,
                             )
+                            # Extract cost data from profile (embedded by evidence-based method)
+                            cost_data = ai_profile.get("cost_tracking", {})
+                            print("  ✅ Enhanced evidence-based profiling completed")
+                        else:
+                            # Fallback to standard method with cost tracking
+                            ai_profile, cost_data = (
+                                llm_profiler.generate_app_profile_with_costs(
+                                    text=formatted["text"],
+                                    title=formatted["title"],
+                                    subreddit=formatted["subreddit"],
+                                score=final_score,
+                                agno_analysis=agno_evidence,
+                            )
                         )
                         print("  🤖 Standard AI profiling (no evidence available)")
-                    # Merge AI profile into analysis and store cost data
-                    analysis.update(ai_profile)
-                    analysis["cost_tracking"] = (
-                        cost_data  # Ensure cost data is preserved
-                    )
 
-                    # Enhanced evidence validation logging
-                    if agno_evidence and "evidence_validation" in ai_profile:
-                        validation = ai_profile["evidence_validation"]
-                        alignment_score = validation.get("alignment_score", 0)
-                        validation_status = validation.get("overall_status", "unknown")
-                        discrepancies = validation.get("discrepancies", [])
-                        warnings = validation.get("warnings", [])
-                        confidence_metrics = validation.get("confidence_metrics", {})
-                        evidence_strength = validation.get(
-                            "evidence_strength", "medium"
+                        # Merge AI profile into analysis and store cost data
+                        analysis.update(ai_profile)
+                        analysis["cost_tracking"] = (
+                            cost_data  # Ensure cost data is preserved
                         )
 
-                        # Determine validation icon based on alignment
-                        if alignment_score >= 80:
-                            validation_icon = "🟢"
-                        elif alignment_score >= 60:
-                            validation_icon = "🟡"
-                        else:
-                            validation_icon = "🔴"
+                        # Update concept profiler stats for fresh profiling
+                        update_concept_profiler_stats(concept_id, ai_profile, supabase)
 
-                        print(
-                            f"  {validation_icon} Evidence Validation: {validation_status.replace('_', ' ').title()} ({alignment_score:.1f}% alignment)"
-                        )
-                        print(
-                            f"     Evidence Strength: {evidence_strength.title()} (Confidence: {confidence_metrics.get('evidence_confidence', 0):.2f})"
-                        )
+                        # Enhanced evidence validation logging
+                        validation = None
+                        alignment_score = 0
+                        validation_status = "unknown"
+                        discrepancies = []
+                        warnings = []
+                        confidence_metrics = {}
+                        evidence_strength = "medium"
+                        validation_icon = "🔴"  # Default icon
 
-                        # Show detailed validation results
-                        validations = validation.get("validations", {})
-                        if validations:
-                            print("     Validation Details:")
-                            for validation_name, validation_data in validations.items():
-                                if (
-                                    isinstance(validation_data, dict)
-                                    and "score" in validation_data
-                                ):
-                                    score = (
-                                        validation_data["score"] * 100
-                                    )  # Convert to percentage
-                                    status_icon = (
-                                        "✅"
-                                        if validation_data.get("aligned", False)
+                        if agno_evidence and "evidence_validation" in ai_profile:
+                            validation = ai_profile["evidence_validation"]
+                            alignment_score = validation.get("alignment_score", 0)
+                            validation_status = validation.get("overall_status", "unknown")
+                            discrepancies = validation.get("discrepancies", [])
+                            warnings = validation.get("warnings", [])
+                            confidence_metrics = validation.get("confidence_metrics", {})
+                            evidence_strength = validation.get(
+                                "evidence_strength", "medium"
+                            )
+
+                            # Determine validation icon based on alignment
+                            if alignment_score >= 80:
+                                validation_icon = "🟢"
+                            elif alignment_score >= 60:
+                                validation_icon = "🟡"
+                            else:
+                                validation_icon = "🔴"
+
+                            print(
+                                f"  {validation_icon} Evidence Validation: {validation_status.replace('_', ' ').title()} ({alignment_score:.1f}% alignment)"
+                            )
+                            print(
+                                f"     Evidence Strength: {evidence_strength.title()} (Confidence: {confidence_metrics.get('evidence_confidence', 0):.2f})"
+                            )
+
+                            # Show detailed validation results
+                            validations = validation.get("validations", {})
+                            if validations:
+                                print("     Validation Details:")
+                                for validation_name, validation_data in validations.items():
+                                    if (
+                                        isinstance(validation_data, dict)
+                                        and "score" in validation_data
+                                        ):
+                                            score = (
+                                                validation_data["score"] * 100
+                                            )  # Convert to percentage
+                                            status_icon = (
+                                                "✅"
+                                                if validation_data.get("aligned", False)
                                         else "❌"
                                     )
                                     print(
@@ -1957,26 +1977,26 @@ def process_batch(
                             )
 
                     # Log cost information
-                    cost_usd = cost_data.get("total_cost_usd", 0.0)
-                    tokens = cost_data.get("total_tokens", 0)
-                    evidence_indicator = "🧠" if agno_evidence else "🤖"
-                    print(
-                        f"  {evidence_indicator} AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)"
-                    )
-
-                    # PHASE 3: Market Data Validation (after AI profiling)
-                    # Only perform if we have app_concept from AI profile
-                    market_validation_threshold = HYBRID_STRATEGY_CONFIG[
-                        "market_validation"
-                    ]["threshold"]
-                    if (
-                        HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]
-                        and final_score >= market_validation_threshold
-                        and ai_profile.get("app_concept")
-                    ):
+                        cost_usd = cost_data.get("total_cost_usd", 0.0)
+                        tokens = cost_data.get("total_tokens", 0)
+                        evidence_indicator = "🧠" if agno_evidence else "🤖"
                         print(
-                            f"  📊 Performing market validation (score {final_score:.1f} >= threshold {market_validation_threshold})..."
+                            f"  {evidence_indicator} AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)"
                         )
+
+                        # PHASE 3: Market Data Validation (after AI profiling)
+                        # Only perform if we have app_concept from AI profile
+                        market_validation_threshold = HYBRID_STRATEGY_CONFIG[
+                            "market_validation"
+                        ]["threshold"]
+                        if (
+                            HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]
+                            and final_score >= market_validation_threshold
+                            and ai_profile.get("app_concept")
+                        ):
+                            print(
+                                f"  📊 Performing market validation (score {final_score:.1f} >= threshold {market_validation_threshold})..."
+                            )
 
                         # Prepare data for market validation
                         validation_input = {
@@ -2052,18 +2072,103 @@ def process_batch(
                             print(
                                 f"     Validation Cost: ${market_evidence.total_cost:.6f}"
                             )
+                        elif not HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]:
+                            pass  # Silently skip if disabled
+                        elif not HYBRID_STRATEGY_CONFIG["market_validation"][
+                            "jina_api_key"
+                        ]:
+                            pass  # Already warned in perform_market_validation
                         else:
                             print(f"  ⚠️  Market validation skipped or failed")
-                    elif not HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]:
-                        pass  # Silently skip if disabled
-                    elif not HYBRID_STRATEGY_CONFIG["market_validation"][
-                        "jina_api_key"
-                    ]:
-                        pass  # Already warned in perform_market_validation
 
-                except Exception as e:
-                    print(f"  ⚠️  LLM profiling failed: {e}")
-                    # Continue with basic scoring
+                    except Exception as e:
+                        print(f"  ⚠️  Fresh profiling failed: {e}")
+                        # Continue with basic scoring without AI profile
+
+                else:
+                    # Skip AI profiling and copy from primary opportunity
+                    print(f"  🔄 High score ({final_score:.1f}) - skipping AI profiling, copying from concept {concept_id}...")
+
+                    # Copy AI profile from primary opportunity
+                    copied_profile = copy_profiler_from_primary(submission, concept_id, supabase)
+
+                    if copied_profile:
+                        # Successfully copied profile
+                        analysis.update(copied_profile)
+
+                        # Ensure cost_tracking is set with copy metadata
+                        analysis["cost_tracking"] = {
+                            "total_cost_usd": 0.0,  # No cost for copied profiles
+                            "total_tokens": 0,
+                            "operation_type": "copied_from_primary",
+                            "concept_id": concept_id,
+                            "copied_at": datetime.now().isoformat()
+                        }
+
+                        print(f"  ✅ AI profile copied successfully from concept {concept_id}")
+                    else:
+                        # Copy failed, fallback to fresh profiling
+                        print(f"  ⚠️  Failed to copy AI profile from concept {concept_id}, running fresh profiling as fallback...")
+
+                        # Generate real AI app profile with cost tracking
+                        try:
+                            # Prepare Agno evidence if available from hybrid analysis
+                            agno_evidence = None
+                            if hybrid_results and "llm_analysis" in hybrid_results:
+                                # Extract the Agno analysis data that was used for Option A
+                                agno_evidence = {
+                                    "willingness_to_pay_score": hybrid_results["llm_analysis"].get("willingness_to_pay_score", 50),
+                                    "customer_segment": hybrid_results["llm_analysis"].get("customer_segment", "Unknown"),
+                                    "sentiment_toward_payment": hybrid_results["llm_analysis"].get("payment_sentiment", "Neutral"),
+                                    "urgency_level": hybrid_results["llm_analysis"].get("urgency_level", "Low"),
+                                    "mentioned_price_points": hybrid_results["llm_analysis"].get("mentioned_price_points", []),
+                                    "existing_payment_behavior": hybrid_results["llm_analysis"].get("existing_payment_behavior", "Not specified"),
+                                    "payment_friction_indicators": hybrid_results["llm_analysis"].get("payment_friction_indicators", []),
+                                    "confidence": hybrid_results["llm_analysis"].get("confidence", 0.7),
+                                }
+                                print(f"  🧠 Evidence-based profiling: Using Agno analysis (WTP: {agno_evidence['willingness_to_pay_score']}/100)")
+
+                            # Use the enhanced evidence-based profiling method
+                            if agno_evidence:
+                                # Use dedicated evidence-based method
+                                ai_profile = llm_profiler.generate_app_profile_with_evidence(
+                                    text=formatted["text"],
+                                    title=formatted["title"],
+                                    subreddit=formatted["subreddit"],
+                                    score=final_score,
+                                    agno_analysis=agno_evidence,
+                                )
+                                # Extract cost data from profile (embedded by evidence-based method)
+                                cost_data = ai_profile.get("cost_tracking", {})
+                                print("  ✅ Enhanced evidence-based profiling completed (fallback)")
+                            else:
+                                # Fallback to standard method with cost tracking
+                                ai_profile, cost_data = llm_profiler.generate_app_profile_with_costs(
+                                    text=formatted["text"],
+                                    title=formatted["title"],
+                                    subreddit=formatted["subreddit"],
+                                    score=final_score,
+                                    agno_analysis=agno_evidence,
+                                )
+                                print("  🤖 Standard AI profiling (fallback - no evidence available)")
+
+                            # Merge AI profile into analysis and store cost data
+                            analysis.update(ai_profile)
+                            analysis["cost_tracking"] = cost_data
+
+                            # Update concept profiler stats for fallback profiling
+                            update_concept_profiler_stats(concept_id, ai_profile, supabase)
+
+                            # Log cost information for fallback
+                            cost_usd = cost_data.get("total_cost_usd", 0.0)
+                            tokens = cost_data.get("total_tokens", 0)
+                            evidence_indicator = "🧠" if agno_evidence else "🤖"
+                            print(f"  {evidence_indicator} Fallback AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)")
+
+                        except Exception as fallback_e:
+                            print(f"  ⚠️  Fallback AI profiling also failed: {fallback_e}")
+                            # Continue with basic scoring without AI profile
+
             else:
                 # Score too low for AI enrichment
                 print(
