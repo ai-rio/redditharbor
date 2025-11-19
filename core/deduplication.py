@@ -81,7 +81,7 @@ class SimpleDeduplicator:
         if normalized.startswith("mobile app:"):
             normalized = "app:" + normalized[11:]  # Replace "mobile app:" with "app:"
         elif normalized.startswith("web app:"):
-            normalized = "app:" + normalized[8:]   # Replace "web app:" with "app:"
+            normalized = "app:" + normalized[8:]  # Replace "web app:" with "app:"
         else:
             # Handle standalone replacements
             normalized = normalized.replace("mobile app", "app")
@@ -220,7 +220,7 @@ class SimpleDeduplicator:
 
     def _ensure_opportunity_exists(self, opportunity_id: str) -> bool:
         """
-        Ensure opportunity exists in opportunities_unified table for foreign key constraint.
+        Ensure opportunity exists in opportunities_unified table for foreign key.
         Creates a minimal opportunity record if it doesn't exist.
 
         Args:
@@ -248,7 +248,7 @@ class SimpleDeduplicator:
                 "title": f"Test Opportunity {opportunity_id[:8]}",
                 "app_concept": "Test concept for deduplication",
                 "created_at": time.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                "updated_at": time.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                "updated_at": time.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
             }
 
             create_response = (
@@ -258,7 +258,9 @@ class SimpleDeduplicator:
             )
 
             if create_response.data and len(create_response.data) > 0:
-                logger.info(f"Created test opportunity {opportunity_id} for foreign key constraint")
+                logger.info(
+                    f"Created test opportunity {opportunity_id} for foreign key"
+                )
                 return True
             else:
                 logger.error(f"Failed to create test opportunity {opportunity_id}")
@@ -314,7 +316,7 @@ class SimpleDeduplicator:
                     "p_opportunity_id": opportunity_id,
                     "p_concept_id": concept_id,
                     "p_primary_opportunity_id": primary_opportunity_id,
-                }
+                },
             ).execute()
 
             if response.data is True:
@@ -359,7 +361,7 @@ class SimpleDeduplicator:
                 {
                     "p_opportunity_id": opportunity_id,
                     "p_concept_id": concept_id,
-                }
+                },
             ).execute()
 
             if response.data is True:
@@ -414,7 +416,7 @@ class SimpleDeduplicator:
             "normalized_concept": None,
             "message": "",
             "processing_time": 0.0,
-            "error": None
+            "error": None,
         }
 
         try:

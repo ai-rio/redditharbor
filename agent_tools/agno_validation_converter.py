@@ -29,7 +29,7 @@ def convert_agno_analysis_to_validation_evidence(
     agno_analysis: MonetizationAnalysis,
     submission_text: str,
     subreddit: str,
-    additional_metadata: dict[str, Any] | None = None
+    additional_metadata: dict[str, Any] | None = None,
 ) -> ValidationEvidence:
     """
     Convert Agno MonetizationAnalysis to ValidationEvidence format.
@@ -55,7 +55,7 @@ def convert_agno_analysis_to_validation_evidence(
     # Data quality based on confidence and how complete the analysis is
     data_quality_score = min(
         agno_analysis.confidence * 100,  # Convert confidence 0-1 to 0-100
-        90.0  # Cap at 90 since this is derived from LLM analysis, not hard data
+        90.0,  # Cap at 90 since this is derived from LLM analysis, not hard data
     )
 
     # Build comprehensive reasoning from Agno analysis
@@ -68,9 +68,8 @@ def convert_agno_analysis_to_validation_evidence(
     ]
 
     if agno_analysis.mentioned_price_points:
-        reasoning_parts.append(
-            f"Price Points Mentioned: {', '.join(agno_analysis.mentioned_price_points[:3])}"
-        )
+        price_points = ', '.join(agno_analysis.mentioned_price_points[:3])
+        reasoning_parts.append(f"Price Points Mentioned: {price_points}")
 
     if agno_analysis.existing_payment_behavior != "Not specified":
         reasoning_parts.append(
@@ -84,14 +83,14 @@ def convert_agno_analysis_to_validation_evidence(
         reasoning += f"\n\nAgno Reasoning: {agno_analysis.reasoning}"
 
     # Create competitor pricing from price points mentioned
-    competitor_pricing = []
     if agno_analysis.mentioned_price_points:
         # Create a synthetic competitor entry from mentioned price points
         price_tiers = []
         for price in agno_analysis.mentioned_price_points[:3]:  # Limit to top 3
             # Clean price text to extract numeric value
             import re
-            price_match = re.search(r'\$?(\d+)', price)
+
+            price_match = re.search(r"\$?(\d+)", price)
             if price_match:
                 numeric_price = int(price_match.group(1))
                 if numeric_price < 20:
@@ -103,11 +102,15 @@ def convert_agno_analysis_to_validation_evidence(
                 else:
                     tier_name = "Enterprise"
 
-                price_tiers.append({
-                    "tier": tier_name,
-                    "price": price,
-                    "features": [f"Inferred from Reddit discussion in r/{subreddit}"]
-                })
+                price_tiers.append(
+                    {
+                        "tier": tier_name,
+                        "price": price,
+                        "features": [
+                            f"Inferred from Reddit discussion in r/{subreddit}"
+                        ],
+                    }
+                )
 
         if price_tiers:
             competitor_pricing_data = {
@@ -117,25 +120,25 @@ def convert_agno_analysis_to_validation_evidence(
                 "target_market": agno_analysis.customer_segment,
                 "source_url": f"https://reddit.com/r/{subreddit}",
                 "extracted_at": datetime.now(UTC),
-                "confidence": agno_analysis.confidence
+                "confidence": agno_analysis.confidence,
             }
+            # Note: competitor_pricing_data is available for future use
             # Note: We don't directly instantiate CompetitorPricing here
             # to avoid import issues. The persistence layer will handle serialization.
 
     # Create market size estimation based on customer segment
-    market_size_data = None
     if agno_analysis.customer_segment != "Unknown":
         # Provide basic market size context
         if agno_analysis.customer_segment == "B2B":
-            market_size_data = {
+            {
                 "tam_value": "$500B+",  # Global B2B software market
-                "sam_value": "$50B+",   # Serviceable B2B market
-                "som_value": "$1B+",    # Obtainable market
+                "sam_value": "$50B+",  # Serviceable B2B market
+                "som_value": "$1B+",  # Obtainable market
                 "growth_rate": "12% CAGR",
                 "year": 2024,
                 "source_url": "Agno B2B Market Intelligence",
                 "source_name": "Agno Multi-Agent Analysis",
-                "confidence": agno_analysis.confidence * 0.7  # Lower confidence for estimates
+                "confidence": agno_analysis.confidence * 0.7,  # Lower confidence for estimates
             }
         elif agno_analysis.customer_segment == "B2C":
             market_size_data = {
@@ -146,8 +149,9 @@ def convert_agno_analysis_to_validation_evidence(
                 "year": 2024,
                 "source_url": "Agno B2C Market Intelligence",
                 "source_name": "Agno Multi-Agent Analysis",
-                "confidence": agno_analysis.confidence * 0.7
+                "confidence": agno_analysis.confidence * 0.7,
             }
+            # Note: market_size_data is available for future use
 
     # Create ValidationEvidence object
     evidence = ValidationEvidence(
@@ -167,7 +171,7 @@ def convert_agno_analysis_to_validation_evidence(
             "mentioned_price_points": agno_analysis.mentioned_price_points,
             "analysis_source": "agno_multi_agent",
             "subreddit": subreddit,
-            "additional_metadata": additional_metadata or {}
+            "additional_metadata": additional_metadata or {},
         },
         validation_score=validation_score,
         data_quality_score=data_quality_score,
@@ -175,7 +179,7 @@ def convert_agno_analysis_to_validation_evidence(
         search_queries_used=[f"market_analysis_{subreddit}"],
         urls_fetched=[],  # Agno doesn't use external URLs like Jina
         timestamp=datetime.now(UTC),
-        total_cost=0.01  # Approximate cost from Agno analysis
+        total_cost=0.01,  # Approximate cost from Agno analysis
     )
 
     return evidence
@@ -186,7 +190,7 @@ def prepare_agno_persistence_data(
     app_opportunity_id: str,
     submission_id: str,
     subreddit: str,
-    additional_metadata: dict[str, Any] | None = None
+    additional_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Prepare Agno analysis data for persistence in a format compatible with
@@ -210,7 +214,7 @@ def prepare_agno_persistence_data(
         agno_analysis=agno_analysis,
         submission_text="",  # Not needed for persistence
         subreddit=subreddit,
-        additional_metadata=additional_metadata
+        additional_metadata=additional_metadata,
     )
 
     # Prepare data for persistence
@@ -219,7 +223,7 @@ def prepare_agno_persistence_data(
         "opportunity_id": submission_id,
         "evidence": evidence,
         "validation_type": "agno_market_analysis",
-        "validation_source": "agno_agents"
+        "validation_source": "agno_agents",
     }
 
     return persistence_data
