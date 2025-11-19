@@ -9,6 +9,7 @@ fingerprints to identify duplicate business concepts from Reddit data.
 
 import hashlib
 import logging
+import time
 
 try:
     from supabase import Client, create_client
@@ -113,7 +114,7 @@ class SimpleDeduplicator:
             response = (
                 self.supabase.table("business_concepts")
                 .select("*")
-                .eq("fingerprint", fingerprint)
+                .eq("concept_fingerprint", fingerprint)  # Updated field name
                 .execute()
             )
 
@@ -152,9 +153,9 @@ class SimpleDeduplicator:
         try:
             concept_data = {
                 "concept_name": concept_name,
-                "fingerprint": fingerprint,
-                "opportunity_id": opportunity_id,
-                "opportunity_count": 1,  # Start with 1 opportunity
+                "concept_fingerprint": fingerprint,  # Updated field name
+                "primary_opportunity_id": opportunity_id,  # Updated field name
+                "submission_count": 1,  # Updated field name
             }
 
             response = (
@@ -187,17 +188,13 @@ class SimpleDeduplicator:
             concept_id: ID of the concept to update
         """
         try:
-            # Call database function to update opportunity count
-            response = self.supabase.rpc(
-                "update_concept_stats", {"concept_id": concept_id}
+            # Call database function to increment opportunity count
+            self.supabase.rpc(
+                "increment_concept_count", {"concept_id": concept_id}
             ).execute()
 
-            if response.data:
-                logger.info(f"Updated stats for concept ID: {concept_id}")
-            else:
-                logger.warning(
-                    f"No data returned when updating stats for concept ID: {concept_id}"
-                )
+            # Note: increment_concept_count doesn't return data, just performs update
+            logger.info(f"Updated stats for concept ID: {concept_id}")
 
         except Exception as e:
             logger.error(f"Error updating concept stats for ID {concept_id}: {e}")
@@ -217,21 +214,17 @@ class SimpleDeduplicator:
             True if successful, False otherwise
         """
         try:
-            update_data = {
-                "concept_id": concept_id,
-                "is_duplicate": True,
-                "primary_opportunity_id": primary_opportunity_id,
-                "deduplication_status": "duplicate",
-            }
+            # Use database function for atomic operation
+            response = self.supabase.rpc(
+                "mark_opportunity_duplicate",
+                {
+                    "p_opportunity_id": opportunity_id,
+                    "p_concept_id": concept_id,
+                    "p_primary_opportunity_id": primary_opportunity_id,
+                }
+            ).execute()
 
-            response = (
-                self.supabase.table("opportunities")
-                .update(update_data)
-                .eq("opportunity_id", opportunity_id)
-                .execute()
-            )
-
-            if response.data and len(response.data) > 0:
+            if response.data is True:
                 msg = (
                     f"Marked opportunity {opportunity_id} as duplicate of "
                     f"{primary_opportunity_id}"
@@ -262,21 +255,16 @@ class SimpleDeduplicator:
             True if successful, False otherwise
         """
         try:
-            update_data = {
-                "concept_id": concept_id,
-                "is_duplicate": False,
-                "primary_opportunity_id": None,
-                "deduplication_status": "unique",
-            }
+            # Use database function for atomic operation
+            response = self.supabase.rpc(
+                "mark_opportunity_unique",
+                {
+                    "p_opportunity_id": opportunity_id,
+                    "p_concept_id": concept_id,
+                }
+            ).execute()
 
-            response = (
-                self.supabase.table("opportunities")
-                .update(update_data)
-                .eq("opportunity_id", opportunity_id)
-                .execute()
-            )
-
-            if response.data and len(response.data) > 0:
+            if response.data is True:
                 logger.info(f"Marked opportunity {opportunity_id} as unique")
                 return True
             else:
@@ -286,6 +274,179 @@ class SimpleDeduplicator:
         except Exception as e:
             logger.error(f"Error marking opportunity {opportunity_id} as unique: {e}")
             return False
+
+    def process_opportunity(self, opportunity: dict) -> dict:
+        """
+        Process single opportunity for deduplication.
+
+        This method implements the complete deduplication workflow:
+        1. Validates required fields (id, app_concept)
+        2. Normalizes the concept and generates fingerprint
+        3. Checks for existing concepts using fingerprint
+        4. If duplicate found: marks as duplicate and updates stats
+        5. If unique: creates new business concept and marks as unique
+        6. Returns comprehensive result with success status
+
+        Args:
+            opportunity: Dictionary containing opportunity data with at least:
+                - id: Unique opportunity identifier
+                - app_concept: Business concept description
+
+        Returns:
+            Dictionary with comprehensive processing result:
+                - success: bool - Overall processing success
+                - is_duplicate: bool - Whether opportunity was identified as duplicate
+                - concept_id: Optional[int] - Business concept ID if successful
+                - opportunity_id: Optional[str] - Opportunity ID from input
+                - fingerprint: Optional[str] - Generated fingerprint
+                - normalized_concept: Optional[str] - Normalized concept text
+                - message: str - Success or error message
+                - processing_time: float - Time taken in seconds
+                - error: Optional[str] - Error details if failed
+        """
+        start_time = time.time()
+
+        # Initialize result structure
+        result = {
+            "success": False,
+            "is_duplicate": False,
+            "concept_id": None,
+            "opportunity_id": None,
+            "fingerprint": None,
+            "normalized_concept": None,
+            "message": "",
+            "processing_time": 0.0,
+            "error": None
+        }
+
+        try:
+            # Step 1: Validate required fields
+            if not opportunity:
+                result["error"] = "Opportunity dictionary is required"
+                result["message"] = "Validation failed: empty opportunity"
+                return result
+
+            opportunity_id = opportunity.get("id")
+            app_concept = opportunity.get("app_concept")
+
+            if not opportunity_id:
+                result["error"] = "Missing required field: id"
+                result["message"] = "Validation failed: missing opportunity ID"
+                return result
+
+            if not app_concept:
+                result["error"] = "Missing required field: app_concept"
+                result["message"] = "Validation failed: missing app concept"
+                result["opportunity_id"] = opportunity_id
+                return result
+
+            # Store opportunity_id for all subsequent operations
+            result["opportunity_id"] = opportunity_id
+
+            # Step 2: Normalize concept and generate fingerprint
+            normalized_concept = self.normalize_concept(app_concept)
+            result["normalized_concept"] = normalized_concept
+
+            if not normalized_concept:
+                result["error"] = "Concept becomes empty after normalization"
+                result["message"] = "Processing failed: empty normalized concept"
+                return result
+
+            fingerprint = self.generate_fingerprint(app_concept)
+            result["fingerprint"] = fingerprint
+
+            # Step 3: Check for existing concept
+            logger.debug(
+                f"Processing opportunity {opportunity_id} with concept: "
+                f"'{normalized_concept[:50]}...', fingerprint: {fingerprint[:8]}..."
+            )
+
+            existing_concept = self.find_existing_concept(fingerprint)
+
+            if existing_concept:
+                # Step 4a: Handle duplicate opportunity
+                logger.info(
+                    f"Found duplicate concept for opportunity {opportunity_id}: "
+                    f"existing concept ID {existing_concept['id']}"
+                )
+
+                # Update concept statistics
+                self.update_concept_stats(existing_concept["id"])
+
+                # Mark opportunity as duplicate
+                concept_id = existing_concept["id"]
+                primary_opportunity_id = existing_concept.get(
+                    "primary_opportunity_id", opportunity_id
+                )
+
+                duplicate_marked = self.mark_as_duplicate(
+                    opportunity_id, concept_id, primary_opportunity_id
+                )
+
+                if not duplicate_marked:
+                    result["error"] = "Failed to mark opportunity as duplicate"
+                    result["message"] = "Processing failed: could not mark as duplicate"
+                    return result
+
+                # Success - duplicate found and processed
+                result["success"] = True
+                result["is_duplicate"] = True
+                result["concept_id"] = concept_id
+                result["message"] = "Processed duplicate opportunity successfully"
+
+                logger.info(
+                    f"Successfully processed duplicate opportunity {opportunity_id} "
+                    f"with concept ID {concept_id}"
+                )
+
+            else:
+                # Step 4b: Handle unique opportunity
+                logger.info(
+                    f"New unique concept for opportunity {opportunity_id}: "
+                    f"'{normalized_concept[:50]}...'"
+                )
+
+                # Create new business concept
+                concept_id = self.create_business_concept(
+                    normalized_concept, fingerprint, opportunity_id
+                )
+
+                if concept_id is None:
+                    result["error"] = "Failed to create business concept"
+                    result["message"] = "Processing failed: could not create concept"
+                    return result
+
+                # Mark opportunity as unique
+                unique_marked = self.mark_as_unique(opportunity_id, concept_id)
+
+                if not unique_marked:
+                    result["error"] = "Failed to mark opportunity as unique"
+                    result["message"] = "Processing failed: could not mark as unique"
+                    return result
+
+                # Success - unique concept created and processed
+                result["success"] = True
+                result["is_duplicate"] = False
+                result["concept_id"] = concept_id
+                result["message"] = "Processed unique opportunity successfully"
+
+                logger.info(
+                    f"Successfully processed unique opportunity {opportunity_id} "
+                    f"with new concept ID {concept_id}"
+                )
+
+        except Exception as e:
+            # Handle unexpected errors
+            error_msg = f"Unexpected error processing opportunity: {e}"
+            logger.error(error_msg)
+            result["error"] = error_msg
+            result["message"] = "Processing failed: unexpected error"
+
+        finally:
+            # Calculate processing time
+            result["processing_time"] = time.time() - start_time
+
+        return result
 
 
 # Future extension methods (to be implemented in later tasks)
