@@ -1,3 +1,20 @@
+> **📌 DEPRECATION NOTICE**
+> 
+> **Status**: This document has been superseded  
+> **Date**: 2025-11-19  
+> **Replacement**: [Unified Pipeline Refactoring Plan](unified-pipeline-refactoring/README.md)
+> 
+> This file is kept for historical reference only. The content has been reorganized into an executable, phase-by-phase plan with:
+> - 11 detailed phase files
+> - Complete implementation guides
+> - Executable checklists
+> - Rollback procedures
+> - Progress tracking
+> 
+> **For current planning, see**: [docs/plans/unified-pipeline-refactoring/](unified-pipeline-refactoring/)
+> 
+> ---
+> 
 # Unified Pipeline Migration Strategy
 
 **Document Version**: 1.0
