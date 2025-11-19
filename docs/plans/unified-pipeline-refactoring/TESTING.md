@@ -6,11 +6,11 @@ This document helps you quickly find the right testing prompt for your local AI 
 
 ### For Local AI Agents
 
-**Current Phase**: Phase 2 - Agent Tools Restructuring
+**Current Phase**: Phase 3 - Extract Utilities
 
 **Read this prompt**:
 ```bash
-cat docs/plans/unified-pipeline-refactoring/prompts/phase-2-local-testing-prompt.md
+cat docs/plans/unified-pipeline-refactoring/prompts/phase-3-task-1-local-testing-prompt.md
 ```
 
 **Then execute the testing instructions step-by-step.**
@@ -22,8 +22,8 @@ cat docs/plans/unified-pipeline-refactoring/prompts/phase-2-local-testing-prompt
 | Phase | Status | Prompt File |
 |-------|--------|-------------|
 | **Phase 1** | ✅ Complete & Validated | [phase-1-local-testing-prompt.md](prompts/phase-1-local-testing-prompt.md) |
-| **Phase 2** | 🟡 Awaiting Local Testing | [phase-2-local-testing-prompt.md](prompts/phase-2-local-testing-prompt.md) |
-| **Phase 3** | ⏸️ Not Started | (Coming soon) |
+| **Phase 2** | ✅ Complete & Validated | [phase-2-local-testing-prompt.md](prompts/phase-2-local-testing-prompt.md) |
+| **Phase 3 Task 1** | 🟡 Awaiting Local Testing | [phase-3-task-1-local-testing-prompt.md](prompts/phase-3-task-1-local-testing-prompt.md) |
 | **Phase 4** | ⏸️ Not Started | (Coming soon) |
 
 ---
@@ -40,9 +40,9 @@ git pull
 
 ### 2. Read the Testing Prompt
 
-For Phase 2:
+For Phase 3 Task 1:
 ```bash
-cat docs/plans/unified-pipeline-refactoring/prompts/phase-2-local-testing-prompt.md
+cat docs/plans/unified-pipeline-refactoring/prompts/phase-3-task-1-local-testing-prompt.md
 ```
 
 ### 3. Execute Tests
@@ -53,14 +53,14 @@ Follow the step-by-step instructions in the prompt.
 
 Save your test results to:
 ```
-docs/plans/unified-pipeline-refactoring/local-ai-report/phase-2-testing-report.md
+docs/plans/unified-pipeline-refactoring/local-ai-report/phase-3-task-1-testing-report.md
 ```
 
 ### 5. Commit and Push
 
 ```bash
-git add docs/plans/unified-pipeline-refactoring/local-ai-report/phase-2-testing-report.md
-git commit -m "test: Add Phase 2 local testing report"
+git add docs/plans/unified-pipeline-refactoring/local-ai-report/phase-3-task-1-testing-report.md
+git commit -m "test: Add Phase 3 Task 1 local testing report"
 git push
 ```
 
@@ -74,7 +74,8 @@ docs/plans/unified-pipeline-refactoring/local-ai-report/
 ```
 
 **Phase 1**: [phase-1-testing-report.md](local-ai-report/phase-1-testing-report.md) - ✅ Complete
-**Phase 2**: Coming soon (awaiting local testing)
+**Phase 2**: [phase-2-testing-report.md](local-ai-report/phase-2-testing-report.md) - ✅ Complete
+**Phase 3 Task 1**: Awaiting local testing
 
 ---
 
@@ -87,4 +88,4 @@ docs/plans/unified-pipeline-refactoring/local-ai-report/
 ---
 
 **Last Updated**: 2025-11-19
-**Current Testing Phase**: Phase 2
+**Current Testing Phase**: Phase 3 Task 1
