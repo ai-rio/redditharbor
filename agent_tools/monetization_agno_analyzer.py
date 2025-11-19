@@ -1417,10 +1417,17 @@ class MonetizationAgnoAnalyzer:
 
         return friction if friction else ["none_detected"]
 
-    def _determine_urgency(self, text: str, evidence: str) -> str:
+    def _determine_urgency(self, text: str, evidence: str | list) -> str:
         """Determine urgency level from text and evidence"""
         text_lower = text.lower()
-        evidence_lower = evidence.lower() if evidence else ""
+
+        # Handle evidence that might be a list from Agno agents
+        if isinstance(evidence, list):
+            evidence_text = " ".join(str(item) for item in evidence if item)
+        else:
+            evidence_text = evidence
+
+        evidence_lower = evidence_text.lower() if evidence_text else ""
         combined = f"{text_lower} {evidence_lower}"
 
         # Critical urgency

@@ -54,6 +54,7 @@ from core.activity_validation import (
     collect_activity_metrics,
     get_active_subreddits,
 )
+from core.dlt import PK_DISPLAY_NAME, PK_ID
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -196,7 +197,7 @@ def reddit_activity_aware(
 @dlt.resource(
     name="active_subreddits",
     write_disposition="merge",
-    primary_key="display_name",
+    primary_key=PK_DISPLAY_NAME,
     columns={
         "display_name": {"data_type": "text", "nullable": False},
         "subscribers": {"data_type": "bigint", "nullable": True},
@@ -299,7 +300,7 @@ def active_subreddits(
 @dlt.resource(
     name="validated_comments",
     write_disposition="merge",
-    primary_key="id",
+    primary_key=PK_ID,
     columns={
         "id": {"data_type": "text", "nullable": False},
         "subreddit": {"data_type": "text", "nullable": False},
@@ -456,7 +457,7 @@ def validated_comments(
 @dlt.resource(
     name="activity_trends",
     write_disposition="merge",
-    primary_key="subreddit_name",
+    primary_key=PK_DISPLAY_NAME,
     columns={
         "subreddit_name": {"data_type": "text", "nullable": False},
         "time_filter": {"data_type": "text", "nullable": False},

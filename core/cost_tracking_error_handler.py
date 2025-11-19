@@ -6,10 +6,9 @@ Comprehensive error handling and recovery for LLM cost tracking operations
 
 import logging
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 # Add project root
 project_root = Path(__file__).parent.parent
@@ -57,11 +56,11 @@ class CostTrackingErrorHandler:
             cost_threshold_usd: Maximum allowed cost per batch
         """
         self.cost_threshold_usd = cost_threshold_usd
-        self.error_log: List[Dict[str, Any]] = []
+        self.error_log: list[dict[str, Any]] = []
         self.recovery_attempts = 0
         self.max_recovery_attempts = 3
 
-    def validate_cost_data(self, cost_data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_cost_data(self, cost_data: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         Validate cost tracking data for consistency and completeness.
 
@@ -155,7 +154,7 @@ class CostTrackingErrorHandler:
         is_valid = len(errors) == 0
         return is_valid, errors
 
-    def validate_batch_costs(self, opportunities: List[Dict[str, Any]]) -> Tuple[bool, Dict[str, Any]]:
+    def validate_batch_costs(self, opportunities: list[dict[str, Any]]) -> tuple[bool, dict[str, Any]]:
         """
         Validate costs for a batch of opportunities.
 
@@ -205,7 +204,7 @@ class CostTrackingErrorHandler:
         is_valid = valid_opportunities == len(opportunities) and not exceeds_threshold
         return is_valid, summary
 
-    def sanitize_cost_data(self, cost_data: Dict[str, Any]) -> Dict[str, Any]:
+    def sanitize_cost_data(self, cost_data: dict[str, Any]) -> dict[str, Any]:
         """
         Sanitize and repair cost data if possible.
 
@@ -254,9 +253,9 @@ class CostTrackingErrorHandler:
     def handle_cost_error(
         self,
         error: Exception,
-        opportunities: List[Dict[str, Any]],
-        context: Dict[str, Any] = None
-    ) -> Tuple[bool, List[Dict[str, Any]]]:
+        opportunities: list[dict[str, Any]],
+        context: dict[str, Any] = None
+    ) -> tuple[bool, list[dict[str, Any]]]:
         """
         Handle cost tracking errors with recovery attempts.
 
@@ -296,7 +295,7 @@ class CostTrackingErrorHandler:
         else:
             return self._handle_generic_error(opportunities)
 
-    def _handle_validation_error(self, opportunities: List[Dict[str, Any]]) -> Tuple[bool, List[Dict[str, Any]]]:
+    def _handle_validation_error(self, opportunities: list[dict[str, Any]]) -> tuple[bool, list[dict[str, Any]]]:
         """Handle validation errors by attempting to sanitize data"""
         logger.info("Attempting to recover from validation error by sanitizing data")
 
@@ -324,7 +323,7 @@ class CostTrackingErrorHandler:
 
         return len(recovered_opportunities) > 0, recovered_opportunities
 
-    def _handle_corruption_error(self, opportunities: List[Dict[str, Any]]) -> Tuple[bool, List[Dict[str, Any]]]:
+    def _handle_corruption_error(self, opportunities: list[dict[str, Any]]) -> tuple[bool, list[dict[str, Any]]]:
         """Handle corruption errors by removing corrupted cost data"""
         logger.warning("Handling corruption error by removing corrupted cost data")
 
@@ -340,7 +339,7 @@ class CostTrackingErrorHandler:
 
         return True, recovered_opportunities
 
-    def _handle_threshold_error(self, opportunities: List[Dict[str, Any]]) -> Tuple[bool, List[Dict[str, Any]]]:
+    def _handle_threshold_error(self, opportunities: list[dict[str, Any]]) -> tuple[bool, list[dict[str, Any]]]:
         """Handle threshold exceeded errors by filtering high-cost opportunities"""
         logger.warning("Handling threshold error by filtering expensive opportunities")
 
@@ -367,7 +366,7 @@ class CostTrackingErrorHandler:
         logger.info(f"Recovered {len(recovered_opportunities)} opportunities with total cost ${current_cost:.6f}")
         return True, recovered_opportunities
 
-    def _handle_generic_error(self, opportunities: List[Dict[str, Any]]) -> Tuple[bool, List[Dict[str, Any]]]:
+    def _handle_generic_error(self, opportunities: list[dict[str, Any]]) -> tuple[bool, list[dict[str, Any]]]:
         """Handle generic errors by removing cost data"""
         logger.warning("Handling generic error by removing cost data")
 
@@ -383,7 +382,7 @@ class CostTrackingErrorHandler:
         """Reset recovery attempt counter"""
         self.recovery_attempts = 0
 
-    def get_error_summary(self) -> Dict[str, Any]:
+    def get_error_summary(self) -> dict[str, Any]:
         """Get summary of all errors encountered"""
         if not self.error_log:
             return {'total_errors': 0}
@@ -406,9 +405,9 @@ cost_error_handler = CostTrackingErrorHandler()
 
 
 def validate_and_handle_costs(
-    opportunities: List[Dict[str, Any]],
+    opportunities: list[dict[str, Any]],
     max_cost_usd: float = 10.0
-) -> Tuple[bool, List[Dict[str, Any]], Dict[str, Any]]:
+) -> tuple[bool, list[dict[str, Any]], dict[str, Any]]:
     """
     Validate and handle cost tracking for a batch of opportunities.
 

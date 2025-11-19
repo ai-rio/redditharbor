@@ -64,6 +64,9 @@ dependencies = [
     # AgentOps cost tracking
     "agentops>=0.2.0",
     "mcp>=1.21.2",
+    "asyncpg>=0.30.0",
+    "psutil>=7.0.0",
+    "redis>=7.0.1",
 ]
 
 # Optional dependencies
@@ -103,6 +106,8 @@ redditharbor = "core.cli:main"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.0.0",
+    "pytest-cov>=7.0.0",
     "ruff>=0.14.4",
 ]
 

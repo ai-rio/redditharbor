@@ -29,7 +29,7 @@ Usage:
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 import praw
@@ -699,8 +699,8 @@ def is_within_time_filter(created_utc: float, time_filter: str) -> bool:
 
     try:
         # Convert to datetime
-        created_time = datetime.fromtimestamp(created_utc, tz=timezone.utc)
-        current_time = datetime.now(timezone.utc)
+        created_time = datetime.fromtimestamp(created_utc, tz=UTC)
+        current_time = datetime.now(UTC)
 
         # Calculate time difference
         time_diff = current_time - created_time

@@ -17,7 +17,7 @@ from json_repair import repair_json
 # AgentOps for manual instrumentation
 try:
     import agentops
-    from agentops import trace, tool
+    from agentops import tool, trace
     AGENTOPS_AVAILABLE = True
 except ImportError:
     AGENTOPS_AVAILABLE = False

@@ -22,13 +22,12 @@ Author: RedditHarbor Data Engineering Team
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
-
-from supabase import create_client
+from datetime import UTC, datetime
+from typing import Any
 
 from agent_tools.market_data_validator import ValidationEvidence
 from config import settings
+from supabase import create_client
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ class MarketValidationPersistence:
         validation_source: str = "jina_api",
         custom_reasoning: str | None = None,
         custom_score: float | None = None,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Save market validation evidence to the database.
 
@@ -98,7 +97,7 @@ class MarketValidationPersistence:
                 return False, "Either evidence or custom reasoning/score must be provided"
 
             # Get current timestamp
-            validation_timestamp = datetime.now(timezone.utc)
+            validation_timestamp = datetime.now(UTC)
 
             # Extract data from evidence or use custom values
             if evidence:
@@ -184,9 +183,9 @@ class MarketValidationPersistence:
 
             validation_response = self.client.table("market_validations").insert(
                 market_validation_data
-            )
+            ).execute()
 
-            if validation_response.data is None:
+            if not hasattr(validation_response, 'data') or len(validation_response.data) == 0:
                 logger.error(f"Failed to insert market_validation: {validation_response}")
                 return False, f"Failed to insert market_validation: {validation_response}"
 
@@ -197,9 +196,9 @@ class MarketValidationPersistence:
 
         except Exception as e:
             logger.error(f"Error saving validation evidence: {e}")
-            return False, f"Database error: {str(e)}"
+            return False, f"Database error: {e!s}"
 
-    def get_market_validation(self, app_opportunity_id: str) -> Optional[Dict[str, Any]]:
+    def get_market_validation(self, app_opportunity_id: str) -> dict[str, Any] | None:
         """
         Retrieve market validation data for an opportunity.
 
@@ -261,7 +260,7 @@ class MarketValidationPersistence:
             logger.error(f"Error retrieving market validation: {e}")
             return None
 
-    def get_validation_analytics(self, limit: int = 100, min_score: float = 0) -> list[Dict[str, Any]]:
+    def get_validation_analytics(self, limit: int = 100, min_score: float = 0) -> list[dict[str, Any]]:
         """
         Get market validation analytics for business intelligence.
 
@@ -285,7 +284,7 @@ class MarketValidationPersistence:
 
     def update_validation_status(
         self, validation_id: str, status: str, notes: str | None = None
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Update the status of a market validation record.
 
@@ -314,7 +313,7 @@ class MarketValidationPersistence:
 
         except Exception as e:
             logger.error(f"Error updating validation status: {e}")
-            return False, f"Database error: {str(e)}"
+            return False, f"Database error: {e!s}"
 
     # Private helper methods
 
@@ -428,7 +427,7 @@ class MarketValidationPersistence:
         # Assume 30% cache hit rate as placeholder
         return 0.3
 
-    def delete_old_validations(self, days_old: int = 90) -> Tuple[int, str]:
+    def delete_old_validations(self, days_old: int = 90) -> tuple[int, str]:
         """
         Delete old market validation records to manage storage.
 
@@ -439,7 +438,7 @@ class MarketValidationPersistence:
             Tuple of (deleted_count: int, message: str)
         """
         try:
-            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None)
+            cutoff_date = datetime.now(UTC).replace(tzinfo=None)
             cutoff_date = cutoff_date.replace(day=cutoff_date.day - days_old)
 
             # Delete from market_validations table
@@ -454,7 +453,7 @@ class MarketValidationPersistence:
 
         except Exception as e:
             logger.error(f"Error deleting old validations: {e}")
-            return 0, f"Error deleting old validations: {str(e)}"
+            return 0, f"Error deleting old validations: {e!s}"
 
 
 # ============================================================================
@@ -491,7 +490,7 @@ def save_market_validation(
         logger.error(f"Failed to save market validation: {message}")
     return success
 
-def get_market_validation_data(app_opportunity_id: str) -> Optional[Dict[str, Any]]:
+def get_market_validation_data(app_opportunity_id: str) -> dict[str, Any] | None:
     """
     Convenience function to retrieve market validation data.
 

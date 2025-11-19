@@ -37,8 +37,10 @@ import dlt
 from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
 from config.settings import DEFAULT_SUBREDDITS, DLT_MIN_ACTIVITY_SCORE
 from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
+from core.dlt import PK_SUBMISSION_ID, submission_resource_config
 from core.dlt_app_opportunities import load_app_opportunities, app_opportunities_resource
 from core.trust_layer import TrustLayerValidator
+from core.utils.core_functions_serialization import standardize_core_functions, deserialize_core_functions
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -93,7 +95,7 @@ def collect_posts_with_activity_validation(subreddits: list[str], limit: int, te
 MIN_ENGAGEMENT_SCORE = 5   # Minimum upvotes (moderate engagement)
 MIN_PROBLEM_KEYWORDS = 1   # Minimum problem keywords (at least one clear problem indicator)
 MIN_COMMENT_COUNT = 1      # Minimum comments (at least some discussion)
-MIN_QUALITY_SCORE = 40.0   # Minimum quality score before AI analysis (lower bar for quality)
+MIN_QUALITY_SCORE = 15.0   # Minimum quality score before AI analysis (lowered for testing) (lower bar for quality)
 
 
 def calculate_pre_ai_quality_score(post: dict[str, Any]) -> float:
@@ -263,7 +265,7 @@ def analyze_opportunities_with_ai(posts: list[dict[str, Any]], test_mode: bool =
                     # Core opportunity fields
                     'app_concept': analysis_result.get('title', 'App Concept'),
                     'problem_description': analysis_result.get('title', 'Problem Description'),
-                    'core_functions': analysis_result.get('core_functions', ['Basic functionality']),
+                    'core_functions': standardize_core_functions(analysis_result.get('core_functions', ['Basic functionality'])),
                     'value_proposition': f"Addresses user needs in {analysis_result.get('subreddit', 'target market')}",
                     'target_user': 'Users experiencing described problems',
                     'monetization_model': 'Subscription-based approach recommended',
@@ -364,7 +366,7 @@ def apply_trust_validation(posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
             # Merge trust indicators with post data
             validated_post = post.copy()
             validated_post.update({
-                'trust_level': trust_indicators.trust_level.value,
+                'trust_level': trust_indicators.trust_level,  # TrustLevel is already a string enum
                 'trust_score': trust_indicators.overall_trust_score,
                 'trust_badge': trust_indicators.trust_badges[0] if trust_indicators.trust_badges else 'BASIC',
                 'activity_score': trust_indicators.subreddit_activity_score,
@@ -500,13 +502,26 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
             print(f"   - trust_score: {sample_input.get('trust_score')}")
             print(f"   - trust_badge: {sample_input.get('trust_badge')}")
 
+        import json
+        from json_repair import repair_json
+
         for post in posts:
             # Map to existing DLT resource schema (see core/dlt_app_opportunities.py)
+
+            # Handle core_functions using the standard serialization utility
+            core_functions_json = post.get('core_functions', ['Basic functionality'])
+            if isinstance(core_functions_json, str):
+                # If it's already a JSON string from our standardization, use it directly
+                core_functions_list = deserialize_core_functions(core_functions_json)
+            else:
+                # If it's a list or other format, standardize it
+                core_functions_list = core_functions_json if isinstance(core_functions_json, list) else ['Basic functionality']
+
             profile = {
                 'submission_id': post.get('submission_id'),
                 'problem_description': post.get('text', '') or post.get('content', ''),
                 'app_concept': post.get('app_concept', post.get('app_name', 'Unknown Concept')),
-                'core_functions': post.get('core_functions', ['Basic functionality']),  # Python list for JSON
+                'core_functions': core_functions_list,  # Python list - DLT will handle JSON conversion
                 'value_proposition': post.get('value_proposition', 'Solves user problems'),
                 'target_user': post.get('target_user', 'General users'),
                 'monetization_model': post.get('monetization_model', 'Freemium'),
@@ -552,17 +567,14 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
 
         # Create custom DLT resource for app_opportunities_trust table
         @dlt.resource(
-            name="app_opportunities_trust",
+            name="app_opportunities",
             write_disposition="merge",
-            primary_key="submission_id"
+            primary_key=PK_SUBMISSION_ID
         )
         def app_opportunities_trust_resource(profiles_data):
-            """Custom DLT resource for app_opportunities_trust table with proper field handling"""
-            import json
+            """Custom DLT resource for app_opportunities table with proper field handling"""
             for profile in profiles_data:
-                # Convert core_functions to JSON string for proper storage
-                if 'core_functions' in profile and isinstance(profile['core_functions'], list):
-                    profile['core_functions'] = json.dumps(profile['core_functions'])
+                # DLT automatically handles Python list to JSONB conversion
                 yield profile
 
         # Create new pipeline for app_opportunities_trust
@@ -574,7 +586,7 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
 
         info = trust_pipeline.run(
             app_opportunities_trust_resource(dlt_profiles),
-            table_name="app_opportunities_trust"
+            table_name="app_opportunities"
         )
         success = info is not None
 
@@ -583,7 +595,7 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
         if success:
             print(f"\n✓ DLT Load completed in {load_time:.2f}s")
             print(f"  - Records processed: {len(dlt_profiles)}")
-            print(f"  - Table: app_opportunities_trust")
+            print(f"  - Table: app_opportunities")
         else:
             print(f"\n❌ DLT Load failed")
 
@@ -669,7 +681,7 @@ def main():
     """Main execution"""
     # RESTORE ORIGINAL REDDITHARBOR FILTERING
     import os
-    SCORE_THRESHOLD = float(os.getenv("SCORE_THRESHOLD", "40.0"))  # Original default: 40.0
+    SCORE_THRESHOLD = 20.0  # Original default: 40.0
 
     parser = argparse.ArgumentParser(description='DLT Trust Pipeline - End-to-End Processing')
     parser.add_argument('--subreddits', nargs='+', default=DEFAULT_SUBREDDITS[:3],

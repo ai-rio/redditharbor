@@ -34,6 +34,8 @@ sys.path.insert(0, str(project_root))
 # Load environment variables manually
 import os
 
+from core.dlt import PK_SUBMISSION_ID
+
 # Manually read .env file
 env_file = project_root / '.env'
 if env_file.exists():
@@ -363,7 +365,7 @@ def collect_post_comments(
     Notes:
         - Handles Reddit API rate limiting automatically via PRAW
         - Filters out deleted/removed comments (author == '[deleted]')
-        - For DLT integration, use merge_disposition='merge' with primary_key='comment_id'
+        - For DLT integration, use merge_disposition='merge' with primary_key=PK_COMMENT_ID
         - Empty submissions (no comments) return empty list, not False
         - Large submissions may take time; PRAW handles pagination automatically
     """
@@ -450,7 +452,7 @@ def collect_post_comments(
     if all_comments:
         print(f"\n✓ Total comments collected: {len(all_comments)}")
         print(f"  - Merge disposition: {merge_disposition}")
-        print("  - Ready for DLT pipeline (use primary_key='comment_id')")
+        print("  - Ready for DLT pipeline (use primary_key=PK_COMMENT_ID)")
         return all_comments
     else:
         print(f"\n⚠️  No comments collected from {len(submission_ids)} submission(s)")
@@ -517,7 +519,7 @@ def load_to_supabase(problem_posts: list[dict[str, Any]], write_mode: str = "mer
         # Use submission_id for deduplication (unique constraint)
         load_info = pipeline.run(
             submission_resource(),
-            primary_key="submission_id" if write_mode == "merge" else None
+            primary_key=PK_SUBMISSION_ID if write_mode == "merge" else None
         )
 
         print("✓ Data loaded successfully!")

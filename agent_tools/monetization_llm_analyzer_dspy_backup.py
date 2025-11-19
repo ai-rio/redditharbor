@@ -20,9 +20,8 @@ Cost: ~$0.01 per analysis with gpt-4o-mini
 import json
 import os
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
 
 import dspy
 
@@ -458,7 +457,7 @@ def demo_analyzer():
                 subreddit=example["subreddit"]
             )
 
-            print(f"\n--- RESULTS ---")
+            print("\n--- RESULTS ---")
             print(f"LLM Monetization Score: {result.llm_monetization_score:.1f}/100")
             print(f"Customer Segment: {result.customer_segment}")
             print(f"Willingness to Pay: {result.willingness_to_pay_score:.1f}/100")
