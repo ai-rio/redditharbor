@@ -34,7 +34,7 @@ sys.path.insert(0, str(project_root))
 # Load environment variables from .env.local
 from dotenv import load_dotenv
 
-load_dotenv(project_root / '.env.local')
+load_dotenv(project_root / ".env.local")
 
 # Import core functions serialization utilities
 from core.utils.core_functions_serialization import standardize_core_functions
@@ -45,6 +45,7 @@ try:
 except ImportError:
     print("Warning: tqdm not installed. Installing for progress bars...")
     import subprocess
+
     subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
     from tqdm import tqdm
 
@@ -85,7 +86,7 @@ HYBRID_STRATEGY_CONFIG = {
         "enabled": os.getenv("MARKET_VALIDATION_ENABLED", "true").lower() == "true",
         "threshold": float(os.getenv("MARKET_VALIDATION_THRESHOLD", "60.0")),
         "jina_api_key": os.getenv("JINA_API_KEY", ""),
-    }
+    },
 }
 
 # DLT imports for pipeline-based loading
@@ -118,7 +119,6 @@ SECTOR_MAPPING = {
     "mentalhealth": "Health & Fitness",
     "fitness30plus": "Health & Fitness",
     "homegym": "Health & Fitness",
-
     # Finance & Investing
     "personalfinance": "Finance & Investing",
     "financialindependence": "Finance & Investing",
@@ -137,7 +137,6 @@ SECTOR_MAPPING = {
     "tax": "Finance & Investing",
     "accounting": "Finance & Investing",
     "financialcareers": "Finance & Investing",
-
     # Education & Career
     "learnprogramming": "Education & Career",
     "cscareerquestions": "Education & Career",
@@ -150,7 +149,6 @@ SECTOR_MAPPING = {
     "teaching": "Education & Career",
     "entrepreneurs": "Education & Career",
     "startups": "Education & Career",
-
     # Travel & Experiences
     "travel": "Travel & Experiences",
     "solotravel": "Travel & Experiences",
@@ -163,7 +161,6 @@ SECTOR_MAPPING = {
     "travelpartners": "Travel & Experiences",
     "budgettravel": "Travel & Experiences",
     "vagabond": "Travel & Experiences",
-
     # Real Estate
     "realestate": "Real Estate",
     "firsttimehomebuyer": "Real Estate",
@@ -175,7 +172,6 @@ SECTOR_MAPPING = {
     "landlord": "Real Estate",
     "realestate_canada": "Real Estate",
     "housingmarkets": "Real Estate",
-
     # Technology & SaaS
     "saas": "Technology & SaaS",
     "indiehackers": "Technology & SaaS",
@@ -206,7 +202,9 @@ def map_subreddit_to_sector(subreddit: str) -> str:
     return SECTOR_MAPPING.get(subreddit_lower, "Technology & SaaS")
 
 
-def should_run_agno_analysis(submission: dict[str, Any], supabase: Any) -> tuple[bool, str | None]:
+def should_run_agno_analysis(
+    submission: dict[str, Any], supabase: Any
+) -> tuple[bool, str | None]:
     """
     Checks if Agno monetization analysis should run for a submission.
     Skips if it's a duplicate with existing Agno analysis.
@@ -224,35 +222,49 @@ def should_run_agno_analysis(submission: dict[str, Any], supabase: Any) -> tuple
         # Get submission_id for database lookup
         submission_id = submission.get("submission_id", submission.get("id"))
         if not submission_id:
-            logger.warning("Submission missing submission_id, defaulting to run Agno analysis")
+            logger.warning(
+                "Submission missing submission_id, defaulting to run Agno analysis"
+            )
             return True, None
 
         # Check if submission has a business_concept_id (indicates it's a duplicate)
         # First try to get from opportunities_unified table
         try:
-            response = supabase.table("opportunities_unified") \
-                .select("business_concept_id") \
-                .eq("submission_id", submission_id) \
+            response = (
+                supabase.table("opportunities_unified")
+                .select("business_concept_id")
+                .eq("submission_id", submission_id)
                 .execute()
+            )
 
             if response.data and len(response.data) > 0:
                 concept_id = response.data[0].get("business_concept_id")
                 if concept_id:
                     # This is a duplicate opportunity, check if concept has Agno analysis
-                    concept_response = supabase.table("business_concepts") \
-                        .select("has_agno_analysis") \
-                        .eq("id", concept_id) \
+                    concept_response = (
+                        supabase.table("business_concepts")
+                        .select("has_agno_analysis")
+                        .eq("id", concept_id)
                         .execute()
+                    )
 
                     if concept_response.data and len(concept_response.data) > 0:
-                        has_agno = concept_response.data[0].get("has_agno_analysis", False)
-                        logger.info(f"Submission {submission_id} is duplicate of concept {concept_id}, has_agno_analysis={has_agno}")
-                        return not has_agno, str(concept_id)  # Skip if has Agno, run if no Agno
+                        has_agno = concept_response.data[0].get(
+                            "has_agno_analysis", False
+                        )
+                        logger.info(
+                            f"Submission {submission_id} is duplicate of concept {concept_id}, has_agno_analysis={has_agno}"
+                        )
+                        return not has_agno, str(
+                            concept_id
+                        )  # Skip if has Agno, run if no Agno
                     else:
                         # Found concept but no concept data - assume no Agno
                         return True, str(concept_id)
         except Exception as db_error:
-            logger.warning(f"Database error checking deduplication for {submission_id}: {db_error}")
+            logger.warning(
+                f"Database error checking deduplication for {submission_id}: {db_error}"
+            )
             # Default to running analysis if database check fails
             return True, None
 
@@ -261,12 +273,16 @@ def should_run_agno_analysis(submission: dict[str, Any], supabase: Any) -> tuple
         return True, None
 
     except Exception as e:
-        logger.error(f"Error checking if should run Agno analysis for {submission.get('submission_id', 'unknown')}: {e}")
+        logger.error(
+            f"Error checking if should run Agno analysis for {submission.get('submission_id', 'unknown')}: {e}"
+        )
         # Default to running analysis on errors
         return True, None
 
 
-def copy_agno_from_primary(submission: dict[str, Any], concept_id: str, supabase: Any) -> dict[str, Any]:
+def copy_agno_from_primary(
+    submission: dict[str, Any], concept_id: str, supabase: Any
+) -> dict[str, Any]:
     """
     Copies Agno analysis results from primary opportunity for duplicate submissions.
 
@@ -282,14 +298,16 @@ def copy_agno_from_primary(submission: dict[str, Any], concept_id: str, supabase
     try:
         # Get the primary opportunity for this concept
         # Look for existing Agno analysis linked to this concept
-        agno_response = supabase.table("llm_monetization_analysis") \
-            .select("*") \
-            .eq("business_concept_id", concept_id) \
-            .eq("copied_from_primary", False) \
+        agno_response = (
+            supabase.table("llm_monetization_analysis")
+            .select("*")
+            .eq("business_concept_id", concept_id)
+            .eq("copied_from_primary", False)
             .execute()
+        )
 
         # Handle test environment where Mock objects might be used
-        if not hasattr(agno_response, 'data') or agno_response.data is None:
+        if not hasattr(agno_response, "data") or agno_response.data is None:
             logger.warning(f"No Agno analysis response for concept {concept_id}")
             return {}
 
@@ -300,36 +318,53 @@ def copy_agno_from_primary(submission: dict[str, Any], concept_id: str, supabase
                 data_list = agno_response.data
             else:
                 # For Mock objects or other types
-                data_list = list(agno_response.data) if hasattr(agno_response.data, '__iter__') else []
+                data_list = (
+                    list(agno_response.data)
+                    if hasattr(agno_response.data, "__iter__")
+                    else []
+                )
         except (TypeError, AttributeError):
             # Handle Mock objects that don't support iteration
-            logger.warning(f"Cannot iterate Agno analysis data for concept {concept_id}")
+            logger.warning(
+                f"Cannot iterate Agno analysis data for concept {concept_id}"
+            )
             return {}
 
         if not data_list or len(data_list) == 0:
             # No primary Agno analysis found, try alternative lookup methods
             # Try to find by primary_opportunity_id
-            concept_response = supabase.table("business_concepts") \
-                .select("primary_opportunity_id") \
-                .eq("id", concept_id) \
+            concept_response = (
+                supabase.table("business_concepts")
+                .select("primary_opportunity_id")
+                .eq("id", concept_id)
                 .execute()
+            )
 
-            if (hasattr(concept_response, 'data') and concept_response.data and
-                len(concept_response.data) > 0):
+            if (
+                hasattr(concept_response, "data")
+                and concept_response.data
+                and len(concept_response.data) > 0
+            ):
                 primary_opp_id = concept_response.data[0].get("primary_opportunity_id")
                 if primary_opp_id:
                     # Try to find Agno analysis for primary opportunity
-                    agno_response = supabase.table("llm_monetization_analysis") \
-                        .select("*") \
-                        .eq("opportunity_id", primary_opp_id) \
+                    agno_response = (
+                        supabase.table("llm_monetization_analysis")
+                        .select("*")
+                        .eq("opportunity_id", primary_opp_id)
                         .execute()
+                    )
 
-                    if hasattr(agno_response, 'data') and agno_response.data:
+                    if hasattr(agno_response, "data") and agno_response.data:
                         try:
                             if isinstance(agno_response.data, (list, tuple)):
                                 data_list = agno_response.data
                             else:
-                                data_list = list(agno_response.data) if hasattr(agno_response.data, '__iter__') else []
+                                data_list = (
+                                    list(agno_response.data)
+                                    if hasattr(agno_response.data, "__iter__")
+                                    else []
+                                )
                         except (TypeError, AttributeError):
                             data_list = []
 
@@ -343,7 +378,9 @@ def copy_agno_from_primary(submission: dict[str, Any], concept_id: str, supabase
         else:
             # Multiple analyses found, use the most recent
             try:
-                primary_analysis = max(data_list, key=lambda x: x.get("analyzed_at", ""))
+                primary_analysis = max(
+                    data_list, key=lambda x: x.get("analyzed_at", "")
+                )
             except (TypeError, AttributeError):
                 # Fallback to first analysis if date comparison fails
                 primary_analysis = data_list[0]
@@ -354,16 +391,24 @@ def copy_agno_from_primary(submission: dict[str, Any], concept_id: str, supabase
             "opportunity_id": f"opp_{submission_id}",
             "submission_id": submission_id,
             "llm_monetization_score": primary_analysis.get("llm_monetization_score"),
-            "keyword_monetization_score": primary_analysis.get("keyword_monetization_score"),
+            "keyword_monetization_score": primary_analysis.get(
+                "keyword_monetization_score"
+            ),
             "customer_segment": primary_analysis.get("customer_segment"),
-            "willingness_to_pay_score": primary_analysis.get("willingness_to_pay_score"),
+            "willingness_to_pay_score": primary_analysis.get(
+                "willingness_to_pay_score"
+            ),
             "price_sensitivity_score": primary_analysis.get("price_sensitivity_score"),
             "revenue_potential_score": primary_analysis.get("revenue_potential_score"),
             "payment_sentiment": primary_analysis.get("payment_sentiment"),
             "urgency_level": primary_analysis.get("urgency_level"),
-            "existing_payment_behavior": primary_analysis.get("existing_payment_behavior"),
+            "existing_payment_behavior": primary_analysis.get(
+                "existing_payment_behavior"
+            ),
             "mentioned_price_points": primary_analysis.get("mentioned_price_points"),
-            "payment_friction_indicators": primary_analysis.get("payment_friction_indicators"),
+            "payment_friction_indicators": primary_analysis.get(
+                "payment_friction_indicators"
+            ),
             "confidence": primary_analysis.get("confidence"),
             "reasoning": primary_analysis.get("reasoning"),
             "subreddit_multiplier": primary_analysis.get("subreddit_multiplier"),
@@ -376,15 +421,21 @@ def copy_agno_from_primary(submission: dict[str, Any], concept_id: str, supabase
             "copy_timestamp": datetime.now().isoformat(),
         }
 
-        logger.info(f"Copied Agno analysis from primary for concept {concept_id} to submission {submission_id}")
+        logger.info(
+            f"Copied Agno analysis from primary for concept {concept_id} to submission {submission_id}"
+        )
         return copied_analysis
 
     except Exception as e:
-        logger.error(f"Error copying Agno analysis from primary for concept {concept_id}: {e}")
+        logger.error(
+            f"Error copying Agno analysis from primary for concept {concept_id}: {e}"
+        )
         return {}
 
 
-def update_concept_agno_stats(concept_id: str, agno_result: dict[str, Any], supabase: Any) -> None:
+def update_concept_agno_stats(
+    concept_id: str, agno_result: dict[str, Any], supabase: Any
+) -> None:
     """
     Updates business concept with Agno analysis metadata.
     Tracks analysis count and running average for WTP scores.
@@ -404,20 +455,27 @@ def update_concept_agno_stats(concept_id: str, agno_result: dict[str, Any], supa
             wtp_score = float(wtp_score)
 
         # Call the database function to update Agno tracking
-        response = supabase.rpc("update_agno_analysis_tracking", {
-            "p_concept_id": int(concept_id),
-            "p_has_analysis": True,
-            "p_wtp_score": wtp_score
-        }).execute()
+        response = supabase.rpc(
+            "update_agno_analysis_tracking",
+            {
+                "p_concept_id": int(concept_id),
+                "p_has_analysis": True,
+                "p_wtp_score": wtp_score,
+            },
+        ).execute()
 
         if response.data and len(response.data) > 0:
             success = response.data[0].get("update_agno_analysis_tracking", False)
             if success:
-                logger.info(f"Updated Agno stats for concept {concept_id} (WTP: {wtp_score})")
+                logger.info(
+                    f"Updated Agno stats for concept {concept_id} (WTP: {wtp_score})"
+                )
             else:
                 logger.warning(f"Failed to update Agno stats for concept {concept_id}")
         else:
-            logger.warning(f"No response from update_agno_analysis_tracking for concept {concept_id}")
+            logger.warning(
+                f"No response from update_agno_analysis_tracking for concept {concept_id}"
+            )
 
     except Exception as e:
         logger.error(f"Error updating concept Agno stats for {concept_id}: {e}")
@@ -425,7 +483,284 @@ def update_concept_agno_stats(concept_id: str, agno_result: dict[str, Any], supa
         pass
 
 
-def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[dict[str, Any]]:
+def should_run_profiler_analysis(
+    submission: dict[str, Any], supabase: Any
+) -> tuple[bool, str | None]:
+    """
+    Checks if AI profiling should run for a submission.
+    Skips if it's a duplicate with existing AI profile.
+    Prevents semantic fragmentation of core_functions arrays.
+
+    Args:
+        submission: Submission data from app_opportunities table
+        supabase: Initialized Supabase client
+
+    Returns:
+        Tuple of (should_run: bool, concept_id: str | None)
+        - should_run: True if profiling should run, False if should skip/copy
+        - concept_id: Business concept ID if duplicate found, None if unique
+    """
+    try:
+        # Get submission_id for database lookup
+        submission_id = submission.get("submission_id", submission.get("id"))
+        if not submission_id:
+            logger.warning(
+                "Submission missing submission_id, defaulting to run profiler analysis"
+            )
+            return True, None
+
+        # Check if submission has a business_concept_id (indicates it's a duplicate)
+        # First try to get from opportunities_unified table
+        try:
+            response = (
+                supabase.table("opportunities_unified")
+                .select("business_concept_id")
+                .eq("submission_id", submission_id)
+                .execute()
+            )
+
+            if response.data and len(response.data) > 0:
+                concept_id = response.data[0].get("business_concept_id")
+                if concept_id:
+                    # This is a duplicate opportunity, check if concept has AI profiling
+                    concept_response = (
+                        supabase.table("business_concepts")
+                        .select("has_ai_profiling")
+                        .eq("id", concept_id)
+                        .execute()
+                    )
+
+                    if concept_response.data and len(concept_response.data) > 0:
+                        has_profiler = concept_response.data[0].get(
+                            "has_ai_profiling", False
+                        )
+                        logger.info(
+                            f"Submission {submission_id} is duplicate of concept {concept_id}, has_ai_profiling={has_profiler}"
+                        )
+                        return not has_profiler, str(
+                            concept_id
+                        )  # Skip if has profiler, run if no profiler
+                    else:
+                        # Found concept but no concept data - assume no profiler
+                        return True, str(concept_id)
+        except Exception as db_error:
+            logger.warning(
+                f"Database error checking deduplication for {submission_id}: {db_error}"
+            )
+            # Default to running profiling if database check fails
+            return True, None
+
+        # If no business_concept_id found, this is a unique opportunity
+        logger.debug(
+            f"Submission {submission_id} is unique, should run profiler analysis"
+        )
+        return True, None
+
+    except Exception as e:
+        logger.error(
+            f"Error checking if should run profiler analysis for {submission.get('submission_id', 'unknown')}: {e}"
+        )
+        # Default to running profiling on errors
+        return True, None
+
+
+def copy_profiler_from_primary(
+    submission: dict[str, Any], concept_id: str, supabase: Any
+) -> dict[str, Any]:
+    """
+    Copies AI profile (app_name, core_functions, etc.) from primary opportunity.
+    Ensures consistent core_functions arrays across duplicate submissions.
+
+    Args:
+        submission: Current submission data (duplicate)
+        concept_id: Business concept ID to find primary opportunity
+        supabase: Initialized Supabase client
+
+    Returns:
+        Dictionary formatted for AI profile, or empty dict if copy fails
+        Should contain all AI profile fields: app_name, core_functions, value_proposition, etc.
+    """
+    try:
+        # Get the primary opportunity for this concept
+        # Look for existing AI profile linked to this concept
+        profile_response = (
+            supabase.table("workflow_results")
+            .select("*")
+            .eq("business_concept_id", concept_id)
+            .eq("copied_from_primary", False)
+            .execute()
+        )
+
+        # Handle test environment where Mock objects might be used
+        if not hasattr(profile_response, "data") or profile_response.data is None:
+            logger.warning(f"No AI profile response for concept {concept_id}")
+            return {}
+
+        # Handle both real data and Mock objects for testing
+        try:
+            # For real responses
+            if isinstance(profile_response.data, (list, tuple)):
+                data_list = profile_response.data
+            else:
+                # For Mock objects or other types
+                data_list = (
+                    list(profile_response.data)
+                    if hasattr(profile_response.data, "__iter__")
+                    else []
+                )
+        except (TypeError, AttributeError):
+            # Handle Mock objects that don't support iteration
+            logger.warning(f"Cannot iterate AI profile data for concept {concept_id}")
+            return {}
+
+        if not data_list or len(data_list) == 0:
+            # No primary AI profile found, try alternative lookup methods
+            # Try to find by primary_opportunity_id
+            concept_response = (
+                supabase.table("business_concepts")
+                .select("primary_opportunity_id")
+                .eq("id", concept_id)
+                .execute()
+            )
+
+            if (
+                hasattr(concept_response, "data")
+                and concept_response.data
+                and len(concept_response.data) > 0
+            ):
+                primary_opp_id = concept_response.data[0].get("primary_opportunity_id")
+                if primary_opp_id:
+                    # Try to find AI profile for primary opportunity
+                    profile_response = (
+                        supabase.table("workflow_results")
+                        .select("*")
+                        .eq("opportunity_id", primary_opp_id)
+                        .eq("copied_from_primary", False)
+                        .execute()
+                    )
+
+                    if hasattr(profile_response, "data") and profile_response.data:
+                        try:
+                            if isinstance(profile_response.data, (list, tuple)):
+                                data_list = profile_response.data
+                            else:
+                                data_list = (
+                                    list(profile_response.data)
+                                    if hasattr(profile_response.data, "__iter__")
+                                    else []
+                                )
+                        except (TypeError, AttributeError):
+                            data_list = []
+
+            if not data_list or len(data_list) == 0:
+                logger.warning(f"No AI profile found for concept {concept_id}")
+                return {}
+
+        # Get the primary AI profile (use the most recent if multiple)
+        if len(data_list) == 1:
+            primary_profile = data_list[0]
+        else:
+            # Multiple profiles found, use the most recent
+            try:
+                primary_profile = max(
+                    data_list, key=lambda x: x.get("processed_at", "")
+                )
+            except (TypeError, AttributeError):
+                # Fallback to first profile if date comparison fails
+                primary_profile = data_list[0]
+
+        # Create formatted AI profile dict for current submission
+        submission_id = submission.get("submission_id", submission.get("id"))
+        copied_profile = {
+            "opportunity_id": f"opp_{submission_id}",
+            "submission_id": submission_id,
+            "app_name": primary_profile.get("app_name"),
+            "core_functions": primary_profile.get("core_functions"),
+            "value_proposition": primary_profile.get("value_proposition"),
+            "problem_description": primary_profile.get("problem_description"),
+            "app_concept": primary_profile.get("app_concept"),
+            "target_user": primary_profile.get("target_user"),
+            "monetization_model": primary_profile.get("monetization_model"),
+            "final_score": primary_profile.get("final_score"),
+            "market_demand": primary_profile.get("market_demand"),
+            "pain_intensity": primary_profile.get("pain_intensity"),
+            "monetization_potential": primary_profile.get("monetization_potential"),
+            "market_gap": primary_profile.get("market_gap"),
+            "technical_feasibility": primary_profile.get("technical_feasibility"),
+            # Add metadata indicating this is copied
+            "copied_from_primary": True,
+            "primary_opportunity_id": primary_profile.get("opportunity_id"),
+            "business_concept_id": concept_id,
+            "copy_timestamp": datetime.now().isoformat(),
+        }
+
+        logger.info(
+            f"Copied AI profile from primary for concept {concept_id} to submission {submission_id}"
+        )
+        return copied_profile
+
+    except Exception as e:
+        logger.error(
+            f"Error copying AI profile from primary for concept {concept_id}: {e}"
+        )
+        return {}
+
+
+def update_concept_profiler_stats(
+    concept_id: str, ai_profile: dict[str, Any], supabase: Any
+) -> None:
+    """
+    Updates business concept with AI profile metadata.
+    Tracks profile generation count and timestamps.
+
+    Args:
+        concept_id: Business concept ID to update
+        ai_profile: Dictionary containing AI profile results
+        supabase: Initialized Supabase client
+
+    Returns:
+        None (function logs errors but doesn't raise)
+    """
+    try:
+        # Extract final score from AI profile
+        profiler_score = ai_profile.get("final_score")
+        if profiler_score is not None:
+            profiler_score = float(profiler_score)
+
+        # Call the database function to update profiler tracking
+        response = supabase.rpc(
+            "update_profiler_analysis_tracking",
+            {
+                "p_concept_id": int(concept_id),
+                "p_has_analysis": True,
+                "p_profiler_score": profiler_score,
+            },
+        ).execute()
+
+        if response.data and len(response.data) > 0:
+            success = response.data[0].get("update_profiler_analysis_tracking", False)
+            if success:
+                logger.info(
+                    f"Updated profiler stats for concept {concept_id} (Score: {profiler_score})"
+                )
+            else:
+                logger.warning(
+                    f"Failed to update profiler stats for concept {concept_id}"
+                )
+        else:
+            logger.warning(
+                f"No response from update_profiler_analysis_tracking for concept {concept_id}"
+            )
+
+    except Exception as e:
+        logger.error(f"Error updating concept profiler stats for {concept_id}: {e}")
+        # Don't raise exception - this is non-critical functionality
+        pass
+
+
+def fetch_all_submissions(
+    supabase_client: Any, batch_size: int = 1000
+) -> list[dict[str, Any]]:
     """
     Fetch all opportunities from app_opportunities table in batches.
 
@@ -447,10 +782,14 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
 
         while True:
             # Build query with pagination
-            query = supabase_client.table("app_opportunities").select(
-                "submission_id, title, problem_description, subreddit, reddit_score, "
-                "num_comments, trust_score, trust_badge, activity_score"
-            ).range(offset, offset + batch_size - 1)
+            query = (
+                supabase_client.table("app_opportunities")
+                .select(
+                    "submission_id, title, problem_description, subreddit, reddit_score, "
+                    "num_comments, trust_score, trust_badge, activity_score"
+                )
+                .range(offset, offset + batch_size - 1)
+            )
 
             response = query.execute()
 
@@ -458,7 +797,9 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
                 break  # No more submissions
 
             all_submissions.extend(response.data)
-            print(f"Fetched {len(response.data)} submissions (total: {len(all_submissions)})")
+            print(
+                f"Fetched {len(response.data)} submissions (total: {len(all_submissions)})"
+            )
 
             # If we got fewer than batch_size, we've reached the end
             if len(response.data) < batch_size:
@@ -481,7 +822,44 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
             title_words = set(title.split())
 
             # Remove common filler words that don't affect meaning
-            filler_words = {'i', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'must', 'shall'}
+            filler_words = {
+                "i",
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+                "is",
+                "are",
+                "was",
+                "were",
+                "be",
+                "been",
+                "have",
+                "has",
+                "had",
+                "do",
+                "does",
+                "did",
+                "will",
+                "would",
+                "could",
+                "should",
+                "may",
+                "might",
+                "can",
+                "must",
+                "shall",
+            }
 
             # Create title signature from meaningful words only
             title_signature = tuple(sorted(title_words - filler_words))
@@ -493,11 +871,17 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
                 seen_titles.add(content_key)
                 unique_submissions.append(submission)
             else:
-                print(f"  🔄 Removed duplicate: '{title[:50]}...' (r/{submission.get('subreddit')})")
+                print(
+                    f"  🔄 Removed duplicate: '{title[:50]}...' (r/{submission.get('subreddit')})"
+                )
 
         if len(unique_submissions) < len(all_submissions):
-            print(f"✅ Removed {len(all_submissions) - len(unique_submissions)} content duplicates")
-            print(f"📊 Unique submissions: {len(unique_submissions)} from {len(all_submissions)} total")
+            print(
+                f"✅ Removed {len(all_submissions) - len(unique_submissions)} content duplicates"
+            )
+            print(
+                f"📊 Unique submissions: {len(unique_submissions)} from {len(all_submissions)} total"
+            )
 
         return unique_submissions
 
@@ -506,7 +890,9 @@ def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[
         raise
 
 
-def fetch_submissions(supabase_client: Any, limit: int | None = None) -> list[dict[str, Any]]:
+def fetch_submissions(
+    supabase_client: Any, limit: int | None = None
+) -> list[dict[str, Any]]:
     """
     Fetch opportunities from app_opportunities table for AI enrichment.
 
@@ -524,10 +910,14 @@ def fetch_submissions(supabase_client: Any, limit: int | None = None) -> list[di
         if limit:
             # Use simple fetch for limited results
             print("Fetching limited opportunities from app_opportunities...")
-            query = supabase_client.table("app_opportunities").select(
-                "submission_id, title, problem_description, subreddit, reddit_score, "
-                "num_comments, trust_score, trust_badge, activity_score"
-            ).limit(limit)
+            query = (
+                supabase_client.table("app_opportunities")
+                .select(
+                    "submission_id, title, problem_description, subreddit, reddit_score, "
+                    "num_comments, trust_score, trust_badge, activity_score"
+                )
+                .limit(limit)
+            )
 
             response = query.execute()
 
@@ -585,7 +975,7 @@ def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
         "engagement": engagement,
         "comments": comments,
         "sentiment_score": submission.get("sentiment_score", 0.0),
-        "db_id": submission.get("id")  # Keep reference to database UUID
+        "db_id": submission.get("id"),  # Keep reference to database UUID
     }
 
 
@@ -593,7 +983,7 @@ def prepare_analysis_for_storage(
     submission_id: str,
     analysis: dict[str, Any],
     sector: str,
-    trust_data: dict[str, Any] | None = None
+    trust_data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Prepare opportunity analysis result for DLT pipeline storage.
@@ -621,7 +1011,7 @@ def prepare_analysis_for_storage(
     else:
         # Fallback for unexpected format
         function_count = core_functions if isinstance(core_functions, int) else 1
-        function_list = [f"Core function {i+1}" for i in range(function_count)]
+        function_list = [f"Core function {i + 1}" for i in range(function_count)]
 
     # Extract cost tracking data if available
     cost_data = analysis.get("cost_tracking", {})
@@ -630,7 +1020,9 @@ def prepare_analysis_for_storage(
     analysis_data = {
         "opportunity_id": opportunity_id,  # For workflow_results deduplication
         "submission_id": submission_id,  # Original Reddit ID for app_opportunities deduplication
-        "app_name": analysis.get("app_name", analysis.get("title", "Unnamed Opportunity"))[:255],
+        "app_name": analysis.get(
+            "app_name", analysis.get("title", "Unnamed Opportunity")
+        )[:255],
         "function_count": function_count,
         "function_list": function_list,
         "original_score": float(analysis.get("final_score", 0)),
@@ -641,15 +1033,25 @@ def prepare_analysis_for_storage(
         "subreddit": analysis.get("subreddit", ""),
         "processed_at": datetime.now().isoformat(),
         # Trust validation data (from app_opportunities)
-        "trust_score": float(trust_data.get("trust_score", 0)) if trust_data and trust_data.get("trust_score") else None,
-        "trust_badge": trust_data.get("trust_badge", "")[:50] if trust_data and trust_data.get("trust_badge") else None,
-        "activity_score": float(trust_data.get("activity_score", 0)) if trust_data and trust_data.get("activity_score") else None,
+        "trust_score": float(trust_data.get("trust_score", 0))
+        if trust_data and trust_data.get("trust_score")
+        else None,
+        "trust_badge": trust_data.get("trust_badge", "")[:50]
+        if trust_data and trust_data.get("trust_badge")
+        else None,
+        "activity_score": float(trust_data.get("activity_score", 0))
+        if trust_data and trust_data.get("activity_score")
+        else None,
         # Dimension scores
         "market_demand": float(scores.get("market_demand", 0)) if scores else None,
         "pain_intensity": float(scores.get("pain_intensity", 0)) if scores else None,
-        "monetization_potential": float(scores.get("monetization_potential", 0)) if scores else None,
+        "monetization_potential": float(scores.get("monetization_potential", 0))
+        if scores
+        else None,
         "market_gap": float(scores.get("market_gap", 0)) if scores else None,
-        "technical_feasibility": float(scores.get("technical_feasibility", 0)) if scores else None,
+        "technical_feasibility": float(scores.get("technical_feasibility", 0))
+        if scores
+        else None,
         # App profile fields (from LLM if available)
         "problem_description": analysis.get("problem_description", "")[:500],
         "app_concept": analysis.get("app_concept", "")[:500],
@@ -674,24 +1076,36 @@ def prepare_analysis_for_storage(
     # Market validation evidence (from MarketDataValidator)
     market_evidence = analysis.get("market_validation_evidence")
     if market_evidence:
-        analysis_data.update({
-            "market_validation_score": float(market_evidence.get("validation_score", 0)),
-            "market_data_quality_score": float(market_evidence.get("data_quality_score", 0)),
-            "market_validation_reasoning": market_evidence.get("reasoning", "")[:1000],
-            "market_competitors_found": market_evidence.get("competitors_found", []),
-            "market_size_tam": market_evidence.get("tam_value"),
-            "market_size_growth": market_evidence.get("growth_rate"),
-            "market_similar_launches": market_evidence.get("similar_launches_count", 0),
-            "market_validation_cost_usd": float(market_evidence.get("total_cost", 0)),
-            "market_validation_timestamp": market_evidence.get("timestamp"),
-        })
+        analysis_data.update(
+            {
+                "market_validation_score": float(
+                    market_evidence.get("validation_score", 0)
+                ),
+                "market_data_quality_score": float(
+                    market_evidence.get("data_quality_score", 0)
+                ),
+                "market_validation_reasoning": market_evidence.get("reasoning", "")[
+                    :1000
+                ],
+                "market_competitors_found": market_evidence.get(
+                    "competitors_found", []
+                ),
+                "market_size_tam": market_evidence.get("tam_value"),
+                "market_size_growth": market_evidence.get("growth_rate"),
+                "market_similar_launches": market_evidence.get(
+                    "similar_launches_count", 0
+                ),
+                "market_validation_cost_usd": float(
+                    market_evidence.get("total_cost", 0)
+                ),
+                "market_validation_timestamp": market_evidence.get("timestamp"),
+            }
+        )
 
     return analysis_data
 
 
-def load_scores_to_supabase_via_dlt(
-    scored_opportunities: list[dict[str, Any]]
-) -> bool:
+def load_scores_to_supabase_via_dlt(scored_opportunities: list[dict[str, Any]]) -> bool:
     """
     Load scored opportunities to Supabase using DLT pipeline with constraint validation.
 
@@ -715,48 +1129,58 @@ def load_scores_to_supabase_via_dlt(
 
     # Check: Every opportunity has function_list
     missing_functions = [
-        o["opportunity_id"] for o in scored_opportunities
-        if not o.get("function_list")
+        o["opportunity_id"] for o in scored_opportunities if not o.get("function_list")
     ]
     if missing_functions:
-        print(f"❌ ERROR: {len(missing_functions)} opportunities missing function_list:")
+        print(
+            f"❌ ERROR: {len(missing_functions)} opportunities missing function_list:"
+        )
         for opp_id in missing_functions[:5]:
             print(f"  - {opp_id}")
         raise ValueError(f"Cannot load: {len(missing_functions)} missing function_list")
 
     # Check: function_count matches function_list length
     mismatches = [
-        o for o in scored_opportunities
+        o
+        for o in scored_opportunities
         if len(o.get("function_list", [])) != o.get("function_count")
     ]
     if mismatches:
         print(f"⚠️  WARNING: {len(mismatches)} opportunities have count/list mismatch")
         for opp in mismatches[:3]:
-            print(f"  - {opp['opportunity_id']}: count={opp.get('function_count')}, "
-                  f"actual={len(opp.get('function_list', []))}")
+            print(
+                f"  - {opp['opportunity_id']}: count={opp.get('function_count')}, "
+                f"actual={len(opp.get('function_list', []))}"
+            )
 
     print(f"✓ Pre-flight checks passed ({len(scored_opportunities)} opportunities)")
 
     try:
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("LOADING SCORES TO SUPABASE VIA DLT PIPELINE")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Opportunities to load: {len(scored_opportunities)}")
 
         # Validate constraints before loading
         print("\n🔍 Validating constraints...")
-        validated_opportunities = list(app_opportunities_with_constraint(scored_opportunities))
+        validated_opportunities = list(
+            app_opportunities_with_constraint(scored_opportunities)
+        )
         approved = [o for o in validated_opportunities if not o.get("is_disqualified")]
         disqualified = [o for o in validated_opportunities if o.get("is_disqualified")]
 
         print(f"  ✓ Approved: {len(approved)}")
         print(f"  ⚠️  Disqualified: {len(disqualified)}")
-        print(f"  ✓ Compliance rate: {len(approved)/len(validated_opportunities)*100:.1f}%")
+        print(
+            f"  ✓ Compliance rate: {len(approved) / len(validated_opportunities) * 100:.1f}%"
+        )
 
         if disqualified:
             print("\n  Disqualified Opportunities:")
             for opp in disqualified[:3]:  # Show first 3
-                print(f"    - {opp.get('app_name', 'Unknown')}: {opp.get('violation_reason', 'N/A')}")
+                print(
+                    f"    - {opp.get('app_name', 'Unknown')}: {opp.get('violation_reason', 'N/A')}"
+                )
             if len(disqualified) > 3:
                 print(f"    ... and {len(disqualified) - 3} more")
 
@@ -767,25 +1191,32 @@ def load_scores_to_supabase_via_dlt(
 
         # Load using the DLT pipeline
         from core.dlt_collection import create_dlt_pipeline
+
         pipeline = create_dlt_pipeline()
 
         # Use the constraint validator resource
         load_info = pipeline.run(
             app_opportunities_with_constraint(scored_opportunities),
             write_disposition="merge",
-            primary_key=PK_OPPORTUNITY_ID  # Deduplication key
+            primary_key=PK_OPPORTUNITY_ID,  # Deduplication key
         )
 
-        print(f"\n✓ Successfully processed {len(validated_opportunities)} opportunities")
-        print(f"✓ Successfully loaded {len(approved)} approved opportunities to Supabase")
+        print(
+            f"\n✓ Successfully processed {len(validated_opportunities)} opportunities"
+        )
+        print(
+            f"✓ Successfully loaded {len(approved)} approved opportunities to Supabase"
+        )
         if disqualified:
-            print(f"⚠️  Skipped {len(disqualified)} disqualified opportunities (4+ functions)")
+            print(
+                f"⚠️  Skipped {len(disqualified)} disqualified opportunities (4+ functions)"
+            )
         print("  - Table: workflow_results")
         print("  - Write mode: merge (deduplication enabled)")
         print("  - Primary key: opportunity_id")
         print("  - Constraint validation: DLT-native (1-3 function rule)")
         print(f"  - Started at: {load_info.started_at}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         return True
 
@@ -793,12 +1224,12 @@ def load_scores_to_supabase_via_dlt(
         print(f"\n✗ Error loading scores via DLT: {e}")
         print(f"  - Opportunities affected: {len(scored_opportunities)}")
         print("  - Recommendation: Check DLT configuration and Supabase connection")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
         return False
 
 
 def store_ai_profiles_to_app_opportunities_via_dlt(
-    scored_opportunities: list[dict[str, Any]]
+    scored_opportunities: list[dict[str, Any]],
 ) -> int:
     """
     Update app_opportunities table with AI-enriched profiles via DLT.
@@ -831,12 +1262,17 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
         # Fetch existing trust data for this submission_id
         submission_id = opp.get("submission_id")
         try:
-            existing = supabase.table("app_opportunities").select(
-                "trust_score, trust_badge, activity_score, engagement_level, "
-                "trust_level, trend_velocity, problem_validity, discussion_quality, "
-                "ai_confidence_level, trust_validation_timestamp, trust_validation_method, "
-                "subreddit, reddit_score, num_comments, title"
-            ).eq("submission_id", submission_id).execute()
+            existing = (
+                supabase.table("app_opportunities")
+                .select(
+                    "trust_score, trust_badge, activity_score, engagement_level, "
+                    "trust_level, trend_velocity, problem_validity, discussion_quality, "
+                    "ai_confidence_level, trust_validation_timestamp, trust_validation_method, "
+                    "subreddit, reddit_score, num_comments, title"
+                )
+                .eq("submission_id", submission_id)
+                .execute()
+            )
 
             trust_data = existing.data[0] if existing.data else {}
         except Exception as e:
@@ -882,7 +1318,7 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
     @dlt.resource(
         name="app_opportunities",
         write_disposition="merge",
-        primary_key=PK_SUBMISSION_ID
+        primary_key=PK_SUBMISSION_ID,
     )
     def ai_enriched_opportunities():
         yield ai_profiles
@@ -891,7 +1327,9 @@ def store_ai_profiles_to_app_opportunities_via_dlt(
     pipeline = create_dlt_pipeline()
     load_info = pipeline.run(ai_enriched_opportunities())
 
-    print(f"✓ Updated {len(ai_profiles)} opportunities with AI profiles in app_opportunities")
+    print(
+        f"✓ Updated {len(ai_profiles)} opportunities with AI profiles in app_opportunities"
+    )
     return len(ai_profiles)
 
 
@@ -935,14 +1373,14 @@ def perform_market_validation(opportunity_data: dict) -> ValidationEvidence | No
 
     try:
         # Initialize validator (lazy initialization)
-        if not hasattr(perform_market_validation, '_validator'):
+        if not hasattr(perform_market_validation, "_validator"):
             perform_market_validation._validator = MarketDataValidator()
 
         # Perform validation
         evidence = perform_market_validation._validator.validate_opportunity(
             app_concept=app_concept,
             target_market=target_market,
-            problem_description=problem_description
+            problem_description=problem_description,
         )
 
         return evidence
@@ -953,7 +1391,9 @@ def perform_market_validation(opportunity_data: dict) -> ValidationEvidence | No
         return None
 
 
-def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[str, int]:
+def store_hybrid_results_to_database(
+    all_results: list[dict[str, Any]],
+) -> dict[str, int]:
     """
     Store hybrid strategy results (Option A & B) to their respective database tables.
 
@@ -988,10 +1428,11 @@ def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[
     # Store Option A: LLM Monetization Analysis
     if llm_analyses:
         try:
+
             @dlt.resource(
                 name="llm_monetization_analysis",
                 write_disposition="merge",
-                primary_key=PK_OPPORTUNITY_ID
+                primary_key=PK_OPPORTUNITY_ID,
             )
             def llm_analysis_resource():
                 yield from llm_analyses
@@ -1007,10 +1448,11 @@ def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[
     # Store Option B: Customer Leads
     if customer_leads:
         try:
+
             @dlt.resource(
                 name="customer_leads",
                 write_disposition="merge",
-                primary_key=PK_OPPORTUNITY_ID
+                primary_key=PK_OPPORTUNITY_ID,
             )
             def customer_leads_resource():
                 yield from customer_leads
@@ -1021,11 +1463,16 @@ def store_hybrid_results_to_database(all_results: list[dict[str, Any]]) -> dict[
             print(f"✓ Stored {len(customer_leads)} customer leads")
 
             # Log hot leads summary
-            hot_leads = [lead for lead in customer_leads
-                        if lead.get("urgency_level") in ["high", "critical"]
-                        and lead.get("lead_score", 0) >= 75]
+            hot_leads = [
+                lead
+                for lead in customer_leads
+                if lead.get("urgency_level") in ["high", "critical"]
+                and lead.get("lead_score", 0) >= 75
+            ]
             if hot_leads:
-                print(f"🔥 HOT LEADS: {len(hot_leads)} high-priority leads ready for outreach!")
+                print(
+                    f"🔥 HOT LEADS: {len(hot_leads)} high-priority leads ready for outreach!"
+                )
 
         except Exception as e:
             print(f"⚠️  Failed to store customer leads: {e}")
@@ -1038,7 +1485,7 @@ def process_batch(
     agent: OpportunityAnalyzerAgent,
     batch_number: int,
     llm_profiler: EnhancedLLMProfiler | None = None,
-    ai_profile_threshold: float = 40.0
+    ai_profile_threshold: float = 40.0,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int, dict[str, Any]]:
     """
     Process a batch of submissions through the opportunity analyzer.
@@ -1092,13 +1539,18 @@ def process_batch(
             print(f"  📊 {formatted['title'][:60]}... Score: {final_score:.1f}")
 
             # HYBRID STRATEGY: Run Option A & B analysis on qualified opportunities
-            if final_score >= ai_profile_threshold:  # Use AI profile threshold for consistency
+            if (
+                final_score >= ai_profile_threshold
+            ):  # Use AI profile threshold for consistency
                 hybrid_results = {}
 
                 # Option A: LLM Monetization Analysis (if enabled)
-                if HYBRID_STRATEGY_CONFIG["option_a"]["enabled"] and HYBRID_STRATEGY_CONFIG["option_a"]["openrouter_key"]:
+                if (
+                    HYBRID_STRATEGY_CONFIG["option_a"]["enabled"]
+                    and HYBRID_STRATEGY_CONFIG["option_a"]["openrouter_key"]
+                ):
                     try:
-                        if not hasattr(process_batch, '_llm_analyzer'):
+                        if not hasattr(process_batch, "_llm_analyzer"):
                             process_batch._llm_analyzer = get_monetization_analyzer(
                                 model=HYBRID_STRATEGY_CONFIG["option_a"]["model"]
                             )
@@ -1106,26 +1558,34 @@ def process_batch(
                         llm_result = process_batch._llm_analyzer.analyze(
                             text=formatted["text"],
                             subreddit=formatted["subreddit"],
-                            keyword_monetization_score=analysis.get("monetization_potential", 0)
+                            keyword_monetization_score=analysis.get(
+                                "monetization_potential", 0
+                            ),
                         )
 
                         # Update monetization score with LLM result
-                        analysis["monetization_potential"] = llm_result.llm_monetization_score
+                        analysis["monetization_potential"] = (
+                            llm_result.llm_monetization_score
+                        )
                         analysis["customer_segment"] = llm_result.customer_segment
                         analysis["llm_analysis"] = {
                             "willingness_to_pay": llm_result.willingness_to_pay_score,
                             "payment_sentiment": llm_result.sentiment_toward_payment,
                             "price_points": llm_result.mentioned_price_points,
                             "urgency": llm_result.urgency_level,
-                            "confidence": llm_result.confidence
+                            "confidence": llm_result.confidence,
                         }
 
                         # Store LLM analysis record for database
                         hybrid_results["llm_analysis"] = {
                             "opportunity_id": f"opp_{submission.get('submission_id', submission.get('id'))}",
-                            "submission_id": submission.get("submission_id", submission.get("id")),
+                            "submission_id": submission.get(
+                                "submission_id", submission.get("id")
+                            ),
                             "llm_monetization_score": llm_result.llm_monetization_score,
-                            "keyword_monetization_score": analysis.get("monetization_potential", 0),
+                            "keyword_monetization_score": analysis.get(
+                                "monetization_potential", 0
+                            ),
                             "customer_segment": llm_result.customer_segment,
                             "willingness_to_pay_score": llm_result.willingness_to_pay_score,
                             "price_sensitivity_score": llm_result.price_sensitivity_score,
@@ -1139,10 +1599,13 @@ def process_batch(
                             "reasoning": llm_result.reasoning,
                             "subreddit_multiplier": llm_result.subreddit_multiplier,
                             "model_used": HYBRID_STRATEGY_CONFIG["option_a"]["model"],
-                            "score_delta": llm_result.llm_monetization_score - analysis.get("monetization_potential", 0)
+                            "score_delta": llm_result.llm_monetization_score
+                            - analysis.get("monetization_potential", 0),
                         }
 
-                        print(f"  💰 Option A: LLM Score {llm_result.llm_monetization_score:.1f} (Δ{llm_result.llm_monetization_score - analysis.get('monetization_potential', 0):+.1f})")
+                        print(
+                            f"  💰 Option A: LLM Score {llm_result.llm_monetization_score:.1f} (Δ{llm_result.llm_monetization_score - analysis.get('monetization_potential', 0):+.1f})"
+                        )
 
                     except Exception as e:
                         print(f"  ⚠️  Option A LLM analysis failed: {e}")
@@ -1150,7 +1613,7 @@ def process_batch(
                 # Option B: Customer Lead Extraction (if enabled)
                 if HYBRID_STRATEGY_CONFIG["option_b"]["enabled"]:
                     try:
-                        if not hasattr(process_batch, '_lead_extractor'):
+                        if not hasattr(process_batch, "_lead_extractor"):
                             process_batch._lead_extractor = LeadExtractor()
 
                         # Convert submission to post format for lead extractor
@@ -1160,40 +1623,51 @@ def process_batch(
                             "title": formatted["title"],
                             "selftext": formatted["text"],
                             "subreddit": formatted["subreddit"],
-                            "created_utc": formatted.get("created_utc")
+                            "created_utc": formatted.get("created_utc"),
                         }
 
                         # Extract lead signals
                         lead = process_batch._lead_extractor.extract_from_reddit_post(
-                            post=post,
-                            opportunity_score=final_score
+                            post=post, opportunity_score=final_score
                         )
 
                         # Convert to database record
                         lead_record = convert_to_database_record(lead)
-                        lead_record["opportunity_id"] = f"opp_{submission.get('submission_id', submission.get('id'))}"
+                        lead_record["opportunity_id"] = (
+                            f"opp_{submission.get('submission_id', submission.get('id'))}"
+                        )
 
                         hybrid_results["lead"] = lead_record
 
-                        print(f"  👥 Option B: Lead Score {lead.lead_score}/100 ({lead.urgency_level} urgency)")
+                        print(
+                            f"  👥 Option B: Lead Score {lead.lead_score}/100 ({lead.urgency_level} urgency)"
+                        )
 
                         # Optional: Send Slack alert for hot leads
-                        if (lead.urgency_level in ['high', 'critical'] and
-                            lead.lead_score >= 75 and
-                            HYBRID_STRATEGY_CONFIG["option_b"]["slack_webhook"]):
+                        if (
+                            lead.urgency_level in ["high", "critical"]
+                            and lead.lead_score >= 75
+                            and HYBRID_STRATEGY_CONFIG["option_b"]["slack_webhook"]
+                        ):
                             try:
                                 import requests
 
                                 from core.lead_extractor import format_lead_for_slack
 
                                 slack_msg = format_lead_for_slack(lead)
-                                webhook_url = HYBRID_STRATEGY_CONFIG["option_b"]["slack_webhook"]
+                                webhook_url = HYBRID_STRATEGY_CONFIG["option_b"][
+                                    "slack_webhook"
+                                ]
 
-                                response = requests.post(webhook_url, json=slack_msg, timeout=10)
+                                response = requests.post(
+                                    webhook_url, json=slack_msg, timeout=10
+                                )
                                 if response.status_code == 200:
                                     print("  📱 Hot lead alert sent to Slack!")
                                 else:
-                                    print(f"  ⚠️  Slack notification failed: {response.status_code}")
+                                    print(
+                                        f"  ⚠️  Slack notification failed: {response.status_code}"
+                                    )
                             except Exception as slack_e:
                                 print(f"  ⚠️  Slack notification error: {slack_e}")
 
@@ -1214,16 +1688,34 @@ def process_batch(
                     if hybrid_results and "llm_analysis" in hybrid_results:
                         # Extract the Agno analysis data that was used for Option A
                         agno_evidence = {
-                            "willingness_to_pay_score": hybrid_results["llm_analysis"].get("willingness_to_pay_score", 50),
-                            "customer_segment": hybrid_results["llm_analysis"].get("customer_segment", "Unknown"),
-                            "sentiment_toward_payment": hybrid_results["llm_analysis"].get("payment_sentiment", "Neutral"),
-                            "urgency_level": hybrid_results["llm_analysis"].get("urgency_level", "Low"),
-                            "mentioned_price_points": hybrid_results["llm_analysis"].get("mentioned_price_points", []),
-                            "existing_payment_behavior": hybrid_results["llm_analysis"].get("existing_payment_behavior", "Not specified"),
-                            "payment_friction_indicators": hybrid_results["llm_analysis"].get("payment_friction_indicators", []),
-                            "confidence": hybrid_results["llm_analysis"].get("confidence", 0.7)
+                            "willingness_to_pay_score": hybrid_results[
+                                "llm_analysis"
+                            ].get("willingness_to_pay_score", 50),
+                            "customer_segment": hybrid_results["llm_analysis"].get(
+                                "customer_segment", "Unknown"
+                            ),
+                            "sentiment_toward_payment": hybrid_results[
+                                "llm_analysis"
+                            ].get("payment_sentiment", "Neutral"),
+                            "urgency_level": hybrid_results["llm_analysis"].get(
+                                "urgency_level", "Low"
+                            ),
+                            "mentioned_price_points": hybrid_results[
+                                "llm_analysis"
+                            ].get("mentioned_price_points", []),
+                            "existing_payment_behavior": hybrid_results[
+                                "llm_analysis"
+                            ].get("existing_payment_behavior", "Not specified"),
+                            "payment_friction_indicators": hybrid_results[
+                                "llm_analysis"
+                            ].get("payment_friction_indicators", []),
+                            "confidence": hybrid_results["llm_analysis"].get(
+                                "confidence", 0.7
+                            ),
                         }
-                        print(f"  🧠 Evidence-based profiling: Using Agno analysis (WTP: {agno_evidence['willingness_to_pay_score']}/100, Segment: {agno_evidence['customer_segment']})")
+                        print(
+                            f"  🧠 Evidence-based profiling: Using Agno analysis (WTP: {agno_evidence['willingness_to_pay_score']}/100, Segment: {agno_evidence['customer_segment']})"
+                        )
 
                     # Use the enhanced evidence-based profiling method
                     if agno_evidence:
@@ -1233,24 +1725,28 @@ def process_batch(
                             title=formatted["title"],
                             subreddit=formatted["subreddit"],
                             score=final_score,
-                            agno_analysis=agno_evidence
+                            agno_analysis=agno_evidence,
                         )
                         # Extract cost data from profile (embedded by evidence-based method)
                         cost_data = ai_profile.get("cost_tracking", {})
                         print("  ✅ Enhanced evidence-based profiling completed")
                     else:
                         # Fallback to standard method with cost tracking
-                        ai_profile, cost_data = llm_profiler.generate_app_profile_with_costs(
-                            text=formatted["text"],
-                            title=formatted["title"],
-                            subreddit=formatted["subreddit"],
-                            score=final_score,
-                            agno_analysis=agno_evidence
+                        ai_profile, cost_data = (
+                            llm_profiler.generate_app_profile_with_costs(
+                                text=formatted["text"],
+                                title=formatted["title"],
+                                subreddit=formatted["subreddit"],
+                                score=final_score,
+                                agno_analysis=agno_evidence,
+                            )
                         )
                         print("  🤖 Standard AI profiling (no evidence available)")
                     # Merge AI profile into analysis and store cost data
                     analysis.update(ai_profile)
-                    analysis["cost_tracking"] = cost_data  # Ensure cost data is preserved
+                    analysis["cost_tracking"] = (
+                        cost_data  # Ensure cost data is preserved
+                    )
 
                     # Enhanced evidence validation logging
                     if agno_evidence and "evidence_validation" in ai_profile:
@@ -1260,7 +1756,9 @@ def process_batch(
                         discrepancies = validation.get("discrepancies", [])
                         warnings = validation.get("warnings", [])
                         confidence_metrics = validation.get("confidence_metrics", {})
-                        evidence_strength = validation.get("evidence_strength", "medium")
+                        evidence_strength = validation.get(
+                            "evidence_strength", "medium"
+                        )
 
                         # Determine validation icon based on alignment
                         if alignment_score >= 80:
@@ -1270,26 +1768,45 @@ def process_batch(
                         else:
                             validation_icon = "🔴"
 
-                        print(f"  {validation_icon} Evidence Validation: {validation_status.replace('_', ' ').title()} ({alignment_score:.1f}% alignment)")
-                        print(f"     Evidence Strength: {evidence_strength.title()} (Confidence: {confidence_metrics.get('evidence_confidence', 0):.2f})")
+                        print(
+                            f"  {validation_icon} Evidence Validation: {validation_status.replace('_', ' ').title()} ({alignment_score:.1f}% alignment)"
+                        )
+                        print(
+                            f"     Evidence Strength: {evidence_strength.title()} (Confidence: {confidence_metrics.get('evidence_confidence', 0):.2f})"
+                        )
 
                         # Show detailed validation results
                         validations = validation.get("validations", {})
                         if validations:
                             print("     Validation Details:")
                             for validation_name, validation_data in validations.items():
-                                if isinstance(validation_data, dict) and "score" in validation_data:
-                                    score = validation_data["score"] * 100  # Convert to percentage
-                                    status_icon = "✅" if validation_data.get("aligned", False) else "❌"
-                                    print(f"       {status_icon} {validation_name.replace('_', ' ').title()}: {score:.0f}%")
+                                if (
+                                    isinstance(validation_data, dict)
+                                    and "score" in validation_data
+                                ):
+                                    score = (
+                                        validation_data["score"] * 100
+                                    )  # Convert to percentage
+                                    status_icon = (
+                                        "✅"
+                                        if validation_data.get("aligned", False)
+                                        else "❌"
+                                    )
+                                    print(
+                                        f"       {status_icon} {validation_name.replace('_', ' ').title()}: {score:.0f}%"
+                                    )
 
                         # Show discrepancies
                         if discrepancies:
-                            print(f"  ⚠️  Evidence Discrepancies: {len(discrepancies)} flagged")
+                            print(
+                                f"  ⚠️  Evidence Discrepancies: {len(discrepancies)} flagged"
+                            )
                             for discrepancy in discrepancies[:2]:  # Show first 2
                                 print(f"     - {discrepancy}")
                             if len(discrepancies) > 2:
-                                print(f"     ... and {len(discrepancies) - 2} more discrepancies")
+                                print(
+                                    f"     ... and {len(discrepancies) - 2} more discrepancies"
+                                )
 
                         # Show warnings
                         if warnings:
@@ -1302,28 +1819,39 @@ def process_batch(
                         # Log evidence summary if available
                         if "evidence_summary" in ai_profile:
                             evidence_summary = ai_profile["evidence_summary"]
-                            print(f"  📊 Evidence Summary: {evidence_summary.get('validation_score', 0):.1f}% validation score")
+                            print(
+                                f"  📊 Evidence Summary: {evidence_summary.get('validation_score', 0):.1f}% validation score"
+                            )
 
                     # Log cost information
                     cost_usd = cost_data.get("total_cost_usd", 0.0)
                     tokens = cost_data.get("total_tokens", 0)
                     evidence_indicator = "🧠" if agno_evidence else "🤖"
-                    print(f"  {evidence_indicator} AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)")
+                    print(
+                        f"  {evidence_indicator} AI Profile Cost: ${cost_usd:.6f} ({tokens} tokens)"
+                    )
 
                     # PHASE 3: Market Data Validation (after AI profiling)
                     # Only perform if we have app_concept from AI profile
-                    market_validation_threshold = HYBRID_STRATEGY_CONFIG["market_validation"]["threshold"]
-                    if (HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"] and
-                        final_score >= market_validation_threshold and
-                        ai_profile.get("app_concept")):
-
-                        print(f"  📊 Performing market validation (score {final_score:.1f} >= threshold {market_validation_threshold})...")
+                    market_validation_threshold = HYBRID_STRATEGY_CONFIG[
+                        "market_validation"
+                    ]["threshold"]
+                    if (
+                        HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]
+                        and final_score >= market_validation_threshold
+                        and ai_profile.get("app_concept")
+                    ):
+                        print(
+                            f"  📊 Performing market validation (score {final_score:.1f} >= threshold {market_validation_threshold})..."
+                        )
 
                         # Prepare data for market validation
                         validation_input = {
                             "app_concept": ai_profile.get("app_concept", ""),
                             "target_market": ai_profile.get("target_user", "B2C"),
-                            "problem_description": ai_profile.get("problem_description", formatted["text"][:500])
+                            "problem_description": ai_profile.get(
+                                "problem_description", formatted["text"][:500]
+                            ),
                         }
 
                         market_evidence = perform_market_validation(validation_input)
@@ -1335,36 +1863,69 @@ def process_batch(
                                 "data_quality_score": market_evidence.data_quality_score,
                                 "reasoning": market_evidence.reasoning,
                                 "total_cost": market_evidence.total_cost,
-                                "timestamp": market_evidence.timestamp.isoformat() if market_evidence.timestamp else None,
-                                "competitors_found": [p.company_name for p in market_evidence.competitor_pricing],
-                                "tam_value": market_evidence.market_size.tam_value if market_evidence.market_size else None,
-                                "growth_rate": market_evidence.market_size.growth_rate if market_evidence.market_size else None,
-                                "similar_launches_count": len(market_evidence.similar_launches),
+                                "timestamp": market_evidence.timestamp.isoformat()
+                                if market_evidence.timestamp
+                                else None,
+                                "competitors_found": [
+                                    p.company_name
+                                    for p in market_evidence.competitor_pricing
+                                ],
+                                "tam_value": market_evidence.market_size.tam_value
+                                if market_evidence.market_size
+                                else None,
+                                "growth_rate": market_evidence.market_size.growth_rate
+                                if market_evidence.market_size
+                                else None,
+                                "similar_launches_count": len(
+                                    market_evidence.similar_launches
+                                ),
                             }
                             analysis["market_validation_evidence"] = evidence_dict
 
                             # Update tracking stats
                             market_validation_stats["validation_count"] += 1
-                            market_validation_stats["total_validation_score"] += market_evidence.validation_score
-                            market_validation_stats["total_data_quality_score"] += market_evidence.data_quality_score
-                            market_validation_stats["total_validation_cost"] += market_evidence.total_cost
-                            market_validation_stats["competitors_found"] += len(market_evidence.competitor_pricing)
+                            market_validation_stats["total_validation_score"] += (
+                                market_evidence.validation_score
+                            )
+                            market_validation_stats["total_data_quality_score"] += (
+                                market_evidence.data_quality_score
+                            )
+                            market_validation_stats["total_validation_cost"] += (
+                                market_evidence.total_cost
+                            )
+                            market_validation_stats["competitors_found"] += len(
+                                market_evidence.competitor_pricing
+                            )
                             if market_evidence.market_size:
                                 market_validation_stats["market_sizes_found"] += 1
-                            market_validation_stats["similar_launches_found"] += len(market_evidence.similar_launches)
+                            market_validation_stats["similar_launches_found"] += len(
+                                market_evidence.similar_launches
+                            )
 
                             # Log validation results
-                            print(f"  📈 Market Validation: {market_evidence.validation_score:.1f}/100 (quality: {market_evidence.data_quality_score:.1f}/100)")
-                            print(f"     Competitors: {', '.join(evidence_dict['competitors_found'][:3]) if evidence_dict['competitors_found'] else 'None found'}")
+                            print(
+                                f"  📈 Market Validation: {market_evidence.validation_score:.1f}/100 (quality: {market_evidence.data_quality_score:.1f}/100)"
+                            )
+                            print(
+                                f"     Competitors: {', '.join(evidence_dict['competitors_found'][:3]) if evidence_dict['competitors_found'] else 'None found'}"
+                            )
                             if evidence_dict["tam_value"]:
-                                print(f"     Market Size: {evidence_dict['tam_value']} ({evidence_dict.get('growth_rate', 'N/A')})")
-                            print(f"     Similar Launches: {evidence_dict['similar_launches_count']} found")
-                            print(f"     Validation Cost: ${market_evidence.total_cost:.6f}")
+                                print(
+                                    f"     Market Size: {evidence_dict['tam_value']} ({evidence_dict.get('growth_rate', 'N/A')})"
+                                )
+                            print(
+                                f"     Similar Launches: {evidence_dict['similar_launches_count']} found"
+                            )
+                            print(
+                                f"     Validation Cost: ${market_evidence.total_cost:.6f}"
+                            )
                         else:
                             print(f"  ⚠️  Market validation skipped or failed")
                     elif not HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]:
                         pass  # Silently skip if disabled
-                    elif not HYBRID_STRATEGY_CONFIG["market_validation"]["jina_api_key"]:
+                    elif not HYBRID_STRATEGY_CONFIG["market_validation"][
+                        "jina_api_key"
+                    ]:
                         pass  # Already warned in perform_market_validation
 
                 except Exception as e:
@@ -1372,7 +1933,9 @@ def process_batch(
                     # Continue with basic scoring
             else:
                 # Score too low for AI enrichment
-                print(f"  📊 Score {final_score:.1f} below AI threshold ({ai_profile_threshold}) - basic scoring only")
+                print(
+                    f"  📊 Score {final_score:.1f} below AI threshold ({ai_profile_threshold}) - basic scoring only"
+                )
 
             # Map subreddit to sector
             sector = map_subreddit_to_sector(submission.get("subreddit", ""))
@@ -1385,14 +1948,11 @@ def process_batch(
             trust_data = {
                 "trust_score": submission.get("trust_score"),
                 "trust_badge": submission.get("trust_badge"),
-                "activity_score": submission.get("activity_score")
+                "activity_score": submission.get("activity_score"),
             }
 
             scored_opp = prepare_analysis_for_storage(
-                submission_id,
-                analysis,
-                sector,
-                trust_data
+                submission_id, analysis, sector, trust_data
             )
 
             # Track for batch loading
@@ -1406,54 +1966,85 @@ def process_batch(
         except Exception as e:
             print(f"Error processing submission {submission.get('id', 'unknown')}: {e}")
             # Add error entry but continue processing
-            analysis_results.append({
-                "submission_id": submission.get("id", "unknown"),
-                "error": str(e),
-                "stored": False,
-                "final_score": 0
-            })
+            analysis_results.append(
+                {
+                    "submission_id": submission.get("id", "unknown"),
+                    "error": str(e),
+                    "stored": False,
+                    "final_score": 0,
+                }
+            )
             continue
 
     print("\n  📊 AI Enrichment Summary:")
     print(f"    - Total submissions: {total_submissions}")
     print(f"    - AI threshold: {ai_profile_threshold}")
-    print(f"    - Qualified for AI: {high_score_count}/{total_submissions} ({(high_score_count/total_submissions*100):.1f}%)")
+    print(
+        f"    - Qualified for AI: {high_score_count}/{total_submissions} ({(high_score_count / total_submissions * 100):.1f}%)"
+    )
 
     if high_score_count > 0:
         print(f"    - ✅ Generated {high_score_count} AI profiles with LLM enrichment")
     else:
         print("    - ⚠️  WARNING: No AI profiles generated!")
-        print(f"    - 🔍 ALL {total_submissions} opportunities scored below the {ai_profile_threshold} threshold")
+        print(
+            f"    - 🔍 ALL {total_submissions} opportunities scored below the {ai_profile_threshold} threshold"
+        )
         print("    - 💡 Consider:")
-        print(f"      - Lowering AI threshold: SCORE_THRESHOLD={max(20.0, ai_profile_threshold - 10.0)}")
+        print(
+            f"      - Lowering AI threshold: SCORE_THRESHOLD={max(20.0, ai_profile_threshold - 10.0)}"
+        )
         print("      - Collecting higher-quality Reddit data")
         print("      - Improving opportunity scoring algorithm")
         print("      - Checking subreddit selection for better pain points")
 
         # Additional insights for low scores
-        avg_score = sum(r.get("final_score", 0) for r in analysis_results if "final_score" in r) / len(analysis_results)
-        print(f"    - 📈 Average score: {avg_score:.1f} (threshold gap: {ai_profile_threshold - avg_score:.1f})")
+        avg_score = sum(
+            r.get("final_score", 0) for r in analysis_results if "final_score" in r
+        ) / len(analysis_results)
+        print(
+            f"    - 📈 Average score: {avg_score:.1f} (threshold gap: {ai_profile_threshold - avg_score:.1f})"
+        )
 
     # Market validation summary for this batch
     if market_validation_stats["validation_count"] > 0:
         print("\n  📊 Market Validation Summary (This Batch):")
-        print(f"    - Validations performed: {market_validation_stats['validation_count']}")
-        avg_val_score = market_validation_stats["total_validation_score"] / market_validation_stats["validation_count"]
-        avg_quality_score = market_validation_stats["total_data_quality_score"] / market_validation_stats["validation_count"]
+        print(
+            f"    - Validations performed: {market_validation_stats['validation_count']}"
+        )
+        avg_val_score = (
+            market_validation_stats["total_validation_score"]
+            / market_validation_stats["validation_count"]
+        )
+        avg_quality_score = (
+            market_validation_stats["total_data_quality_score"]
+            / market_validation_stats["validation_count"]
+        )
         print(f"    - Avg validation score: {avg_val_score:.1f}/100")
         print(f"    - Avg data quality: {avg_quality_score:.1f}/100")
-        print(f"    - Competitors found: {market_validation_stats['competitors_found']}")
-        print(f"    - Market sizes found: {market_validation_stats['market_sizes_found']}")
-        print(f"    - Similar launches: {market_validation_stats['similar_launches_found']}")
-        print(f"    - Total validation cost: ${market_validation_stats['total_validation_cost']:.6f}")
+        print(
+            f"    - Competitors found: {market_validation_stats['competitors_found']}"
+        )
+        print(
+            f"    - Market sizes found: {market_validation_stats['market_sizes_found']}"
+        )
+        print(
+            f"    - Similar launches: {market_validation_stats['similar_launches_found']}"
+        )
+        print(
+            f"    - Total validation cost: ${market_validation_stats['total_validation_cost']:.6f}"
+        )
 
-    return analysis_results, scored_opportunities, high_score_count, market_validation_stats
+    return (
+        analysis_results,
+        scored_opportunities,
+        high_score_count,
+        market_validation_stats,
+    )
 
 
 def generate_summary_report(
-    all_results: list[dict[str, Any]],
-    elapsed_time: float,
-    total_submissions: int
+    all_results: list[dict[str, Any]], elapsed_time: float, total_submissions: int
 ) -> None:
     """
     Generate and print a comprehensive summary report.
@@ -1463,9 +2054,9 @@ def generate_summary_report(
         elapsed_time: Total processing time in seconds
         total_submissions: Total number of submissions processed
     """
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("BATCH OPPORTUNITY SCORING - SUMMARY REPORT")
-    print("="*80)
+    print("=" * 80)
 
     # Basic statistics
     successful = sum(1 for r in all_results if r.get("stored", False))
@@ -1475,10 +2066,12 @@ def generate_summary_report(
     print(f"  Total Submissions:     {total_submissions:,}")
     print(f"  Successfully Scored:   {successful:,}")
     print(f"  Failed:                {failed:,}")
-    print(f"  Success Rate:          {(successful/total_submissions*100):.1f}%")
+    print(f"  Success Rate:          {(successful / total_submissions * 100):.1f}%")
     print(f"  Total Time:            {elapsed_time:.2f} seconds")
-    print(f"  Average Time/Item:     {(elapsed_time/total_submissions):.3f} seconds")
-    print(f"  Processing Rate:       {(total_submissions/elapsed_time):.1f} items/second")
+    print(f"  Average Time/Item:     {(elapsed_time / total_submissions):.3f} seconds")
+    print(
+        f"  Processing Rate:       {(total_submissions / elapsed_time):.1f} items/second"
+    )
 
     # Score distribution
     valid_results = [r for r in all_results if r.get("stored", False)]
@@ -1491,20 +2084,45 @@ def generate_summary_report(
         low = sum(1 for r in valid_results if 40 <= r.get("final_score", 0) < 55)
         not_recommended = sum(1 for r in valid_results if r.get("final_score", 0) < 40)
 
-        print(f"  High Priority (85+):   {high_priority:,} ({high_priority/len(valid_results)*100:.1f}%)")
-        print(f"  Med-High (70-84):      {med_high:,} ({med_high/len(valid_results)*100:.1f}%)")
-        print(f"  Medium (55-69):        {medium:,} ({medium/len(valid_results)*100:.1f}%)")
-        print(f"  Low (40-54):           {low:,} ({low/len(valid_results)*100:.1f}%)")
-        print(f"  Not Recommended (<40): {not_recommended:,} ({not_recommended/len(valid_results)*100:.1f}%)")
+        print(
+            f"  High Priority (85+):   {high_priority:,} ({high_priority / len(valid_results) * 100:.1f}%)"
+        )
+        print(
+            f"  Med-High (70-84):      {med_high:,} ({med_high / len(valid_results) * 100:.1f}%)"
+        )
+        print(
+            f"  Medium (55-69):        {medium:,} ({medium / len(valid_results) * 100:.1f}%)"
+        )
+        print(
+            f"  Low (40-54):           {low:,} ({low / len(valid_results) * 100:.1f}%)"
+        )
+        print(
+            f"  Not Recommended (<40): {not_recommended:,} ({not_recommended / len(valid_results) * 100:.1f}%)"
+        )
 
         # Average scores by dimension
         print("\nAverage Dimension Scores:")
-        avg_market = sum(r.get("dimension_scores", {}).get("market_demand", 0) for r in valid_results) / len(valid_results)
-        avg_pain = sum(r.get("dimension_scores", {}).get("pain_intensity", 0) for r in valid_results) / len(valid_results)
-        avg_monetization = sum(r.get("dimension_scores", {}).get("monetization_potential", 0) for r in valid_results) / len(valid_results)
-        avg_gap = sum(r.get("dimension_scores", {}).get("market_gap", 0) for r in valid_results) / len(valid_results)
-        avg_tech = sum(r.get("dimension_scores", {}).get("technical_feasibility", 0) for r in valid_results) / len(valid_results)
-        avg_final = sum(r.get("final_score", 0) for r in valid_results) / len(valid_results)
+        avg_market = sum(
+            r.get("dimension_scores", {}).get("market_demand", 0) for r in valid_results
+        ) / len(valid_results)
+        avg_pain = sum(
+            r.get("dimension_scores", {}).get("pain_intensity", 0)
+            for r in valid_results
+        ) / len(valid_results)
+        avg_monetization = sum(
+            r.get("dimension_scores", {}).get("monetization_potential", 0)
+            for r in valid_results
+        ) / len(valid_results)
+        avg_gap = sum(
+            r.get("dimension_scores", {}).get("market_gap", 0) for r in valid_results
+        ) / len(valid_results)
+        avg_tech = sum(
+            r.get("dimension_scores", {}).get("technical_feasibility", 0)
+            for r in valid_results
+        ) / len(valid_results)
+        avg_final = sum(r.get("final_score", 0) for r in valid_results) / len(
+            valid_results
+        )
 
         print(f"  Market Demand:         {avg_market:.1f}/100")
         print(f"  Pain Intensity:        {avg_pain:.1f}/100")
@@ -1520,12 +2138,16 @@ def generate_summary_report(
             sector_counts[sector] = sector_counts.get(sector, 0) + 1
 
         print("\nOpportunities by Sector:")
-        for sector, count in sorted(sector_counts.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {sector:25} {count:,} ({count/len(valid_results)*100:.1f}%)")
+        for sector, count in sorted(
+            sector_counts.items(), key=lambda x: x[1], reverse=True
+        ):
+            print(f"  {sector:25} {count:,} ({count / len(valid_results) * 100:.1f}%)")
 
         # Top opportunities
         print("\nTop 10 Opportunities:")
-        top_opps = sorted(valid_results, key=lambda x: x.get("final_score", 0), reverse=True)[:10]
+        top_opps = sorted(
+            valid_results, key=lambda x: x.get("final_score", 0), reverse=True
+        )[:10]
         for i, opp in enumerate(top_opps, 1):
             title = opp.get("title", "No title")[:60]
             score = opp.get("final_score", 0)
@@ -1533,9 +2155,9 @@ def generate_summary_report(
             subreddit = opp.get("subreddit", "Unknown")
             print(f"  {i:2}. [{score:.1f}] r/{subreddit:20} {title}")
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("Report Complete!")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
 
 def refresh_problem_metrics(supabase, submission_ids: list[str]) -> None:
@@ -1563,13 +2185,14 @@ def refresh_problem_metrics(supabase, submission_ids: list[str]) -> None:
             try:
                 # Execute the stored function to refresh metrics
                 response = supabase.rpc(
-                    "refresh_problem_metrics",
-                    {"p_problem_id": submission_id}
+                    "refresh_problem_metrics", {"p_problem_id": submission_id}
                 ).execute()
 
             except Exception as e:
                 # Log but don't fail - metrics are secondary to scoring
-                print(f"  ⚠️  Could not refresh metrics for {submission_id[:8]}...: {str(e)[:50]}")
+                print(
+                    f"  ⚠️  Could not refresh metrics for {submission_id[:8]}...: {str(e)[:50]}"
+                )
                 continue
 
         print(f"✓ Problem metrics refreshed for {len(submission_ids)} submissions")
@@ -1577,7 +2200,9 @@ def refresh_problem_metrics(supabase, submission_ids: list[str]) -> None:
     except Exception as e:
         print(f"⚠️  Metrics refresh unavailable: {str(e)[:100]}")
         print("  (This is expected if problem_metrics table hasn't been created yet)")
-        print("  Run: psql -f supabase/migrations/20251110151231_add_problem_metrics_table.sql")
+        print(
+            "  Run: psql -f supabase/migrations/20251110151231_add_problem_metrics_table.sql"
+        )
 
 
 def main():
@@ -1589,14 +2214,15 @@ def main():
 
     # Read score threshold from environment variable (default: 40.0)
     import os
+
     score_threshold = float(os.getenv("SCORE_THRESHOLD", "40.0"))
 
     # Track AI profile generation for final reporting
     ai_profiles_generated = 0
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("BATCH OPPORTUNITY SCORING - DLT-POWERED")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
     print("Features:")
     print("  ✓ DLT Pipeline: Enabled")
     print("  ✓ Incremental Loading: Automatic")
@@ -1658,9 +2284,9 @@ def main():
         return
 
     # Process in batches
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("PROCESSING SUBMISSIONS IN BATCHES")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     all_results = []
     all_scored_opportunities = []
     batch_size = 100
@@ -1682,13 +2308,17 @@ def main():
     print("Starting processing with progress bar...\n")
 
     # Use tqdm for overall progress
-    for i in tqdm(range(0, len(submissions), batch_size), desc="Processing batches", unit="batch"):
-        batch = submissions[i:i+batch_size]
+    for i in tqdm(
+        range(0, len(submissions), batch_size), desc="Processing batches", unit="batch"
+    ):
+        batch = submissions[i : i + batch_size]
         batch_num = (i // batch_size) + 1
 
         try:
             # Process batch (returns analysis results, scored opportunities, AI profile count, and market validation stats)
-            results, scored_opps, ai_profiles_count, batch_market_stats = process_batch(batch, agent, batch_num, llm_profiler, score_threshold)
+            results, scored_opps, ai_profiles_count, batch_market_stats = process_batch(
+                batch, agent, batch_num, llm_profiler, score_threshold
+            )
             all_results.extend(results)
             all_scored_opportunities.extend(scored_opps)
             ai_profiles_generated += ai_profiles_count
@@ -1715,23 +2345,35 @@ def main():
         print(f"   Avg Cost per Profile: ${cost_summary['avg_cost_per_profile']:.6f}")
 
         # Log model breakdown
-        for model, stats in cost_summary['model_breakdown'].items():
-            print(f"   {model}: {stats['count']} profiles, ${stats['cost']:.6f}, {stats['tokens']} tokens")
+        for model, stats in cost_summary["model_breakdown"].items():
+            print(
+                f"   {model}: {stats['count']} profiles, ${stats['cost']:.6f}, {stats['tokens']} tokens"
+            )
 
         # Evidence-based analysis metrics
-        evidence_based_profiles = sum(1 for opp in all_scored_opportunities if opp.get("evidence_based", False))
+        evidence_based_profiles = sum(
+            1 for opp in all_scored_opportunities if opp.get("evidence_based", False)
+        )
         if evidence_based_profiles > 0:
             print("\n🧠 EVIDENCE-BASED PROFILING METRICS")
-            print(f"   Evidence-based profiles: {evidence_based_profiles}/{ai_profiles_generated} ({(evidence_based_profiles/ai_profiles_generated*100):.1f}%)")
-            print(f"   Standard AI profiles: {ai_profiles_generated - evidence_based_profiles}")
+            print(
+                f"   Evidence-based profiles: {evidence_based_profiles}/{ai_profiles_generated} ({(evidence_based_profiles / ai_profiles_generated * 100):.1f}%)"
+            )
+            print(
+                f"   Standard AI profiles: {ai_profiles_generated - evidence_based_profiles}"
+            )
 
             # Calculate evidence validation metrics
             validation_scores = []
             discrepancy_count = 0
             for opp in all_scored_opportunities:
                 if opp.get("evidence_validation"):
-                    validation_scores.append(opp["evidence_validation"].get("alignment_score", 0))
-                    discrepancy_count += len(opp["evidence_validation"].get("discrepancies", []))
+                    validation_scores.append(
+                        opp["evidence_validation"].get("alignment_score", 0)
+                    )
+                    discrepancy_count += len(
+                        opp["evidence_validation"].get("discrepancies", [])
+                    )
 
             if validation_scores:
                 avg_alignment = sum(validation_scores) / len(validation_scores)
@@ -1742,8 +2384,12 @@ def main():
                 alignment_categories = {}
                 for opp in all_scored_opportunities:
                     if opp.get("evidence_validation"):
-                        status = opp["evidence_validation"].get("overall_status", "unknown")
-                        alignment_categories[status] = alignment_categories.get(status, 0) + 1
+                        status = opp["evidence_validation"].get(
+                            "overall_status", "unknown"
+                        )
+                        alignment_categories[status] = (
+                            alignment_categories.get(status, 0) + 1
+                        )
 
                 if alignment_categories:
                     print("   Alignment distribution:")
@@ -1757,42 +2403,72 @@ def main():
     # Market Validation Summary (Phase 3)
     if total_market_validation_stats["validation_count"] > 0:
         print("\n📊 MARKET VALIDATION SUMMARY (Phase 3)")
-        print(f"   Total Validations: {total_market_validation_stats['validation_count']}")
-        avg_val_score = total_market_validation_stats["total_validation_score"] / total_market_validation_stats["validation_count"]
-        avg_quality = total_market_validation_stats["total_data_quality_score"] / total_market_validation_stats["validation_count"]
+        print(
+            f"   Total Validations: {total_market_validation_stats['validation_count']}"
+        )
+        avg_val_score = (
+            total_market_validation_stats["total_validation_score"]
+            / total_market_validation_stats["validation_count"]
+        )
+        avg_quality = (
+            total_market_validation_stats["total_data_quality_score"]
+            / total_market_validation_stats["validation_count"]
+        )
         print(f"   Avg Validation Score: {avg_val_score:.1f}/100")
         print(f"   Avg Data Quality: {avg_quality:.1f}/100")
-        print(f"   Total Competitors Found: {total_market_validation_stats['competitors_found']}")
-        print(f"   Market Sizes Discovered: {total_market_validation_stats['market_sizes_found']}")
-        print(f"   Similar Product Launches: {total_market_validation_stats['similar_launches_found']}")
-        print(f"   Total Validation Cost: ${total_market_validation_stats['total_validation_cost']:.6f}")
+        print(
+            f"   Total Competitors Found: {total_market_validation_stats['competitors_found']}"
+        )
+        print(
+            f"   Market Sizes Discovered: {total_market_validation_stats['market_sizes_found']}"
+        )
+        print(
+            f"   Similar Product Launches: {total_market_validation_stats['similar_launches_found']}"
+        )
+        print(
+            f"   Total Validation Cost: ${total_market_validation_stats['total_validation_cost']:.6f}"
+        )
 
         # Calculate combined cost (AI profiling + market validation)
         if cost_summary:
-            combined_cost = cost_summary['total_cost_usd'] + total_market_validation_stats['total_validation_cost']
+            combined_cost = (
+                cost_summary["total_cost_usd"]
+                + total_market_validation_stats["total_validation_cost"]
+            )
             print(f"\n   Combined Analysis Cost: ${combined_cost:.6f}")
             print(f"     - AI Profiling: ${cost_summary['total_cost_usd']:.6f}")
-            print(f"     - Market Validation: ${total_market_validation_stats['total_validation_cost']:.6f}")
+            print(
+                f"     - Market Validation: ${total_market_validation_stats['total_validation_cost']:.6f}"
+            )
     elif HYBRID_STRATEGY_CONFIG["market_validation"]["enabled"]:
         print("\n📊 MARKET VALIDATION NOTE")
-        print("   No market validations performed (opportunities below threshold or missing app_concept)")
+        print(
+            "   No market validations performed (opportunities below threshold or missing app_concept)"
+        )
         if not HYBRID_STRATEGY_CONFIG["market_validation"]["jina_api_key"]:
-            print("   WARNING: JINA_API_KEY not configured - market validation disabled")
+            print(
+                "   WARNING: JINA_API_KEY not configured - market validation disabled"
+            )
 
     # Load all scored opportunities to Supabase via DLT (batch operation)
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("LOADING SCORED OPPORTUNITIES TO SUPABASE")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     # Filter to only include opportunities with function_list (i.e., those with AI profiles)
     opportunities_with_functions = [
-        opp for opp in all_scored_opportunities
+        opp
+        for opp in all_scored_opportunities
         if opp.get("function_list") and len(opp.get("function_list", [])) > 0
     ]
 
     print(f"Total opportunities analyzed: {len(all_scored_opportunities):,}")
-    print(f"Opportunities with AI profiles (function_list): {len(opportunities_with_functions):,}")
-    print(f"Filtered out (no AI profile): {len(all_scored_opportunities) - len(opportunities_with_functions):,}")
+    print(
+        f"Opportunities with AI profiles (function_list): {len(opportunities_with_functions):,}"
+    )
+    print(
+        f"Filtered out (no AI profile): {len(all_scored_opportunities) - len(opportunities_with_functions):,}"
+    )
 
     dlt_load_start = time.time()
     load_success = load_scores_to_supabase_via_dlt(opportunities_with_functions)
@@ -1800,24 +2476,32 @@ def main():
 
     # Also store AI profiles to app_opportunities table via DLT (with deduplication)
     print("\n📤 Storing AI-generated profiles to app_opportunities via DLT...")
-    ai_stored_count = store_ai_profiles_to_app_opportunities_via_dlt(all_scored_opportunities)
+    ai_stored_count = store_ai_profiles_to_app_opportunities_via_dlt(
+        all_scored_opportunities
+    )
     if ai_stored_count > 0:
-        print(f"✓ Stored {ai_stored_count} AI-generated app profiles (deduplicated on submission_id)")
+        print(
+            f"✓ Stored {ai_stored_count} AI-generated app profiles (deduplicated on submission_id)"
+        )
     else:
         print("  No AI profiles to store (score threshold not met)")
 
     # HYBRID STRATEGY: Store Option A & B results to their respective tables
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("HYBRID STRATEGY - STORING OPTION A & B RESULTS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     hybrid_counts = store_hybrid_results_to_database(all_results)
     print("\n📊 Hybrid Strategy Summary:")
     print(f"   Option A (LLM Analysis): {hybrid_counts['llm_analyses']} records stored")
-    print(f"   Option B (Customer Leads): {hybrid_counts['customer_leads']} records stored")
+    print(
+        f"   Option B (Customer Leads): {hybrid_counts['customer_leads']} records stored"
+    )
 
-    if hybrid_counts['llm_analyses'] > 0 or hybrid_counts['customer_leads'] > 0:
-        print(f"   ✅ Hybrid strategy successfully enhanced {hybrid_counts['llm_analyses'] + hybrid_counts['customer_leads']} opportunities")
+    if hybrid_counts["llm_analyses"] > 0 or hybrid_counts["customer_leads"] > 0:
+        print(
+            f"   ✅ Hybrid strategy successfully enhanced {hybrid_counts['llm_analyses'] + hybrid_counts['customer_leads']} opportunities"
+        )
     else:
         print("   ⚠️  No hybrid results stored (opportunities below 60-point threshold)")
 
@@ -1835,15 +2519,15 @@ def main():
     elapsed_time = time.time() - start_time
 
     # Generate summary report
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("GENERATING SUMMARY REPORT")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     generate_summary_report(all_results, elapsed_time, len(submissions))
 
     # Print DLT-specific metrics
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("DLT PIPELINE METRICS")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Processing time:       {processing_time:.2f}s")
     print(f"DLT load time:         {dlt_load_time:.2f}s")
     print(f"Total time:            {elapsed_time:.2f}s")
@@ -1852,26 +2536,30 @@ def main():
     print("Primary key:           opportunity_id")
     print("Target table:          opportunity_scores")
     print("Constraint validation: DLT-Native (1-3 function rule)")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
     if load_success:
         print("✓ Batch opportunity scoring completed successfully!")
 
         # AI Profile Generation Status
         if ai_profiles_generated == 0:
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print("⚠️  AI PROFILE GENERATION WARNING")
-            print(f"{'='*80}")
+            print(f"{'=' * 80}")
             print("No AI profiles were generated in this run.")
             print(f"🔍 Threshold: {score_threshold}")
             print(f"📊 Opportunities processed: {len(submissions)}")
-            print(f"📈 Best score: {max(r.get('final_score', 0) for r in all_results):.1f}")
+            print(
+                f"📈 Best score: {max(r.get('final_score', 0) for r in all_results):.1f}"
+            )
             print("🎯 Recommended actions:")
-            print(f"  • Run with lower threshold: SCORE_THRESHOLD={max(20.0, score_threshold - 15.0)}")
+            print(
+                f"  • Run with lower threshold: SCORE_THRESHOLD={max(20.0, score_threshold - 15.0)}"
+            )
             print("  • Collect data from higher-engagement subreddits")
             print("  • Target posts with stronger pain indicators")
             print("  • Consider current market conditions and trending topics")
-            print(f"{'='*80}")
+            print(f"{'=' * 80}")
         else:
             print(f"\n✅ Generated {ai_profiles_generated} AI profiles successfully!")
     else:
