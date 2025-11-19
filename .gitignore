@@ -12,7 +12,9 @@
 .env.production
 .env.staging
 .env.development
-config.py
+# Ignore config.py in root and config/ but allow in core/pipeline/
+/config.py
+config/config.py
 secrets.py
 credentials.py
 api_keys.py
