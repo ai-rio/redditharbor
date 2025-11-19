@@ -11,7 +11,6 @@ import logging
 import os
 import sys
 import time
-from typing import Dict, List, Optional
 
 import pytest
 
@@ -19,7 +18,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 try:
-    from config.settings import SUPABASE_URL, SUPABASE_KEY
+    from config.settings import SUPABASE_KEY, SUPABASE_URL
     from core.deduplication import SimpleDeduplicator
 except ImportError as e:
     # Handle import errors gracefully for CI/testing environments
@@ -57,86 +56,102 @@ class TestSemanticDeduplicationIntegration:
                 "app_concept": "AI-powered personal finance advisor that helps users save money",
                 "subreddit": "personalfinance",
                 "score": 150,
-                "title": "Looking for feedback on my finance app idea"
+                "title": "Looking for feedback on my finance app idea",
             },
             {
                 "id": "test_unique_2",
                 "app_concept": "Meditation app with guided breathing exercises for anxiety relief",
                 "subreddit": "mentalhealth",
                 "score": 89,
-                "title": "Building a meditation app prototype"
+                "title": "Building a meditation app prototype",
             },
-
             # Duplicate opportunities - same concept, different wording
             {
                 "id": "test_duplicate_1",
                 "app_concept": "App idea: Food delivery service for local restaurants",
                 "subreddit": "food",
                 "score": 45,
-                "title": "Food delivery app concept"
+                "title": "Food delivery app concept",
             },
             {
                 "id": "test_duplicate_2",
                 "app_concept": "mobile app: food delivery service for local restaurants",
                 "subreddit": "restaurants",
                 "score": 67,
-                "title": "Local restaurant delivery platform"
+                "title": "Local restaurant delivery platform",
             },
             {
                 "id": "test_duplicate_3",
                 "app_concept": "web app: Food delivery service connecting users with local eateries",
                 "subreddit": "startups",
                 "score": 123,
-                "title": "Food delivery startup idea"
+                "title": "Food delivery startup idea",
             },
-
             # Edge cases
             {
                 "id": "test_edge_empty",
                 "app_concept": "",
                 "subreddit": "test",
                 "score": 1,
-                "title": "Empty concept test"
+                "title": "Empty concept test",
             },
             {
                 "id": "test_edge_whitespace",
                 "app_concept": "   \t\n   ",
                 "subreddit": "test",
                 "score": 1,
-                "title": "Whitespace concept test"
-            }
+                "title": "Whitespace concept test",
+            },
         ]
 
     def test_deduplicator_initialization(self, deduplicator):
         """Test that deduplicator initializes correctly with database connection"""
         # This test will fail first if database connection or imports don't work
         assert deduplicator is not None
-        assert hasattr(deduplicator, 'supabase')
+        assert hasattr(deduplicator, "supabase")
         assert deduplicator.supabase is not None
 
     def test_normalize_concept_functionality(self, deduplicator):
         """Test concept normalization with various inputs"""
         # Test basic normalization
-        assert deduplicator.normalize_concept("App idea: Food delivery") == "idea: food delivery"
-        assert deduplicator.normalize_concept("app idea: food delivery") == "idea: food delivery"
-        assert deduplicator.normalize_concept("APP IDEA: FOOD DELIVERY") == "idea: food delivery"
+        assert (
+            deduplicator.normalize_concept("App idea: Food delivery")
+            == "idea: food delivery"
+        )
+        assert (
+            deduplicator.normalize_concept("app idea: food delivery")
+            == "idea: food delivery"
+        )
+        assert (
+            deduplicator.normalize_concept("APP IDEA: FOOD DELIVERY")
+            == "idea: food delivery"
+        )
 
         # Test whitespace handling
-        assert deduplicator.normalize_concept("  Multiple   spaces  here  ") == "multiple spaces here"
+        assert (
+            deduplicator.normalize_concept("  Multiple   spaces  here  ")
+            == "multiple spaces here"
+        )
 
         # Test empty/None inputs
         assert deduplicator.normalize_concept("") == ""
         assert deduplicator.normalize_concept(None) == ""
 
         # Test prefix removal
-        assert deduplicator.normalize_concept("app: simple task manager") == "simple task manager"
-        assert deduplicator.normalize_concept("mobile app: simple task manager") == "app: simple task manager"
+        assert (
+            deduplicator.normalize_concept("app: simple task manager")
+            == "simple task manager"
+        )
+        assert (
+            deduplicator.normalize_concept("mobile app: simple task manager")
+            == "app: simple task manager"
+        )
 
     def test_fingerprint_generation_consistency(self, deduplicator):
         """Test that fingerprint generation is consistent"""
         concept1 = "App idea: Food delivery service"
         concept2 = "app idea: food delivery service"  # Different case
-        concept3 = "web app: Food delivery service"   # Different prefix
+        concept3 = "web app: Food delivery service"  # Different prefix
 
         fp1 = deduplicator.generate_fingerprint(concept1)
         fp2 = deduplicator.generate_fingerprint(concept2)
@@ -149,7 +164,9 @@ class TestSemanticDeduplicationIntegration:
         # Different concepts should have different fingerprints
         assert fp1 != fp3
 
-    def test_process_unique_opportunity_workflow(self, deduplicator, sample_opportunities):
+    def test_process_unique_opportunity_workflow(
+        self, deduplicator, sample_opportunities
+    ):
         """Test complete workflow for processing a unique opportunity"""
         # Create a unique opportunity with timestamp to avoid conflicts
         timestamp = int(time.time())
@@ -158,7 +175,7 @@ class TestSemanticDeduplicationIntegration:
             "app_concept": f"AI-powered personal finance advisor that helps users save money (unique test {timestamp})",
             "subreddit": "personalfinance",
             "score": 150,
-            "title": f"Looking for feedback on my finance app idea {timestamp}"
+            "title": f"Looking for feedback on my finance app idea {timestamp}",
         }
 
         # Process the opportunity
@@ -181,11 +198,14 @@ class TestSemanticDeduplicationIntegration:
         assert existing_concept is not None
         assert existing_concept["concept_name"] == result["normalized_concept"]
 
-    def test_process_duplicate_opportunity_workflow(self, deduplicator, sample_opportunities):
+    def test_process_duplicate_opportunity_workflow(
+        self, deduplicator, sample_opportunities
+    ):
         """Test complete workflow for processing duplicate opportunities"""
         # Create test data that will actually be duplicates after normalization
         # Use a random identifier to ensure uniqueness across test runs
         import random
+
         test_id = f"food_delivery_{random.randint(10000, 99999)}"
 
         duplicate_opps = [
@@ -194,22 +214,22 @@ class TestSemanticDeduplicationIntegration:
                 "app_concept": f"App idea: Food delivery service for local restaurants ({test_id})",
                 "subreddit": "food",
                 "score": 45,
-                "title": f"Food delivery app concept {test_id}"
+                "title": f"Food delivery app concept {test_id}",
             },
             {
                 "id": f"test_duplicate_2_{test_id}",
                 "app_concept": f"app idea: food delivery service for local restaurants ({test_id})",
                 "subreddit": "restaurants",
                 "score": 67,
-                "title": f"Local restaurant delivery platform {test_id}"
+                "title": f"Local restaurant delivery platform {test_id}",
             },
             {
                 "id": f"test_duplicate_3_{test_id}",
                 "app_concept": f"APP IDEA: FOOD DELIVERY SERVICE FOR LOCAL RESTAURANTS ({test_id})",
                 "subreddit": "startups",
                 "score": 123,
-                "title": f"Food delivery startup idea {test_id}"
-            }
+                "title": f"Food delivery startup idea {test_id}",
+            },
         ]
 
         # Process first duplicate - should create new concept
@@ -251,11 +271,15 @@ class TestSemanticDeduplicationIntegration:
         assert "missing app concept" in result["message"].lower()
 
         # Test empty concept after normalization
-        result = deduplicator.process_opportunity({"id": "test_empty", "app_concept": "   "})
+        result = deduplicator.process_opportunity(
+            {"id": "test_empty", "app_concept": "   "}
+        )
         assert result["success"] is False
         assert "empty normalized concept" in result["message"].lower()
 
-    def test_end_to_end_workflow_with_mixed_data(self, deduplicator, sample_opportunities):
+    def test_end_to_end_workflow_with_mixed_data(
+        self, deduplicator, sample_opportunities
+    ):
         """Test complete end-to-end workflow with mixed unique and duplicate data"""
         processing_results = []
 
@@ -282,8 +306,11 @@ class TestSemanticDeduplicationIntegration:
         assert len(unique_results) >= 2  # At least 2 unique concepts
 
         # Verify fingerprint consistency for duplicates
-        food_delivery_fps = [r["fingerprint"] for r in processing_results
-                           if "food delivery" in r.get("normalized_concept", "").lower()]
+        food_delivery_fps = [
+            r["fingerprint"]
+            for r in processing_results
+            if "food delivery" in r.get("normalized_concept", "").lower()
+        ]
         if len(food_delivery_fps) > 1:
             assert all(fp == food_delivery_fps[0] for fp in food_delivery_fps)
 
@@ -294,7 +321,7 @@ class TestSemanticDeduplicationIntegration:
             "id": f"test_cleanup_{int(time.time())}",
             "app_concept": "App idea: Task management with AI prioritization",
             "subreddit": "productivity",
-            "score": 42
+            "score": 42,
         }
 
         # Process the opportunity
@@ -304,7 +331,7 @@ class TestSemanticDeduplicationIntegration:
         # Verify it exists in database
         existing = deduplicator.find_existing_concept(result["fingerprint"])
         assert existing is not None
-        concept_id = existing["id"]
+        existing["id"]
 
         # Note: In a real implementation, you might want to add cleanup methods
         # For now, we just verify the data was stored correctly
@@ -340,7 +367,7 @@ class TestSemanticDeduplicationIntegration:
             "App idea: Recipe sharing with meal planning",
             "App idea: Language learning with flashcards",
             "App idea: Home automation control system",
-            "App idea: Fitness tracking with challenges"
+            "App idea: Fitness tracking with challenges",
         ]
 
         fingerprints = []
