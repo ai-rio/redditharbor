@@ -34,7 +34,7 @@ sys.path.insert(0, str(project_root))
 
 # Import DLT collection
 import dlt
-from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from core.agents.interactive import OpportunityAnalyzerAgent
 from config.settings import DEFAULT_SUBREDDITS, DLT_MIN_ACTIVITY_SCORE
 from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
 from core.dlt import PK_SUBMISSION_ID, submission_resource_config

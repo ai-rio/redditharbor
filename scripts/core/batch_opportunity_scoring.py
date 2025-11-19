@@ -65,14 +65,15 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
     from tqdm import tqdm
 
-from agent_tools.llm_profiler_enhanced import EnhancedLLMProfiler
+from core.agents.profiler import EnhancedLLMProfiler
 
 # Hybrid strategy imports (Option A & B)
-from agent_tools.monetization_analyzer_factory import get_monetization_analyzer
-from agent_tools.opportunity_analyzer_agent import OpportunityAnalyzerAgent
+from core.agents.monetization.factory import get_monetization_analyzer
+from core.agents.interactive import OpportunityAnalyzerAgent
 
 # Market data validation (Phase 3: Data-Driven Validation)
-from agent_tools.market_data_validator import MarketDataValidator, ValidationEvidence
+from core.agents.market_validation import MarketDataValidator
+from core.agents.market_validation.validator import ValidationEvidence
 from config import SUPABASE_KEY, SUPABASE_URL
 
 # DLT constraint validator
