@@ -11,7 +11,7 @@ Agents are grouped by functionality:
 """
 
 # Re-export key classes from submodules
-from .profiler import EnhancedLLMProfiler, BaseLLMProfiler
+from .profiler import EnhancedLLMProfiler, LLMProfiler
 from .monetization import MonetizationAnalysis, MonetizationAnalyzerFactory
 from .market_validation import MarketDataValidator
 from .search import JinaHybridClient, JinaReaderClient
@@ -20,7 +20,7 @@ from .interactive import InteractiveAnalyzer, OpportunityAnalyzerAgent
 __all__ = [
     # Profiler
     "EnhancedLLMProfiler",
-    "BaseLLMProfiler",
+    "LLMProfiler",
     # Monetization
     "MonetizationAnalysis",
     "MonetizationAnalyzerFactory",

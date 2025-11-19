@@ -8,13 +8,35 @@ import sys
 from pathlib import Path
 
 import anyio
-from claude_agent_sdk import query
+
+try:
+    from claude_agent_sdk import query
+    CLAUDE_AGENT_SDK_AVAILABLE = True
+except ImportError:
+    CLAUDE_AGENT_SDK_AVAILABLE = False
+    print("Warning: claude_agent_sdk not available. Some features may be limited.")
+
+    def query(*args, **kwargs):
+        """Fallback function when claude_agent_sdk is not available"""
+        raise ImportError("claude_agent_sdk is not installed. Install it to use this feature.")
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from .opportunity_analyzer import OpportunityAnalyzerAgent
+
+
+class InteractiveAnalyzer:
+    """Wrapper class for interactive analysis functionality."""
+
+    def __init__(self):
+        """Initialize the interactive analyzer."""
+        self.agent = OpportunityAnalyzerAgent()
+
+    async def run_interactive_analysis(self):
+        """Run the interactive analysis session."""
+        return await interactive_analysis()
 
 
 async def interactive_analysis():

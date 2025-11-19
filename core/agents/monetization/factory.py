@@ -41,7 +41,7 @@ except ImportError:
 
 # Import both implementations
 try:
-    from .monetization_llm_analyzer import MonetizationLLMAnalyzer
+    from .llm_analyzer import MonetizationLLMAnalyzer
 
     DSPY_AVAILABLE = True
 except ImportError:
@@ -49,7 +49,7 @@ except ImportError:
     MonetizationLLMAnalyzer = None
 
 try:
-    from .monetization_agno_analyzer import MonetizationAgnoAnalyzer
+    from .agno_analyzer import MonetizationAgnoAnalyzer
 
     AGNO_AVAILABLE = True
 except ImportError:
@@ -227,6 +227,38 @@ def create_agno_analyzer(
     return get_monetization_analyzer(
         framework="agno", model=model, agentops_api_key=agentops_api_key, **kwargs
     )
+
+
+class MonetizationAnalyzerFactory:
+    """Factory class for creating monetization analyzers.
+
+    Provides a class-based interface for creating monetization analyzers
+    with different frameworks and configurations.
+    """
+
+    @staticmethod
+    def create_analyzer(framework: str | None = None, model: str | None = None, **kwargs):
+        """Create a monetization analyzer instance.
+
+        Args:
+            framework: Framework to use ('dspy' or 'agno')
+            model: Model name to use
+            **kwargs: Additional arguments for the analyzer
+
+        Returns:
+            Monetization analyzer instance
+        """
+        return get_monetization_analyzer(framework=framework, model=model, **kwargs)
+
+    @staticmethod
+    def list_frameworks():
+        """List available frameworks."""
+        return list_available_frameworks()
+
+    @staticmethod
+    def compare_frameworks():
+        """Compare available frameworks."""
+        return compare_frameworks()
 
 
 # =============================================================================
