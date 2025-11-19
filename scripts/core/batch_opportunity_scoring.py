@@ -65,6 +65,9 @@ from core.dlt.constraint_validator import app_opportunities_with_constraint
 from core.http_client_config import initialize_http_clients
 from core.lead_extractor import LeadExtractor, convert_to_database_record
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # Hybrid Strategy Configuration
 HYBRID_STRATEGY_CONFIG = {
     "option_a": {
@@ -201,6 +204,225 @@ def map_subreddit_to_sector(subreddit: str) -> str:
 
     subreddit_lower = subreddit.lower()
     return SECTOR_MAPPING.get(subreddit_lower, "Technology & SaaS")
+
+
+def should_run_agno_analysis(submission: dict[str, Any], supabase: Any) -> tuple[bool, str | None]:
+    """
+    Checks if Agno monetization analysis should run for a submission.
+    Skips if it's a duplicate with existing Agno analysis.
+
+    Args:
+        submission: Submission data from app_opportunities table
+        supabase: Initialized Supabase client
+
+    Returns:
+        Tuple of (should_run: bool, concept_id: str | None)
+        - should_run: True if analysis should run, False if should skip/copy
+        - concept_id: Business concept ID if duplicate found, None if unique
+    """
+    try:
+        # Get submission_id for database lookup
+        submission_id = submission.get("submission_id", submission.get("id"))
+        if not submission_id:
+            logger.warning("Submission missing submission_id, defaulting to run Agno analysis")
+            return True, None
+
+        # Check if submission has a business_concept_id (indicates it's a duplicate)
+        # First try to get from opportunities_unified table
+        try:
+            response = supabase.table("opportunities_unified") \
+                .select("business_concept_id") \
+                .eq("submission_id", submission_id) \
+                .execute()
+
+            if response.data and len(response.data) > 0:
+                concept_id = response.data[0].get("business_concept_id")
+                if concept_id:
+                    # This is a duplicate opportunity, check if concept has Agno analysis
+                    concept_response = supabase.table("business_concepts") \
+                        .select("has_agno_analysis") \
+                        .eq("id", concept_id) \
+                        .execute()
+
+                    if concept_response.data and len(concept_response.data) > 0:
+                        has_agno = concept_response.data[0].get("has_agno_analysis", False)
+                        logger.info(f"Submission {submission_id} is duplicate of concept {concept_id}, has_agno_analysis={has_agno}")
+                        return not has_agno, str(concept_id)  # Skip if has Agno, run if no Agno
+                    else:
+                        # Found concept but no concept data - assume no Agno
+                        return True, str(concept_id)
+        except Exception as db_error:
+            logger.warning(f"Database error checking deduplication for {submission_id}: {db_error}")
+            # Default to running analysis if database check fails
+            return True, None
+
+        # If no business_concept_id found, this is a unique opportunity
+        logger.debug(f"Submission {submission_id} is unique, should run Agno analysis")
+        return True, None
+
+    except Exception as e:
+        logger.error(f"Error checking if should run Agno analysis for {submission.get('submission_id', 'unknown')}: {e}")
+        # Default to running analysis on errors
+        return True, None
+
+
+def copy_agno_from_primary(submission: dict[str, Any], concept_id: str, supabase: Any) -> dict[str, Any]:
+    """
+    Copies Agno analysis results from primary opportunity for duplicate submissions.
+
+    Args:
+        submission: Current submission data (duplicate)
+        concept_id: Business concept ID to find primary opportunity
+        supabase: Initialized Supabase client
+
+    Returns:
+        Dictionary formatted for hybrid_results llm_analysis, or empty dict if copy fails
+        Should contain all Agno analysis fields properly formatted
+    """
+    try:
+        # Get the primary opportunity for this concept
+        # Look for existing Agno analysis linked to this concept
+        agno_response = supabase.table("llm_monetization_analysis") \
+            .select("*") \
+            .eq("business_concept_id", concept_id) \
+            .eq("copied_from_primary", False) \
+            .execute()
+
+        # Handle test environment where Mock objects might be used
+        if not hasattr(agno_response, 'data') or agno_response.data is None:
+            logger.warning(f"No Agno analysis response for concept {concept_id}")
+            return {}
+
+        # Handle both real data and Mock objects for testing
+        try:
+            # For real responses
+            if isinstance(agno_response.data, (list, tuple)):
+                data_list = agno_response.data
+            else:
+                # For Mock objects or other types
+                data_list = list(agno_response.data) if hasattr(agno_response.data, '__iter__') else []
+        except (TypeError, AttributeError):
+            # Handle Mock objects that don't support iteration
+            logger.warning(f"Cannot iterate Agno analysis data for concept {concept_id}")
+            return {}
+
+        if not data_list or len(data_list) == 0:
+            # No primary Agno analysis found, try alternative lookup methods
+            # Try to find by primary_opportunity_id
+            concept_response = supabase.table("business_concepts") \
+                .select("primary_opportunity_id") \
+                .eq("id", concept_id) \
+                .execute()
+
+            if (hasattr(concept_response, 'data') and concept_response.data and
+                len(concept_response.data) > 0):
+                primary_opp_id = concept_response.data[0].get("primary_opportunity_id")
+                if primary_opp_id:
+                    # Try to find Agno analysis for primary opportunity
+                    agno_response = supabase.table("llm_monetization_analysis") \
+                        .select("*") \
+                        .eq("opportunity_id", primary_opp_id) \
+                        .execute()
+
+                    if hasattr(agno_response, 'data') and agno_response.data:
+                        try:
+                            if isinstance(agno_response.data, (list, tuple)):
+                                data_list = agno_response.data
+                            else:
+                                data_list = list(agno_response.data) if hasattr(agno_response.data, '__iter__') else []
+                        except (TypeError, AttributeError):
+                            data_list = []
+
+            if not data_list or len(data_list) == 0:
+                logger.warning(f"No Agno analysis found for concept {concept_id}")
+                return {}
+
+        # Get the primary Agno analysis (use the most recent if multiple)
+        if len(data_list) == 1:
+            primary_analysis = data_list[0]
+        else:
+            # Multiple analyses found, use the most recent
+            try:
+                primary_analysis = max(data_list, key=lambda x: x.get("analyzed_at", ""))
+            except (TypeError, AttributeError):
+                # Fallback to first analysis if date comparison fails
+                primary_analysis = data_list[0]
+
+        # Create formatted llm_analysis dict for current submission
+        submission_id = submission.get("submission_id", submission.get("id"))
+        copied_analysis = {
+            "opportunity_id": f"opp_{submission_id}",
+            "submission_id": submission_id,
+            "llm_monetization_score": primary_analysis.get("llm_monetization_score"),
+            "keyword_monetization_score": primary_analysis.get("keyword_monetization_score"),
+            "customer_segment": primary_analysis.get("customer_segment"),
+            "willingness_to_pay_score": primary_analysis.get("willingness_to_pay_score"),
+            "price_sensitivity_score": primary_analysis.get("price_sensitivity_score"),
+            "revenue_potential_score": primary_analysis.get("revenue_potential_score"),
+            "payment_sentiment": primary_analysis.get("payment_sentiment"),
+            "urgency_level": primary_analysis.get("urgency_level"),
+            "existing_payment_behavior": primary_analysis.get("existing_payment_behavior"),
+            "mentioned_price_points": primary_analysis.get("mentioned_price_points"),
+            "payment_friction_indicators": primary_analysis.get("payment_friction_indicators"),
+            "confidence": primary_analysis.get("confidence"),
+            "reasoning": primary_analysis.get("reasoning"),
+            "subreddit_multiplier": primary_analysis.get("subreddit_multiplier"),
+            "model_used": primary_analysis.get("model_used"),
+            "score_delta": primary_analysis.get("score_delta"),
+            # Add metadata indicating this is copied
+            "copied_from_primary": True,
+            "primary_opportunity_id": primary_analysis.get("opportunity_id"),
+            "business_concept_id": concept_id,
+            "copy_timestamp": datetime.now().isoformat(),
+        }
+
+        logger.info(f"Copied Agno analysis from primary for concept {concept_id} to submission {submission_id}")
+        return copied_analysis
+
+    except Exception as e:
+        logger.error(f"Error copying Agno analysis from primary for concept {concept_id}: {e}")
+        return {}
+
+
+def update_concept_agno_stats(concept_id: str, agno_result: dict[str, Any], supabase: Any) -> None:
+    """
+    Updates business concept with Agno analysis metadata.
+    Tracks analysis count and running average for WTP scores.
+
+    Args:
+        concept_id: Business concept ID to update
+        agno_result: Dictionary containing Agno analysis results
+        supabase: Initialized Supabase client
+
+    Returns:
+        None (function logs errors but doesn't raise)
+    """
+    try:
+        # Extract WTP score from Agno result
+        wtp_score = agno_result.get("willingness_to_pay_score")
+        if wtp_score is not None:
+            wtp_score = float(wtp_score)
+
+        # Call the database function to update Agno tracking
+        response = supabase.rpc("update_agno_analysis_tracking", {
+            "p_concept_id": int(concept_id),
+            "p_has_analysis": True,
+            "p_wtp_score": wtp_score
+        }).execute()
+
+        if response.data and len(response.data) > 0:
+            success = response.data[0].get("update_agno_analysis_tracking", False)
+            if success:
+                logger.info(f"Updated Agno stats for concept {concept_id} (WTP: {wtp_score})")
+            else:
+                logger.warning(f"Failed to update Agno stats for concept {concept_id}")
+        else:
+            logger.warning(f"No response from update_agno_analysis_tracking for concept {concept_id}")
+
+    except Exception as e:
+        logger.error(f"Error updating concept Agno stats for {concept_id}: {e}")
+        # Don't raise exception - this is non-critical functionality
+        pass
 
 
 def fetch_all_submissions(supabase_client: Any, batch_size: int = 1000) -> list[dict[str, Any]]:
