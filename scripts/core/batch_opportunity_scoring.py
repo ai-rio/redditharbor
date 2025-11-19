@@ -1486,6 +1486,7 @@ def process_batch(
     batch_number: int,
     llm_profiler: EnhancedLLMProfiler | None = None,
     ai_profile_threshold: float = 40.0,
+    supabase: Any = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int, dict[str, Any]]:
     """
     Process a batch of submissions through the opportunity analyzer.
@@ -1501,7 +1502,8 @@ def process_batch(
         agent: Initialized OpportunityAnalyzerAgent
         batch_number: Current batch number for logging
         llm_profiler: Optional LLM profiler for high-score opportunities
-        high_score_threshold: Score threshold for LLM profiling (default: 40.0)
+        ai_profile_threshold: Score threshold for LLM profiling (default: 40.0)
+        supabase: Optional Supabase client for deduplication checks
 
     Returns:
         Tuple of (analysis_results, scored_opportunities_for_dlt, ai_profiles_count, market_validation_stats)
@@ -1550,62 +1552,193 @@ def process_batch(
                     and HYBRID_STRATEGY_CONFIG["option_a"]["openrouter_key"]
                 ):
                     try:
-                        if not hasattr(process_batch, "_llm_analyzer"):
-                            process_batch._llm_analyzer = get_monetization_analyzer(
-                                model=HYBRID_STRATEGY_CONFIG["option_a"]["model"]
+                        # AGNO INTEGRATION: Check if we should run Agno analysis or skip for duplicates
+                        should_run_agno = True
+                        concept_id = None
+
+                        if supabase:
+                            should_run_agno, concept_id = should_run_agno_analysis(
+                                submission, supabase
                             )
 
-                        llm_result = process_batch._llm_analyzer.analyze(
-                            text=formatted["text"],
-                            subreddit=formatted["subreddit"],
-                            keyword_monetization_score=analysis.get(
-                                "monetization_potential", 0
-                            ),
-                        )
+                        if should_run_agno:
+                            # Fresh Agno analysis needed
+                            if not hasattr(process_batch, "_llm_analyzer"):
+                                process_batch._llm_analyzer = get_monetization_analyzer(
+                                    model=HYBRID_STRATEGY_CONFIG["option_a"]["model"]
+                                )
 
-                        # Update monetization score with LLM result
-                        analysis["monetization_potential"] = (
-                            llm_result.llm_monetization_score
-                        )
-                        analysis["customer_segment"] = llm_result.customer_segment
-                        analysis["llm_analysis"] = {
-                            "willingness_to_pay": llm_result.willingness_to_pay_score,
-                            "payment_sentiment": llm_result.sentiment_toward_payment,
-                            "price_points": llm_result.mentioned_price_points,
-                            "urgency": llm_result.urgency_level,
-                            "confidence": llm_result.confidence,
-                        }
+                            llm_result = process_batch._llm_analyzer.analyze(
+                                text=formatted["text"],
+                                subreddit=formatted["subreddit"],
+                                keyword_monetization_score=analysis.get(
+                                    "monetization_potential", 0
+                                ),
+                            )
 
-                        # Store LLM analysis record for database
-                        hybrid_results["llm_analysis"] = {
-                            "opportunity_id": f"opp_{submission.get('submission_id', submission.get('id'))}",
-                            "submission_id": submission.get(
-                                "submission_id", submission.get("id")
-                            ),
-                            "llm_monetization_score": llm_result.llm_monetization_score,
-                            "keyword_monetization_score": analysis.get(
-                                "monetization_potential", 0
-                            ),
-                            "customer_segment": llm_result.customer_segment,
-                            "willingness_to_pay_score": llm_result.willingness_to_pay_score,
-                            "price_sensitivity_score": llm_result.price_sensitivity_score,
-                            "revenue_potential_score": llm_result.revenue_potential_score,
-                            "payment_sentiment": llm_result.sentiment_toward_payment,
-                            "urgency_level": llm_result.urgency_level,
-                            "existing_payment_behavior": llm_result.existing_payment_behavior,
-                            "mentioned_price_points": llm_result.mentioned_price_points,
-                            "payment_friction_indicators": llm_result.payment_friction_indicators,
-                            "confidence": llm_result.confidence,
-                            "reasoning": llm_result.reasoning,
-                            "subreddit_multiplier": llm_result.subreddit_multiplier,
-                            "model_used": HYBRID_STRATEGY_CONFIG["option_a"]["model"],
-                            "score_delta": llm_result.llm_monetization_score
-                            - analysis.get("monetization_potential", 0),
-                        }
+                            # Update monetization score with LLM result
+                            analysis["monetization_potential"] = (
+                                llm_result.llm_monetization_score
+                            )
+                            analysis["customer_segment"] = llm_result.customer_segment
+                            analysis["llm_analysis"] = {
+                                "willingness_to_pay": llm_result.willingness_to_pay_score,
+                                "payment_sentiment": llm_result.sentiment_toward_payment,
+                                "price_points": llm_result.mentioned_price_points,
+                                "urgency": llm_result.urgency_level,
+                                "confidence": llm_result.confidence,
+                            }
 
-                        print(
-                            f"  💰 Option A: LLM Score {llm_result.llm_monetization_score:.1f} (Δ{llm_result.llm_monetization_score - analysis.get('monetization_potential', 0):+.1f})"
-                        )
+                            # Store LLM analysis record for database
+                            hybrid_results["llm_analysis"] = {
+                                "opportunity_id": f"opp_{submission.get('submission_id', submission.get('id'))}",
+                                "submission_id": submission.get(
+                                    "submission_id", submission.get("id")
+                                ),
+                                "llm_monetization_score": llm_result.llm_monetization_score,
+                                "keyword_monetization_score": analysis.get(
+                                    "monetization_potential", 0
+                                ),
+                                "customer_segment": llm_result.customer_segment,
+                                "willingness_to_pay_score": llm_result.willingness_to_pay_score,
+                                "price_sensitivity_score": llm_result.price_sensitivity_score,
+                                "revenue_potential_score": llm_result.revenue_potential_score,
+                                "payment_sentiment": llm_result.sentiment_toward_payment,
+                                "urgency_level": llm_result.urgency_level,
+                                "existing_payment_behavior": llm_result.existing_payment_behavior,
+                                "mentioned_price_points": llm_result.mentioned_price_points,
+                                "payment_friction_indicators": llm_result.payment_friction_indicators,
+                                "confidence": llm_result.confidence,
+                                "reasoning": llm_result.reasoning,
+                                "subreddit_multiplier": llm_result.subreddit_multiplier,
+                                "model_used": HYBRID_STRATEGY_CONFIG["option_a"][
+                                    "model"
+                                ],
+                                "score_delta": llm_result.llm_monetization_score
+                                - analysis.get("monetization_potential", 0),
+                                "concept_id": concept_id,
+                            }
+
+                            print(
+                                f"  ✅ Option A: LLM Score {llm_result.llm_monetization_score:.1f} (Δ{llm_result.llm_monetization_score - analysis.get('monetization_potential', 0):+.1f})"
+                            )
+
+                            # Update concept metadata with fresh Agno analysis
+                            if supabase and concept_id:
+                                agno_result = {
+                                    "willingness_to_pay_score": llm_result.willingness_to_pay_score,
+                                    "customer_segment": llm_result.customer_segment,
+                                    "llm_monetization_score": llm_result.llm_monetization_score,
+                                    "confidence": llm_result.confidence,
+                                }
+                                update_concept_agno_stats(
+                                    concept_id, agno_result, supabase
+                                )
+
+                        else:
+                            # Skip Agno analysis - copy from primary opportunity
+                            if supabase and concept_id:
+                                agno_copy_result = copy_agno_from_primary(
+                                    submission, concept_id, supabase
+                                )
+
+                                if agno_copy_result:
+                                    # Update analysis with copied Agno data
+                                    analysis["monetization_potential"] = (
+                                        agno_copy_result.get(
+                                            "llm_monetization_score",
+                                            analysis.get("monetization_potential", 0),
+                                        )
+                                    )
+                                    analysis["customer_segment"] = agno_copy_result.get(
+                                        "customer_segment"
+                                    )
+                                    analysis["llm_analysis"] = {
+                                        "willingness_to_pay": agno_copy_result.get(
+                                            "willingness_to_pay_score"
+                                        ),
+                                        "payment_sentiment": agno_copy_result.get(
+                                            "payment_sentiment"
+                                        ),
+                                        "price_points": agno_copy_result.get(
+                                            "mentioned_price_points"
+                                        ),
+                                        "urgency": agno_copy_result.get(
+                                            "urgency_level"
+                                        ),
+                                        "confidence": agno_copy_result.get(
+                                            "confidence"
+                                        ),
+                                    }
+
+                                    # Store copied analysis for database
+                                    hybrid_results["llm_analysis"] = {
+                                        "opportunity_id": f"opp_{submission.get('submission_id', submission.get('id'))}",
+                                        "submission_id": submission.get(
+                                            "submission_id", submission.get("id")
+                                        ),
+                                        "llm_monetization_score": agno_copy_result.get(
+                                            "llm_monetization_score"
+                                        ),
+                                        "keyword_monetization_score": analysis.get(
+                                            "monetization_potential", 0
+                                        ),
+                                        "customer_segment": agno_copy_result.get(
+                                            "customer_segment"
+                                        ),
+                                        "willingness_to_pay_score": agno_copy_result.get(
+                                            "willingness_to_pay_score"
+                                        ),
+                                        "price_sensitivity_score": agno_copy_result.get(
+                                            "price_sensitivity_score"
+                                        ),
+                                        "revenue_potential_score": agno_copy_result.get(
+                                            "revenue_potential_score"
+                                        ),
+                                        "payment_sentiment": agno_copy_result.get(
+                                            "payment_sentiment"
+                                        ),
+                                        "urgency_level": agno_copy_result.get(
+                                            "urgency_level"
+                                        ),
+                                        "existing_payment_behavior": agno_copy_result.get(
+                                            "existing_payment_behavior"
+                                        ),
+                                        "mentioned_price_points": agno_copy_result.get(
+                                            "mentioned_price_points"
+                                        ),
+                                        "payment_friction_indicators": agno_copy_result.get(
+                                            "payment_friction_indicators"
+                                        ),
+                                        "confidence": agno_copy_result.get(
+                                            "confidence"
+                                        ),
+                                        "reasoning": agno_copy_result.get("reasoning"),
+                                        "subreddit_multiplier": agno_copy_result.get(
+                                            "subreddit_multiplier"
+                                        ),
+                                        "model_used": agno_copy_result.get(
+                                            "model_used", "copied"
+                                        ),
+                                        "score_delta": agno_copy_result.get(
+                                            "llm_monetization_score", 0
+                                        )
+                                        - analysis.get("monetization_potential", 0),
+                                        "concept_id": concept_id,
+                                        "copied_from_primary": True,
+                                    }
+
+                                    print(
+                                        f"  🔄 Option A: Skipped analysis - copied from concept {concept_id} (WTP: {agno_copy_result.get('willingness_to_pay_score', 0)})"
+                                    )
+                                else:
+                                    print(
+                                        f"  ⚠️  Option A: Failed to copy Agno analysis from concept {concept_id}"
+                                    )
+                            else:
+                                print(
+                                    f"  ⚠️  Option A: Skipped analysis but no supabase/concept_id available"
+                                )
 
                     except Exception as e:
                         print(f"  ⚠️  Option A LLM analysis failed: {e}")
@@ -2317,7 +2450,7 @@ def main():
         try:
             # Process batch (returns analysis results, scored opportunities, AI profile count, and market validation stats)
             results, scored_opps, ai_profiles_count, batch_market_stats = process_batch(
-                batch, agent, batch_num, llm_profiler, score_threshold
+                batch, agent, batch_num, llm_profiler, score_threshold, supabase
             )
             all_results.extend(results)
             all_scored_opportunities.extend(scored_opps)
