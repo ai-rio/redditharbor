@@ -192,7 +192,7 @@ def test_specific_mappings(subreddit, expected_sector):
 def test_mapping_count():
     """Test total number of subreddit mappings."""
     # Verify we have all expected mappings
-    assert len(SUBREDDIT_SECTOR_MAP) == 89  # Total subreddits in mapping
+    assert len(SUBREDDIT_SECTOR_MAP) == 78  # Total subreddits in mapping
 
 
 def test_no_duplicate_subreddits():
