@@ -110,6 +110,7 @@ class HybridStore:
             # Extract profile fields (all enriched submissions)
             profile_data = {
                 "submission_id": submission["submission_id"],
+                "reddit_id": submission.get("reddit_id"),  # Required field for submissions table
                 "title": submission.get("title"),
                 "selftext": submission.get("selftext"),
                 "author": submission.get("author"),
