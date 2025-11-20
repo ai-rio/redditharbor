@@ -77,7 +77,9 @@ def sample_submissions():
 class TestFetchExistingTrustData:
     """Test batch fetching of existing trust data."""
 
-    def test_fetch_with_existing_data(self, hybrid_store_with_client, sample_trust_data):
+    def test_fetch_with_existing_data(
+        self, hybrid_store_with_client, sample_trust_data
+    ):
         """Test fetching trust data for submissions with existing data."""
         # Mock database response
         mock_response = MagicMock()
@@ -100,9 +102,7 @@ class TestFetchExistingTrustData:
             },
         ]
 
-        hybrid_store_with_client.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        hybrid_store_with_client.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
         # Fetch trust data
         trust_data = hybrid_store_with_client._fetch_existing_trust_data(
@@ -122,9 +122,7 @@ class TestFetchExistingTrustData:
         mock_response = MagicMock()
         mock_response.data = []
 
-        hybrid_store_with_client.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        hybrid_store_with_client.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
         # Fetch trust data
         trust_data = hybrid_store_with_client._fetch_existing_trust_data(["sub_001"])
@@ -134,9 +132,7 @@ class TestFetchExistingTrustData:
 
     def test_fetch_without_supabase_client(self, hybrid_store_without_client):
         """Test fetch gracefully handles missing Supabase client."""
-        trust_data = hybrid_store_without_client._fetch_existing_trust_data(
-            ["sub_001"]
-        )
+        trust_data = hybrid_store_without_client._fetch_existing_trust_data(["sub_001"])
 
         # Should return empty dict without crashing
         assert trust_data == {}
@@ -176,9 +172,7 @@ class TestFetchExistingTrustData:
             }
         ]
 
-        hybrid_store_with_client.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        hybrid_store_with_client.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
         # Fetch trust data
         trust_data = hybrid_store_with_client._fetch_existing_trust_data(
@@ -455,9 +449,7 @@ class TestEdgeCases:
         assert result is False
 
     @patch.object(HybridStore, "_fetch_existing_trust_data")
-    def test_mixed_submission_ids(
-        self, mock_fetch, hybrid_store_with_client
-    ):
+    def test_mixed_submission_ids(self, mock_fetch, hybrid_store_with_client):
         """Test handling of mixed submission_id and reddit_id."""
         mock_fetch.return_value = {
             "sub_001": {"trust_score": 85.5},

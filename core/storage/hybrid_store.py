@@ -22,38 +22,31 @@ APP_OPPORTUNITIES_COLUMNS = {
     "opportunity_score": {"data_type": "double"},
     "final_score": {"data_type": "double"},
     "status": {"data_type": "text"},
-
     # ProfilerService enrichment fields - CRITICAL JSONB FIELDS
     "ai_profile": {"data_type": "json"},
     "app_name": {"data_type": "text"},
     "app_category": {"data_type": "text"},
     "profession": {"data_type": "text"},
     "core_problems": {"data_type": "json"},
-
     # OpportunityService enrichment fields - CRITICAL JSONB FIELDS
     "dimension_scores": {"data_type": "json"},
     "priority": {"data_type": "text"},
     "confidence": {"data_type": "double"},
     "evidence_based": {"data_type": "bool"},
-
     # TrustService enrichment fields - CRITICAL JSONB FIELDS
     "trust_score": {"data_type": "double"},
     "trust_badge": {"data_type": "text"},
     "activity_score": {"data_type": "double"},
     "trust_level": {"data_type": "text"},
     "trust_badges": {"data_type": "json"},
-
     # MonetizationService enrichment fields
     "monetization_score": {"data_type": "double"},
-
     # MarketValidationService enrichment fields
     "market_validation_score": {"data_type": "double"},
-
     # Metadata fields
     "analyzed_at": {"data_type": "timestamp"},
     "enrichment_version": {"data_type": "text"},
     "pipeline_source": {"data_type": "text"},
-
     # Reddit metadata fields
     "title": {"data_type": "text"},
     "subreddit": {"data_type": "text"},
@@ -231,7 +224,9 @@ class HybridStore:
 
         for submission in hybrid_submissions:
             # Handle field mapping: reddit_id -> submission_id for compatibility
-            submission_id = submission.get("submission_id") or submission.get("reddit_id")
+            submission_id = submission.get("submission_id") or submission.get(
+                "reddit_id"
+            )
 
             if not submission_id:
                 self.stats.skipped += 1
@@ -248,57 +243,62 @@ class HybridStore:
                     "problem_description": submission.get("problem_description"),
                     "app_concept": submission.get("app_concept"),
                     "core_functions": (
-                        submission.get("core_functions") or
-                        submission.get("function_list") or
-                        submission.get("functions")
+                        submission.get("core_functions")
+                        or submission.get("function_list")
+                        or submission.get("functions")
                     ),
                     "value_proposition": submission.get("value_proposition"),
                     "target_user": submission.get("target_user"),
                     "monetization_model": submission.get("monetization_model"),
                     "opportunity_score": submission.get("opportunity_score"),
                     "final_score": (
-                        submission.get("final_score") or
-                        submission.get("opportunity_score") or
-                        submission.get("total_score") or
-                        submission.get("overall_score")
+                        submission.get("final_score")
+                        or submission.get("opportunity_score")
+                        or submission.get("total_score")
+                        or submission.get("overall_score")
                     ),
                     "status": submission.get("status"),
-
                     # ProfilerService enrichment fields
                     "ai_profile": submission.get("ai_profile"),
                     "app_name": submission.get("app_name"),
                     "app_category": submission.get("app_category"),
                     "profession": submission.get("profession"),
                     "core_problems": submission.get("core_problems"),
-
                     # OpportunityService enrichment fields
                     "dimension_scores": submission.get("dimension_scores"),
                     "priority": submission.get("priority"),
                     "confidence": submission.get("confidence"),
                     "evidence_based": submission.get("evidence_based"),
-
                     # PHASE 2: TrustService enrichment fields with preservation
                     # Use new values if provided, otherwise preserve existing
-                    "trust_score": submission.get("trust_score") or trust_data.get("trust_score"),
-                    "trust_badge": submission.get("trust_badge") or trust_data.get("trust_badge"),
-                    "activity_score": submission.get("activity_score") or trust_data.get("activity_score"),
-                    "trust_level": submission.get("trust_level") or trust_data.get("trust_level"),
-                    "trust_badges": submission.get("trust_badges") or trust_data.get("trust_badges"),
-
+                    "trust_score": submission.get("trust_score")
+                    or trust_data.get("trust_score"),
+                    "trust_badge": submission.get("trust_badge")
+                    or trust_data.get("trust_badge"),
+                    "activity_score": submission.get("activity_score")
+                    or trust_data.get("activity_score"),
+                    "trust_level": submission.get("trust_level")
+                    or trust_data.get("trust_level"),
+                    "trust_badges": submission.get("trust_badges")
+                    or trust_data.get("trust_badges"),
                     # MonetizationService enrichment fields
                     "monetization_score": (
-                        submission.get("monetization_score") or
-                        submission.get("llm_monetization_score") or
-                        submission.get("willingness_to_pay_score")
+                        submission.get("monetization_score")
+                        or submission.get("llm_monetization_score")
+                        or submission.get("willingness_to_pay_score")
                     ),
-
                     # MarketValidationService enrichment fields
-                    "market_validation_score": submission.get("market_validation_score"),
-
+                    "market_validation_score": submission.get(
+                        "market_validation_score"
+                    ),
                     # Metadata fields
                     "analyzed_at": submission.get("analyzed_at"),
-                    "enrichment_version": submission.get("enrichment_version", "v3.0.0"),
-                    "pipeline_source": submission.get("pipeline_source", "unified_pipeline"),
+                    "enrichment_version": submission.get(
+                        "enrichment_version", "v3.0.0"
+                    ),
+                    "pipeline_source": submission.get(
+                        "pipeline_source", "unified_pipeline"
+                    ),
                 }
                 opportunities.append(opp_data)
 
@@ -334,7 +334,9 @@ class HybridStore:
                 columns=APP_OPPORTUNITIES_COLUMNS,  # CRITICAL: JSONB type hints for proper storage
             )
             if not opp_success:
-                logger.error(f"Failed to store opportunities to {self.opportunity_table}")
+                logger.error(
+                    f"Failed to store opportunities to {self.opportunity_table}"
+                )
                 self.stats.errors.append("Opportunity storage failed")
 
         # Store profiles
@@ -412,9 +414,7 @@ class HybridStore:
             else:
                 failed_batches += 1
 
-        success_rate = (
-            successful_batches / total_batches if total_batches > 0 else 0.0
-        )
+        success_rate = successful_batches / total_batches if total_batches > 0 else 0.0
 
         logger.info(
             f"Batch storage complete: {successful_batches}/{total_batches} batches successful"
