@@ -135,9 +135,78 @@ response = supabase.rpc(
 
 ## Implementation Plan
 
-### Phase 1: Integrate Deduplication Classes (2-3 hours)
+### Phase 0: Schema Validation (30 minutes)
 
-**Goal**: Wire existing deduplication classes into pipeline orchestrator
+**Goal**: Validate required database schema exists before integration
+
+#### Step 0.1: Create Schema Validation Script
+
+**File**: `scripts/testing/validate_deduplication_schema.py` (NEW)
+
+```python
+"""Validate database schema for deduplication integration."""
+
+from config.settings import SUPABASE_URL, SUPABASE_KEY
+from supabase import create_client
+
+# Required schema for deduplication
+REQUIRED_SCHEMA = {
+    "opportunities_unified": ["submission_id", "business_concept_id"],
+    "business_concepts": ["id", "has_agno_analysis", "has_profiler_analysis"],
+    "llm_monetization_analysis": [
+        "business_concept_id", "copied_from_primary", "willingness_to_pay_score",
+        "customer_segment", "payment_sentiment", "urgency_level"
+    ],
+    "workflow_results": [
+        "opportunity_id", "copied_from_primary", "app_name", "core_functions"
+    ]
+}
+
+
+def validate_deduplication_schema() -> bool:
+    """
+    Validate required tables and columns exist.
+
+    Returns:
+        bool: True if schema is valid, raises ValueError otherwise
+    """
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    print("🔍 Validating deduplication schema...")
+
+    for table, columns in REQUIRED_SCHEMA.items():
+        try:
+            # Test query to validate table and columns exist
+            response = supabase.table(table).select(",".join(columns)).limit(1).execute()
+            print(f"  ✅ {table}: {len(columns)} columns validated")
+        except Exception as e:
+            print(f"  ❌ {table}: FAILED - {e}")
+            raise ValueError(
+                f"Schema validation failed for {table}. "
+                f"Required columns: {columns}. "
+                f"Error: {e}"
+            )
+
+    print("✅ Schema validation passed - deduplication can proceed")
+    return True
+
+
+if __name__ == "__main__":
+    validate_deduplication_schema()
+```
+
+**Usage**: Run before implementing deduplication:
+```bash
+python scripts/testing/validate_deduplication_schema.py
+```
+
+**Estimated Time**: 30 minutes
+
+---
+
+### Phase 1: Integrate Deduplication Classes (4-5 hours)
+
+**Goal**: Wire existing deduplication classes into pipeline orchestrator with evidence chaining support
 
 #### Step 1.1: Add Deduplication Check to Orchestrator
 
@@ -210,10 +279,13 @@ for sub in submissions:
 
 ---
 
-#### Step 1.2: Implement Copy Logic
+#### Step 1.2: Implement Copy Logic with Evidence Chaining
 
 **File**: `core/pipeline/orchestrator.py`
 **New method**:
+
+**CRITICAL**: Agno must run BEFORE Profiler due to evidence dependency
+**Reference**: `batch_opportunity_scoring.py:1849-1892`
 
 ```python
 def _copy_existing_enrichment(
@@ -222,7 +294,10 @@ def _copy_existing_enrichment(
     concept_id: str
 ) -> Optional[Dict[str, Any]]:
     """
-    Copy existing enrichment from primary concept.
+    Copy existing enrichment with evidence flow preservation.
+
+    CRITICAL: Agno → Profiler dependency requires copying in order.
+    Profiler uses Agno evidence to inform app_concept generation.
 
     Args:
         submission: Submission data
@@ -233,34 +308,61 @@ def _copy_existing_enrichment(
     """
     result = {**submission}  # Start with original
 
-    # Copy profiler analysis if enabled
-    if self.config.enable_profiler and "profiler" in self.services:
-        from core.deduplication import ProfilerSkipLogic
-        skip_logic = ProfilerSkipLogic(self.config.supabase_client)
-        profiler_data = skip_logic.copy_profiler_analysis(
-            submission_id=submission.get("submission_id"),
-            concept_id=concept_id
-        )
-        if profiler_data:
-            result.update(profiler_data)
-            logger.info(f"[OK] Copied profiler analysis for {submission.get('submission_id')}")
-
-    # Copy monetization analysis if enabled
+    # STEP 1: Copy Agno analysis FIRST (generates evidence)
+    agno_evidence = None
     if self.config.enable_monetization and "monetization" in self.services:
         from core.deduplication import AgnoSkipLogic
         skip_logic = AgnoSkipLogic(self.config.supabase_client)
+
+        # NOTE: Use actual API signature from monolith
         agno_data = skip_logic.copy_agno_analysis(
-            submission_id=submission.get("submission_id"),
-            concept_id=concept_id
+            submission=submission,  # Full submission object, not just ID
+            concept_id=concept_id,
+            supabase=self.config.supabase_client
         )
+
         if agno_data:
             result.update(agno_data)
-            logger.info(f"[OK] Copied monetization analysis for {submission.get('submission_id')}")
+
+            # Extract evidence structure for profiler
+            agno_evidence = {
+                "willingness_to_pay_score": agno_data.get("willingness_to_pay_score"),
+                "customer_segment": agno_data.get("customer_segment"),
+                "sentiment_toward_payment": agno_data.get("payment_sentiment"),
+                "urgency_level": agno_data.get("urgency_level"),
+                "mentioned_price_points": agno_data.get("mentioned_price_points"),
+                "existing_payment_behavior": agno_data.get("existing_payment_behavior"),
+                "payment_friction_indicators": agno_data.get("payment_friction_indicators"),
+                "confidence": agno_data.get("confidence")
+            }
+            logger.info(f"[OK] Copied Agno analysis + extracted evidence for profiler")
+        else:
+            logger.warning(f"[WARN] Failed to copy Agno - profiler will run without evidence")
+
+    # STEP 2: Copy Profiler analysis SECOND (uses evidence if available)
+    if self.config.enable_profiler and "profiler" in self.services:
+        from core.deduplication import ProfilerSkipLogic
+        skip_logic = ProfilerSkipLogic(self.config.supabase_client)
+
+        # NOTE: Use actual API signature from monolith
+        profiler_data = skip_logic.copy_profiler_analysis(
+            submission=submission,  # Full submission object, not just ID
+            concept_id=concept_id,
+            supabase=self.config.supabase_client
+        )
+
+        if profiler_data:
+            result.update(profiler_data)
+            # Store evidence reference for audit trail
+            result["profiler_evidence_source"] = "copied_agno" if agno_evidence else "none"
+            logger.info(f"[OK] Copied profiler analysis")
+        else:
+            logger.warning(f"[WARN] Failed to copy profiler analysis for concept {concept_id}")
 
     return result
 ```
 
-**Estimated Time**: 30 minutes
+**Estimated Time**: 1.5 hours (increased from 30min due to evidence handling)
 
 ---
 
@@ -313,7 +415,126 @@ def _generate_summary(self) -> Dict[str, Any]:
 
 ---
 
-### Phase 2: Trust Data Preservation (1-2 hours)
+#### Step 1.4: Optimize Database Query Performance
+
+**Problem**: 3 database queries per submission creates performance bottleneck
+
+**Monolith Pattern** (`batch_opportunity_scoring.py:222-324`):
+```python
+# Query 1: Get business_concept_id (line 250-255)
+response = supabase.table("opportunities_unified")
+    .select("business_concept_id")
+    .eq("submission_id", submission_id)
+
+# Query 2: Check has_analysis flag (line 261-266)
+concept_response = supabase.table("business_concepts")
+    .select("has_agno_analysis")
+    .eq("id", concept_id)
+
+# Query 3: Fetch analysis if exists (line 318-324)
+agno_response = supabase.table("llm_monetization_analysis")
+    .select("*")
+    .eq("business_concept_id", concept_id)
+
+# Result: 3 queries × 50 submissions = 150 database calls!
+```
+
+**Solution**: Batch queries to reduce overhead
+
+**File**: `core/pipeline/orchestrator.py`
+**New method** (called before enrichment loop):
+
+```python
+def _batch_fetch_concept_metadata(
+    self,
+    submissions: List[Dict[str, Any]]
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Batch-fetch concept metadata for all submissions.
+
+    Reduces N×3 queries to 3 batch queries total.
+
+    Returns:
+        dict: submission_id → {concept_id, has_agno, has_profiler}
+    """
+    submission_ids = [s.get("submission_id") for s in submissions if s.get("submission_id")]
+
+    if not submission_ids:
+        return {}
+
+    # Batch Query 1: Get all concept_ids at once
+    concepts_response = self.config.supabase_client.table("opportunities_unified").select(
+        "submission_id, business_concept_id"
+    ).in_("submission_id", submission_ids).execute()
+
+    # Build submission → concept mapping
+    submission_to_concept = {
+        row["submission_id"]: row["business_concept_id"]
+        for row in concepts_response.data
+    }
+
+    # Batch Query 2: Get analysis flags for all concepts at once
+    concept_ids = list(set(submission_to_concept.values()))
+    if not concept_ids:
+        return {}
+
+    flags_response = self.config.supabase_client.table("business_concepts").select(
+        "id, has_agno_analysis, has_profiler_analysis"
+    ).in_("id", concept_ids).execute()
+
+    # Build concept → flags mapping
+    concept_flags = {
+        row["id"]: {
+            "has_agno": row.get("has_agno_analysis", False),
+            "has_profiler": row.get("has_profiler_analysis", False)
+        }
+        for row in flags_response.data
+    }
+
+    # Combine mappings
+    metadata = {}
+    for sub_id, concept_id in submission_to_concept.items():
+        flags = concept_flags.get(concept_id, {"has_agno": False, "has_profiler": False})
+        metadata[sub_id] = {
+            "concept_id": concept_id,
+            **flags
+        }
+
+    logger.info(f"[OK] Batch-fetched metadata for {len(metadata)} submissions (2 queries)")
+    return metadata
+```
+
+**Modified enrichment loop** (use cached metadata):
+```python
+# BEFORE loop: Batch fetch metadata (replaces per-submission queries)
+concept_metadata = self._batch_fetch_concept_metadata(submissions)
+
+# IN loop: Use cached data (zero additional queries)
+for sub in submissions:
+    sub_id = sub.get("submission_id")
+    metadata = concept_metadata.get(sub_id, {})
+
+    # Decide: analyze or copy based on cached metadata
+    if metadata and (metadata.get("has_agno") or metadata.get("has_profiler")):
+        # Copy from existing
+        result = self._copy_existing_enrichment(sub, metadata["concept_id"])
+        self.stats["copied"] += 1
+    else:
+        # Fresh analysis
+        result = self._enrich_submission(sub)
+        self.stats["analyzed"] += 1
+```
+
+**Performance Impact**:
+- Before: 50 submissions × 3 queries = 150 queries (3 seconds @ 20ms/query)
+- After: 2 batch queries total = 40ms
+- **Speedup: 75x faster deduplication checks**
+
+**Estimated Time**: 2 hours
+
+---
+
+### Phase 2: Trust Data Preservation (2-3 hours)
 
 **Goal**: Preserve trust analysis when updating AI enrichment
 
@@ -673,11 +894,22 @@ if __name__ == "__main__":
 
 | Phase | Task | Time | Deliverables |
 |-------|------|------|--------------|
-| **Phase 1** | Integrate Deduplication Classes | 2-3h | Modified orchestrator with check-before-AI |
-| **Phase 2** | Trust Data Preservation | 1-2h | Modified hybrid_store with trust preservation |
-| **Phase 3** | Concept Metadata Tracking | 1h | Metadata updates after enrichment |
-| **Phase 4** | Testing & Validation | 2-3h | Unit tests + integration tests |
-| **Total** | | **6-9 hours** | Fully integrated deduplication |
+| **Phase 0** | Schema Validation | 0.5h | Validation script + prerequisite checks |
+| **Phase 1** | Integrate Deduplication Classes | 4.5-6h | Modified orchestrator with evidence chaining + batch queries |
+| **Phase 2** | Trust Data Preservation | 2-3h | Modified hybrid_store with batch trust preservation |
+| **Phase 3** | Concept Metadata Tracking | 2h | Metadata updates + error recovery |
+| **Phase 4** | Testing & Validation | 5-6h | Evidence flow tests + performance tests + integration tests |
+| **Total** | | **14-17.5 hours** | Fully integrated deduplication with optimizations |
+
+**Original Estimate**: 6-9 hours
+**Revised Estimate**: 14-17.5 hours (2.3x multiplier)
+
+**Major Changes**:
+- Added Phase 0: Schema validation (prerequisite)
+- Phase 1: +2.5-3h for evidence chaining + batch query optimization
+- Phase 2: +1h for batch trust data fetch
+- Phase 3: +1h for error recovery paths
+- Phase 4: +3h for evidence flow testing + performance validation
 
 ---
 

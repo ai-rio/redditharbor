@@ -216,6 +216,57 @@ Fetch → Check → Enrich OR Copy → Store → Update Metadata
 
 ---
 
+## Missing Architecture Complexity: Evidence Chaining
+
+### Critical Service Dependency Pattern
+
+The monolith implements a **data flow dependency** that complicates integration:
+
+**Actual Execution Order** (`batch_opportunity_scoring.py:1572-1916`):
+```
+1. Opportunity Scoring → final_score
+2. Agno Monetization (if score >= threshold) → generates evidence
+   - willingness_to_pay_score
+   - customer_segment
+   - payment_sentiment
+   - urgency_level
+   - mentioned_price_points
+   - existing_payment_behavior
+   - payment_friction_indicators
+   - confidence
+3. AI Profiler → RECEIVES Agno evidence as input
+   - Uses evidence to inform app_concept generation
+   - Validates profile against monetization signals
+```
+
+**Code Evidence** (`batch_opportunity_scoring.py:1849-1892`):
+```python
+# Agno evidence extracted from hybrid_results
+agno_evidence = {
+    "willingness_to_pay_score": hybrid_results["llm_analysis"].get("willingness_to_pay_score", 50),
+    "customer_segment": hybrid_results["llm_analysis"].get("customer_segment", "Unknown"),
+    "sentiment_toward_payment": hybrid_results["llm_analysis"].get("payment_sentiment", "Neutral"),
+    # ... 5 more fields
+}
+
+# Profiler USES this evidence
+ai_profile = llm_profiler.generate_app_profile_with_evidence(
+    text=formatted["text"],
+    agno_analysis=agno_evidence  # <-- SERVICE COUPLING
+)
+```
+
+**Critical Implications**:
+- ❌ Services are NOT independent - Profiler depends on Agno output
+- ❌ Cannot parallelize service execution when evidence chaining is active
+- ❌ If Agno is COPIED (not fresh), profiler must receive COPIED Agno data as evidence
+- ✅ Copy logic must preserve complete evidence data structure
+- ✅ Orchestrator must coordinate evidence flow between services
+
+**Integration Impact**: +3-4 hours for evidence flow implementation and testing
+
+---
+
 ## Key Insight from Local Changes
 
 ### False Positive in Report
@@ -290,19 +341,36 @@ These classes exist and are production-ready:
 
 ## Estimated Implementation
 
-### Time Required: 6-9 hours
+### Time Required: 13-17 hours (Revised from 6-9h)
 
-| Phase | Duration | Complexity |
-|-------|----------|------------|
-| Phase 1: Orchestrator integration | 2-3h | Medium |
-| Phase 2: Trust data preservation | 1-2h | Low |
-| Phase 3: Metadata tracking | 1h | Low |
-| Phase 4: Testing | 2-3h | Medium |
+| Phase | Duration | Complexity | Key Tasks |
+|-------|----------|------------|-----------|
+| Phase 0: Schema validation | 0.5h | Low | Validate required database tables exist |
+| Phase 1: Orchestrator integration | 4-5h | **High** | Evidence chaining + batch query optimization |
+| Phase 2: Trust data preservation | 2-3h | Medium | Batch trust data fetch + merge logic |
+| Phase 3: Metadata tracking | 2h | Medium | Update tracking + error recovery |
+| Phase 4: Testing | 4-5h | **High** | Evidence flow tests + performance validation |
 
-### Risk: LOW
-- Deduplication classes already exist and tested
-- Clear integration points identified
-- Monolith pattern proven in production
+**Revision Rationale**:
+- Evidence chaining complexity not originally accounted for (+3-4h)
+- Performance optimization required (batch queries instead of N×3 queries) (+2h)
+- Error recovery paths for copy failures (+1h)
+- Additional testing for service coupling (+2h)
+- Database schema validation prerequisite (+0.5h)
+
+### Risk: MEDIUM (Revised from LOW)
+
+**Original Assessment**: LOW
+- ✅ Deduplication classes already exist and tested
+- ✅ Clear integration points identified
+- ✅ Monolith pattern proven in production
+
+**Revised Assessment**: MEDIUM
+- ⚠️ Evidence chaining creates service coupling (architectural complexity)
+- ⚠️ Three-query deduplication pattern has performance impact (requires batch optimization)
+- ⚠️ Requires database schema validation before integration (opportunities_unified table must exist)
+- ⚠️ Copy failure recovery paths need careful design
+- ⚠️ Orchestrator is critical path - changes affect all pipelines
 
 ---
 
