@@ -63,6 +63,7 @@ def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
         comments.append(f"Trust Badge: {trust_badge}")
 
     return {
+        "submission_id": submission.get("submission_id", submission.get("id", "unknown")),
         "id": submission.get("submission_id", submission.get("id", "unknown")),
         "title": title,
         "text": full_text,
