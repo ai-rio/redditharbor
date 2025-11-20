@@ -355,13 +355,23 @@ class ServiceFactory:
 
     def _create_mock_market_validator(self) -> Any:
         """Create mock market validator for testing."""
+        from dataclasses import dataclass, field
+        from datetime import UTC, datetime
+
+        # Create mock ValidationEvidence to match real validator interface
+        @dataclass
+        class MockValidationEvidence:
+            competitor_pricing: list = field(default_factory=list)
+            market_size: Any = None
+            similar_launches: list = field(default_factory=list)
+            validation_score: float = 70.0
+            data_quality_score: float = 75.0
+            reasoning: str = "Mock market validation"
+            urls_fetched: list = field(default_factory=lambda: ["http://example.com"])
+            total_cost: float = 0.0
+
         validator = MagicMock()
-        validator.validate_market_data.return_value = {
-            "market_score": 70.0,
-            "confidence": 0.7,
-            "market_size": "medium",
-            "validation_reasons": ["Mock validation"],
-        }
+        validator.validate_opportunity.return_value = MockValidationEvidence()
         return validator
 
     def get_service(self, name: str) -> BaseEnrichmentService | None:

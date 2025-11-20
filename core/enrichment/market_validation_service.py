@@ -1,26 +1,21 @@
-"""Market validation service for market data analysis.
+"""Market validation enrichment service.
 
-This module provides the MarketValidationService class for analyzing
-market data and validating market opportunities.
+This module provides a wrapper for MarketDataValidator with the unified
+enrichment service interface. Validates market opportunities using real
+market data including competitor pricing, market size, and launch metrics.
 
 Key Features:
-- Market data validation and analysis
-- Competition analysis
-- Market size estimation
-- Integration with market validation agents
-
-Example:
-    >>> from core.agents.market_validation import MarketDataValidator
-    >>> from core.enrichment.market_validation_service import MarketValidationService
-    >>>
-    >>> validator = MarketDataValidator()
-    >>> service = MarketValidationService(validator=validator)
-    >>> result = service.analyze_market(data)
+- Wraps MarketDataValidator for unified interface
+- Evidence-based validation with citations
+- No deduplication (runs on all submissions)
+- Tracks statistics (analyzed, errors)
+- Handles errors gracefully
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
+from core.agents.market_validation import MarketDataValidator
 from core.enrichment.base_service import BaseEnrichmentService
 
 logger = logging.getLogger(__name__)
@@ -28,108 +23,190 @@ logger = logging.getLogger(__name__)
 
 class MarketValidationService(BaseEnrichmentService):
     """
-    Service for market validation and analysis.
+    Wrapper for MarketDataValidator with unified interface.
 
-    Wraps MarketDataValidator to provide market data validation,
-    competition analysis, and market opportunity assessment.
-    Integrates with the unified pipeline for consistent enrichment.
+    Provides market validation using real market data including competitor
+    pricing analysis, market size estimation, and similar product launches.
+    No deduplication logic - market validation runs on all submissions.
 
     Attributes:
-        validator: MarketDataValidator instance for market analysis
-        config: Configuration dictionary for service settings
+        validator: MarketDataValidator instance
 
     Examples:
         >>> from core.agents.market_validation import MarketDataValidator
+        >>>
         >>> validator = MarketDataValidator()
-        >>> service = MarketValidationService(validator=validator)
-        >>> stats = service.get_statistics()
+        >>> service = MarketValidationService(validator)
+        >>>
+        >>> submission = {
+        ...     'submission_id': 'abc123',
+        ...     'title': 'Need better budgeting app',
+        ...     'selftext': 'Current apps too expensive',
+        ...     'subreddit': 'personalfinance',
+        ...     'problem_description': 'Expensive budgeting tools'
+        ... }
+        >>> validation = service.enrich(submission)
+        >>> assert 'market_validation_score' in validation
+        >>> assert 'market_data_quality' in validation
     """
 
-    def __init__(self, validator: Any, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        validator: MarketDataValidator,
+        config: Optional[dict[str, Any]] = None,
+    ):
         """
         Initialize MarketValidationService.
 
         Args:
-            validator: MarketDataValidator instance
-            config: Optional configuration dictionary
+            validator: MarketDataValidator instance for market validation
+            config: Optional configuration dictionary with settings:
+                - max_searches: Maximum web searches (default: 3)
         """
-        super().__init__(config or {})
+        super().__init__(config)
         self.validator = validator
-        self.stats = {
-            "analyzed": 0,
-            "validated": 0,
-            "skipped": 0,
-            "errors": 0,
-        }
-        logger.info("MarketValidationService initialized")
 
-    def analyze_market(self, data: Any) -> Dict[str, Any]:
+    def enrich(self, submission: dict[str, Any]) -> dict[str, Any]:
         """
-        Analyze market data for validation.
+        Validate market opportunity using real market data.
+
+        Analyzes market validation evidence including competitor pricing,
+        market size data, similar product launches, and industry benchmarks.
+        Uses web search and LLM extraction for evidence collection.
 
         Args:
-            data: Market data to analyze
+            submission: Submission data dictionary with fields:
+                - submission_id: Unique identifier
+                - title: Submission title
+                - selftext: Submission content (or text)
+                - subreddit: Subreddit name (used as target market)
+                - problem_description: Problem being solved (from opportunity analysis)
 
         Returns:
-            Dictionary with market validation results
+            dict: Market validation with fields:
+                - market_validation_score: Overall validation score (0-100)
+                - market_data_quality: Data quality score (0-100)
+                - competitor_count: Number of competitors found
+                - market_size_estimate: Market size description (if available)
+                - similar_launches_count: Number of similar launches found
+                - validation_reasoning: Human-readable reasoning
+                - evidence_urls: List of source URLs used
+                - total_cost: LLM cost for extraction
+                Or empty dict if error occurs or validation skipped
 
         Examples:
-            >>> service = MarketValidationService(validator)
-            >>> result = service.analyze_market({"market": "data"})
-            >>> print(result["market_score"])
+            >>> submission = {
+            ...     'submission_id': 'test1',
+            ...     'title': 'Looking for project management tool',
+            ...     'selftext': 'Frustrated with current tools',
+            ...     'subreddit': 'startups',
+            ...     'problem_description': 'Complex project management'
+            ... }
+            >>> validation = service.enrich(submission)
+            >>> assert validation['market_validation_score'] >= 0
+            >>> assert 'evidence_urls' in validation
         """
+        if not self.validate_input(submission):
+            self.logger.error(
+                f"Invalid submission: missing required fields for "
+                f"{submission.get('submission_id', 'unknown')}"
+            )
+            self.stats["errors"] += 1
+            return {}
+
         try:
+            # Extract required fields from submission
+            submission_id = submission.get("submission_id", "unknown")
+
+            # Get problem description from opportunity analysis or fallback to title
+            problem_description = submission.get("problem_description")
+            if not problem_description:
+                # If no problem_description, use title + selftext
+                title = submission.get("title", "")
+                selftext = submission.get("selftext") or submission.get("text", "")
+                problem_description = f"{title} {selftext}".strip()
+
+                if not problem_description:
+                    self.logger.warning(
+                        f"No problem description for {submission_id}, skipping market validation"
+                    )
+                    self.stats["skipped"] += 1
+                    return {}
+
+            # Extract app concept (use title as concept)
+            app_concept = submission.get("title", "App concept")
+
+            # Use subreddit as target market indicator
+            target_market = submission.get("subreddit", "General")
+
+            # Get max searches from config
+            max_searches = self.config.get("max_searches", 3)
+
+            self.logger.info(
+                f"Running market validation for {submission_id}: {app_concept[:50]}"
+            )
+
+            # Call validator with correct method
+            evidence = self.validator.validate_opportunity(
+                app_concept=app_concept,
+                target_market=target_market,
+                problem_description=problem_description,
+                max_searches=max_searches
+            )
+
             self.stats["analyzed"] += 1
 
-            # Use validator to analyze market data
-            if hasattr(self.validator, 'validate_market_data'):
-                result = self.validator.validate_market_data(data)
-            else:
-                # Fallback mock implementation
-                result = {
-                    "market_score": 70.0,
-                    "confidence": 0.7,
-                    "market_size": "medium",
-                    "validation_reasons": ["Mock validation"]
-                }
+            # Format result for storage
+            result = {
+                "market_validation_score": evidence.validation_score,
+                "market_data_quality": evidence.data_quality_score,
+                "competitor_count": len(evidence.competitor_pricing),
+                "market_size_estimate": None,
+                "similar_launches_count": len(evidence.similar_launches),
+                "validation_reasoning": evidence.reasoning,
+                "evidence_urls": evidence.urls_fetched,
+                "total_cost": evidence.total_cost,
+            }
 
-            self.stats["validated"] += 1
+            # Add market size if available
+            if evidence.market_size:
+                market_size_parts = []
+                if evidence.market_size.tam_value:
+                    market_size_parts.append(f"TAM: {evidence.market_size.tam_value}")
+                if evidence.market_size.sam_value:
+                    market_size_parts.append(f"SAM: {evidence.market_size.sam_value}")
+                if evidence.market_size.growth_rate:
+                    market_size_parts.append(f"Growth: {evidence.market_size.growth_rate}")
+
+                if market_size_parts:
+                    result["market_size_estimate"] = ", ".join(market_size_parts)
+
+            self.logger.info(
+                f"Market validation complete for {submission_id}: "
+                f"Score={result['market_validation_score']:.1f}, "
+                f"Quality={result['market_data_quality']:.1f}, "
+                f"Competitors={result['competitor_count']}"
+            )
+
             return result
 
         except Exception as e:
+            self.logger.error(
+                f"Market validation failed for {submission.get('submission_id', 'unknown')}: {e}",
+                exc_info=True
+            )
             self.stats["errors"] += 1
-            logger.error(f"Market analysis failed: {e}")
-            return {
-                "market_score": 0.0,
-                "confidence": 0.0,
-                "error": str(e)
-            }
+            return {}
 
-    def get_statistics(self) -> Dict[str, int]:
+    def get_service_name(self) -> str:
         """
-        Get service statistics.
+        Return service name for logging and monitoring.
 
         Returns:
-            Dictionary with service statistics
+            str: Human-readable service name
 
         Examples:
             >>> service = MarketValidationService(validator)
-            >>> stats = service.get_statistics()
-            >>> print(stats["analyzed"])
+            >>> assert service.get_service_name() == "MarketValidationService"
         """
-        return self.stats.copy()
-
-    def reset_statistics(self) -> None:
-        """
-        Reset service statistics.
-
-        Examples:
-            >>> service = MarketValidationService(validator)
-            >>> service.reset_statistics()
-        """
-        self.stats = {
-            "analyzed": 0,
-            "validated": 0,
-            "skipped": 0,
-            "errors": 0,
-        }
+        return "MarketValidationService"
