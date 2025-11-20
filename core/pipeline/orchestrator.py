@@ -691,7 +691,9 @@ class OpportunityPipeline:
                                 # Build minimal ai_profile if only app_name exists
                                 ai_profile = {
                                     "app_name": submission.get("app_name"),
-                                    "final_score": submission.get("opportunity_score", 0),
+                                    "final_score": submission.get(
+                                        "opportunity_score", 0
+                                    ),
                                 }
 
                             success = skip_logic.update_concept_profiler_stats(
@@ -711,9 +713,8 @@ class OpportunityPipeline:
 
                 for submission in enriched:
                     # Check if submission has Agno analysis
-                    if (
-                        submission.get("willingness_to_pay_score")
-                        or submission.get("monetization_score")
+                    if submission.get("willingness_to_pay_score") or submission.get(
+                        "monetization_score"
                     ):
                         sub_id = submission.get("submission_id")
                         concept_id = submission_to_concept.get(sub_id)
@@ -726,7 +727,9 @@ class OpportunityPipeline:
                                 )
                                 or submission.get("monetization_score"),
                                 "customer_segment": submission.get("customer_segment"),
-                                "payment_sentiment": submission.get("payment_sentiment"),
+                                "payment_sentiment": submission.get(
+                                    "payment_sentiment"
+                                ),
                                 "urgency_level": submission.get("urgency_level"),
                             }
 

@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.pipeline.orchestrator import PipelineOrchestrator
+from core.pipeline.orchestrator import OpportunityPipeline
 
 
 logger = logging.getLogger(__name__)
@@ -43,8 +43,8 @@ def mock_config():
 @pytest.fixture
 def orchestrator(mock_config):
     """Create orchestrator instance with mocked dependencies."""
-    with patch("core.pipeline.orchestrator.RedditDataService"):
-        return PipelineOrchestrator(mock_config)
+    with patch("core.pipeline.factory.ServiceFactory"):
+        return OpportunityPipeline(mock_config)
 
 
 class TestBatchConceptFetching:
@@ -66,14 +66,13 @@ class TestBatchConceptFetching:
             {"submission_id": "sub_003", "business_concept_id": 103},
         ]
 
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
         # Mock the skip logic classes to prevent actual updates
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler, patch(
-            "core.pipeline.orchestrator.AgnoSkipLogic"
-        ) as MockAgno:
+        with (
+            patch("core.deduplication.ProfilerSkipLogic") as MockProfiler,
+            patch("core.deduplication.AgnoSkipLogic") as MockAgno,
+        ):
             mock_profiler = MagicMock()
             mock_agno = MagicMock()
             MockProfiler.return_value = mock_profiler
@@ -82,7 +81,9 @@ class TestBatchConceptFetching:
             orchestrator._update_concept_metadata(enriched)
 
             # Verify single batch query was made
-            mock_config.supabase_client.table.assert_called_with("opportunities_unified")
+            mock_config.supabase_client.table.assert_called_with(
+                "opportunities_unified"
+            )
             mock_config.supabase_client.table.return_value.select.assert_called_with(
                 "submission_id, business_concept_id"
             )
@@ -122,12 +123,10 @@ class TestProfilerMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
         # Mock Profiler skip logic
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
             mock_profiler = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
             MockProfiler.return_value = mock_profiler
@@ -152,12 +151,10 @@ class TestProfilerMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
         # Mock Profiler skip logic
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
             mock_profiler = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
             MockProfiler.return_value = mock_profiler
@@ -184,11 +181,9 @@ class TestProfilerMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
             mock_profiler = MagicMock()
             MockProfiler.return_value = mock_profiler
 
@@ -215,12 +210,10 @@ class TestAgnoMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
         # Mock Agno skip logic
-        with patch("core.pipeline.orchestrator.AgnoSkipLogic") as MockAgno:
+        with patch("core.deduplication.AgnoSkipLogic") as MockAgno:
             mock_agno = MagicMock()
             mock_agno.update_concept_agno_stats.return_value = True
             MockAgno.return_value = mock_agno
@@ -247,11 +240,9 @@ class TestAgnoMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
-        with patch("core.pipeline.orchestrator.AgnoSkipLogic") as MockAgno:
+        with patch("core.deduplication.AgnoSkipLogic") as MockAgno:
             mock_agno = MagicMock()
             MockAgno.return_value = mock_agno
 
@@ -289,13 +280,12 @@ class TestMixedUpdates:
             {"submission_id": "sub_002", "business_concept_id": 102},
             {"submission_id": "sub_003", "business_concept_id": 103},
         ]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler, patch(
-            "core.pipeline.orchestrator.AgnoSkipLogic"
-        ) as MockAgno:
+        with (
+            patch("core.deduplication.ProfilerSkipLogic") as MockProfiler,
+            patch("core.deduplication.AgnoSkipLogic") as MockAgno,
+        ):
             mock_profiler = MagicMock()
             mock_agno = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
@@ -339,8 +329,8 @@ class TestErrorHandling:
         ]
 
         # Mock database error
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.side_effect = (
-            Exception("Database connection error")
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.side_effect = Exception(
+            "Database connection error"
         )
 
         # Should handle error gracefully without raising
@@ -358,11 +348,9 @@ class TestErrorHandling:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
             mock_profiler = MagicMock()
             # Simulate update failure
             mock_profiler.update_concept_profiler_stats.return_value = False
@@ -387,11 +375,9 @@ class TestEdgeCases:
         # Mock empty response (no concept found)
         mock_response = MagicMock()
         mock_response.data = []
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
             mock_profiler = MagicMock()
             MockProfiler.return_value = mock_profiler
 
@@ -413,11 +399,9 @@ class TestEdgeCases:
             {"submission_id": "sub_001", "business_concept_id": 101},
             # sub_002 missing
         ]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
             mock_profiler = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
             MockProfiler.return_value = mock_profiler
@@ -439,13 +423,12 @@ class TestEdgeCases:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = (
-            mock_response
-        )
+        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
 
-        with patch("core.pipeline.orchestrator.ProfilerSkipLogic") as MockProfiler, patch(
-            "core.pipeline.orchestrator.AgnoSkipLogic"
-        ) as MockAgno:
+        with (
+            patch("core.deduplication.ProfilerSkipLogic") as MockProfiler,
+            patch("core.deduplication.AgnoSkipLogic") as MockAgno,
+        ):
             mock_profiler = MagicMock()
             mock_agno = MagicMock()
             MockProfiler.return_value = mock_profiler
