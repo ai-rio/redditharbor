@@ -18,8 +18,14 @@ Usage:
 """
 
 from .dlt_loader import DLTLoader, LoadStatistics
+from .opportunity_store import OpportunityStore
+from .profile_store import ProfileStore
+from .hybrid_store import HybridStore
 
 __all__ = [
     "DLTLoader",
     "LoadStatistics",
+    "OpportunityStore",
+    "ProfileStore",
+    "HybridStore",
 ]

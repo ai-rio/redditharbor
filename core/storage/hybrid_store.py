@@ -1,0 +1,245 @@
+"""Hybrid storage service for combined enrichment pipelines."""
+
+import logging
+from typing import Dict, Any, List, Optional
+
+from .dlt_loader import DLTLoader, LoadStatistics
+from core.dlt import PK_SUBMISSION_ID
+
+logger = logging.getLogger(__name__)
+
+
+class HybridStore:
+    """Storage service for hybrid submissions with combined enrichment data.
+
+    Manages storage of submissions that have been processed through both
+    opportunity and trust pipelines, combining all enrichment data.
+    """
+
+    def __init__(
+        self,
+        loader: Optional[DLTLoader] = None,
+        opportunity_table: str = "app_opportunities",
+        profile_table: str = "submissions",
+    ):
+        """Initialize HybridStore.
+
+        Args:
+            loader: DLTLoader instance (creates new one if not provided)
+            opportunity_table: Table for opportunity data (default: "app_opportunities")
+            profile_table: Table for enriched profiles (default: "submissions")
+        """
+        self.loader = loader or DLTLoader()
+        self.opportunity_table = opportunity_table
+        self.profile_table = profile_table
+        self.primary_key = PK_SUBMISSION_ID
+        self.stats = LoadStatistics()
+        logger.info(
+            f"HybridStore initialized (opp={opportunity_table}, profile={profile_table})"
+        )
+
+    def store(self, hybrid_submissions: List[Dict[str, Any]]) -> bool:
+        """Store hybrid submissions to both opportunity and profile tables.
+
+        Splits hybrid data into opportunity and profile components and stores
+        to respective tables with merge disposition.
+
+        Args:
+            hybrid_submissions: List of hybrid submission dictionaries with fields:
+                Opportunity fields:
+                - submission_id (required)
+                - problem_description (optional)
+                - app_concept (optional)
+                - core_functions (optional)
+                - opportunity_score (optional)
+
+                Profile fields:
+                - title (optional)
+                - selftext (optional)
+                - author (optional)
+                - subreddit (optional)
+                - trust_score (optional)
+                - market_validation (optional)
+
+        Returns:
+            True if both storage operations successful, False otherwise
+
+        Example:
+            >>> store = HybridStore()
+            >>> submissions = [{
+            ...     "submission_id": "abc123",
+            ...     "problem_description": "Teams waste time...",
+            ...     "app_concept": "PM platform",
+            ...     "opportunity_score": 75.0,
+            ...     "title": "Need feedback on my idea",
+            ...     "trust_score": 85.5,
+            ...     "author": "user123"
+            ... }]
+            >>> store.store(submissions)
+            True
+        """
+        if not hybrid_submissions:
+            logger.warning("No hybrid submissions to store")
+            return False
+
+        # Split into opportunity and profile data
+        opportunities = []
+        profiles = []
+
+        for submission in hybrid_submissions:
+            if not submission.get("submission_id"):
+                self.stats.skipped += 1
+                continue
+
+            # Extract opportunity fields (if has AI-generated content)
+            if submission.get("problem_description"):
+                opp_data = {
+                    "submission_id": submission["submission_id"],
+                    "problem_description": submission.get("problem_description"),
+                    "app_concept": submission.get("app_concept"),
+                    "core_functions": submission.get("core_functions"),
+                    "value_proposition": submission.get("value_proposition"),
+                    "target_user": submission.get("target_user"),
+                    "monetization_model": submission.get("monetization_model"),
+                    "opportunity_score": submission.get("opportunity_score"),
+                    "final_score": submission.get("final_score"),
+                    "status": submission.get("status"),
+                }
+                opportunities.append(opp_data)
+
+            # Extract profile fields (all enriched submissions)
+            profile_data = {
+                "submission_id": submission["submission_id"],
+                "title": submission.get("title"),
+                "selftext": submission.get("selftext"),
+                "author": submission.get("author"),
+                "subreddit": submission.get("subreddit"),
+                "trust_score": submission.get("trust_score"),
+                "trust_level": submission.get("trust_level"),
+                "market_validation_score": submission.get("market_validation_score"),
+                "opportunity_score": submission.get("opportunity_score"),
+                "created_utc": submission.get("created_utc"),
+                "reddit_score": submission.get("reddit_score"),
+            }
+            profiles.append(profile_data)
+
+        logger.info(
+            f"Storing hybrid data: {len(opportunities)} opportunities, {len(profiles)} profiles"
+        )
+
+        # Store opportunities (if any)
+        opp_success = True
+        if opportunities:
+            opp_success = self.loader.load(
+                data=opportunities,
+                table_name=self.opportunity_table,
+                write_disposition="merge",
+                primary_key=self.primary_key,
+            )
+            if not opp_success:
+                logger.error(f"Failed to store opportunities to {self.opportunity_table}")
+                self.stats.errors.append("Opportunity storage failed")
+
+        # Store profiles
+        profile_success = True
+        if profiles:
+            profile_success = self.loader.load(
+                data=profiles,
+                table_name=self.profile_table,
+                write_disposition="merge",
+                primary_key=self.primary_key,
+            )
+            if not profile_success:
+                logger.error(f"Failed to store profiles to {self.profile_table}")
+                self.stats.errors.append("Profile storage failed")
+
+        # Overall success
+        success = opp_success and profile_success
+
+        # Update statistics
+        if success:
+            self.stats.loaded += len(hybrid_submissions)
+            self.stats.total_attempted += len(hybrid_submissions)
+            logger.info(
+                f"Successfully stored {len(hybrid_submissions)} hybrid submissions"
+            )
+        else:
+            self.stats.failed += len(hybrid_submissions)
+            self.stats.total_attempted += len(hybrid_submissions)
+            logger.error("Hybrid storage partially or completely failed")
+
+        return success
+
+    def store_batch(
+        self, hybrid_submissions: List[Dict[str, Any]], batch_size: int = 100
+    ) -> Dict[str, Any]:
+        """Store hybrid submissions in batches for large datasets.
+
+        Args:
+            hybrid_submissions: List of hybrid submission dictionaries
+            batch_size: Number of records per batch (default: 100)
+
+        Returns:
+            Dictionary with batch processing results
+
+        Example:
+            >>> store = HybridStore()
+            >>> submissions = [...]  # Large list
+            >>> results = store.store_batch(submissions, batch_size=50)
+            >>> print(results['success_rate'])
+            1.0
+        """
+        if not hybrid_submissions:
+            logger.warning("No hybrid submissions to store in batch")
+            return {
+                "total_records": 0,
+                "batches": 0,
+                "successful_batches": 0,
+                "failed_batches": 0,
+                "success_rate": 0.0,
+            }
+
+        # Process in batches
+        total_batches = (len(hybrid_submissions) + batch_size - 1) // batch_size
+        successful_batches = 0
+        failed_batches = 0
+
+        logger.info(
+            f"Batch storing {len(hybrid_submissions)} hybrid submissions ({total_batches} batches)"
+        )
+
+        for i in range(0, len(hybrid_submissions), batch_size):
+            batch = hybrid_submissions[i : i + batch_size]
+            if self.store(batch):
+                successful_batches += 1
+            else:
+                failed_batches += 1
+
+        success_rate = (
+            successful_batches / total_batches if total_batches > 0 else 0.0
+        )
+
+        logger.info(
+            f"Batch storage complete: {successful_batches}/{total_batches} batches successful"
+        )
+
+        return {
+            "total_records": len(hybrid_submissions),
+            "batches": total_batches,
+            "successful_batches": successful_batches,
+            "failed_batches": failed_batches,
+            "success_rate": success_rate,
+        }
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get storage statistics.
+
+        Returns:
+            Dictionary with loaded, failed, skipped counts and success rate
+        """
+        return self.stats.get_summary()
+
+    def reset_statistics(self) -> None:
+        """Reset storage statistics."""
+        self.stats = LoadStatistics()
+        logger.debug("Statistics reset")
