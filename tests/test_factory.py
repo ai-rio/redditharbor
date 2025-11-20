@@ -12,9 +12,11 @@ Test Coverage:
 - Service lifecycle
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
-from core.pipeline import ServiceFactory, PipelineConfig, DataSource
+
+import pytest
+
+from core.pipeline import DataSource, PipelineConfig, ServiceFactory
 
 
 class TestFactoryInitialization:
@@ -59,6 +61,10 @@ class TestServiceCreation:
             data_source=DataSource.DATABASE,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -74,7 +80,11 @@ class TestServiceCreation:
         config = PipelineConfig(
             data_source=DataSource.DATABASE,
             limit=10,
+            enable_profiler=False,
             enable_opportunity_scoring=True,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -85,12 +95,18 @@ class TestServiceCreation:
 
     @patch("core.enrichment.monetization_service.MonetizationService")
     @patch("core.agents.monetization.factory.get_monetization_analyzer")
-    def test_create_monetization_service(self, mock_analyzer_getter, mock_service_class):
+    def test_create_monetization_service(
+        self, mock_analyzer_getter, mock_service_class
+    ):
         """Test monetization service creation."""
         config = PipelineConfig(
             data_source=DataSource.DATABASE,
             limit=10,
+            enable_profiler=False,
+            enable_opportunity_scoring=False,
             enable_monetization=True,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -108,7 +124,11 @@ class TestServiceCreation:
             data_source=DataSource.DATABASE,
             supabase_client=MagicMock(),
             limit=10,
+            enable_profiler=False,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
             enable_trust=True,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -124,6 +144,10 @@ class TestServiceCreation:
         config = PipelineConfig(
             data_source=DataSource.DATABASE,
             limit=10,
+            enable_profiler=False,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
             enable_market_validation=True,
         )
 
@@ -150,6 +174,9 @@ class TestMultipleServices:
             limit=10,
             enable_profiler=True,
             enable_opportunity_scoring=True,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -190,6 +217,10 @@ class TestMockFallback:
             data_source=DataSource.DATABASE,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -206,7 +237,11 @@ class TestMockFallback:
         config = PipelineConfig(
             data_source=DataSource.DATABASE,
             limit=10,
+            enable_profiler=False,
             enable_opportunity_scoring=True,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -227,6 +262,10 @@ class TestServiceAccess:
             data_source=DataSource.DATABASE,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -256,6 +295,10 @@ class TestServiceAccess:
             data_source=DataSource.DATABASE,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -286,6 +329,10 @@ class TestStatisticsManagement:
             data_source=DataSource.DATABASE,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -308,6 +355,10 @@ class TestStatisticsManagement:
             data_source=DataSource.DATABASE,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -334,6 +385,10 @@ class TestDeduplicationConfiguration:
             supabase_client=MagicMock(),
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
             enable_deduplication=True,
         )
 
@@ -352,6 +407,10 @@ class TestDeduplicationConfiguration:
             data_source=DataSource.DATABASE,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
             enable_deduplication=False,
         )
 
@@ -375,6 +434,9 @@ class TestErrorHandling:
             limit=10,
             enable_profiler=True,
             enable_opportunity_scoring=True,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -398,6 +460,10 @@ class TestConfigurationVariations:
             supabase_client=None,
             limit=10,
             enable_profiler=True,
+            enable_opportunity_scoring=False,
+            enable_monetization=False,
+            enable_trust=False,
+            enable_market_validation=False,
         )
 
         factory = ServiceFactory(config)
@@ -415,7 +481,11 @@ class TestConfigurationVariations:
         config = PipelineConfig(
             data_source=DataSource.DATABASE,
             limit=10,
+            enable_profiler=False,
+            enable_opportunity_scoring=False,
             enable_monetization=True,
+            enable_trust=False,
+            enable_market_validation=False,
             monetization_strategy="llm",
             monetization_config={"model": "gpt-4"},
         )
@@ -427,6 +497,5 @@ class TestConfigurationVariations:
 
         # Verify strategy and config were passed
         mock_analyzer_getter.assert_called_once_with(
-            strategy="llm",
-            config={"model": "gpt-4"}
+            strategy="llm", config={"model": "gpt-4"}
         )

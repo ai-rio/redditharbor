@@ -26,11 +26,11 @@ Example:
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
-from core.pipeline.config import PipelineConfig
 from core.enrichment.base_service import BaseEnrichmentService
+from core.pipeline.config import PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -65,9 +65,9 @@ class ServiceFactory:
             config: PipelineConfig instance with service settings
         """
         self.config = config
-        self.services: Dict[str, BaseEnrichmentService] = {}
+        self.services: dict[str, BaseEnrichmentService] = {}
 
-    def create_services(self) -> Dict[str, BaseEnrichmentService]:
+    def create_services(self) -> dict[str, BaseEnrichmentService]:
         """
         Create all enabled enrichment services.
 
@@ -115,7 +115,7 @@ class ServiceFactory:
         logger.info(f"ServiceFactory created {len(services)} services")
         return services
 
-    def _create_profiler_service(self) -> Optional[BaseEnrichmentService]:
+    def _create_profiler_service(self) -> BaseEnrichmentService | None:
         """
         Create ProfilerService with deduplication support.
 
@@ -123,9 +123,9 @@ class ServiceFactory:
             ProfilerService instance or None if creation fails
         """
         try:
-            from core.enrichment.profiler_service import ProfilerService
             from core.agents.profiler import EnhancedLLMProfiler
             from core.deduplication.profiler_skip_logic import ProfilerSkipLogic
+            from core.enrichment.profiler_service import ProfilerService
 
             # Create profiler
             try:
@@ -145,7 +145,7 @@ class ServiceFactory:
             service = ProfilerService(
                 profiler=profiler,
                 skip_logic=skip_logic,
-                config={"enable_deduplication": self.config.enable_deduplication}
+                config={"enable_deduplication": self.config.enable_deduplication},
             )
             logger.info(" Profiler service created")
             return service
@@ -154,7 +154,7 @@ class ServiceFactory:
             logger.error(f"Failed to create profiler service: {e}")
             return None
 
-    def _create_opportunity_service(self) -> Optional[BaseEnrichmentService]:
+    def _create_opportunity_service(self) -> BaseEnrichmentService | None:
         """
         Create OpportunityService for opportunity analysis.
 
@@ -162,14 +162,18 @@ class ServiceFactory:
             OpportunityService instance or None if creation fails
         """
         try:
+            from core.agents.interactive.opportunity_analyzer import (
+                OpportunityAnalyzerAgent,
+            )
             from core.enrichment.opportunity_service import OpportunityService
-            from core.agents.interactive.opportunity_analyzer import OpportunityAnalyzerAgent
 
             # Create analyzer
             try:
                 analyzer = OpportunityAnalyzerAgent()
             except Exception as e:
-                logger.warning(f"Could not create opportunity analyzer, using mock: {e}")
+                logger.warning(
+                    f"Could not create opportunity analyzer, using mock: {e}"
+                )
                 analyzer = self._create_mock_opportunity_analyzer()
 
             service = OpportunityService(analyzer=analyzer)
@@ -180,7 +184,7 @@ class ServiceFactory:
             logger.error(f"Failed to create opportunity service: {e}")
             return None
 
-    def _create_monetization_service(self) -> Optional[BaseEnrichmentService]:
+    def _create_monetization_service(self) -> BaseEnrichmentService | None:
         """
         Create MonetizationService with strategy-based analyzer.
 
@@ -188,32 +192,42 @@ class ServiceFactory:
             MonetizationService instance or None if creation fails
         """
         try:
-            from core.enrichment.monetization_service import MonetizationService
             from core.agents.monetization.factory import get_monetization_analyzer
-            from core.deduplication.monetization_skip_logic import MonetizationSkipLogic
+            from core.enrichment.monetization_service import MonetizationService
 
             # Create analyzer based on strategy
             try:
                 analyzer = get_monetization_analyzer(
                     strategy=self.config.monetization_strategy,
-                    config=self.config.monetization_config or {}
+                    config=self.config.monetization_config or {},
                 )
             except Exception as e:
-                logger.warning(f"Could not create monetization analyzer, using mock: {e}")
+                logger.warning(
+                    f"Could not create monetization analyzer, using mock: {e}"
+                )
                 analyzer = self._create_mock_monetization_analyzer()
 
             # Create skip logic if deduplication enabled
             skip_logic = None
             if self.config.enable_deduplication and self.config.supabase_client:
                 try:
+                    from core.deduplication.monetization_skip_logic import (
+                        MonetizationSkipLogic,
+                    )
+
                     skip_logic = MonetizationSkipLogic(self.config.supabase_client)
+                    logger.info("Monetization skip logic created")
+                except ImportError:
+                    logger.info(
+                        "Monetization skip logic not available, proceeding without"
+                    )
                 except Exception as e:
                     logger.warning(f"Could not create monetization skip logic: {e}")
 
             service = MonetizationService(
                 analyzer=analyzer,
                 skip_logic=skip_logic,
-                config={"enable_deduplication": self.config.enable_deduplication}
+                config={"enable_deduplication": self.config.enable_deduplication},
             )
             logger.info(" Monetization service created")
             return service
@@ -222,7 +236,7 @@ class ServiceFactory:
             logger.error(f"Failed to create monetization service: {e}")
             return None
 
-    def _create_trust_service(self) -> Optional[BaseEnrichmentService]:
+    def _create_trust_service(self) -> BaseEnrichmentService | None:
         """
         Create TrustService for trust validation.
 
@@ -231,7 +245,7 @@ class ServiceFactory:
         """
         try:
             from core.enrichment.trust_service import TrustService
-            from core.trust import TrustValidationService, TrustRepositoryFactory
+            from core.trust import TrustRepositoryFactory, TrustValidationService
 
             # Create validator
             validator = None
@@ -255,7 +269,7 @@ class ServiceFactory:
             logger.error(f"Failed to create trust service: {e}")
             return None
 
-    def _create_market_validation_service(self) -> Optional[BaseEnrichmentService]:
+    def _create_market_validation_service(self) -> BaseEnrichmentService | None:
         """
         Create MarketValidationService for market data validation.
 
@@ -263,8 +277,10 @@ class ServiceFactory:
             MarketValidationService instance or None if creation fails
         """
         try:
-            from core.enrichment.market_validation_service import MarketValidationService
             from core.agents.market_validation import MarketDataValidator
+            from core.enrichment.market_validation_service import (
+                MarketValidationService,
+            )
 
             # Create validator
             try:
@@ -288,7 +304,7 @@ class ServiceFactory:
         profiler.analyze_profession.return_value = {
             "profession": "Software Engineer",
             "confidence": 0.85,
-            "analysis_reasons": ["Mock analysis"]
+            "analysis_reasons": ["Mock analysis"],
         }
         return profiler
 
@@ -298,7 +314,7 @@ class ServiceFactory:
         analyzer.analyze_opportunity.return_value = {
             "opportunity_score": 75.0,
             "confidence": 0.8,
-            "reasoning": "Mock analysis"
+            "reasoning": "Mock analysis",
         }
         return analyzer
 
@@ -309,7 +325,7 @@ class ServiceFactory:
             "monetization_score": 65.0,
             "confidence": 0.75,
             "monetization_methods": ["Mock method"],
-            "analysis_reasons": ["Mock analysis"]
+            "analysis_reasons": ["Mock analysis"],
         }
         return analyzer
 
@@ -332,8 +348,8 @@ class ServiceFactory:
                 activity_constraints_met=True,
                 quality_constraints_met=True,
                 validation_timestamp="2025-01-01T00:00:00Z",
-                validation_method="comprehensive"
-            )
+                validation_method="comprehensive",
+            ),
         )
         return validator
 
@@ -344,11 +360,11 @@ class ServiceFactory:
             "market_score": 70.0,
             "confidence": 0.7,
             "market_size": "medium",
-            "validation_reasons": ["Mock validation"]
+            "validation_reasons": ["Mock validation"],
         }
         return validator
 
-    def get_service(self, name: str) -> Optional[BaseEnrichmentService]:
+    def get_service(self, name: str) -> BaseEnrichmentService | None:
         """
         Get service by name.
 
@@ -376,7 +392,7 @@ class ServiceFactory:
             service.reset_statistics()
         logger.info("Reset statistics for all services")
 
-    def get_all_statistics(self) -> Dict[str, Dict[str, int]]:
+    def get_all_statistics(self) -> dict[str, dict[str, int]]:
         """
         Get statistics from all services.
 
@@ -388,8 +404,7 @@ class ServiceFactory:
             >>> print(stats["profiler"]["analyzed"])
         """
         return {
-            name: service.get_statistics()
-            for name, service in self.services.items()
+            name: service.get_statistics() for name, service in self.services.items()
         }
 
     def get_service_count(self) -> int:
