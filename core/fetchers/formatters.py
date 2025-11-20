@@ -37,9 +37,13 @@ def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
         >>> assert 'text' in formatted
         >>> assert 'engagement' in formatted
     """
-    # Use existing problem_description or combine title for full text analysis
+    # Use existing problem_description, content, or selftext for full text analysis
     title = submission.get("title", "")
-    text = submission.get("problem_description", "")
+    text = (
+        submission.get("problem_description", "") or
+        submission.get("content", "") or
+        submission.get("selftext", "")
+    )
     full_text = f"{title}\n\n{text}".strip() if text else title
 
     # Format engagement data using app_opportunities column names

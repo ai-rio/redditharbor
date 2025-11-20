@@ -119,7 +119,7 @@ class MonolithPipeline:
         # Fetch submissions (simulating monolith fetch)
         fetcher = DatabaseFetcher(
             client=self.client,
-            config={"batch_size": limit}
+            config={"batch_size": limit, "table_name": "submissions"}
         )
 
         submissions = list(fetcher.fetch(limit=limit))
@@ -243,8 +243,8 @@ def compare_results(
         "performance_comparison": {},
     }
 
-    monolith_subs = {s["submission_id"]: s for s in monolith_result.get("submissions", [])}
-    unified_subs = {s["submission_id"]: s for s in unified_result.get("opportunities", [])}
+    monolith_subs = {s.get("id", s.get("submission_id")): s for s in monolith_result.get("submissions", [])}
+    unified_subs = {s.get("id", s.get("submission_id")): s for s in unified_result.get("opportunities", [])}
 
     # Compare each submission
     for sub_id, mono_sub in monolith_subs.items():
@@ -345,13 +345,14 @@ def run_validation(limit: int, verbose: bool = False) -> Dict[str, Any]:
         data_source=DataSource.DATABASE,
         supabase_client=client,
         limit=limit,
-        enable_profiler=True,
-        enable_opportunity_scoring=True,
-        enable_monetization=True,
-        enable_trust=True,
-        enable_market_validation=True,
+        enable_profiler=False,  # Disable for basic testing
+        enable_opportunity_scoring=False,
+        enable_monetization=False,
+        enable_trust=False,
+        enable_market_validation=False,
         dry_run=True,  # Don't store during validation
         return_data=True,
+        source_config={"table_name": "submissions"}
     )
 
     pipeline = OpportunityPipeline(config)

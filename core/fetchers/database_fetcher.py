@@ -151,8 +151,8 @@ class DatabaseFetcher(BaseFetcher):
             query = (
                 self.client.table(self.table_name)
                 .select(
-                    "submission_id, title, problem_description, subreddit, reddit_score, "
-                    "num_comments, trust_score, trust_badge, activity_score"
+                    "submission_id, title, content, subreddit, reddit_score, "
+                    "num_comments, trust_score, trust_level, created_utc, author, selftext"
                 )
                 .limit(limit)
             )
@@ -197,8 +197,8 @@ class DatabaseFetcher(BaseFetcher):
                 query = (
                     self.client.table(self.table_name)
                     .select(
-                        "submission_id, title, problem_description, subreddit, reddit_score, "
-                        "num_comments, trust_score, trust_badge, activity_score"
+                        "submission_id, title, content, subreddit, reddit_score, "
+                        "num_comments, trust_score, trust_level, created_utc, author, selftext"
                     )
                     .range(offset, offset + self.batch_size - 1)
                 )

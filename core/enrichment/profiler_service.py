@@ -122,7 +122,7 @@ class ProfilerService(BaseEnrichmentService):
         if not self.validate_input(submission):
             self.logger.error(
                 f"Invalid submission: missing required fields for "
-                f"{submission.get('submission_id', 'unknown')}"
+                f"{submission.get('submission_id', submission.get('id', 'unknown'))}"
             )
             self.stats["errors"] += 1
             return {}
@@ -138,7 +138,7 @@ class ProfilerService(BaseEnrichmentService):
 
                 if not should_run:
                     self.logger.info(
-                        f"Skipping profiler for {submission['submission_id']}: {reason}"
+                        f"Skipping profiler for {submission.get('submission_id', submission.get('id', 'unknown'))}: {reason}"
                     )
 
                     # Try to copy from primary submission
@@ -151,7 +151,7 @@ class ProfilerService(BaseEnrichmentService):
                             self.stats["copied"] += 1
                             self.logger.info(
                                 f"Copied profile from {primary_id} to "
-                                f"{submission['submission_id']}"
+                                f"{submission.get('submission_id', submission.get('id', 'unknown'))}"
                             )
                             return copied
 
@@ -165,7 +165,7 @@ class ProfilerService(BaseEnrichmentService):
             if profile:
                 self.stats["analyzed"] += 1
                 self.logger.info(
-                    f"Generated profile for {submission['submission_id']}: "
+                    f"Generated profile for {submission.get('submission_id', submission.get('id', 'unknown'))}: "
                     f"{profile.get('app_name', 'unknown')}"
                 )
 
@@ -216,8 +216,9 @@ class ProfilerService(BaseEnrichmentService):
             )
 
             # Add metadata
-            profile["submission_id"] = submission["submission_id"]
-            profile["opportunity_id"] = f"opp_{submission['submission_id']}"
+            submission_id = submission.get("submission_id", submission.get("id", "unknown"))
+            profile["submission_id"] = submission_id
+            profile["opportunity_id"] = f"opp_{submission_id}"
 
             return profile
 

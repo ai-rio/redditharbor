@@ -115,7 +115,7 @@ class OpportunityService(BaseEnrichmentService):
         if not self.validate_input(submission):
             self.logger.error(
                 f"Invalid submission: missing required fields for "
-                f"{submission.get('submission_id', 'unknown')}"
+                f"{submission.get('submission_id', submission.get('id', 'unknown'))}"
             )
             self.stats["errors"] += 1
             return {}
@@ -130,7 +130,7 @@ class OpportunityService(BaseEnrichmentService):
             if result and "final_score" in result:
                 self.stats["analyzed"] += 1
                 self.logger.info(
-                    f"Analyzed opportunity for {submission['submission_id']}: "
+                    f"Analyzed opportunity for {submission.get('submission_id', submission.get('id', 'unknown'))}: "
                     f"score={result.get('final_score', 0)}, "
                     f"priority={result.get('priority', 'unknown')}"
                 )
@@ -138,13 +138,13 @@ class OpportunityService(BaseEnrichmentService):
             else:
                 self.stats["errors"] += 1
                 self.logger.warning(
-                    f"Analyzer returned invalid result for {submission['submission_id']}"
+                    f"Analyzer returned invalid result for {submission.get('submission_id', submission.get('id', 'unknown'))}"
                 )
                 return {}
 
         except Exception as e:
             self.logger.error(
-                f"Opportunity analysis error for {submission.get('submission_id', 'unknown')}: {e}",
+                f"Opportunity analysis error for {submission.get('submission_id', submission.get('id', 'unknown'))}: {e}",
                 exc_info=True,
             )
             self.stats["errors"] += 1
@@ -183,7 +183,7 @@ class OpportunityService(BaseEnrichmentService):
             comments = []
 
         return {
-            "id": submission["submission_id"],
+            "id": submission.get("submission_id", submission.get("id")),
             "title": submission["title"],
             "text": text,
             "subreddit": submission["subreddit"],
