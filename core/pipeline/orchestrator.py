@@ -233,6 +233,9 @@ class OpportunityPipeline:
                 if success:
                     self.stats["stored"] = len(enriched)
                     logger.info(f"[OK] Stored {len(enriched)} results")
+
+                    # ⭐ PHASE 3: Update concept metadata for future deduplication
+                    self._update_concept_metadata(enriched)
             elif self.config.dry_run:
                 logger.info("[OK] Dry run mode - skipping storage")
                 self.stats["stored"] = 0
@@ -612,6 +615,143 @@ class OpportunityPipeline:
                 f"- falling back to fresh analysis"
             )
             return None
+
+    def _update_concept_metadata(self, enriched: list[dict[str, Any]]) -> None:
+        """
+        Update concept metadata after successful enrichment.
+
+        Marks concepts as analyzed (has_agno_analysis, has_profiler_analysis)
+        so future runs can skip expensive AI calls through deduplication.
+
+        Uses batch query optimization to reduce database load.
+
+        Args:
+            enriched: List of successfully enriched and stored submissions
+
+        Example:
+            >>> enriched = [{"submission_id": "sub_001", "ai_profile": {...}}]
+            >>> pipeline._update_concept_metadata(enriched)
+        """
+        if not self.config.supabase_client:
+            logger.debug("No Supabase client - skipping concept metadata updates")
+            return
+
+        if not enriched:
+            return
+
+        try:
+            # BATCH: Fetch all concept_ids at once (1 query instead of N)
+            submission_ids = [
+                sub.get("submission_id") for sub in enriched if sub.get("submission_id")
+            ]
+
+            if not submission_ids:
+                logger.debug("No submission IDs found for concept metadata update")
+                return
+
+            concepts_response = (
+                self.config.supabase_client.table("opportunities_unified")
+                .select("submission_id, business_concept_id")
+                .in_("submission_id", submission_ids)
+                .execute()
+            )
+
+            # Build submission_id → concept_id mapping
+            submission_to_concept = {
+                row["submission_id"]: row["business_concept_id"]
+                for row in concepts_response.data
+                if row.get("business_concept_id")
+            }
+
+            if not submission_to_concept:
+                logger.debug("No concepts found for metadata update")
+                return
+
+            # Track statistics
+            profiler_updates = 0
+            agno_updates = 0
+            failed_updates = 0
+
+            # Update Profiler metadata for submissions with AI profiles
+            if self.config.enable_profiler:
+                from core.deduplication import ProfilerSkipLogic
+
+                skip_logic = ProfilerSkipLogic(self.config.supabase_client)
+
+                for submission in enriched:
+                    # Check if submission has profiler analysis
+                    if submission.get("ai_profile") or submission.get("app_name"):
+                        sub_id = submission.get("submission_id")
+                        concept_id = submission_to_concept.get(sub_id)
+
+                        if concept_id:
+                            # Prepare ai_profile dict for update
+                            ai_profile = submission.get("ai_profile", {})
+                            if not ai_profile and submission.get("app_name"):
+                                # Build minimal ai_profile if only app_name exists
+                                ai_profile = {
+                                    "app_name": submission.get("app_name"),
+                                    "final_score": submission.get("opportunity_score", 0),
+                                }
+
+                            success = skip_logic.update_concept_profiler_stats(
+                                concept_id=concept_id, ai_profile=ai_profile
+                            )
+
+                            if success:
+                                profiler_updates += 1
+                            else:
+                                failed_updates += 1
+
+            # Update Agno metadata for submissions with monetization analysis
+            if self.config.enable_monetization:
+                from core.deduplication import AgnoSkipLogic
+
+                skip_logic = AgnoSkipLogic(self.config.supabase_client)
+
+                for submission in enriched:
+                    # Check if submission has Agno analysis
+                    if (
+                        submission.get("willingness_to_pay_score")
+                        or submission.get("monetization_score")
+                    ):
+                        sub_id = submission.get("submission_id")
+                        concept_id = submission_to_concept.get(sub_id)
+
+                        if concept_id:
+                            # Prepare agno_result dict for update
+                            agno_result = {
+                                "willingness_to_pay_score": submission.get(
+                                    "willingness_to_pay_score"
+                                )
+                                or submission.get("monetization_score"),
+                                "customer_segment": submission.get("customer_segment"),
+                                "payment_sentiment": submission.get("payment_sentiment"),
+                                "urgency_level": submission.get("urgency_level"),
+                            }
+
+                            success = skip_logic.update_concept_agno_stats(
+                                concept_id=concept_id, agno_result=agno_result
+                            )
+
+                            if success:
+                                agno_updates += 1
+                            else:
+                                failed_updates += 1
+
+            # Log summary
+            if profiler_updates > 0 or agno_updates > 0:
+                logger.info(
+                    f"[OK] Updated concept metadata: "
+                    f"Profiler={profiler_updates}, Agno={agno_updates}, "
+                    f"Failed={failed_updates}"
+                )
+            else:
+                logger.debug("No concept metadata updates performed")
+
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to update concept metadata: {e}")
+            # Don't raise - metadata updates are best-effort
 
     def _store_results(self, results: list[dict[str, Any]]) -> bool:
         """
