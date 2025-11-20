@@ -68,10 +68,29 @@ class ObservabilityManager:
             tags = self.config.get("agentops", {}).get("session_tags", [])
             tags.append(self.test_name)
 
-            self.agentops_session = self.agentops_client.start_session(
-                tags=tags,
-                session_id=self.session_id
-            )
+            # Try different AgentOps API versions for session initialization
+            try:
+                # Try newer API first
+                self.agentops_session = self.agentops_client.start_session(
+                    tags=tags,
+                    default_tags=tags,  # Some versions use default_tags
+                )
+            except Exception:
+                try:
+                    # Try older API with session_id
+                    self.agentops_session = self.agentops_client.start_session(
+                        tags=tags,
+                        session_id=self.session_id
+                    )
+                except Exception:
+                    try:
+                        # Try minimal API
+                        self.agentops_session = self.agentops_client.start_session()
+                    except Exception:
+                        # If all fail, set session to None but keep client
+                        self.agentops_session = None
+                        print("Warning: AgentOps session initialization failed, but client is available")
+                        return self.agentops_client, self.agentops_session
 
             print(f"✓ AgentOps session started: {self.session_id}")
             return self.agentops_client, self.agentops_session

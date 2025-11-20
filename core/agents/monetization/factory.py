@@ -20,14 +20,14 @@ import sys
 from pathlib import Path
 from typing import Union
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
+# Add project root to path - ensure we're adding the correct root
+project_root = Path(__file__).parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 # Import centralized configuration
 try:
-    from config import settings
+    import config.settings as settings
 except ImportError:
     # Fallback for standalone usage
     class Settings:

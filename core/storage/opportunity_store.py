@@ -91,8 +91,19 @@ class OpportunityStore:
             f"Storing {len(valid_opportunities)} opportunities to {self.table_name}"
         )
 
+        # Fix field mapping: reddit_id -> submission_id for DLT storage compatibility
+        mapped_opportunities = []
+        for opp in valid_opportunities:
+            mapped_opp = opp.copy()
+            # Map reddit_id to submission_id for DLT primary key compatibility
+            if 'reddit_id' in mapped_opp and 'submission_id' not in mapped_opp:
+                mapped_opp['submission_id'] = mapped_opp['reddit_id']
+                # Optional: remove the original reddit_id to avoid confusion
+                # mapped_opp.pop('reddit_id', None)
+            mapped_opportunities.append(mapped_opp)
+
         success = self.loader.load(
-            data=valid_opportunities,
+            data=mapped_opportunities,
             table_name=self.table_name,
             write_disposition="merge",
             primary_key=self.primary_key,

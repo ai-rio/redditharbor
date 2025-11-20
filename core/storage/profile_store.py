@@ -84,8 +84,18 @@ class ProfileStore:
 
         logger.info(f"Storing {len(valid_profiles)} profiles to {self.table_name}")
 
+        # Fix field mapping: reddit_id -> submission_id for DLT storage compatibility
+        mapped_profiles = []
+        for prof in valid_profiles:
+            mapped_prof = prof.copy()
+            # Map reddit_id to submission_id for DLT primary key compatibility
+            if 'reddit_id' in mapped_prof and 'submission_id' not in mapped_prof:
+                mapped_prof['submission_id'] = mapped_prof['reddit_id']
+                # Keep reddit_id for the submissions table as it's the actual Reddit identifier
+            mapped_profiles.append(mapped_prof)
+
         success = self.loader.load(
-            data=valid_profiles,
+            data=mapped_profiles,
             table_name=self.table_name,
             write_disposition="merge",
             primary_key=self.primary_key,

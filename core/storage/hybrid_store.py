@@ -87,14 +87,17 @@ class HybridStore:
         profiles = []
 
         for submission in hybrid_submissions:
-            if not submission.get("submission_id"):
+            # Handle field mapping: reddit_id -> submission_id for compatibility
+            submission_id = submission.get("submission_id") or submission.get("reddit_id")
+
+            if not submission_id:
                 self.stats.skipped += 1
                 continue
 
             # Extract opportunity fields (if has AI-generated content)
             if submission.get("problem_description"):
                 opp_data = {
-                    "submission_id": submission["submission_id"],
+                    "submission_id": submission_id,  # Use mapped submission_id
                     "problem_description": submission.get("problem_description"),
                     "app_concept": submission.get("app_concept"),
                     "core_functions": submission.get("core_functions"),
@@ -109,8 +112,8 @@ class HybridStore:
 
             # Extract profile fields (all enriched submissions)
             profile_data = {
-                "submission_id": submission["submission_id"],
-                "reddit_id": submission.get("reddit_id"),  # Required field for submissions table
+                "submission_id": submission_id,  # Use mapped submission_id for DLT PK
+                "reddit_id": submission_id,  # CRITICAL: Use submission_id as reddit_id for submissions table NOT NULL constraint
                 "title": submission.get("title"),
                 "selftext": submission.get("selftext"),
                 "author": submission.get("author"),

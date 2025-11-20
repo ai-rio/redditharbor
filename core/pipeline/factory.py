@@ -26,8 +26,16 @@ Example:
 """
 
 import logging
+import sys
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
+
+# Add project root to sys.path to resolve config imports
+# Insert at position 1 (after test utils) to ensure main config takes precedence
+project_root = Path(__file__).parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(1, str(project_root))
 
 from core.enrichment.base_service import BaseEnrichmentService
 from core.pipeline.config import PipelineConfig
@@ -123,9 +131,27 @@ class ServiceFactory:
             ProfilerService instance or None if creation fails
         """
         try:
-            from core.agents.profiler import EnhancedLLMProfiler
-            from core.deduplication.profiler_skip_logic import ProfilerSkipLogic
-            from core.enrichment.profiler_service import ProfilerService
+            # Temporarily ensure project root is first in path for correct config imports
+            original_path = sys.path[:]
+            project_root = str(Path(__file__).parent.parent.parent)
+
+            # Move project root to front temporarily
+            if project_root in sys.path:
+                sys.path.remove(project_root)
+            sys.path.insert(0, project_root)
+
+            # Clear any cached config modules to force reimport
+            config_modules_to_clear = [k for k in sys.modules.keys() if k.startswith('config')]
+            for module in config_modules_to_clear:
+                del sys.modules[module]
+
+            try:
+                from core.agents.profiler import EnhancedLLMProfiler
+                from core.deduplication.profiler_skip_logic import ProfilerSkipLogic
+                from core.enrichment.profiler_service import ProfilerService
+            finally:
+                # Restore original path
+                sys.path[:] = original_path
 
             # Create profiler
             try:
@@ -162,10 +188,23 @@ class ServiceFactory:
             OpportunityService instance or None if creation fails
         """
         try:
-            from core.agents.interactive.opportunity_analyzer import (
-                OpportunityAnalyzerAgent,
-            )
-            from core.enrichment.opportunity_service import OpportunityService
+            # Temporarily ensure project root is first in path for correct config imports
+            original_path = sys.path[:]
+            project_root = str(Path(__file__).parent.parent.parent)
+
+            # Move project root to front temporarily
+            if project_root in sys.path:
+                sys.path.remove(project_root)
+            sys.path.insert(0, project_root)
+
+            try:
+                from core.agents.interactive.opportunity_analyzer import (
+                    OpportunityAnalyzerAgent,
+                )
+                from core.enrichment.opportunity_service import OpportunityService
+            finally:
+                # Restore original path
+                sys.path[:] = original_path
 
             # Create analyzer
             try:
@@ -192,8 +231,21 @@ class ServiceFactory:
             MonetizationService instance or None if creation fails
         """
         try:
-            from core.agents.monetization.factory import get_monetization_analyzer
-            from core.enrichment.monetization_service import MonetizationService
+            # Temporarily ensure project root is first in path for correct config imports
+            original_path = sys.path[:]
+            project_root = str(Path(__file__).parent.parent.parent)
+
+            # Move project root to front temporarily
+            if project_root in sys.path:
+                sys.path.remove(project_root)
+            sys.path.insert(0, project_root)
+
+            try:
+                from core.agents.monetization.factory import get_monetization_analyzer
+                from core.enrichment.monetization_service import MonetizationService
+            finally:
+                # Restore original path
+                sys.path[:] = original_path
 
             # Create analyzer based on strategy
             try:
@@ -277,10 +329,23 @@ class ServiceFactory:
             MarketValidationService instance or None if creation fails
         """
         try:
-            from core.agents.market_validation import MarketDataValidator
-            from core.enrichment.market_validation_service import (
-                MarketValidationService,
-            )
+            # Temporarily ensure project root is first in path for correct config imports
+            original_path = sys.path[:]
+            project_root = str(Path(__file__).parent.parent.parent)
+
+            # Move project root to front temporarily
+            if project_root in sys.path:
+                sys.path.remove(project_root)
+            sys.path.insert(0, project_root)
+
+            try:
+                from core.agents.market_validation import MarketDataValidator
+                from core.enrichment.market_validation_service import (
+                    MarketValidationService,
+                )
+            finally:
+                # Restore original path
+                sys.path[:] = original_path
 
             # Create validator
             try:

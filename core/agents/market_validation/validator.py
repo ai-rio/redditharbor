@@ -16,14 +16,21 @@ Features:
 import json
 import logging
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from pathlib import Path
 
 import litellm
 
+# Add project root to path for config imports
+project_root = Path(__file__).parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from core.agents.search.hybrid_client import JinaHybridClient, get_jina_hybrid_client
 from core.agents.search.reader_client import JinaReaderClient, get_jina_client
-from config import settings
+import config.settings as settings
 
 logger = logging.getLogger(__name__)
 
