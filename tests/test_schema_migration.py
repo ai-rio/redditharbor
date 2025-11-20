@@ -338,7 +338,8 @@ class TestDataIntegrity:
 
         # Verify only valid data was passed to loader
         call_args = mock_pipeline.run.call_args
-        loaded_data = call_args.kwargs["data"]
+        # data is passed as positional argument (first arg) to pipeline.run()
+        loaded_data = call_args.args[0]
         assert len(list(loaded_data)) == 2  # Only valid records
 
 

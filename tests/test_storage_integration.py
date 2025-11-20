@@ -403,3 +403,96 @@ class TestEndToEndDataFlow:
         assert profile_store.stats.loaded == 1
         assert opp_store.stats.loaded == 1
         assert hybrid_store.stats.loaded == 1
+
+    @patch("core.storage.dlt_loader.dlt.pipeline")
+    def test_pipeline_performance_monitoring(self, mock_pipeline_func):
+        """Test performance monitoring during enrichment pipeline execution."""
+        mock_pipeline = MagicMock()
+        mock_load_info = MagicMock()
+        mock_pipeline.run.return_value = mock_load_info
+        mock_pipeline_func.return_value = mock_pipeline
+
+        # Test with timing metadata
+        import time
+
+        store = OpportunityStore()
+
+        # Simulate performance-aware enrichment
+        performance_enriched = [
+            {
+                "submission_id": "perf_1",
+                "problem_description": "Performance testing opportunity",
+                "app_concept": "Performance monitoring app",
+                "core_functions": ["Metrics collection", "Real-time dashboards"],
+                "value_proposition": "Optimize system performance by 25%",
+                "target_user": "DevOps teams",
+                "monetization_model": "Enterprise: $999/month",
+                "opportunity_score": 80.0,
+                "processing_time_ms": 150,  # Performance metadata
+                "pipeline_stage": "opportunity_analysis",
+            }
+        ]
+
+        start_time = time.time()
+        success = store.store(performance_enriched)
+        processing_time = (time.time() - start_time) * 1000  # Convert to ms
+
+        assert success is True
+        assert store.stats.loaded == 1
+        # Should process quickly (under 5 seconds for this test)
+        assert processing_time < 5000
+
+    @patch("core.storage.dlt_loader.dlt.pipeline")
+    def test_data_quality_validation_before_storage(self, mock_pipeline_func):
+        """Test data quality validation integrated with storage operations."""
+        mock_pipeline = MagicMock()
+        mock_load_info = MagicMock()
+        mock_pipeline.run.return_value = mock_load_info
+        mock_pipeline_func.return_value = mock_pipeline
+
+        store = OpportunityStore()
+
+        # Test data with various quality scenarios
+        quality_test_data = [
+            {
+                "submission_id": "quality_good_1",
+                "problem_description": "Well-defined problem statement with clear pain points",
+                "app_concept": "Well-structured app concept with clear value proposition",
+                "core_functions": ["Feature 1", "Feature 2", "Feature 3"],
+                "value_proposition": "Clear and measurable value proposition",
+                "target_user": "Well-defined target user segment",
+                "monetization_model": "Valid monetization model",
+                "opportunity_score": 85.0,
+                "data_quality_score": 0.95,  # High quality
+            },
+            {
+                "submission_id": "quality_poor_1",
+                "problem_description": "Vague problem",  # Low quality
+                "app_concept": "Unclear concept",
+                "core_functions": [],  # Missing features
+                "value_proposition": "Generic value",
+                "target_user": "Everyone",  # Too broad
+                "monetization_model": "TBD",  # Not defined
+                "opportunity_score": 45.0,
+                "data_quality_score": 0.35,  # Low quality
+            },
+            {
+                "submission_id": "quality_invalid_1",
+                # Missing required field - should be filtered
+                "app_concept": "Incomplete data"
+            }
+        ]
+
+        success = store.store(quality_test_data)
+
+        # Should succeed but skip invalid and maybe low-quality data
+        assert success is True
+        assert store.stats.loaded >= 1  # At least good quality data
+        assert store.stats.skipped >= 1  # At least invalid data skipped
+        assert store.stats.failed == 0  # No processing failures
+
+        # Verify quality metadata is preserved
+        call_args = mock_pipeline.run.call_args
+        stored_data = call_args.args[0]
+        quality_scores = [item.get("data_quality_score") for item in stored_data if "data_quality_score" in item]
+        assert 0.95 in quality_scores  # High quality score preserved
