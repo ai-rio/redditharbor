@@ -1,10 +1,59 @@
 """Opportunity storage service for app_opportunities table."""
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any
+
+from core.dlt import PK_SUBMISSION_ID
 
 from .dlt_loader import DLTLoader, LoadStatistics
-from core.dlt import PK_SUBMISSION_ID
+
+# JSONB column type hints for proper PostgreSQL storage
+APP_OPPORTUNITIES_COLUMNS = {
+    # Basic fields
+    "submission_id": {"data_type": "text", "nullable": False},
+    "problem_description": {"data_type": "text"},
+    "app_concept": {"data_type": "text"},
+    "core_functions": {"data_type": "text"},
+    "value_proposition": {"data_type": "text"},
+    "target_user": {"data_type": "text"},
+    "monetization_model": {"data_type": "text"},
+    "opportunity_score": {"data_type": "double"},
+    "final_score": {"data_type": "double"},
+    "status": {"data_type": "text"},
+
+    # ProfilerService enrichment fields - CRITICAL JSONB FIELDS
+    "ai_profile": {"data_type": "json"},
+    "app_name": {"data_type": "text"},
+    "app_category": {"data_type": "text"},
+    "profession": {"data_type": "text"},
+    "core_problems": {"data_type": "json"},
+
+    # OpportunityService enrichment fields - CRITICAL JSONB FIELDS
+    "dimension_scores": {"data_type": "json"},
+    "priority": {"data_type": "text"},
+    "confidence": {"data_type": "double"},
+    "evidence_based": {"data_type": "bool"},
+
+    # TrustService enrichment fields - CRITICAL JSONB FIELDS
+    "trust_level": {"data_type": "text"},
+    "trust_badges": {"data_type": "json"},
+
+    # MonetizationService enrichment fields
+    "monetization_score": {"data_type": "double"},
+
+    # MarketValidationService enrichment fields
+    "market_validation_score": {"data_type": "double"},
+
+    # Metadata fields
+    "analyzed_at": {"data_type": "timestamp"},
+    "enrichment_version": {"data_type": "text"},
+    "pipeline_source": {"data_type": "text"},
+
+    # Reddit metadata fields
+    "title": {"data_type": "text"},
+    "subreddit": {"data_type": "text"},
+    "reddit_score": {"data_type": "bigint"},
+}
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +67,7 @@ class OpportunityStore:
 
     def __init__(
         self,
-        loader: Optional[DLTLoader] = None,
+        loader: DLTLoader | None = None,
         table_name: str = "app_opportunities",
     ):
         """Initialize OpportunityStore.
@@ -35,7 +84,7 @@ class OpportunityStore:
             f"OpportunityStore initialized (table={table_name}, pk={self.primary_key})"
         )
 
-    def store(self, opportunities: List[Dict[str, Any]]) -> bool:
+    def store(self, opportunities: list[dict[str, Any]]) -> bool:
         """Store opportunity analysis results with merge disposition.
 
         Uses merge disposition to prevent duplicate records based on submission_id.
@@ -107,6 +156,7 @@ class OpportunityStore:
             table_name=self.table_name,
             write_disposition="merge",
             primary_key=self.primary_key,
+            columns=APP_OPPORTUNITIES_COLUMNS,  # CRITICAL: JSONB type hints for proper storage
         )
 
         # Update statistics
@@ -133,8 +183,8 @@ class OpportunityStore:
         return success
 
     def store_batch(
-        self, opportunities: List[Dict[str, Any]], batch_size: int = 100
-    ) -> Dict[str, Any]:
+        self, opportunities: list[dict[str, Any]], batch_size: int = 100
+    ) -> dict[str, Any]:
         """Store opportunities in batches for large datasets.
 
         Args:
@@ -199,7 +249,7 @@ class OpportunityStore:
 
         return result
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get storage statistics.
 
         Returns:

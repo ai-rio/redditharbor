@@ -644,3 +644,146 @@ def test_load_with_custom_pipeline_name(mock_pipeline_func, sample_opportunities
     # Verify custom pipeline name was used
     mock_pipeline_func.assert_called_once()
     assert "custom_pipeline_name" in loader._pipeline_cache
+
+
+# ===========================
+# JSONB Column Type Hints Tests
+# ===========================
+
+
+def test_create_resource_with_columns():
+    """Test creating a DLT resource with explicit column type hints."""
+    loader = DLTLoader()
+
+    # Sample JSONB column configuration (from the working implementation)
+    columns = {
+        "submission_id": {"data_type": "text", "nullable": False},
+        "problem_description": {"data_type": "text"},
+        "ai_profile": {"data_type": "json"},
+        "core_problems": {"data_type": "json"},
+        "dimension_scores": {"data_type": "json"},
+        "trust_badges": {"data_type": "json"},
+    }
+
+    data = [{"submission_id": "test001", "ai_profile": {"test": "data"}}]
+
+    # Create resource with column hints
+    resource = loader._create_resource_with_columns(
+        data=data,
+        table_name="app_opportunities",
+        columns=columns,
+        write_disposition="merge",
+        primary_key="submission_id"
+    )
+
+    # Verify resource is callable
+    assert callable(resource)
+
+    # Verify resource yields correct data
+    records = list(resource())
+    assert len(records) == 1
+    assert records[0]["submission_id"] == "test001"
+    assert records[0]["ai_profile"]["test"] == "data"
+
+
+@patch("core.storage.dlt_loader.dlt.pipeline")
+def test_load_with_jsonb_columns(mock_pipeline_func, sample_opportunities):
+    """Test load operation with JSONB column type hints."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.run.return_value = MagicMock(started_at="2025-01-15T10:00:00")
+    mock_pipeline_func.return_value = mock_pipeline
+
+    loader = DLTLoader()
+
+    # JSONB column type hints configuration
+    columns = {
+        "submission_id": {"data_type": "text", "nullable": False},
+        "problem_description": {"data_type": "text"},
+        "ai_profile": {"data_type": "json"},
+        "core_problems": {"data_type": "json"},
+        "dimension_scores": {"data_type": "json"},
+        "trust_badges": {"data_type": "json"},
+    }
+
+    # Add JSON fields to test data
+    test_data = sample_opportunities.copy()
+    for record in test_data:
+        record.update({
+            "ai_profile": {"analysis": "test profile"},
+            "core_problems": ["problem1", "problem2"],
+            "dimension_scores": {"market": 0.8, "technical": 0.7},
+            "trust_badges": {"verified": True, "score": 85}
+        })
+
+    success = loader.load(
+        data=test_data,
+        table_name="app_opportunities",
+        write_disposition="merge",
+        primary_key="submission_id",
+        columns=columns,  # CRITICAL: JSONB type hints
+    )
+
+    assert success is True
+    assert loader.stats.loaded == 3
+    assert loader.stats.failed == 0
+
+    # Verify pipeline was called with a resource (not raw data)
+    mock_pipeline.run.assert_called_once()
+    call_args = mock_pipeline.run.call_args
+    # First argument should be a resource (callable), not data directly
+    resource_arg = call_args[0][0]
+    assert callable(resource_arg), "Should be called with a DLT resource, not raw data"
+
+
+@patch("core.storage.dlt_loader.dlt.pipeline")
+def test_load_without_columns_fallback(mock_pipeline_func, sample_opportunities):
+    """Test that load without columns falls back to raw data loading."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.run.return_value = MagicMock(started_at="2025-01-15")
+    mock_pipeline_func.return_value = mock_pipeline
+
+    loader = DLTLoader()
+    success = loader.load(
+        data=sample_opportunities,
+        table_name="app_opportunities",
+        write_disposition="merge",
+        primary_key="submission_id",
+        columns=None,  # No column hints - should use fallback
+    )
+
+    assert success is True
+    assert loader.stats.loaded == 3
+
+    # Verify pipeline was called with raw data (not a resource)
+    mock_pipeline.run.assert_called_once()
+    call_args = mock_pipeline.run.call_args
+    # First argument should be raw data, not a resource
+    data_arg = call_args[0][0]
+    assert data_arg == sample_opportunities
+    assert not callable(data_arg), "Should be raw data, not a resource"
+
+
+@patch("core.storage.dlt_loader.dlt.pipeline")
+def test_load_with_empty_columns_fallback(mock_pipeline_func, sample_opportunities):
+    """Test that empty columns dict falls back to raw data loading."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.run.return_value = MagicMock(started_at="2025-01-15")
+    mock_pipeline_func.return_value = mock_pipeline
+
+    loader = DLTLoader()
+    success = loader.load(
+        data=sample_opportunities,
+        table_name="app_opportunities",
+        write_disposition="merge",
+        primary_key="submission_id",
+        columns={},  # Empty columns - should use fallback
+    )
+
+    assert success is True
+    assert loader.stats.loaded == 3
+
+    # Verify pipeline was called with raw data
+    mock_pipeline.run.assert_called_once()
+    call_args = mock_pipeline.run.call_args
+    data_arg = call_args[0][0]
+    assert data_arg == sample_opportunities

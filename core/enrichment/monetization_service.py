@@ -142,20 +142,20 @@ class MonetizationService(BaseEnrichmentService):
 
                 if not should_run:
                     self.logger.info(
-                        f"Skipping Agno for {submission['submission_id']}: {reason}"
+                        f"Skipping Agno for {submission.get('submission_id', submission.get('id', 'unknown'))}: {reason}"
                     )
 
                     # Try to copy from primary submission
                     primary_id = self._get_primary_submission_id(business_concept_id)
                     if primary_id:
                         copied = self.skip_logic.copy_agno_analysis(
-                            primary_id, submission["submission_id"], business_concept_id
+                            primary_id, submission.get("submission_id", submission.get("id", "unknown")), business_concept_id
                         )
                         if copied:
                             self.stats["copied"] += 1
                             self.logger.info(
                                 f"Copied Agno analysis from {primary_id} to "
-                                f"{submission['submission_id']}"
+                                f"{submission.get('submission_id', submission.get('id', 'unknown'))}"
                             )
                             return copied
 
@@ -169,7 +169,7 @@ class MonetizationService(BaseEnrichmentService):
             if analysis:
                 self.stats["analyzed"] += 1
                 self.logger.info(
-                    f"Generated Agno analysis for {submission['submission_id']}: "
+                    f"Generated Agno analysis for {submission.get('submission_id', submission.get('id', 'unknown'))}: "
                     f"score={analysis.get('llm_monetization_score', 0)}, "
                     f"segment={analysis.get('customer_segment', 'unknown')}"
                 )
@@ -220,7 +220,7 @@ class MonetizationService(BaseEnrichmentService):
             analysis = asdict(result)
 
             # Add metadata
-            analysis["submission_id"] = submission["submission_id"]
+            analysis["submission_id"] = submission.get("submission_id", submission.get("id", "unknown"))
             analysis["business_concept_id"] = submission.get("business_concept_id")
 
             return analysis

@@ -20,7 +20,7 @@ from core.dlt import PK_SUBMISSION_ID
 from core.utils.core_functions_serialization import dlt_standardize_core_functions
 
 # DLT pipeline configuration
-PIPELINE_NAME = "reddit_harbor_app_opportunities"
+PIPELINE_NAME = "app_opportunities_loader"  # Consistent with expected resource name
 DESTINATION = "postgres"
 DATASET_NAME = "public"
 
@@ -41,8 +41,52 @@ def create_app_opportunities_pipeline() -> dlt.Pipeline:
     name="app_opportunities",
     write_disposition="merge",  # Deduplication via primary key
     primary_key=PK_SUBMISSION_ID,  # Specify primary key for merge operations
-    # Remove complex column hints - let DLT infer from data
-    # core_functions will be inferred as text from JSON string
+    columns={
+        # Basic fields
+        "submission_id": {"data_type": "varchar", "nullable": False},
+        "problem_description": {"data_type": "varchar"},
+        "app_concept": {"data_type": "varchar"},
+        "core_functions": {"data_type": "varchar"},
+        "value_proposition": {"data_type": "varchar"},
+        "target_user": {"data_type": "varchar"},
+        "monetization_model": {"data_type": "varchar"},
+        "opportunity_score": {"data_type": "double"},
+        "final_score": {"data_type": "double"},
+        "status": {"data_type": "varchar"},
+
+        # ProfilerService enrichment fields
+        "ai_profile": {"data_type": "jsonb"},
+        "app_name": {"data_type": "text"},
+        "app_category": {"data_type": "text"},
+        "profession": {"data_type": "text"},
+        "core_problems": {"data_type": "jsonb"},
+
+        # OpportunityService enrichment fields
+        "dimension_scores": {"data_type": "jsonb"},
+        "priority": {"data_type": "text"},
+        "confidence": {"data_type": "numeric"},
+        "evidence_based": {"data_type": "boolean"},
+
+        # TrustService enrichment fields
+        "trust_level": {"data_type": "text"},
+        "trust_badges": {"data_type": "jsonb"},
+
+        # MonetizationService enrichment fields
+        "monetization_score": {"data_type": "numeric"},
+
+        # MarketValidationService enrichment fields
+        "market_validation_score": {"data_type": "numeric"},
+
+        # Metadata fields
+        "analyzed_at": {"data_type": "timestamp"},
+        "enrichment_version": {"data_type": "varchar"},
+        "pipeline_source": {"data_type": "varchar"},
+
+        # Reddit metadata fields
+        "title": {"data_type": "varchar"},
+        "subreddit": {"data_type": "varchar"},
+        "reddit_score": {"data_type": "bigint"},
+    }
 )
 def app_opportunities_resource(ai_profiles: list[dict[str, Any]]):
     """

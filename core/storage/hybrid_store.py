@@ -1,12 +1,61 @@
 """Hybrid storage service for combined enrichment pipelines."""
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any
 
-from .dlt_loader import DLTLoader, LoadStatistics
 from core.dlt import PK_SUBMISSION_ID
 
+from .dlt_loader import DLTLoader, LoadStatistics
+
 logger = logging.getLogger(__name__)
+
+# JSONB column type hints for proper PostgreSQL storage
+APP_OPPORTUNITIES_COLUMNS = {
+    # Basic fields
+    "submission_id": {"data_type": "text", "nullable": False},
+    "problem_description": {"data_type": "text"},
+    "app_concept": {"data_type": "text"},
+    "core_functions": {"data_type": "text"},
+    "value_proposition": {"data_type": "text"},
+    "target_user": {"data_type": "text"},
+    "monetization_model": {"data_type": "text"},
+    "opportunity_score": {"data_type": "double"},
+    "final_score": {"data_type": "double"},
+    "status": {"data_type": "text"},
+
+    # ProfilerService enrichment fields - CRITICAL JSONB FIELDS
+    "ai_profile": {"data_type": "json"},
+    "app_name": {"data_type": "text"},
+    "app_category": {"data_type": "text"},
+    "profession": {"data_type": "text"},
+    "core_problems": {"data_type": "json"},
+
+    # OpportunityService enrichment fields - CRITICAL JSONB FIELDS
+    "dimension_scores": {"data_type": "json"},
+    "priority": {"data_type": "text"},
+    "confidence": {"data_type": "double"},
+    "evidence_based": {"data_type": "bool"},
+
+    # TrustService enrichment fields - CRITICAL JSONB FIELDS
+    "trust_level": {"data_type": "text"},
+    "trust_badges": {"data_type": "json"},
+
+    # MonetizationService enrichment fields
+    "monetization_score": {"data_type": "double"},
+
+    # MarketValidationService enrichment fields
+    "market_validation_score": {"data_type": "double"},
+
+    # Metadata fields
+    "analyzed_at": {"data_type": "timestamp"},
+    "enrichment_version": {"data_type": "text"},
+    "pipeline_source": {"data_type": "text"},
+
+    # Reddit metadata fields
+    "title": {"data_type": "text"},
+    "subreddit": {"data_type": "text"},
+    "reddit_score": {"data_type": "bigint"},
+}
 
 
 class HybridStore:
@@ -18,7 +67,7 @@ class HybridStore:
 
     def __init__(
         self,
-        loader: Optional[DLTLoader] = None,
+        loader: DLTLoader | None = None,
         opportunity_table: str = "app_opportunities",
         profile_table: str = "submissions",
     ):
@@ -38,7 +87,7 @@ class HybridStore:
             f"HybridStore initialized (opp={opportunity_table}, profile={profile_table})"
         )
 
-    def store(self, hybrid_submissions: List[Dict[str, Any]]) -> bool:
+    def store(self, hybrid_submissions: list[dict[str, Any]]) -> bool:
         """Store hybrid submissions to both opportunity and profile tables.
 
         Splits hybrid data into opportunity and profile components and stores
@@ -98,15 +147,57 @@ class HybridStore:
             if submission.get("problem_description"):
                 opp_data = {
                     "submission_id": submission_id,  # Use mapped submission_id
+                    # Basic fields
                     "problem_description": submission.get("problem_description"),
                     "app_concept": submission.get("app_concept"),
-                    "core_functions": submission.get("core_functions"),
+                    "core_functions": (
+                        submission.get("core_functions") or
+                        submission.get("function_list") or
+                        submission.get("functions")
+                    ),
                     "value_proposition": submission.get("value_proposition"),
                     "target_user": submission.get("target_user"),
                     "monetization_model": submission.get("monetization_model"),
                     "opportunity_score": submission.get("opportunity_score"),
-                    "final_score": submission.get("final_score"),
+                    "final_score": (
+                        submission.get("final_score") or
+                        submission.get("opportunity_score") or
+                        submission.get("total_score") or
+                        submission.get("overall_score")
+                    ),
                     "status": submission.get("status"),
+
+                    # ProfilerService enrichment fields
+                    "ai_profile": submission.get("ai_profile"),
+                    "app_name": submission.get("app_name"),
+                    "app_category": submission.get("app_category"),
+                    "profession": submission.get("profession"),
+                    "core_problems": submission.get("core_problems"),
+
+                    # OpportunityService enrichment fields
+                    "dimension_scores": submission.get("dimension_scores"),
+                    "priority": submission.get("priority"),
+                    "confidence": submission.get("confidence"),
+                    "evidence_based": submission.get("evidence_based"),
+
+                    # TrustService enrichment fields
+                    "trust_level": submission.get("trust_level"),
+                    "trust_badges": submission.get("trust_badges"),
+
+                    # MonetizationService enrichment fields
+                    "monetization_score": (
+                        submission.get("monetization_score") or
+                        submission.get("llm_monetization_score") or
+                        submission.get("willingness_to_pay_score")
+                    ),
+
+                    # MarketValidationService enrichment fields
+                    "market_validation_score": submission.get("market_validation_score"),
+
+                    # Metadata fields
+                    "analyzed_at": submission.get("analyzed_at"),
+                    "enrichment_version": submission.get("enrichment_version", "v3.0.0"),
+                    "pipeline_source": submission.get("pipeline_source", "unified_pipeline"),
                 }
                 opportunities.append(opp_data)
 
@@ -139,6 +230,7 @@ class HybridStore:
                 table_name=self.opportunity_table,
                 write_disposition="merge",
                 primary_key=self.primary_key,
+                columns=APP_OPPORTUNITIES_COLUMNS,  # CRITICAL: JSONB type hints for proper storage
             )
             if not opp_success:
                 logger.error(f"Failed to store opportunities to {self.opportunity_table}")
@@ -175,8 +267,8 @@ class HybridStore:
         return success
 
     def store_batch(
-        self, hybrid_submissions: List[Dict[str, Any]], batch_size: int = 100
-    ) -> Dict[str, Any]:
+        self, hybrid_submissions: list[dict[str, Any]], batch_size: int = 100
+    ) -> dict[str, Any]:
         """Store hybrid submissions in batches for large datasets.
 
         Args:
@@ -235,7 +327,7 @@ class HybridStore:
             "success_rate": success_rate,
         }
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get storage statistics.
 
         Returns:

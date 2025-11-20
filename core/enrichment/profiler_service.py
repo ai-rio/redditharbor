@@ -145,7 +145,7 @@ class ProfilerService(BaseEnrichmentService):
                     primary_id = self._get_primary_submission_id(business_concept_id)
                     if primary_id:
                         copied = self.skip_logic.copy_profiler_analysis(
-                            primary_id, submission["submission_id"], business_concept_id
+                            primary_id, submission.get("submission_id", submission.get("id", "unknown")), business_concept_id
                         )
                         if copied:
                             self.stats["copied"] += 1

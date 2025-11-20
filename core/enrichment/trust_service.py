@@ -156,6 +156,9 @@ class TrustService(BaseEnrichmentService):
                 if hasattr(validation.get("trust_level"), "value"):
                     validation["trust_level"] = validation["trust_level"].value
 
+                # Generate trust_badges based on trust scores
+                validation["trust_badges"] = self._generate_trust_badges(validation)
+
                 # Add metadata
                 validation["submission_id"] = submission_id
 
@@ -163,7 +166,7 @@ class TrustService(BaseEnrichmentService):
             else:
                 self.stats["errors"] += 1
                 self.logger.warning(
-                    f"Validation returned unsuccessful result for {submission['submission_id']}"
+                    f"Validation returned unsuccessful result for {submission.get('submission_id', submission.get('id', 'unknown'))}"
                 )
                 return {}
 
@@ -255,6 +258,69 @@ class TrustService(BaseEnrichmentService):
             return False
 
         return True
+
+    def _generate_trust_badges(self, validation: dict[str, Any]) -> list[str]:
+        """
+        Generate trust badges based on validation scores.
+
+        Args:
+            validation: Validation result dict with trust scores
+
+        Returns:
+            list: List of earned trust badges
+        """
+        badges = []
+
+        overall_score = validation.get("overall_trust_score", 0)
+        trust_level = validation.get("trust_level", "unknown")
+        subreddit_activity = validation.get("subreddit_activity_score", 0)
+        post_engagement = validation.get("post_engagement_score", 0)
+        community_health = validation.get("community_health_score", 0)
+        problem_validity = validation.get("problem_validity_score", 0)
+        discussion_quality = validation.get("discussion_quality_score", 0)
+
+        # Overall trust badges
+        if overall_score >= 90:
+            badges.append("platinum_trust")
+        elif overall_score >= 80:
+            badges.append("gold_trust")
+        elif overall_score >= 70:
+            badges.append("silver_trust")
+        elif overall_score >= 60:
+            badges.append("bronze_trust")
+
+        # Trust level badges
+        if trust_level == "very_high":
+            badges.append("very_high_trust")
+        elif trust_level == "high":
+            badges.append("high_trust")
+        elif trust_level == "medium":
+            badges.append("medium_trust")
+
+        # Activity badges
+        if subreddit_activity >= 80:
+            badges.append("active_community")
+        if post_engagement >= 75:
+            badges.append("high_engagement")
+        if community_health >= 85:
+            badges.append("healthy_discourse")
+
+        # Quality badges
+        if problem_validity >= 80:
+            badges.append("valid_problem")
+        if discussion_quality >= 75:
+            badges.append("quality_discussion")
+
+        # Special combination badges
+        if (subreddit_activity >= 80 and post_engagement >= 75 and
+            problem_validity >= 80 and overall_score >= 85):
+            badges.append("premium_opportunity")
+
+        if (post_engagement >= 90 and discussion_quality >= 85):
+            badges.append("viral_potential")
+
+        # Ensure no duplicates and return
+        return sorted(list(set(badges)))
 
     def get_service_name(self) -> str:
         """

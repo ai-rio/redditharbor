@@ -26,8 +26,9 @@ Usage:
 """
 
 import logging
-from typing import Any, Callable, Iterator, List, Optional, Dict
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
+from typing import Any
 
 import dlt
 from dlt.common.pipeline import LoadInfo
@@ -43,14 +44,14 @@ class LoadStatistics:
     failed: int = 0
     skipped: int = 0
     total_attempted: int = 0
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     def add_success(self, count: int = 1) -> None:
         """Record successful load."""
         self.loaded += count
         self.total_attempted += count
 
-    def add_failure(self, count: int = 1, error: Optional[str] = None) -> None:
+    def add_failure(self, count: int = 1, error: str | None = None) -> None:
         """Record failed load."""
         self.failed += count
         self.total_attempted += count
@@ -61,7 +62,7 @@ class LoadStatistics:
         """Record skipped records."""
         self.skipped += count
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get statistics summary."""
         return {
             "loaded": self.loaded,
@@ -124,7 +125,7 @@ class DLTLoader:
         self,
         destination: str = "postgres",
         dataset_name: str = "public",
-        connection_string: Optional[str] = None,
+        connection_string: str | None = None,
     ):
         """
         Initialize DLT loader.
@@ -142,7 +143,7 @@ class DLTLoader:
             or "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
         )
         self.stats = LoadStatistics()
-        self._pipeline_cache: Dict[str, dlt.Pipeline] = {}
+        self._pipeline_cache: dict[str, dlt.Pipeline] = {}
 
         logger.info(
             f"DLTLoader initialized: destination={destination}, dataset={dataset_name}"
@@ -170,13 +171,52 @@ class DLTLoader:
             logger.debug(f"Created new pipeline: {pipeline_name}")
         return self._pipeline_cache[pipeline_name]
 
+    def _create_resource_with_columns(
+        self,
+        data: list[dict[str, Any]],
+        table_name: str,
+        columns: dict[str, dict[str, Any]],
+        write_disposition: str,
+        primary_key: str | None = None,
+    ):
+        """
+        Create a DLT resource with explicit column type hints.
+
+        This is essential for properly storing JSON fields in PostgreSQL as JSONB columns.
+        Without explicit type hints, DLT may infer the wrong column types.
+
+        Args:
+            data: List of records to load
+            table_name: Target table name
+            columns: Column type hints dictionary
+            write_disposition: Write disposition for the resource
+            primary_key: Optional primary key field
+
+        Returns:
+            DLT resource function that can be passed to pipeline.run()
+        """
+        # Create a DLT resource with explicit column type hints
+        @dlt.resource(
+            name=table_name,
+            write_disposition=write_disposition,
+            primary_key=primary_key,
+            columns=columns,
+        )
+        def typed_resource():
+            """Generator that yields records with type hints."""
+            for record in data:
+                yield record
+
+        return typed_resource
+
     def load(
         self,
-        data: List[Dict[str, Any]],
+        data: list[dict[str, Any]],
         table_name: str,
         write_disposition: str = "merge",
-        primary_key: Optional[str] = None,
-        pipeline_name: Optional[str] = None,
+        primary_key: str | None = None,
+        pipeline_name: str | None = None,
+        columns: dict[str, dict[str, Any]] | None = None,
         **kwargs,
     ) -> bool:
         """
@@ -191,6 +231,7 @@ class DLTLoader:
             write_disposition: "merge" (dedup), "replace" (truncate), or "append"
             primary_key: Primary key field for merge disposition
             pipeline_name: Optional custom pipeline name
+            columns: Optional column type hints for DLT schema (e.g., {"field": {"data_type": "jsonb"}})
             **kwargs: Additional arguments passed to pipeline.run()
 
         Returns:
@@ -237,14 +278,25 @@ class DLTLoader:
         try:
             pipeline = self._get_or_create_pipeline(pipeline_name)
 
-            # Run DLT pipeline
-            load_info: LoadInfo = pipeline.run(
-                data,
-                table_name=table_name,
-                write_disposition=write_disposition,
-                primary_key=primary_key,
-                **kwargs,
-            )
+            # If columns are specified, create a resource with type hints
+            if columns:
+                resource = self._create_resource_with_columns(
+                    data=data,
+                    table_name=table_name,
+                    columns=columns,
+                    write_disposition=write_disposition,
+                    primary_key=primary_key,
+                )
+                load_info: LoadInfo = pipeline.run(resource, **kwargs)
+            else:
+                # Run DLT pipeline without explicit column hints
+                load_info: LoadInfo = pipeline.run(
+                    data,
+                    table_name=table_name,
+                    write_disposition=write_disposition,
+                    primary_key=primary_key,
+                    **kwargs,
+                )
 
             # Update statistics
             self.stats.add_success(record_count)
@@ -265,10 +317,10 @@ class DLTLoader:
 
     def load_with_resource(
         self,
-        resource: Callable[..., Iterator[Dict[str, Any]]],
+        resource: Callable[..., Iterator[dict[str, Any]]],
         table_name: str,
-        primary_key: Optional[str] = None,
-        pipeline_name: Optional[str] = None,
+        primary_key: str | None = None,
+        pipeline_name: str | None = None,
         **kwargs,
     ) -> bool:
         """
@@ -327,13 +379,13 @@ class DLTLoader:
 
     def load_batch(
         self,
-        data: List[Dict[str, Any]],
+        data: list[dict[str, Any]],
         table_name: str,
-        primary_key: Optional[str] = None,
+        primary_key: str | None = None,
         batch_size: int = 100,
         write_disposition: str = "merge",
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Load data in batches for memory efficiency.
 
@@ -420,7 +472,7 @@ class DLTLoader:
             "success_rate": success_rate,
         }
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get loading statistics.
 

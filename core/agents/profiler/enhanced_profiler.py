@@ -144,6 +144,37 @@ class EnhancedLLMProfiler:
             else:
                 profile["evidence_based"] = False
 
+            # Generate ai_profile field containing comprehensive analysis
+            profile["ai_profile"] = {
+                "analysis_summary": {
+                    "app_name": profile.get("app_name", "Unknown"),
+                    "app_category": profile.get("app_category", "Unknown"),
+                    "target_profession": profile.get("profession", "Unknown"),
+                    "core_problem_solved": profile.get("problem_description", "Unknown"),
+                    "unique_value_prop": profile.get("value_proposition", "Unknown"),
+                    "primary_target_user": profile.get("target_user", "Unknown"),
+                    "monetization_approach": profile.get("monetization_model", "Unknown"),
+                },
+                "technical_feasibility": {
+                    "estimated_complexity": "Medium" if len(profile.get("core_functions", [])) > 1 else "Low",
+                    "core_function_count": len(profile.get("core_functions", [])),
+                    "functions": profile.get("core_functions", []),
+                    "target_problems": profile.get("core_problems", []),
+                },
+                "market_analysis": {
+                    "target_market_segment": profile.get("profession", "Unknown"),
+                    "app_category": profile.get("app_category", "Unknown"),
+                    "evidence_based": profile.get("evidence_based", False),
+                    "opportunity_score": score,  # Input opportunity score
+                },
+                "generation_metadata": {
+                    "model_used": self.model,
+                    "analysis_timestamp": datetime.utcnow().isoformat(),
+                    "evidence_available": bool(agno_analysis),
+                    "cost_tracking": cost_data
+                }
+            }
+
             return profile, cost_data
 
         except Exception as e:
@@ -165,6 +196,15 @@ class EnhancedLLMProfiler:
                 "value_proposition": "Unable to generate value proposition",
                 "target_user": "Unknown",
                 "monetization_model": "Requires manual analysis",
+                "app_category": "Unknown",
+                "profession": "Unknown",
+                "core_problems": ["Manual analysis required"],
+                "ai_profile": {
+                    "analysis_summary": {"error": str(e)},
+                    "technical_feasibility": {"error": "Analysis failed"},
+                    "market_analysis": {"error": "Analysis failed"},
+                    "generation_metadata": {"error": str(e)}
+                },
                 "cost_tracking": error_cost_data
             }
 
@@ -360,6 +400,12 @@ Generate a JSON response with exactly these fields:
 6. **target_user** (1 sentence): Primary user persona
 7. **monetization_model** (1 sentence): Recommended revenue model with pricing
 
+8. **app_category** (1 word): Choose ONE category from: Productivity, Finance, Health, Education, Communication, Entertainment, Business, Social, Travel, Shopping, Utilities, Development, Design, Marketing, Analytics, Security, Lifestyle, Food, Sports, News, Weather, Navigation, Photography, Music, Video, Gaming, Books, Reference, Medical, Fitness
+
+9. **profession** (1-2 words): Primary profession or job role that would use this app. Examples: "Software Developer", "Marketing Manager", "Freelancer", "Small Business Owner", "Student", "Teacher", "Healthcare Worker", "Sales Representative", "Project Manager", "Designer", "Consultant", "Entrepreneur", "Financial Analyst", "HR Manager"
+
+10. **core_problems** (array of 1-3 strings): Specific problems this app solves for the target profession. Each problem should be actionable and measurable. Examples: ["Time tracking across multiple projects", "Invoice management and payment reminders", "Client communication and collaboration"]
+
 **Critical Rules:**
 - Be SPECIFIC. No generic functions like "Core function 1" or "User management"
 - Extract REAL problems from the text, do not invent them
@@ -463,7 +509,10 @@ Return ONLY valid JSON, no markdown, no explanation."""
                 "core_functions",
                 "value_proposition",
                 "target_user",
-                "monetization_model"
+                "monetization_model",
+                "app_category",
+                "profession",
+                "core_problems"
             ]
 
             for field in required:

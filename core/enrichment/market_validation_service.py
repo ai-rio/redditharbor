@@ -13,6 +13,7 @@ Key Features:
 """
 
 import logging
+import time
 from typing import Any, Optional
 
 from core.agents.market_validation import MarketDataValidator
@@ -146,8 +147,8 @@ class MarketValidationService(BaseEnrichmentService):
                 f"Running market validation for {submission_id}: {app_concept[:50]}"
             )
 
-            # Call validator with correct method
-            evidence = self.validator.validate_opportunity(
+            # Call validator with retry logic for external API failures
+            evidence = self._validate_with_retry(
                 app_concept=app_concept,
                 target_market=target_market,
                 problem_description=problem_description,
@@ -197,6 +198,144 @@ class MarketValidationService(BaseEnrichmentService):
             )
             self.stats["errors"] += 1
             return {}
+
+    def _validate_with_retry(
+        self,
+        app_concept: str,
+        target_market: str,
+        problem_description: str,
+        max_searches: int,
+        max_retries: int = 3
+    ) -> Any:
+        """
+        Validate market opportunity with retry logic for external API failures.
+
+        Implements exponential backoff with fallback to reduced functionality
+        when external APIs fail due to rate limiting or payment issues.
+
+        Args:
+            app_concept: App concept description
+            target_market: Target market indicator (subreddit)
+            problem_description: Problem being solved
+            max_searches: Maximum web searches to perform
+            max_retries: Maximum retry attempts (default: 3)
+
+        Returns:
+            Market validation evidence object or fallback evidence
+        """
+        base_delay = 1.0  # Base delay in seconds
+        last_exception = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                # Reduce searches on subsequent attempts to avoid rate limits
+                if attempt > 0:
+                    reduced_searches = max(1, max_searches // (attempt + 1))
+                    self.logger.info(
+                        f"Market validation attempt {attempt + 1}/{max_retries + 1} "
+                        f"with reduced searches: {reduced_searches}"
+                    )
+                    evidence = self.validator.validate_opportunity(
+                        app_concept=app_concept,
+                        target_market=target_market,
+                        problem_description=problem_description,
+                        max_searches=reduced_searches
+                    )
+                else:
+                    # First attempt with full searches
+                    evidence = self.validator.validate_opportunity(
+                        app_concept=app_concept,
+                        target_market=target_market,
+                        problem_description=problem_description,
+                        max_searches=max_searches
+                    )
+
+                # If we got here, validation succeeded
+                if attempt > 0:
+                    self.logger.info(f"Market validation succeeded on attempt {attempt + 1}")
+                return evidence
+
+            except Exception as e:
+                last_exception = e
+                error_msg = str(e).lower()
+
+                # Check for rate limiting or payment issues
+                is_rate_limit = any(keyword in error_msg for keyword in [
+                    "402", "payment required", "rate limit", "too many requests",
+                    "quota exceeded", "billing", "payment required"
+                ])
+
+                is_external_api = any(keyword in error_msg for keyword in [
+                    "http", "connection", "timeout", "network", "external"
+                ])
+
+                if is_rate_limit or is_external_api:
+                    if attempt < max_retries:
+                        # Exponential backoff: 1s, 2s, 4s, 8s...
+                        delay = base_delay * (2 ** attempt)
+                        self.logger.warning(
+                            f"Market validation attempt {attempt + 1} failed ({e}), "
+                            f"retrying in {delay}s..."
+                        )
+                        time.sleep(delay)
+                        continue
+                    else:
+                        self.logger.error(
+                            f"Market validation failed after {max_retries + 1} attempts: {e}"
+                        )
+                        # Return fallback evidence instead of failing
+                        return self._create_fallback_evidence(app_concept, target_market)
+                else:
+                    # Non-API error, don't retry
+                    self.logger.error(f"Market validation failed with non-API error: {e}")
+                    raise
+
+        # If we get here, all retries failed
+        self.logger.error(
+            f"Market validation failed after all retries, using fallback: {last_exception}"
+        )
+        return self._create_fallback_evidence(app_concept, target_market)
+
+    def _create_fallback_evidence(self, app_concept: str, target_market: str) -> Any:
+        """
+        Create fallback market evidence when external APIs fail.
+
+        Provides basic market validation based on heuristics instead of external data.
+
+        Args:
+            app_concept: App concept description
+            target_market: Target market indicator
+
+        Returns:
+            Fallback evidence object with basic validation
+        """
+        try:
+            # Create a simple fallback evidence object
+            # This will need to match the expected evidence structure
+            fallback_evidence = type('MarketEvidence', (), {
+                'validation_score': 50.0,  # Neutral score
+                'data_quality_score': 25.0,  # Low quality due to lack of external data
+                'competitor_pricing': [],
+                'similar_launches': [],
+                'market_size': None,
+                'reasoning': f'External market validation unavailable for "{app_concept}" in {target_market}. Using fallback heuristics.',
+                'urls_fetched': [],
+                'total_cost': 0.0,
+                'fallback_used': True,
+                'fallback_reason': 'External API rate limiting or payment required'
+            })()
+
+            self.logger.info(
+                f"Created fallback market validation for {app_concept[:30]}... "
+                f"in {target_market} market"
+            )
+
+            return fallback_evidence
+
+        except Exception as e:
+            self.logger.error(f"Failed to create fallback evidence: {e}")
+            # Re-raise as this should not fail
+            raise
 
     def get_service_name(self) -> str:
         """
