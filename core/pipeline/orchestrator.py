@@ -82,6 +82,7 @@ class OpportunityPipeline:
             "fetched": 0,
             "filtered": 0,
             "analyzed": 0,
+            "copied": 0,  # NEW: Track copied submissions (deduplication)
             "stored": 0,
             "errors": 0,
             "skipped": 0,
@@ -147,19 +148,71 @@ class OpportunityPipeline:
                     f"[OK] Quality filter: {len(submissions)} passed, {filtered_count} filtered"
                 )
 
-            # 3. AI enrichment
+            # 3. AI enrichment with deduplication
             enriched = []
+
+            # DEDUPLICATION: Batch-fetch concept metadata (2 queries total)
+            concept_metadata = {}
+            if self.config.supabase_client:
+                concept_metadata = self._batch_fetch_concept_metadata(submissions)
+                logger.info(
+                    f"[OK] Deduplication check: {len(concept_metadata)} concepts found"
+                )
+
             for sub in submissions:
                 try:
-                    result, service_errors = self._enrich_submission_with_error_tracking(sub)
-                    if result:
-                        enriched.append(result)
-                        self.stats["analyzed"] += 1
-                    else:
-                        self.stats["skipped"] += 1
+                    sub_id = sub.get("submission_id")
+                    metadata = concept_metadata.get(sub_id, {})
 
-                    # Add service errors to pipeline error count
-                    self.stats["errors"] += service_errors
+                    # DEDUPLICATION: Check if we can copy existing analysis
+                    should_copy = False
+                    if metadata:
+                        # Check if either Agno or Profiler has existing analysis
+                        has_agno = metadata.get("has_agno", False)
+                        has_profiler = metadata.get("has_profiler", False)
+
+                        # Copy if ANY required service has existing analysis
+                        should_copy = (
+                            (self.config.enable_monetization and has_agno) or
+                            (self.config.enable_profiler and has_profiler)
+                        )
+
+                    if should_copy:
+                        # COPY: Reuse existing analysis ($0 cost)
+                        result = self._copy_existing_enrichment(
+                            sub,
+                            metadata["concept_id"]
+                        )
+                        if result:
+                            enriched.append(result)
+                            self.stats["copied"] += 1
+                            logger.debug(
+                                f"[OK] Copied analysis for {sub_id} "
+                                f"(concept: {metadata['concept_id']})"
+                            )
+                        else:
+                            # Copy failed - fall back to fresh analysis
+                            logger.warning(
+                                f"[WARN] Copy failed for {sub_id}, running fresh analysis"
+                            )
+                            result, service_errors = self._enrich_submission_with_error_tracking(sub)
+                            if result:
+                                enriched.append(result)
+                                self.stats["analyzed"] += 1
+                            else:
+                                self.stats["skipped"] += 1
+                            self.stats["errors"] += service_errors
+                    else:
+                        # ANALYZE: Run fresh AI analysis ($0.075 cost)
+                        result, service_errors = self._enrich_submission_with_error_tracking(sub)
+                        if result:
+                            enriched.append(result)
+                            self.stats["analyzed"] += 1
+                        else:
+                            self.stats["skipped"] += 1
+
+                        # Add service errors to pipeline error count
+                        self.stats["errors"] += service_errors
 
                 except Exception as e:
                     logger.error(
@@ -167,7 +220,10 @@ class OpportunityPipeline:
                     )
                     self.stats["errors"] += 1
 
-            logger.info(f"[OK] Enriched {len(enriched)} submissions")
+            logger.info(
+                f"[OK] Enriched {len(enriched)} submissions "
+                f"(analyzed: {self.stats['analyzed']}, copied: {self.stats['copied']})"
+            )
 
             # 4. Storage
             if enriched and not self.config.dry_run:
@@ -268,6 +324,94 @@ class OpportunityPipeline:
 
         return filtered
 
+    def _batch_fetch_concept_metadata(
+        self,
+        submissions: List[Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Batch-fetch concept metadata for all submissions.
+
+        Reduces N×3 queries to 2 batch queries total, improving performance
+        by ~75x for deduplication checks.
+
+        Args:
+            submissions: List of submission dictionaries
+
+        Returns:
+            dict: submission_id → {concept_id, has_agno, has_profiler}
+        """
+        if not self.config.supabase_client:
+            logger.warning("No Supabase client - skipping concept metadata fetch")
+            return {}
+
+        submission_ids = [
+            s.get("submission_id") for s in submissions if s.get("submission_id")
+        ]
+
+        if not submission_ids:
+            return {}
+
+        try:
+            # Batch Query 1: Get all concept_ids at once
+            concepts_response = self.config.supabase_client.table(
+                "opportunities_unified"
+            ).select(
+                "submission_id, business_concept_id"
+            ).in_(
+                "submission_id", submission_ids
+            ).execute()
+
+            # Build submission → concept mapping
+            submission_to_concept = {
+                row["submission_id"]: row["business_concept_id"]
+                for row in concepts_response.data
+                if row.get("business_concept_id")
+            }
+
+            # Batch Query 2: Get analysis flags for all concepts at once
+            concept_ids = list(set(submission_to_concept.values()))
+            if not concept_ids:
+                return {}
+
+            flags_response = self.config.supabase_client.table(
+                "business_concepts"
+            ).select(
+                "id, has_agno_analysis, has_profiler_analysis"
+            ).in_(
+                "id", concept_ids
+            ).execute()
+
+            # Build concept → flags mapping
+            concept_flags = {
+                row["id"]: {
+                    "has_agno": row.get("has_agno_analysis", False),
+                    "has_profiler": row.get("has_profiler_analysis", False)
+                }
+                for row in flags_response.data
+            }
+
+            # Combine mappings
+            metadata = {}
+            for sub_id, concept_id in submission_to_concept.items():
+                flags = concept_flags.get(
+                    concept_id,
+                    {"has_agno": False, "has_profiler": False}
+                )
+                metadata[sub_id] = {
+                    "concept_id": concept_id,
+                    **flags
+                }
+
+            logger.info(
+                f"[OK] Batch-fetched metadata for {len(metadata)} submissions "
+                f"(2 queries vs {len(submission_ids) * 3} queries)"
+            )
+            return metadata
+
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to batch-fetch concept metadata: {e}")
+            return {}
+
     def _enrich_submission(self, submission: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Apply all enabled enrichment services.
@@ -345,6 +489,108 @@ class OpportunityPipeline:
 
         return result, service_errors
 
+    def _copy_existing_enrichment(
+        self,
+        submission: Dict[str, Any],
+        concept_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Copy existing enrichment with evidence flow preservation.
+
+        CRITICAL: Agno → Profiler dependency requires copying in order.
+        Profiler uses Agno evidence to inform app_concept generation.
+
+        Args:
+            submission: Submission data
+            concept_id: Business concept ID with existing analysis
+
+        Returns:
+            Enriched submission with copied data, or None if copy fails
+        """
+        result = {**submission}  # Start with original
+        copy_success = False
+
+        # STEP 1: Copy Agno analysis FIRST (generates evidence)
+        agno_evidence = None
+        if self.config.enable_monetization and "monetization" in self.services:
+            try:
+                from core.deduplication import AgnoSkipLogic
+                skip_logic = AgnoSkipLogic(self.config.supabase_client)
+
+                # Copy Agno analysis using monolith API signature
+                agno_data = skip_logic.copy_agno_analysis(
+                    submission=submission,
+                    concept_id=concept_id,
+                    supabase=self.config.supabase_client
+                )
+
+                if agno_data:
+                    result.update(agno_data)
+                    copy_success = True
+
+                    # Extract evidence structure for profiler
+                    agno_evidence = {
+                        "willingness_to_pay_score": agno_data.get("willingness_to_pay_score"),
+                        "customer_segment": agno_data.get("customer_segment"),
+                        "sentiment_toward_payment": agno_data.get("payment_sentiment"),
+                        "urgency_level": agno_data.get("urgency_level"),
+                        "mentioned_price_points": agno_data.get("mentioned_price_points"),
+                        "existing_payment_behavior": agno_data.get("existing_payment_behavior"),
+                        "payment_friction_indicators": agno_data.get("payment_friction_indicators"),
+                        "confidence": agno_data.get("confidence")
+                    }
+                    logger.info(
+                        f"[OK] Copied Agno analysis + extracted evidence for "
+                        f"{submission.get('submission_id')}"
+                    )
+                else:
+                    logger.warning(
+                        f"[WARN] Failed to copy Agno - profiler will run without evidence"
+                    )
+            except Exception as e:
+                logger.error(f"[ERROR] Agno copy failed: {e}")
+
+        # STEP 2: Copy Profiler analysis SECOND (uses evidence if available)
+        if self.config.enable_profiler and "profiler" in self.services:
+            try:
+                from core.deduplication import ProfilerSkipLogic
+                skip_logic = ProfilerSkipLogic(self.config.supabase_client)
+
+                # Copy profiler analysis using monolith API signature
+                profiler_data = skip_logic.copy_profiler_analysis(
+                    submission=submission,
+                    concept_id=concept_id,
+                    supabase=self.config.supabase_client
+                )
+
+                if profiler_data:
+                    result.update(profiler_data)
+                    copy_success = True
+                    # Store evidence reference for audit trail
+                    result["profiler_evidence_source"] = (
+                        "copied_agno" if agno_evidence else "none"
+                    )
+                    logger.info(
+                        f"[OK] Copied profiler analysis for "
+                        f"{submission.get('submission_id')}"
+                    )
+                else:
+                    logger.warning(
+                        f"[WARN] Failed to copy profiler analysis for concept {concept_id}"
+                    )
+            except Exception as e:
+                logger.error(f"[ERROR] Profiler copy failed: {e}")
+
+        # Return result only if at least one service was copied successfully
+        if copy_success:
+            return result
+        else:
+            logger.warning(
+                f"[WARN] No enrichment copied for {submission.get('submission_id')} "
+                f"- falling back to fresh analysis"
+            )
+            return None
+
     def _store_results(self, results: List[Dict[str, Any]]) -> bool:
         """
         Store results using appropriate storage service.
@@ -398,25 +644,37 @@ class OpportunityPipeline:
         Generate pipeline summary statistics.
 
         Returns:
-            dict: Summary with human-readable statistics
+            dict: Summary with human-readable statistics including deduplication metrics
         """
         total_fetched = self.stats["fetched"]
         total_analyzed = self.stats["analyzed"]
+        total_copied = self.stats["copied"]
+        total_processed = total_analyzed + total_copied
         total_stored = self.stats["stored"]
         total_errors = self.stats["errors"]
 
         success_rate = (
-            (total_analyzed / total_fetched * 100) if total_fetched > 0 else 0
+            (total_processed / total_fetched * 100) if total_fetched > 0 else 0
         )
+
+        # Calculate deduplication metrics
+        dedup_rate = (
+            (total_copied / total_processed * 100) if total_processed > 0 else 0
+        )
+        cost_saved = total_copied * 0.075  # $0.075 per copied submission
 
         return {
             "total_fetched": total_fetched,
             "total_filtered": self.stats["filtered"],
             "total_analyzed": total_analyzed,
+            "total_copied": total_copied,  # NEW: Deduplication metric
+            "total_processed": total_processed,  # NEW: Total (analyzed + copied)
             "total_stored": total_stored,
             "total_skipped": self.stats["skipped"],
             "total_errors": total_errors,
             "success_rate": round(success_rate, 2),
+            "dedup_rate": round(dedup_rate, 2),  # NEW: Deduplication percentage
+            "cost_saved": round(cost_saved, 2),  # NEW: Cost savings in dollars
             "services_used": list(self.services.keys()),
         }
 
@@ -460,6 +718,7 @@ class OpportunityPipeline:
             "fetched": 0,
             "filtered": 0,
             "analyzed": 0,
+            "copied": 0,  # NEW: Reset deduplication counter
             "stored": 0,
             "errors": 0,
             "skipped": 0,
