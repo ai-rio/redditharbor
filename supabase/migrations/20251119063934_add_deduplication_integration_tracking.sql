@@ -1,8 +1,9 @@
 -- Migration: Add Deduplication Integration Tracking Columns
--- Description: Add tracking columns for Agno/AI profile analysis and deduplication integration
+-- Description: Add tracking columns for Agno/AI profile analysis, ProfilerService analysis, and deduplication integration
 -- Version: 001
--- Date: 2025-11-19
+-- Date: 2025-11-20 (Updated)
 -- Task: Deduplication Integration Project - Task 1: Database Schema Updates
+-- Changes: Added missing has_profiler_analysis and workflow_results deduplication columns
 
 -- ============================================================================
 -- STEP 1: Add Agno Analysis Tracking Columns to business_concepts table
@@ -15,7 +16,8 @@ ADD COLUMN IF NOT EXISTS last_agno_analysis_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS agno_avg_wtp_score DECIMAL(5,2) CHECK (agno_avg_wtp_score >= 0 AND agno_avg_wtp_score <= 100),
 ADD COLUMN IF NOT EXISTS has_ai_profile BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS ai_profile_count INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS last_ai_profile_at TIMESTAMPTZ;
+ADD COLUMN IF NOT EXISTS last_ai_profile_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS has_profiler_analysis BOOLEAN DEFAULT FALSE;
 
 -- ============================================================================
 -- STEP 2: Create llm_monetization_analysis table (if not exists)
@@ -81,7 +83,16 @@ ADD COLUMN IF NOT EXISTS copied_from_primary BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS primary_opportunity_id UUID REFERENCES opportunities_unified(id) DEFERRABLE INITIALLY DEFERRED;
 
 -- ============================================================================
--- STEP 5: Create Indexes for Fast Lookups
+-- STEP 5: Add Deduplication Tracking Columns to workflow_results table
+-- ============================================================================
+
+ALTER TABLE workflow_results
+ADD COLUMN IF NOT EXISTS copied_from_primary BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS app_name TEXT,
+ADD COLUMN IF NOT EXISTS core_functions TEXT;
+
+-- ============================================================================
+-- STEP 6: Create Indexes for Fast Lookups
 -- ============================================================================
 
 -- Indexes for business_concepts Agno/AI profile tracking
@@ -114,15 +125,19 @@ CREATE INDEX IF NOT EXISTS idx_llm_analysis_llm_score ON llm_monetization_analys
 CREATE INDEX IF NOT EXISTS idx_llm_analysis_score_delta ON llm_monetization_analysis(score_delta DESC);
 CREATE INDEX IF NOT EXISTS idx_llm_analysis_analyzed_at ON llm_monetization_analysis(analyzed_at DESC);
 
+-- Indexes for workflow_results deduplication tracking
+CREATE INDEX IF NOT EXISTS idx_workflow_results_deduplication ON workflow_results(copied_from_primary);
+CREATE INDEX IF NOT EXISTS idx_workflow_results_app_name ON workflow_results(app_name);
+
 -- ============================================================================
--- STEP 6: Create Constraints and Triggers
+-- STEP 7: Create Constraints and Triggers
 -- ============================================================================
 
 -- Note: Foreign key constraints are already added in the ALTER TABLE statements above
 -- They are marked as DEFERRABLE INITIALLY DEFERRED to handle circular dependencies
 
 -- ============================================================================
--- STEP 7: Create Utility Views
+-- STEP 8: Create Utility Views
 -- ============================================================================
 
 -- View for Agno analysis statistics
@@ -179,10 +194,21 @@ SELECT
   0 as ai_profile_analyzed,
   COUNT(CASE WHEN copied_from_primary THEN 1 END) as copied_records,
   COUNT(CASE WHEN primary_opportunity_id IS NOT NULL THEN 1 END) as has_primary_reference
-FROM opportunities_unified;
+FROM opportunities_unified
+
+UNION ALL
+
+SELECT
+  'workflow_results' as table_name,
+  COUNT(*) as total_records,
+  0 as agno_analyzed,
+  0 as ai_profile_analyzed,
+  COUNT(CASE WHEN copied_from_primary THEN 1 END) as copied_records,
+  0 as has_primary_reference
+FROM workflow_results;
 
 -- ============================================================================
--- STEP 8: Add Comments for Documentation
+-- STEP 9: Add Comments for Documentation
 -- ============================================================================
 
 -- Comments for business_concepts table
@@ -193,6 +219,7 @@ COMMENT ON COLUMN business_concepts.agno_avg_wtp_score IS 'Average willingness-t
 COMMENT ON COLUMN business_concepts.has_ai_profile IS 'Indicates if this concept has an AI-generated profile';
 COMMENT ON COLUMN business_concepts.ai_profile_count IS 'Number of AI profiles generated for this concept';
 COMMENT ON COLUMN business_concepts.last_ai_profile_at IS 'Timestamp of the most recent AI profile generation';
+COMMENT ON COLUMN business_concepts.has_profiler_analysis IS 'Indicates if this concept has been processed by ProfilerService analysis';
 
 -- Comments for llm_monetization_analysis table
 COMMENT ON TABLE llm_monetization_analysis IS 'LLM-powered monetization analysis results for opportunities';
@@ -204,8 +231,13 @@ COMMENT ON COLUMN llm_monetization_analysis.business_concept_id IS 'Foreign key 
 COMMENT ON COLUMN opportunities_unified.copied_from_primary IS 'Indicates if this opportunity was copied from a primary opportunity';
 COMMENT ON COLUMN opportunities_unified.primary_opportunity_id IS 'Reference to the primary opportunity if this is a duplicate';
 
+-- Comments for workflow_results table
+COMMENT ON COLUMN workflow_results.copied_from_primary IS 'Indicates if this workflow result was copied from a primary opportunity';
+COMMENT ON COLUMN workflow_results.app_name IS 'Application name stored for deduplication tracking';
+COMMENT ON COLUMN workflow_results.core_functions IS 'Core functions description stored for deduplication tracking';
+
 -- ============================================================================
--- STEP 9: Create Helper Functions
+-- STEP 10: Create Helper Functions
 -- ============================================================================
 
 -- Function to update Agno analysis tracking
