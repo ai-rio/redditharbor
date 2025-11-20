@@ -1,0 +1,23 @@
+{
+  "description": "Single high-quality submission for Test 01 - Initial validation",
+  "selection_criteria": {
+    "reddit_score": ">= 50",
+    "num_comments": ">= 10",
+    "text_length": ">= 200",
+    "problem_keywords": ">= 3",
+    "subreddit": "productivity or entrepreneur or SaaS",
+    "quality": "High quality with clear problem statement and active discussion"
+  },
+  "instructions": "Local AI: Query the database to find a submission matching the criteria above. Replace the submission_id below with an actual ID from the database.",
+  "submissions": [
+    {
+      "submission_id": "REPLACE_WITH_ACTUAL_ID",
+      "title": "To be filled by local AI after database query",
+      "subreddit": "To be filled by local AI",
+      "reddit_score": 0,
+      "num_comments": 0,
+      "reason": "High quality submission with complete data for testing all AI services"
+    }
+  ],
+  "query_example": "SELECT submission_id, title, subreddit, reddit_score, num_comments FROM submission WHERE reddit_score >= 50 AND num_comments >= 10 AND (selftext IS NOT NULL AND LENGTH(selftext) >= 200) ORDER BY reddit_score DESC LIMIT 1;"
+}
