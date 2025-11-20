@@ -4,10 +4,11 @@ This test suite validates the deduplication integration in Phase 1,
 ensuring that existing enrichment is copied instead of re-analyzed.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
-from core.pipeline import OpportunityPipeline, PipelineConfig, DataSource
+import pytest
+
+from core.pipeline import DataSource, OpportunityPipeline, PipelineConfig
 
 
 @pytest.fixture
@@ -72,14 +73,26 @@ class TestBatchFetchConceptMetadata:
         # First call: opportunities_unified
         # Second call: business_concepts
         mock_in_chain.execute.side_effect = [
-            MagicMock(data=[
-                {"submission_id": "sub_001", "business_concept_id": "concept_123"},
-                {"submission_id": "sub_002", "business_concept_id": "concept_456"},
-            ]),
-            MagicMock(data=[
-                {"id": "concept_123", "has_agno_analysis": True, "has_profiler_analysis": True},
-                {"id": "concept_456", "has_agno_analysis": False, "has_profiler_analysis": True},
-            ])
+            MagicMock(
+                data=[
+                    {"submission_id": "sub_001", "business_concept_id": "concept_123"},
+                    {"submission_id": "sub_002", "business_concept_id": "concept_456"},
+                ]
+            ),
+            MagicMock(
+                data=[
+                    {
+                        "id": "concept_123",
+                        "has_agno_analysis": True,
+                        "has_profiler_analysis": True,
+                    },
+                    {
+                        "id": "concept_456",
+                        "has_agno_analysis": False,
+                        "has_profiler_analysis": True,
+                    },
+                ]
+            ),
         ]
 
         metadata = pipeline._batch_fetch_concept_metadata(sample_submissions)
@@ -120,7 +133,9 @@ class TestBatchFetchConceptMetadata:
         pipeline = OpportunityPipeline(basic_config)
 
         # Mock database error
-        basic_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.side_effect = Exception("Database connection failed")
+        basic_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.side_effect = Exception(
+            "Database connection failed"
+        )
 
         metadata = pipeline._batch_fetch_concept_metadata(sample_submissions)
 
@@ -131,14 +146,10 @@ class TestBatchFetchConceptMetadata:
 class TestCopyExistingEnrichment:
     """Test copying existing enrichment with evidence chaining."""
 
-    @patch('core.pipeline.orchestrator.AgnoSkipLogic')
-    @patch('core.pipeline.orchestrator.ProfilerSkipLogic')
+    @patch("core.deduplication.AgnoSkipLogic")
+    @patch("core.deduplication.ProfilerSkipLogic")
     def test_copy_both_services_success(
-        self,
-        mock_profiler_skip,
-        mock_agno_skip,
-        basic_config,
-        sample_submissions
+        self, mock_profiler_skip, mock_agno_skip, basic_config, sample_submissions
     ):
         """Test successful copy of both Agno and Profiler analysis."""
         pipeline = OpportunityPipeline(basic_config)
@@ -162,8 +173,7 @@ class TestCopyExistingEnrichment:
         mock_profiler_skip.return_value = mock_profiler_instance
 
         result = pipeline._copy_existing_enrichment(
-            sample_submissions[0],
-            "concept_123"
+            sample_submissions[0], "concept_123"
         )
 
         assert result is not None
@@ -172,7 +182,7 @@ class TestCopyExistingEnrichment:
         assert result["app_name"] == "Test App"
         assert result["profiler_evidence_source"] == "copied_agno"
 
-    @patch('core.pipeline.orchestrator.AgnoSkipLogic')
+    @patch("core.deduplication.AgnoSkipLogic")
     def test_copy_agno_only(self, mock_agno_skip, sample_submissions):
         """Test copy with only Agno enabled."""
         config = PipelineConfig(
@@ -191,15 +201,14 @@ class TestCopyExistingEnrichment:
         mock_agno_skip.return_value = mock_agno_instance
 
         result = pipeline._copy_existing_enrichment(
-            sample_submissions[0],
-            "concept_123"
+            sample_submissions[0], "concept_123"
         )
 
         assert result is not None
         assert result["willingness_to_pay_score"] == 75
         assert "profiler_evidence_source" not in result
 
-    @patch('core.pipeline.orchestrator.ProfilerSkipLogic')
+    @patch("core.deduplication.ProfilerSkipLogic")
     def test_copy_profiler_only(self, mock_profiler_skip, sample_submissions):
         """Test copy with only Profiler enabled."""
         config = PipelineConfig(
@@ -218,22 +227,17 @@ class TestCopyExistingEnrichment:
         mock_profiler_skip.return_value = mock_profiler_instance
 
         result = pipeline._copy_existing_enrichment(
-            sample_submissions[0],
-            "concept_123"
+            sample_submissions[0], "concept_123"
         )
 
         assert result is not None
         assert result["app_name"] == "Test App"
         assert result["profiler_evidence_source"] == "none"
 
-    @patch('core.pipeline.orchestrator.AgnoSkipLogic')
-    @patch('core.pipeline.orchestrator.ProfilerSkipLogic')
+    @patch("core.deduplication.AgnoSkipLogic")
+    @patch("core.deduplication.ProfilerSkipLogic")
     def test_copy_failure_returns_none(
-        self,
-        mock_profiler_skip,
-        mock_agno_skip,
-        basic_config,
-        sample_submissions
+        self, mock_profiler_skip, mock_agno_skip, basic_config, sample_submissions
     ):
         """Test that failed copy returns None for fallback."""
         pipeline = OpportunityPipeline(basic_config)
@@ -248,8 +252,7 @@ class TestCopyExistingEnrichment:
         mock_profiler_skip.return_value = mock_profiler_instance
 
         result = pipeline._copy_existing_enrichment(
-            sample_submissions[0],
-            "concept_123"
+            sample_submissions[0], "concept_123"
         )
 
         assert result is None
@@ -318,14 +321,10 @@ class TestDeduplicationStatistics:
 class TestDeduplicationIntegration:
     """Integration tests for deduplication in full pipeline."""
 
-    @patch('core.pipeline.orchestrator.ServiceFactory')
-    @patch('core.fetchers.database_fetcher.DatabaseFetcher')
+    @patch("core.pipeline.orchestrator.ServiceFactory")
+    @patch("core.fetchers.database_fetcher.DatabaseFetcher")
     def test_pipeline_uses_deduplication(
-        self,
-        mock_fetcher_class,
-        mock_factory_class,
-        basic_config,
-        sample_submissions
+        self, mock_fetcher_class, mock_factory_class, basic_config, sample_submissions
     ):
         """Test that pipeline uses deduplication during run."""
         # Mock fetcher
@@ -339,7 +338,9 @@ class TestDeduplicationIntegration:
         mock_factory_class.return_value = mock_factory
 
         # Mock batch fetch to return existing concepts
-        with patch.object(OpportunityPipeline, '_batch_fetch_concept_metadata') as mock_batch_fetch:
+        with patch.object(
+            OpportunityPipeline, "_batch_fetch_concept_metadata"
+        ) as mock_batch_fetch:
             mock_batch_fetch.return_value = {
                 "sub_001": {
                     "concept_id": "concept_123",
@@ -349,11 +350,13 @@ class TestDeduplicationIntegration:
             }
 
             # Mock copy method
-            with patch.object(OpportunityPipeline, '_copy_existing_enrichment') as mock_copy:
+            with patch.object(
+                OpportunityPipeline, "_copy_existing_enrichment"
+            ) as mock_copy:
                 mock_copy.return_value = {**sample_submissions[0], "copied": True}
 
                 pipeline = OpportunityPipeline(basic_config)
-                result = pipeline.run()
+                pipeline.run()
 
                 # Verify batch fetch was called
                 assert mock_batch_fetch.called
@@ -393,14 +396,10 @@ class TestDeduplicationIntegration:
 class TestEvidenceChaining:
     """Test evidence chaining from Agno to Profiler."""
 
-    @patch('core.pipeline.orchestrator.AgnoSkipLogic')
-    @patch('core.pipeline.orchestrator.ProfilerSkipLogic')
+    @patch("core.deduplication.AgnoSkipLogic")
+    @patch("core.deduplication.ProfilerSkipLogic")
     def test_agno_executes_before_profiler(
-        self,
-        mock_profiler_skip,
-        mock_agno_skip,
-        basic_config,
-        sample_submissions
+        self, mock_profiler_skip, mock_agno_skip, basic_config, sample_submissions
     ):
         """Test that Agno copy executes before Profiler copy."""
         pipeline = OpportunityPipeline(basic_config)
@@ -429,14 +428,10 @@ class TestEvidenceChaining:
         # Verify execution order
         assert call_order == ["agno", "profiler"]
 
-    @patch('core.pipeline.orchestrator.AgnoSkipLogic')
-    @patch('core.pipeline.orchestrator.ProfilerSkipLogic')
+    @patch("core.deduplication.AgnoSkipLogic")
+    @patch("core.deduplication.ProfilerSkipLogic")
     def test_evidence_extraction_from_agno(
-        self,
-        mock_profiler_skip,
-        mock_agno_skip,
-        basic_config,
-        sample_submissions
+        self, mock_profiler_skip, mock_agno_skip, basic_config, sample_submissions
     ):
         """Test that evidence is extracted from Agno for Profiler."""
         pipeline = OpportunityPipeline(basic_config)
@@ -463,8 +458,7 @@ class TestEvidenceChaining:
         mock_profiler_skip.return_value = mock_profiler_instance
 
         result = pipeline._copy_existing_enrichment(
-            sample_submissions[0],
-            "concept_123"
+            sample_submissions[0], "concept_123"
         )
 
         # Verify evidence was marked as copied

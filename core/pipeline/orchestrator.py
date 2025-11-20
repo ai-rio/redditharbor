@@ -29,13 +29,13 @@ Example:
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from core.pipeline.config import PipelineConfig, DataSource
-from core.pipeline.factory import ServiceFactory
-from core.fetchers.base_fetcher import BaseFetcher
 from core.enrichment.base_service import BaseEnrichmentService
-from core.storage import OpportunityStore, ProfileStore, HybridStore
+from core.fetchers.base_fetcher import BaseFetcher
+from core.pipeline.config import DataSource, PipelineConfig
+from core.pipeline.factory import ServiceFactory
+from core.storage import HybridStore, OpportunityStore, ProfileStore
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class OpportunityPipeline:
             "errors": 0,
             "skipped": 0,
         }
-        self.services: Dict[str, BaseEnrichmentService] = {}
+        self.services: dict[str, BaseEnrichmentService] = {}
         self._initialize_services()
 
     def _initialize_services(self) -> None:
@@ -101,7 +101,7 @@ class OpportunityPipeline:
         self.services = factory.create_services()
         logger.info(f"Initialized {len(self.services)} services via ServiceFactory")
 
-    def run(self, **kwargs) -> Dict[str, Any]:
+    def run(self, **kwargs) -> dict[str, Any]:
         """
         Execute complete pipeline.
 
@@ -124,7 +124,9 @@ class OpportunityPipeline:
             >>> print(result['summary']['success_rate'])
         """
         try:
-            logger.info(f"[OK] Starting pipeline with {self.config.data_source.value} source")
+            logger.info(
+                f"[OK] Starting pipeline with {self.config.data_source.value} source"
+            )
             logger.info(f"   Services enabled: {', '.join(self.services.keys())}")
 
             # 1. Fetch submissions
@@ -133,9 +135,7 @@ class OpportunityPipeline:
             except ValueError as e:
                 # Re-raise validation errors - these should fail fast
                 raise e
-            submissions = list(
-                fetcher.fetch(limit=self.config.limit, **kwargs)
-            )
+            submissions = list(fetcher.fetch(limit=self.config.limit, **kwargs))
             self.stats["fetched"] = len(submissions)
             logger.info(f"[OK] Fetched {len(submissions)} submissions")
 
@@ -173,15 +173,13 @@ class OpportunityPipeline:
 
                         # Copy if ANY required service has existing analysis
                         should_copy = (
-                            (self.config.enable_monetization and has_agno) or
-                            (self.config.enable_profiler and has_profiler)
-                        )
+                            self.config.enable_monetization and has_agno
+                        ) or (self.config.enable_profiler and has_profiler)
 
                     if should_copy:
                         # COPY: Reuse existing analysis ($0 cost)
                         result = self._copy_existing_enrichment(
-                            sub,
-                            metadata["concept_id"]
+                            sub, metadata["concept_id"]
                         )
                         if result:
                             enriched.append(result)
@@ -195,7 +193,9 @@ class OpportunityPipeline:
                             logger.warning(
                                 f"[WARN] Copy failed for {sub_id}, running fresh analysis"
                             )
-                            result, service_errors = self._enrich_submission_with_error_tracking(sub)
+                            result, service_errors = (
+                                self._enrich_submission_with_error_tracking(sub)
+                            )
                             if result:
                                 enriched.append(result)
                                 self.stats["analyzed"] += 1
@@ -204,7 +204,9 @@ class OpportunityPipeline:
                             self.stats["errors"] += service_errors
                     else:
                         # ANALYZE: Run fresh AI analysis ($0.075 cost)
-                        result, service_errors = self._enrich_submission_with_error_tracking(sub)
+                        result, service_errors = (
+                            self._enrich_submission_with_error_tracking(sub)
+                        )
                         if result:
                             enriched.append(result)
                             self.stats["analyzed"] += 1
@@ -216,7 +218,7 @@ class OpportunityPipeline:
 
                 except Exception as e:
                     logger.error(
-                        f"[ERROR] Enrichment error for {sub.get("submission_id", "unknown")}: {e}"
+                        f"[ERROR] Enrichment error for {sub.get('submission_id', 'unknown')}: {e}"
                     )
                     self.stats["errors"] += 1
 
@@ -275,7 +277,7 @@ class OpportunityPipeline:
 
             return DatabaseFetcher(
                 client=self.config.supabase_client,
-                config=self.config.source_config or {}
+                config=self.config.source_config or {},
             )
 
         elif self.config.data_source == DataSource.REDDIT_API:
@@ -285,14 +287,15 @@ class OpportunityPipeline:
             from core.fetchers.reddit_api_fetcher import RedditAPIFetcher
 
             return RedditAPIFetcher(
-                client=self.config.reddit_client,
-                config=self.config.source_config or {}
+                client=self.config.reddit_client, config=self.config.source_config or {}
             )
 
         else:
             raise ValueError(f"Unknown data source: {self.config.data_source}")
 
-    def _apply_quality_filter(self, submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _apply_quality_filter(
+        self, submissions: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Apply quality thresholds to filter submissions.
 
@@ -325,9 +328,8 @@ class OpportunityPipeline:
         return filtered
 
     def _batch_fetch_concept_metadata(
-        self,
-        submissions: List[Dict[str, Any]]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, submissions: list[dict[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
         """
         Batch-fetch concept metadata for all submissions.
 
@@ -353,13 +355,12 @@ class OpportunityPipeline:
 
         try:
             # Batch Query 1: Get all concept_ids at once
-            concepts_response = self.config.supabase_client.table(
-                "opportunities_unified"
-            ).select(
-                "submission_id, business_concept_id"
-            ).in_(
-                "submission_id", submission_ids
-            ).execute()
+            concepts_response = (
+                self.config.supabase_client.table("opportunities_unified")
+                .select("submission_id, business_concept_id")
+                .in_("submission_id", submission_ids)
+                .execute()
+            )
 
             # Build submission → concept mapping
             submission_to_concept = {
@@ -373,19 +374,18 @@ class OpportunityPipeline:
             if not concept_ids:
                 return {}
 
-            flags_response = self.config.supabase_client.table(
-                "business_concepts"
-            ).select(
-                "id, has_agno_analysis, has_profiler_analysis"
-            ).in_(
-                "id", concept_ids
-            ).execute()
+            flags_response = (
+                self.config.supabase_client.table("business_concepts")
+                .select("id, has_agno_analysis, has_profiler_analysis")
+                .in_("id", concept_ids)
+                .execute()
+            )
 
             # Build concept → flags mapping
             concept_flags = {
                 row["id"]: {
                     "has_agno": row.get("has_agno_analysis", False),
-                    "has_profiler": row.get("has_profiler_analysis", False)
+                    "has_profiler": row.get("has_profiler_analysis", False),
                 }
                 for row in flags_response.data
             }
@@ -394,13 +394,9 @@ class OpportunityPipeline:
             metadata = {}
             for sub_id, concept_id in submission_to_concept.items():
                 flags = concept_flags.get(
-                    concept_id,
-                    {"has_agno": False, "has_profiler": False}
+                    concept_id, {"has_agno": False, "has_profiler": False}
                 )
-                metadata[sub_id] = {
-                    "concept_id": concept_id,
-                    **flags
-                }
+                metadata[sub_id] = {"concept_id": concept_id, **flags}
 
             logger.info(
                 f"[OK] Batch-fetched metadata for {len(metadata)} submissions "
@@ -412,7 +408,7 @@ class OpportunityPipeline:
             logger.error(f"[ERROR] Failed to batch-fetch concept metadata: {e}")
             return {}
 
-    def _enrich_submission(self, submission: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _enrich_submission(self, submission: dict[str, Any]) -> dict[str, Any] | None:
         """
         Apply all enabled enrichment services.
 
@@ -435,23 +431,33 @@ class OpportunityPipeline:
                 enrichment = service.enrich(submission)
                 if enrichment:
                     result.update(enrichment)
-                    logger.debug(f"[OK] {service_name} enriched {submission.get("submission_id")}")
+                    logger.debug(
+                        f"[OK] {service_name} enriched {submission.get('submission_id')}"
+                    )
             except Exception as e:
                 service_errors += 1
                 logger.error(
-                    f"[ERROR] {service_name} failed for {submission.get("submission_id")}: {e}"
+                    f"[ERROR] {service_name} failed for {submission.get('submission_id')}: {e}"
                 )
                 # Continue with other services
 
         # If all services failed and we had services, consider it a failure
-        if service_errors > 0 and len(self.services) > 0 and service_errors == len(self.services):
-            logger.error(f"[ERROR] All {service_errors} services failed for {submission.get('submission_id')}")
+        if (
+            service_errors > 0
+            and len(self.services) > 0
+            and service_errors == len(self.services)
+        ):
+            logger.error(
+                f"[ERROR] All {service_errors} services failed for {submission.get('submission_id')}"
+            )
             # Don't return None, just return the original submission with error tracking
             # The pipeline will track the error count separately
 
         return result
 
-    def _enrich_submission_with_error_tracking(self, submission: Dict[str, Any]) -> tuple[Optional[Dict[str, Any]], int]:
+    def _enrich_submission_with_error_tracking(
+        self, submission: dict[str, Any]
+    ) -> tuple[dict[str, Any] | None, int]:
         """
         Apply all enabled enrichment services with error tracking.
 
@@ -474,26 +480,32 @@ class OpportunityPipeline:
                 enrichment = service.enrich(submission)
                 if enrichment:
                     result.update(enrichment)
-                    logger.debug(f"[OK] {service_name} enriched {submission.get("submission_id")}")
+                    logger.debug(
+                        f"[OK] {service_name} enriched {submission.get('submission_id')}"
+                    )
             except Exception as e:
                 service_errors += 1
                 logger.error(
-                    f"[ERROR] {service_name} failed for {submission.get("submission_id")}: {e}"
+                    f"[ERROR] {service_name} failed for {submission.get('submission_id')}: {e}"
                 )
                 # Continue with other services
 
         # If all services failed and we had services, consider it a failure
-        if service_errors > 0 and len(self.services) > 0 and service_errors == len(self.services):
-            logger.error(f"[ERROR] All {service_errors} services failed for {submission.get('submission_id')}")
+        if (
+            service_errors > 0
+            and len(self.services) > 0
+            and service_errors == len(self.services)
+        ):
+            logger.error(
+                f"[ERROR] All {service_errors} services failed for {submission.get('submission_id')}"
+            )
             # Still return result but track errors at pipeline level
 
         return result, service_errors
 
     def _copy_existing_enrichment(
-        self,
-        submission: Dict[str, Any],
-        concept_id: str
-    ) -> Optional[Dict[str, Any]]:
+        self, submission: dict[str, Any], concept_id: str
+    ) -> dict[str, Any] | None:
         """
         Copy existing enrichment with evidence flow preservation.
 
@@ -515,13 +527,14 @@ class OpportunityPipeline:
         if self.config.enable_monetization and "monetization" in self.services:
             try:
                 from core.deduplication import AgnoSkipLogic
+
                 skip_logic = AgnoSkipLogic(self.config.supabase_client)
 
-                # Copy Agno analysis using monolith API signature
+                # Copy Agno analysis using unified API signature
                 agno_data = skip_logic.copy_agno_analysis(
                     submission=submission,
                     concept_id=concept_id,
-                    supabase=self.config.supabase_client
+                    supabase=self.config.supabase_client,
                 )
 
                 if agno_data:
@@ -530,14 +543,22 @@ class OpportunityPipeline:
 
                     # Extract evidence structure for profiler
                     agno_evidence = {
-                        "willingness_to_pay_score": agno_data.get("willingness_to_pay_score"),
+                        "willingness_to_pay_score": agno_data.get(
+                            "willingness_to_pay_score"
+                        ),
                         "customer_segment": agno_data.get("customer_segment"),
                         "sentiment_toward_payment": agno_data.get("payment_sentiment"),
                         "urgency_level": agno_data.get("urgency_level"),
-                        "mentioned_price_points": agno_data.get("mentioned_price_points"),
-                        "existing_payment_behavior": agno_data.get("existing_payment_behavior"),
-                        "payment_friction_indicators": agno_data.get("payment_friction_indicators"),
-                        "confidence": agno_data.get("confidence")
+                        "mentioned_price_points": agno_data.get(
+                            "mentioned_price_points"
+                        ),
+                        "existing_payment_behavior": agno_data.get(
+                            "existing_payment_behavior"
+                        ),
+                        "payment_friction_indicators": agno_data.get(
+                            "payment_friction_indicators"
+                        ),
+                        "confidence": agno_data.get("confidence"),
                     }
                     logger.info(
                         f"[OK] Copied Agno analysis + extracted evidence for "
@@ -545,7 +566,7 @@ class OpportunityPipeline:
                     )
                 else:
                     logger.warning(
-                        f"[WARN] Failed to copy Agno - profiler will run without evidence"
+                        "[WARN] Failed to copy Agno - profiler will run without evidence"
                     )
             except Exception as e:
                 logger.error(f"[ERROR] Agno copy failed: {e}")
@@ -554,13 +575,14 @@ class OpportunityPipeline:
         if self.config.enable_profiler and "profiler" in self.services:
             try:
                 from core.deduplication import ProfilerSkipLogic
+
                 skip_logic = ProfilerSkipLogic(self.config.supabase_client)
 
                 # Copy profiler analysis using monolith API signature
                 profiler_data = skip_logic.copy_profiler_analysis(
                     submission=submission,
                     concept_id=concept_id,
-                    supabase=self.config.supabase_client
+                    supabase=self.config.supabase_client,
                 )
 
                 if profiler_data:
@@ -591,7 +613,7 @@ class OpportunityPipeline:
             )
             return None
 
-    def _store_results(self, results: List[Dict[str, Any]]) -> bool:
+    def _store_results(self, results: list[dict[str, Any]]) -> bool:
         """
         Store results using appropriate storage service.
 
@@ -628,9 +650,9 @@ class OpportunityPipeline:
             # Log storage statistics
             storage_stats = store.get_statistics()
             logger.info(
-                f"[OK] Storage stats - Loaded: {storage_stats["loaded"]}, "
-                f"Failed: {storage_stats["failed"]}, "
-                f"Skipped: {storage_stats.get("skipped", 0)}"
+                f"[OK] Storage stats - Loaded: {storage_stats['loaded']}, "
+                f"Failed: {storage_stats['failed']}, "
+                f"Skipped: {storage_stats.get('skipped', 0)}"
             )
             return success
 
@@ -639,7 +661,7 @@ class OpportunityPipeline:
             logger.error(f"[ERROR] Storage error: {e}", exc_info=True)
             return False
 
-    def _generate_summary(self) -> Dict[str, Any]:
+    def _generate_summary(self) -> dict[str, Any]:
         """
         Generate pipeline summary statistics.
 
@@ -685,12 +707,13 @@ class OpportunityPipeline:
             stats = service.get_statistics()
             logger.info(
                 f"   {service_name}: "
-                f"Analyzed={stats["analyzed"]}, "
-                f"Skipped={stats["skipped"]}, "
-                f"Copied={stats["copied"]}, "
-                f"Errors={stats["errors"]}"
+                f"Analyzed={stats['analyzed']}, "
+                f"Skipped={stats['skipped']}, "
+                f"Copied={stats['copied']}, "
+                f"Errors={stats['errors']}"
             )
-    def get_statistics(self) -> Dict[str, Any]:
+
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get comprehensive pipeline statistics.
 
@@ -698,8 +721,7 @@ class OpportunityPipeline:
             dict: Complete statistics including pipeline stats and service stats
         """
         service_stats = {
-            name: service.get_statistics()
-            for name, service in self.services.items()
+            name: service.get_statistics() for name, service in self.services.items()
         }
 
         return {

@@ -14,7 +14,7 @@ Key Features:
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from core.deduplication.concept_manager import BusinessConceptManager
 
@@ -60,8 +60,8 @@ class ProfilerSkipLogic:
     def should_run_profiler_analysis(
         self,
         submission: dict[str, Any],
-        business_concept_id: Optional[int] = None,
-    ) -> tuple[bool, Optional[str]]:
+        business_concept_id: int | None = None,
+    ) -> tuple[bool, str | None]:
         """
         Determine if profiler analysis should run.
 
@@ -113,33 +113,123 @@ class ProfilerSkipLogic:
 
     def copy_profiler_analysis(
         self,
-        source_submission_id: str,
-        target_submission_id: str,
-        concept_id: int,
-    ) -> Optional[dict[str, Any]]:
+        submission: dict | None = None,
+        concept_id: int | None = None,
+        supabase=None,
+        *,
+        source_submission_id: str | None = None,
+        target_submission_id: str | None = None,
+    ) -> dict[str, Any] | None:
         """
-        Copy AI profile from source to target submission.
+        Copy AI profile for deduplication pipeline integration.
 
-        Retrieves the primary AI profile for a business concept and copies
-        it to a new submission with updated metadata. This ensures consistent
-        core_functions arrays across duplicate submissions.
+        This method provides a unified interface for both the orchestrator
+        (submission dict interface) and the original monolith pipeline
+        (source/target ID interface).
 
         Args:
-            source_submission_id: ID of primary submission with profile
-            target_submission_id: ID of duplicate submission to copy to
-            concept_id: Business concept ID linking the submissions
+            submission: Current submission data (orchestrator interface)
+            concept_id: Business concept ID with existing analysis
+            supabase: Supabase client (optional, uses self.client if None)
+            source_submission_id: Primary submission ID (original interface)
+            target_submission_id: Target submission ID (original interface)
 
         Returns:
             dict: Copied profile data, or None if copy failed
+        """
+        # Handle orchestrator interface (submission dict)
+        if submission is not None and concept_id is not None:
+            target_submission_id = submission.get("submission_id")
+            if not target_submission_id:
+                logger.error("No submission_id found in submission data")
+                return None
 
-        Examples:
-            >>> profile = skip_logic.copy_profiler_analysis(
-            ...     'primary_sub',
-            ...     'duplicate_sub',
-            ...     concept_id=42
-            ... )
-            >>> assert profile['copied_from_primary'] is True
-            >>> assert 'core_functions' in profile
+            # Use provided client or fall back to instance client
+            client = supabase if supabase is not None else self.client
+
+            # Find primary profile for this concept
+            response = (
+                client.table("workflow_results")
+                .select("*")
+                .eq("business_concept_id", concept_id)
+                .eq("copied_from_primary", False)
+                .execute()
+            )
+
+            if not response.data:
+                logger.warning(f"No primary AI profile found for concept {concept_id}")
+                return None
+
+            # Get the most recent primary profile
+            primary_profile = max(
+                response.data, key=lambda x: x.get("processed_at", "")
+            )
+
+            source_submission_id = primary_profile.get("submission_id")
+
+            # Create profile data for orchestrator return (without inserting)
+            copied_data = {
+                "app_name": primary_profile.get("app_name"),
+                "core_functions": primary_profile.get("core_functions"),
+                "value_proposition": primary_profile.get("value_proposition"),
+                "problem_description": primary_profile.get("problem_description"),
+                "app_concept": primary_profile.get("app_concept"),
+                "target_user": primary_profile.get("target_user"),
+                "monetization_model": primary_profile.get("monetization_model"),
+                "final_score": primary_profile.get("final_score"),
+                "market_demand": primary_profile.get("market_demand"),
+                "pain_intensity": primary_profile.get("pain_intensity"),
+                "monetization_potential": primary_profile.get("monetization_potential"),
+                "market_gap": primary_profile.get("market_gap"),
+                "technical_feasibility": primary_profile.get("technical_feasibility"),
+                # Tracking metadata
+                "copied_from_primary": True,
+                "primary_opportunity_id": primary_profile.get("opportunity_id"),
+                "copy_timestamp": datetime.now().isoformat(),
+            }
+
+            # Store copy in database for audit trail
+            try:
+                record_data = {
+                    "opportunity_id": f"opp_{target_submission_id}",
+                    "submission_id": target_submission_id,
+                    "business_concept_id": concept_id,
+                    **copied_data,
+                }
+
+                client.table("workflow_results").insert(record_data).execute()
+
+            except Exception as db_error:
+                # Log warning but don't fail the copy operation
+                logger.warning(f"Failed to store profiler copy in database: {db_error}")
+
+            self.stats["copied"] += 1
+            logger.info(
+                f"Copied AI profile for concept {concept_id} to submission {target_submission_id}"
+            )
+            return copied_data
+
+        # Handle original monolith interface (source/target IDs)
+        elif source_submission_id and target_submission_id:
+            return self._copy_profiler_analysis_original(
+                source_submission_id, target_submission_id, concept_id
+            )
+
+        else:
+            logger.error("Invalid combination of arguments for copy_profiler_analysis")
+            return None
+
+    def _copy_profiler_analysis_original(
+        self,
+        source_submission_id: str,
+        target_submission_id: str,
+        concept_id: int,
+    ) -> dict[str, Any] | None:
+        """
+        Original implementation of copy_profiler_analysis.
+
+        This method maintains compatibility with the original monolith pipeline
+        interface while allowing the new unified interface to be supported.
         """
         try:
             # Fetch source profile from workflow_results table
@@ -152,9 +242,7 @@ class ProfilerSkipLogic:
             )
 
             if not response.data:
-                logger.warning(
-                    f"No AI profile found for concept {concept_id}"
-                )
+                logger.warning(f"No AI profile found for concept {concept_id}")
                 return None
 
             # Get the most recent profile if multiple exist
@@ -162,8 +250,7 @@ class ProfilerSkipLogic:
                 source_profile = response.data[0]
             else:
                 source_profile = max(
-                    response.data,
-                    key=lambda x: x.get("processed_at", "")
+                    response.data, key=lambda x: x.get("processed_at", "")
                 )
 
             # Create copied profile with updated metadata
@@ -192,9 +279,7 @@ class ProfilerSkipLogic:
 
             # Insert copied profile
             response = (
-                self.client.table("workflow_results")
-                .insert(copied_profile)
-                .execute()
+                self.client.table("workflow_results").insert(copied_profile).execute()
             )
 
             if response.data:
@@ -211,9 +296,7 @@ class ProfilerSkipLogic:
             return None
 
         except Exception as e:
-            logger.error(
-                f"Error copying AI profile for concept {concept_id}: {e}"
-            )
+            logger.error(f"Error copying AI profile for concept {concept_id}: {e}")
             self.stats["errors"] += 1
             return None
 
@@ -257,7 +340,9 @@ class ProfilerSkipLogic:
             ).execute()
 
             if response.data and len(response.data) > 0:
-                success = response.data[0].get("update_profiler_analysis_tracking", False)
+                success = response.data[0].get(
+                    "update_profiler_analysis_tracking", False
+                )
                 if success:
                     logger.info(
                         f"Updated profiler stats for concept {concept_id} "
@@ -277,9 +362,7 @@ class ProfilerSkipLogic:
                 return False
 
         except Exception as e:
-            logger.error(
-                f"Error updating concept profiler stats for {concept_id}: {e}"
-            )
+            logger.error(f"Error updating concept profiler stats for {concept_id}: {e}")
             self.stats["errors"] += 1
             return False
 
