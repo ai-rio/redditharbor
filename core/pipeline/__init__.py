@@ -6,6 +6,7 @@ dlt_trust_pipeline.py scripts.
 
 Key Components:
 - OpportunityPipeline: Main pipeline orchestrator
+- ServiceFactory: Service creation and dependency injection
 - PipelineConfig: Configuration dataclass
 - DataSource: Data source enumeration
 - ServiceType: Service type enumeration
@@ -17,9 +18,11 @@ from core.pipeline.config import (
     ServiceType,
 )
 from core.pipeline.orchestrator import OpportunityPipeline
+from core.pipeline.factory import ServiceFactory
 
 __all__ = [
     "OpportunityPipeline",
+    "ServiceFactory",
     "PipelineConfig",
     "DataSource",
     "ServiceType",

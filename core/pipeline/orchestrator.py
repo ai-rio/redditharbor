@@ -30,9 +30,9 @@ Example:
 
 import logging
 from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock
 
 from core.pipeline.config import PipelineConfig, DataSource
+from core.pipeline.factory import ServiceFactory
 from core.fetchers.base_fetcher import BaseFetcher
 from core.enrichment.base_service import BaseEnrichmentService
 from core.storage import OpportunityStore, ProfileStore, HybridStore
@@ -91,160 +91,14 @@ class OpportunityPipeline:
 
     def _initialize_services(self) -> None:
         """
-        Initialize enabled enrichment services.
+        Initialize enabled enrichment services using ServiceFactory.
 
-        Creates service instances based on config flags. Services are lazily
-        initialized only if enabled in config.
+        Delegates service creation to ServiceFactory for cleaner separation
+        of concerns and better dependency management.
         """
-        # Import services only when needed
-        if self.config.enable_profiler:
-            from core.enrichment.profiler_service import ProfilerService
-            from core.agents.profiler import EnhancedLLMProfiler
-            from core.deduplication.profiler_skip_logic import ProfilerSkipLogic
-
-            try:
-                # Initialize with deduplication if enabled
-                profiler = EnhancedLLMProfiler()
-            except Exception as e:
-                logger.warning(f"Could not create profiler, using mock: {e}")
-                profiler = MagicMock()
-                profiler.analyze_profession.return_value = {
-                    "profession": "Software Engineer",
-                    "confidence": 0.85,
-                    "analysis_reasons": ["Mock analysis"]
-                }
-
-            skip_logic = None
-            try:
-                if self.config.enable_deduplication and self.config.supabase_client:
-                    skip_logic = ProfilerSkipLogic(self.config.supabase_client)
-            except Exception as e:
-                logger.warning(f"Could not create profiler skip logic: {e}")
-
-            self.services["profiler"] = ProfilerService(
-                profiler=profiler,
-                skip_logic=skip_logic,
-                config={"enable_deduplication": self.config.enable_deduplication}
-            )
-            logger.info("Profiler service initialized")
-
-        if self.config.enable_opportunity_scoring:
-            from core.enrichment.opportunity_service import OpportunityService
-            from core.agents.interactive.opportunity_analyzer import OpportunityAnalyzerAgent
-
-            try:
-                analyzer = OpportunityAnalyzerAgent()
-            except Exception as e:
-                logger.warning(f"Could not create opportunity analyzer, using mock: {e}")
-                analyzer = MagicMock()
-                analyzer.analyze_opportunity.return_value = {
-                    "opportunity_score": 75.0,
-                    "confidence": 0.8,
-                    "reasoning": "Mock analysis"
-                }
-
-            self.services["opportunity"] = OpportunityService(analyzer=analyzer)
-            logger.info("Opportunity service initialized")
-
-        if self.config.enable_monetization:
-            from core.enrichment.monetization_service import MonetizationService
-            from core.agents.monetization.factory import get_monetization_analyzer
-
-            try:
-                # Get monetization analyzer based on config
-                analyzer = get_monetization_analyzer(
-                    strategy=self.config.monetization_strategy,
-                    config=self.config.monetization_config or {}
-                )
-            except Exception as e:
-                logger.warning(f"Could not create monetization analyzer, using mock: {e}")
-                analyzer = MagicMock()
-                analyzer.analyze_monetization.return_value = {
-                    "monetization_score": 65.0,
-                    "confidence": 0.75,
-                    "monetization_methods": ["Mock method"],
-                    "analysis_reasons": ["Mock analysis"]
-                }
-
-            skip_logic = None
-            try:
-                if self.config.enable_deduplication and self.config.supabase_client:
-                    from core.deduplication.monetization_skip_logic import MonetizationSkipLogic
-                    skip_logic = MonetizationSkipLogic(self.config.supabase_client)
-            except Exception as e:
-                logger.warning(f"Could not create monetization skip logic: {e}")
-
-            self.services["monetization"] = MonetizationService(
-                analyzer=analyzer,
-                skip_logic=skip_logic,
-                config={"enable_deduplication": self.config.enable_deduplication}
-            )
-            logger.info("Monetization service initialized")
-
-        if self.config.enable_trust:
-            from core.enrichment.trust_service import TrustService
-            from core.trust import TrustValidationService, TrustRepositoryFactory
-
-            # Create a trust validator - in tests this will be mocked
-            try:
-                # Try to create from config if supabase client available
-                if hasattr(self.config, 'supabase_client') and self.config.supabase_client:
-                    repository = TrustRepositoryFactory.create_repository(self.config.supabase_client)
-                    validator = TrustValidationService(repository)
-                else:
-                    # Create a mock validator for testing
-                    validator = MagicMock()
-                    validator.validate_opportunity_trust.return_value = MagicMock(
-                        success=True,
-                        indicators=MagicMock(
-                            trust_level=MagicMock(value="medium"),
-                            overall_trust_score=75.0,
-                            subreddit_activity_score=80.0,
-                            post_engagement_score=70.0,
-                            community_health_score=75.0,
-                            trend_velocity_score=60.0,
-                            problem_validity_score=85.0,
-                            discussion_quality_score=70.0,
-                            ai_analysis_confidence=80.0,
-                            trust_badges=["quality_discussion"],
-                            activity_constraints_met=True,
-                            quality_constraints_met=True,
-                            validation_timestamp="2025-01-01T00:00:00Z",
-                            validation_method="comprehensive"
-                        )
-                    )
-            except Exception as e:
-                logger.warning(f"Could not create trust validator, using mock: {e}")
-                validator = MagicMock()
-                validator.validate_opportunity_trust.return_value = MagicMock(
-                    success=True,
-                    indicators=MagicMock(
-                        trust_level=MagicMock(value="medium"),
-                        overall_trust_score=75.0
-                    )
-                )
-
-            self.services["trust"] = TrustService(validator=validator)
-            logger.info("Trust service initialized")
-
-        if self.config.enable_market_validation:
-            from core.enrichment.market_validation_service import MarketValidationService
-            from core.agents.market_validation import MarketDataValidator
-
-            try:
-                validator = MarketDataValidator()
-            except Exception as e:
-                logger.warning(f"Could not create market validator, using mock: {e}")
-                validator = MagicMock()
-                validator.validate_market_data.return_value = {
-                    "market_score": 70.0,
-                    "confidence": 0.7,
-                    "market_size": "medium",
-                    "validation_reasons": ["Mock validation"]
-                }
-
-            self.services["market_validation"] = MarketValidationService(validator=validator)
-            logger.info("Market validation service initialized")
+        factory = ServiceFactory(self.config)
+        self.services = factory.create_services()
+        logger.info(f"Initialized {len(self.services)} services via ServiceFactory")
 
     def run(self, **kwargs) -> Dict[str, Any]:
         """
