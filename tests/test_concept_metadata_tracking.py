@@ -22,7 +22,6 @@ import pytest
 
 from core.pipeline.orchestrator import OpportunityPipeline
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -66,17 +65,20 @@ class TestBatchConceptFetching:
             {"submission_id": "sub_003", "business_concept_id": 103},
         ]
 
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
         # Mock the skip logic classes to prevent actual updates
         with (
-            patch("core.deduplication.ProfilerSkipLogic") as MockProfiler,
-            patch("core.deduplication.AgnoSkipLogic") as MockAgno,
+            patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls,
+            patch("core.deduplication.AgnoSkipLogic") as mock_agno_cls,
         ):
             mock_profiler = MagicMock()
             mock_agno = MagicMock()
-            MockProfiler.return_value = mock_profiler
-            MockAgno.return_value = mock_agno
+            mock_profiler_cls.return_value = mock_profiler
+            mock_agno_cls.return_value = mock_agno
 
             orchestrator._update_concept_metadata(enriched)
 
@@ -123,13 +125,16 @@ class TestProfilerMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
         # Mock Profiler skip logic
-        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls:
             mock_profiler = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
-            MockProfiler.return_value = mock_profiler
+            mock_profiler_cls.return_value = mock_profiler
 
             orchestrator._update_concept_metadata(enriched)
 
@@ -151,13 +156,16 @@ class TestProfilerMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
         # Mock Profiler skip logic
-        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls:
             mock_profiler = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
-            MockProfiler.return_value = mock_profiler
+            mock_profiler_cls.return_value = mock_profiler
 
             orchestrator._update_concept_metadata(enriched)
 
@@ -181,16 +189,19 @@ class TestProfilerMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
-        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls:
             mock_profiler = MagicMock()
-            MockProfiler.return_value = mock_profiler
+            mock_profiler_cls.return_value = mock_profiler
 
             orchestrator._update_concept_metadata(enriched)
 
             # Verify Profiler was never instantiated
-            MockProfiler.assert_not_called()
+            mock_profiler_cls.assert_not_called()
 
 
 class TestAgnoMetadataUpdates:
@@ -210,13 +221,16 @@ class TestAgnoMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
         # Mock Agno skip logic
-        with patch("core.deduplication.AgnoSkipLogic") as MockAgno:
+        with patch("core.deduplication.AgnoSkipLogic") as mock_agno_cls:
             mock_agno = MagicMock()
             mock_agno.update_concept_agno_stats.return_value = True
-            MockAgno.return_value = mock_agno
+            mock_agno_cls.return_value = mock_agno
 
             orchestrator._update_concept_metadata(enriched)
 
@@ -240,16 +254,19 @@ class TestAgnoMetadataUpdates:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
-        with patch("core.deduplication.AgnoSkipLogic") as MockAgno:
+        with patch("core.deduplication.AgnoSkipLogic") as mock_agno_cls:
             mock_agno = MagicMock()
-            MockAgno.return_value = mock_agno
+            mock_agno_cls.return_value = mock_agno
 
             orchestrator._update_concept_metadata(enriched)
 
             # Verify Agno was never instantiated
-            MockAgno.assert_not_called()
+            mock_agno_cls.assert_not_called()
 
 
 class TestMixedUpdates:
@@ -280,18 +297,21 @@ class TestMixedUpdates:
             {"submission_id": "sub_002", "business_concept_id": 102},
             {"submission_id": "sub_003", "business_concept_id": 103},
         ]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
         with (
-            patch("core.deduplication.ProfilerSkipLogic") as MockProfiler,
-            patch("core.deduplication.AgnoSkipLogic") as MockAgno,
+            patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls,
+            patch("core.deduplication.AgnoSkipLogic") as mock_agno_cls,
         ):
             mock_profiler = MagicMock()
             mock_agno = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
             mock_agno.update_concept_agno_stats.return_value = True
-            MockProfiler.return_value = mock_profiler
-            MockAgno.return_value = mock_agno
+            mock_profiler_cls.return_value = mock_profiler
+            mock_agno_cls.return_value = mock_agno
 
             orchestrator._update_concept_metadata(enriched)
 
@@ -329,9 +349,10 @@ class TestErrorHandling:
         ]
 
         # Mock database error
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.side_effect = Exception(
-            "Database connection error"
-        )
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.side_effect
+        ) = Exception("Database connection error")
 
         # Should handle error gracefully without raising
         orchestrator._update_concept_metadata(enriched)
@@ -348,13 +369,16 @@ class TestErrorHandling:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
-        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls:
             mock_profiler = MagicMock()
             # Simulate update failure
             mock_profiler.update_concept_profiler_stats.return_value = False
-            MockProfiler.return_value = mock_profiler
+            mock_profiler_cls.return_value = mock_profiler
 
             # Should not raise error
             orchestrator._update_concept_metadata(enriched)
@@ -375,11 +399,14 @@ class TestEdgeCases:
         # Mock empty response (no concept found)
         mock_response = MagicMock()
         mock_response.data = []
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
-        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls:
             mock_profiler = MagicMock()
-            MockProfiler.return_value = mock_profiler
+            mock_profiler_cls.return_value = mock_profiler
 
             orchestrator._update_concept_metadata(enriched)
 
@@ -399,12 +426,15 @@ class TestEdgeCases:
             {"submission_id": "sub_001", "business_concept_id": 101},
             # sub_002 missing
         ]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
-        with patch("core.deduplication.ProfilerSkipLogic") as MockProfiler:
+        with patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls:
             mock_profiler = MagicMock()
             mock_profiler.update_concept_profiler_stats.return_value = True
-            MockProfiler.return_value = mock_profiler
+            mock_profiler_cls.return_value = mock_profiler
 
             orchestrator._update_concept_metadata(enriched)
 
@@ -423,16 +453,19 @@ class TestEdgeCases:
         # Mock concept ID fetch
         mock_response = MagicMock()
         mock_response.data = [{"submission_id": "sub_001", "business_concept_id": 101}]
-        mock_config.supabase_client.table.return_value.select.return_value.in_.return_value.execute.return_value = mock_response
+        (
+            mock_config.supabase_client.table.return_value.select.return_value.in_
+            .return_value.execute.return_value
+        ) = mock_response
 
         with (
-            patch("core.deduplication.ProfilerSkipLogic") as MockProfiler,
-            patch("core.deduplication.AgnoSkipLogic") as MockAgno,
+            patch("core.deduplication.ProfilerSkipLogic") as mock_profiler_cls,
+            patch("core.deduplication.AgnoSkipLogic") as mock_agno_cls,
         ):
             mock_profiler = MagicMock()
             mock_agno = MagicMock()
-            MockProfiler.return_value = mock_profiler
-            MockAgno.return_value = mock_agno
+            mock_profiler_cls.return_value = mock_profiler
+            mock_agno_cls.return_value = mock_agno
 
             orchestrator._update_concept_metadata(enriched)
 

@@ -145,7 +145,8 @@ class OpportunityPipeline:
                 filtered_count = self.stats["fetched"] - len(submissions)
                 self.stats["filtered"] = filtered_count
                 logger.info(
-                    f"[OK] Quality filter: {len(submissions)} passed, {filtered_count} filtered"
+                    f"[OK] Quality filter: {len(submissions)} passed, "
+                    f"{filtered_count} filtered"
                 )
 
             # 3. AI enrichment with deduplication
@@ -191,7 +192,8 @@ class OpportunityPipeline:
                         else:
                             # Copy failed - fall back to fresh analysis
                             logger.warning(
-                                f"[WARN] Copy failed for {sub_id}, running fresh analysis"
+                                f"[WARN] Copy failed for {sub_id}, "
+                                "running fresh analysis"
                             )
                             result, service_errors = (
                                 self._enrich_submission_with_error_tracking(sub)
@@ -217,9 +219,8 @@ class OpportunityPipeline:
                         self.stats["errors"] += service_errors
 
                 except Exception as e:
-                    logger.error(
-                        f"[ERROR] Enrichment error for {sub.get('submission_id', 'unknown')}: {e}"
-                    )
+                    sub_id = sub.get("submission_id", "unknown")
+                    logger.error(f"[ERROR] Enrichment error for {sub_id}: {e}")
                     self.stats["errors"] += 1
 
             logger.info(
@@ -336,7 +337,7 @@ class OpportunityPipeline:
         """
         Batch-fetch concept metadata for all submissions.
 
-        Reduces N×3 queries to 2 batch queries total, improving performance
+        Reduces N*3 queries to 2 batch queries total, improving performance
         by ~75x for deduplication checks.
 
         Args:
@@ -434,14 +435,12 @@ class OpportunityPipeline:
                 enrichment = service.enrich(submission)
                 if enrichment:
                     result.update(enrichment)
-                    logger.debug(
-                        f"[OK] {service_name} enriched {submission.get('submission_id')}"
-                    )
+                    sub_id = submission.get("submission_id")
+                    logger.debug(f"[OK] {service_name} enriched {sub_id}")
             except Exception as e:
                 service_errors += 1
-                logger.error(
-                    f"[ERROR] {service_name} failed for {submission.get('submission_id')}: {e}"
-                )
+                sub_id = submission.get("submission_id")
+                logger.error(f"[ERROR] {service_name} failed for {sub_id}: {e}")
                 # Continue with other services
 
         # If all services failed and we had services, consider it a failure
@@ -450,8 +449,9 @@ class OpportunityPipeline:
             and len(self.services) > 0
             and service_errors == len(self.services)
         ):
+            sub_id = submission.get("submission_id")
             logger.error(
-                f"[ERROR] All {service_errors} services failed for {submission.get('submission_id')}"
+                f"[ERROR] All {service_errors} services failed for {sub_id}"
             )
             # Don't return None, just return the original submission with error tracking
             # The pipeline will track the error count separately
@@ -483,14 +483,12 @@ class OpportunityPipeline:
                 enrichment = service.enrich(submission)
                 if enrichment:
                     result.update(enrichment)
-                    logger.debug(
-                        f"[OK] {service_name} enriched {submission.get('submission_id')}"
-                    )
+                    sub_id = submission.get("submission_id")
+                    logger.debug(f"[OK] {service_name} enriched {sub_id}")
             except Exception as e:
                 service_errors += 1
-                logger.error(
-                    f"[ERROR] {service_name} failed for {submission.get('submission_id')}: {e}"
-                )
+                sub_id = submission.get("submission_id")
+                logger.error(f"[ERROR] {service_name} failed for {sub_id}: {e}")
                 # Continue with other services
 
         # If all services failed and we had services, consider it a failure
@@ -499,8 +497,9 @@ class OpportunityPipeline:
             and len(self.services) > 0
             and service_errors == len(self.services)
         ):
+            sub_id = submission.get("submission_id")
             logger.error(
-                f"[ERROR] All {service_errors} services failed for {submission.get('submission_id')}"
+                f"[ERROR] All {service_errors} services failed for {sub_id}"
             )
             # Still return result but track errors at pipeline level
 
@@ -569,7 +568,8 @@ class OpportunityPipeline:
                     )
                 else:
                     logger.warning(
-                        "[WARN] Failed to copy Agno - profiler will run without evidence"
+                        "[WARN] Failed to copy Agno - "
+                        "profiler will run without evidence"
                     )
             except Exception as e:
                 logger.error(f"[ERROR] Agno copy failed: {e}")
@@ -601,7 +601,8 @@ class OpportunityPipeline:
                     )
                 else:
                     logger.warning(
-                        f"[WARN] Failed to copy profiler analysis for concept {concept_id}"
+                        f"[WARN] Failed to copy profiler analysis "
+                        f"for concept {concept_id}"
                     )
             except Exception as e:
                 logger.error(f"[ERROR] Profiler copy failed: {e}")
