@@ -142,8 +142,9 @@ class TrustService(BaseEnrichmentService):
 
             if result.success and result.indicators:
                 self.stats["analyzed"] += 1
+                submission_id = submission.get("id", submission.get("submission_id", "unknown"))
                 self.logger.info(
-                    f"Validated trust for {submission['submission_id']}: "
+                    f"Validated trust for {submission_id}: "
                     f"level={result.indicators.trust_level.value}, "
                     f"score={result.indicators.overall_trust_score}"
                 )
@@ -156,7 +157,7 @@ class TrustService(BaseEnrichmentService):
                     validation["trust_level"] = validation["trust_level"].value
 
                 # Add metadata
-                validation["submission_id"] = submission["submission_id"]
+                validation["submission_id"] = submission_id
 
                 return validation
             else:
@@ -195,14 +196,19 @@ class TrustService(BaseEnrichmentService):
             "num_comments", 0
         )
 
+        # Handle upvotes from top level or engagement object
+        upvotes = submission.get("upvotes", 0)
+        if upvotes == 0 and "engagement" in submission:
+            upvotes = submission["engagement"].get("upvotes", 0)
+
         # Get optional overrides from config
         activity_threshold = self.config.get("activity_threshold")
         trust_weights = self.config.get("trust_weights")
 
         return TrustValidationRequest(
-            submission_id=submission["submission_id"],
+            submission_id=submission.get("id", submission.get("submission_id", "unknown")),
             subreddit=submission["subreddit"],
-            upvotes=submission.get("upvotes", 0),
+            upvotes=upvotes,
             comments_count=comments_count,
             created_utc=submission.get("created_utc", 0),
             text=text,
@@ -222,19 +228,31 @@ class TrustService(BaseEnrichmentService):
         Returns:
             bool: True if valid, False otherwise
         """
-        # Base validation (submission_id, title, subreddit)
+        # Get submission ID for logging
+        submission_id = submission.get("id", submission.get("submission_id", "unknown"))
+
+        # Base validation (id, title, subreddit) - super() expects 'id' field
         if not super().validate_input(submission):
             return False
 
         # Trust validation needs upvotes and created_utc
-        required_fields = ["upvotes", "created_utc"]
+        # Check for upvotes at top level or in engagement object
+        upvotes = submission.get("upvotes")
+        if upvotes is None and "engagement" in submission:
+            upvotes = submission["engagement"].get("upvotes")
 
-        for field in required_fields:
-            if field not in submission:
-                self.logger.warning(
-                    f"Submission {submission.get('submission_id')} missing {field}"
-                )
-                return False
+        if upvotes is None:
+            self.logger.warning(
+                f"Submission {submission_id} missing upvotes"
+            )
+            return False
+
+        # Check created_utc
+        if "created_utc" not in submission:
+            self.logger.warning(
+                f"Submission {submission_id} missing created_utc"
+            )
+            return False
 
         return True
 

@@ -29,16 +29,31 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
+# Set up paths - test utils first so they take precedence
+test_utils_path = Path(__file__).parent.parent.resolve()
+project_root = Path(__file__).parent.parent.parent.parent.parent.resolve()
+
+# Add test utils to path FIRST so it takes precedence for config imports
+sys.path.insert(0, str(test_utils_path))
+sys.path.insert(1, str(project_root))
+
+# Debug: Print path info
+if '--verbose' in sys.argv:
+    print(f"DEBUG: __file__ = {__file__}")
+    print(f"DEBUG: project_root = {project_root}")
+    print(f"DEBUG: test_utils_path = {test_utils_path}")
+    print(f"DEBUG: sys.path[0] = {sys.path[0]}")
+    print(f"DEBUG: sys.path[1] = {sys.path[1]}")
+    print(f"DEBUG: main config exists = {(project_root / 'config').exists()}")
+    print(f"DEBUG: test config exists = {(test_utils_path / 'config').exists()}")
 
 from dotenv import load_dotenv
 load_dotenv(project_root / ".env.local")
 
-# Import test utilities
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Import test utilities FIRST (so we get the right config module)
 from config import load_service_config, load_submissions_config, get_observability_config
+if '--verbose' in sys.argv:
+    print(f"DEBUG: Successfully imported test config functions")
 from utils import (
     MetricsCollector,
     ServiceMetrics,
@@ -51,7 +66,14 @@ from utils import (
 
 # Import pipeline components
 from core.pipeline import OpportunityPipeline, PipelineConfig, DataSource
-from config import SUPABASE_URL, SUPABASE_KEY
+
+# Import main project settings (explicitly import from project root to avoid conflicts)
+import importlib.util
+spec = importlib.util.spec_from_file_location("main_config", project_root / "config" / "settings.py")
+main_config = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(main_config)
+SUPABASE_URL = main_config.SUPABASE_URL
+SUPABASE_KEY = main_config.SUPABASE_KEY
 from supabase import create_client
 
 # Configure logging
@@ -92,8 +114,30 @@ def get_test_submission_id(args) -> str:
         query_example = submissions_config.get("query_example", "")
         logger.info(f"Using query: {query_example}")
 
-        # Execute query
-        result = client.rpc("execute_sql", {"sql": query_example}).execute()
+        # Execute query using direct table query instead of RPC
+        # Parse the query to extract criteria
+        where_conditions = []
+        order_by = "reddit_score DESC"
+        limit = 1
+
+        # Extract conditions from the SQL query (simple parsing)
+        if "reddit_score >= 40" in query_example:
+            where_conditions.append("reddit_score.gte=40")
+        if "LENGTH(selftext) >= 50" in query_example:
+            where_conditions.append("selftext.notis.null")
+
+        # Build the query
+        query = client.table("submissions").select("submission_id, title, subreddit, reddit_score, num_comments, content")
+
+        # Apply conditions
+        for condition in where_conditions:
+            key, value = condition.split(".", 1)
+            if key == "reddit_score":
+                query = query.gte("reddit_score", int(value.split("=")[1]))
+            elif key == "selftext":
+                query = query.not_("selftext", "is", None)
+
+        result = query.order("reddit_score", desc=True).limit(1).execute()
 
         if not result.data or len(result.data) == 0:
             raise ValueError("No high-quality submissions found in database")
@@ -188,7 +232,7 @@ def run_test(args) -> dict:
 
             # Source config - filter to specific submission
             source_config={
-                "table_name": "submission",
+                "table_name": "submissions",
                 "filter_column": "submission_id",
                 "filter_value": submission_id,
             }

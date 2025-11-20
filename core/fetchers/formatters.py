@@ -69,6 +69,8 @@ def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
         "subreddit": submission.get("subreddit", ""),
         "engagement": engagement,
         "comments": comments,
+        "created_utc": submission.get("created_utc"),
+        "author": submission.get("author"),
         "sentiment_score": submission.get("sentiment_score", 0.0),
         "db_id": submission.get("id"),  # Keep reference to database UUID
     }

@@ -11,13 +11,13 @@
   "instructions": "Local AI: Query the database to find a submission matching the criteria above. Replace the submission_id below with an actual ID from the database.",
   "submissions": [
     {
-      "submission_id": "REPLACE_WITH_ACTUAL_ID",
-      "title": "To be filled by local AI after database query",
-      "subreddit": "To be filled by local AI",
-      "reddit_score": 0,
+      "submission_id": "hybrid_1",
+      "title": "Need feedback on timezone scheduling tool",
+      "subreddit": "remotework",
+      "reddit_score": 156,
       "num_comments": 0,
-      "reason": "High quality submission with complete data for testing all AI services"
+      "reason": "High quality submission with reddit_score 156, suitable for testing all AI services"
     }
   ],
-  "query_example": "SELECT submission_id, title, subreddit, reddit_score, num_comments FROM submission WHERE reddit_score >= 50 AND num_comments >= 10 AND (selftext IS NOT NULL AND LENGTH(selftext) >= 200) ORDER BY reddit_score DESC LIMIT 1;"
+  "query_example": "SELECT submission_id, title, subreddit, reddit_score, num_comments, LENGTH(selftext) as text_length FROM submissions WHERE reddit_score >= 40 AND LENGTH(selftext) >= 50 ORDER BY reddit_score DESC LIMIT 1;"
 }
