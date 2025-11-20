@@ -130,8 +130,8 @@ class BaseEnrichmentService(ABC):
         """
         required = ["title", "subreddit"]
         # Accept either submission_id or id field
-        has_id = "submission_id" in submission and submission["submission_id"]
-        has_alt_id = "id" in submission and submission["id"]
+        has_id = submission.get("submission_id")
+        has_alt_id = submission.get("id")
         return (has_id or has_alt_id) and all(field in submission and submission[field] for field in required)
 
     def get_statistics(self) -> dict[str, int]:
