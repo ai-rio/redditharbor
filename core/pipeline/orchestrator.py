@@ -634,7 +634,8 @@ class OpportunityPipeline:
 
             if has_opportunity and has_profile:
                 # Use HybridStore for both opportunity and profile data
-                store = HybridStore()
+                # PHASE 2: Pass supabase_client for trust data preservation
+                store = HybridStore(supabase_client=self.config.supabase_client)
                 logger.info("Using HybridStore for combined data")
             elif has_opportunity:
                 # Use OpportunityStore for opportunity data only

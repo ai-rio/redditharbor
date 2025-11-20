@@ -37,6 +37,9 @@ APP_OPPORTUNITIES_COLUMNS = {
     "evidence_based": {"data_type": "bool"},
 
     # TrustService enrichment fields - CRITICAL JSONB FIELDS
+    "trust_score": {"data_type": "double"},
+    "trust_badge": {"data_type": "text"},
+    "activity_score": {"data_type": "double"},
     "trust_level": {"data_type": "text"},
     "trust_badges": {"data_type": "json"},
 
@@ -70,6 +73,7 @@ class HybridStore:
         loader: DLTLoader | None = None,
         opportunity_table: str = "app_opportunities",
         profile_table: str = "submissions",
+        supabase_client: Any = None,
     ):
         """Initialize HybridStore.
 
@@ -77,15 +81,97 @@ class HybridStore:
             loader: DLTLoader instance (creates new one if not provided)
             opportunity_table: Table for opportunity data (default: "app_opportunities")
             profile_table: Table for enriched profiles (default: "submissions")
+            supabase_client: Supabase client for trust data fetching (optional)
         """
         self.loader = loader or DLTLoader()
         self.opportunity_table = opportunity_table
         self.profile_table = profile_table
         self.primary_key = PK_SUBMISSION_ID
         self.stats = LoadStatistics()
+        self.supabase_client = supabase_client
         logger.info(
             f"HybridStore initialized (opp={opportunity_table}, profile={profile_table})"
         )
+
+    def _fetch_existing_trust_data(
+        self, submission_ids: list[str]
+    ) -> dict[str, dict[str, Any]]:
+        """
+        Batch-fetch existing trust data for submissions.
+
+        This method prevents trust data loss by retrieving existing trust scores
+        and badges BEFORE updating with new AI enrichment. Critical for Phase 2
+        deduplication integration.
+
+        Args:
+            submission_ids: List of submission IDs to fetch trust data for
+
+        Returns:
+            dict: Mapping of submission_id -> trust data fields
+                {
+                    "submission_id": str,
+                    "trust_score": float | None,
+                    "trust_badge": str | None,
+                    "activity_score": float | None,
+                    "trust_level": str | None,
+                    "trust_badges": dict | None,
+                }
+
+        Example:
+            >>> store = HybridStore(supabase_client=client)
+            >>> trust_data = store._fetch_existing_trust_data(["sub_001", "sub_002"])
+            >>> print(trust_data["sub_001"]["trust_score"])
+            85.5
+
+        Note:
+            Returns empty dict if no Supabase client configured or on database errors.
+            This ensures graceful degradation - trust preservation is best-effort.
+        """
+        if not self.supabase_client:
+            logger.debug("No Supabase client - skipping trust data fetch")
+            return {}
+
+        if not submission_ids:
+            return {}
+
+        try:
+            # Batch query for all trust fields from app_opportunities
+            response = (
+                self.supabase_client.table(self.opportunity_table)
+                .select(
+                    "submission_id, trust_score, trust_badge, activity_score, "
+                    "trust_level, trust_badges"
+                )
+                .in_("submission_id", submission_ids)
+                .execute()
+            )
+
+            # Build lookup dict for fast access
+            trust_data = {}
+            if response.data:
+                for record in response.data:
+                    submission_id = record.get("submission_id")
+                    if submission_id:
+                        trust_data[submission_id] = {
+                            "trust_score": record.get("trust_score"),
+                            "trust_badge": record.get("trust_badge"),
+                            "activity_score": record.get("activity_score"),
+                            "trust_level": record.get("trust_level"),
+                            "trust_badges": record.get("trust_badges"),
+                        }
+
+                logger.info(
+                    f"[OK] Fetched trust data for {len(trust_data)}/{len(submission_ids)} submissions"
+                )
+            else:
+                logger.debug("No existing trust data found for submissions")
+
+            return trust_data
+
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to fetch trust data: {e}")
+            # Return empty dict on error - trust preservation is best-effort
+            return {}
 
     def store(self, hybrid_submissions: list[dict[str, Any]]) -> bool:
         """Store hybrid submissions to both opportunity and profile tables.
@@ -131,6 +217,14 @@ class HybridStore:
             logger.warning("No hybrid submissions to store")
             return False
 
+        # PHASE 2: Pre-fetch existing trust data to prevent data loss
+        submission_ids = [
+            sub.get("submission_id") or sub.get("reddit_id")
+            for sub in hybrid_submissions
+            if sub.get("submission_id") or sub.get("reddit_id")
+        ]
+        existing_trust = self._fetch_existing_trust_data(submission_ids)
+
         # Split into opportunity and profile data
         opportunities = []
         profiles = []
@@ -145,6 +239,9 @@ class HybridStore:
 
             # Extract opportunity fields (if has AI-generated content)
             if submission.get("problem_description"):
+                # PHASE 2: Get existing trust data for this submission
+                trust_data = existing_trust.get(submission_id, {})
+
                 opp_data = {
                     "submission_id": submission_id,  # Use mapped submission_id
                     # Basic fields
@@ -180,9 +277,13 @@ class HybridStore:
                     "confidence": submission.get("confidence"),
                     "evidence_based": submission.get("evidence_based"),
 
-                    # TrustService enrichment fields
-                    "trust_level": submission.get("trust_level"),
-                    "trust_badges": submission.get("trust_badges"),
+                    # PHASE 2: TrustService enrichment fields with preservation
+                    # Use new values if provided, otherwise preserve existing
+                    "trust_score": submission.get("trust_score") or trust_data.get("trust_score"),
+                    "trust_badge": submission.get("trust_badge") or trust_data.get("trust_badge"),
+                    "activity_score": submission.get("activity_score") or trust_data.get("activity_score"),
+                    "trust_level": submission.get("trust_level") or trust_data.get("trust_level"),
+                    "trust_badges": submission.get("trust_badges") or trust_data.get("trust_badges"),
 
                     # MonetizationService enrichment fields
                     "monetization_score": (
