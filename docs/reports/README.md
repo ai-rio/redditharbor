@@ -13,6 +13,11 @@
 ### Threshold Testing
 - **[Threshold Testing Reports](./threshold-testing/)** - Performance and scalability testing at various thresholds
 
+### Database & Analysis Reports
+- **[database-exploration-report.md](database-exploration-report.md)** - Database exploration and analysis findings
+- **[semantic-deduplication-phase1-completion-report.md](semantic-deduplication-phase1-completion-report.md)** - Phase 1 deduplication implementation completion report
+- **[uuid-fix-summary.md](uuid-fix-summary.md)** - UUID format fix implementation summary
+
 ---
 
 ## 📋 Report Types
