@@ -41,7 +41,14 @@ Unified modular architecture with:
 docs/plans/unified-pipeline-refactoring/
 ├── README.md                          # ← You are here
 ├── PHASES.md                          # Quick reference table of all phases
-├── phases/                            # 11 detailed phase execution plans
+├── planning/                          # 📁 Project planning & status
+│   ├── README.md
+│   ├── implementation-approach.md
+│   ├── baseline-metrics.md
+│   ├── completion-status.md
+│   ├── completion-summary.md
+│   └── deduplication-integration-plan.md
+├── phases/                            # 📁 11 detailed phase execution plans
 │   ├── phase-01-foundation.md
 │   ├── phase-02-agent-restructuring.md
 │   ├── phase-03-extract-utilities.md
@@ -53,19 +60,48 @@ docs/plans/unified-pipeline-refactoring/
 │   ├── phase-09-fastapi-backend.md
 │   ├── phase-10-nextjs-integration.md
 │   └── phase-11-production-migration.md
-├── implementation/                    # Deep-dive technical guides
+├── handover/                          # 📁 Phase completion & handover docs
+│   ├── README.md
+│   ├── phase-6-handover.md
+│   ├── phase-7-handover.md
+│   ├── phase-8-handover.md
+│   └── phase-8-testing-handover.md
+├── testing/                           # 📁 Testing frameworks & reports
+│   ├── README.md
+│   ├── testing-framework.md
+│   ├── phase-8-comprehensive-testing-plan.md
+│   ├── phase-8-full-pipeline-testing-framework.md
+│   ├── local-ai-report/
+│   │   ├── README.md
+│   │   └── [current phase testing reports...]
+│   └── archive/
+│       ├── phase-reports-2025-11/
+│       │   ├── README.md
+│       │   └── [archived phase testing reports...]
+│       └── [future archives by date...]
+├── implementation/                    # 📁 Deep-dive technical guides
 │   ├── agent-restructuring-detailed.md
 │   ├── api-specification.md
 │   ├── testing-strategy.md
 │   └── rollback-procedures.md
-├── checklists/                        # Executable task checklists
-│   ├── phase-01-checklist.md
-│   ├── phase-02-checklist.md
-│   └── ... (one per phase)
-└── execution-logs/                    # Progress tracking (agent writes here)
-    ├── phase-01-execution.md
-    ├── phase-02-execution.md
-    └── ... (created during execution)
+├── checklists/                        # 📁 Executable task checklists
+│   ├── ALL-PHASES-CHECKLIST.md
+│   └── [individual phase checklists...]
+├── execution-logs/                    # 📁 Progress tracking (agent writes here)
+│   ├── README.md
+│   ├── phase-01-execution.md
+│   ├── phase-01-fix-applied.md
+│   ├── phase-02-execution.md
+│   └── [execution logs for each phase...]
+├── prompts/                           # 📁 AI prompts for execution
+│   ├── README.md
+│   └── [phase-specific prompts...]
+└── api/                               # 📁 API documentation
+    ├── authentication.md
+    ├── deployment.md
+    ├── endpoints.md
+    ├── rate-limiting.md
+    └── testing.md
 ```
 
 ---
@@ -99,13 +135,18 @@ docs/plans/unified-pipeline-refactoring/
 
 ### For Human Developers
 
+**Before Starting:**
+1. Review [Planning Overview](planning/README.md) for project context
+2. Check [Completion Status](planning/completion-status.md) for current progress
+3. Review [Baseline Metrics](planning/baseline-metrics.md) for performance targets
+
 **Starting Phase 1:**
 1. Read [Phase 1: Foundation](phases/phase-01-foundation.md)
 2. Review [Phase 1 Checklist](checklists/phase-01-checklist.md)
 3. Execute tasks sequentially
 4. Log progress in [execution-logs/phase-01-execution.md](execution-logs/phase-01-execution.md)
 5. Mark checklist items complete as you go
-6. Update status in this README when phase completes
+6. Update status in [planning/completion-status.md](planning/completion-status.md) when phase completes
 
 **Daily Workflow:**
 ```bash
@@ -159,6 +200,37 @@ Each phase file is **self-contained** and includes:
 - **Next Phase**: Link to continue
 
 **Format**: ~500-1500 lines per file (LLM-friendly)
+
+### Planning Files (`planning/`)
+
+Project planning and status tracking documents:
+- **implementation-approach.md**: Pragmatic completion strategy for phases 4-11
+- **baseline-metrics.md**: Performance and cost baseline measurements with targets
+- **completion-status.md**: Detailed completion status of all phases and tasks
+- **completion-summary.md**: High-level completion summary for stakeholders
+- **deduplication-integration-plan.md**: Detailed deduplication integration strategy
+
+**Use Case**: Project planning, progress tracking, and stakeholder reporting
+
+### Handover Documents (`handover/`)
+
+Phase completion and knowledge transfer documentation:
+- **phase-6-handover.md**: Handover from AI Enrichment to Storage phase
+- **phase-7-handover.md**: Handover from Storage to Orchestrator phase
+- **phase-8-handover.md**: Handover from Orchestrator to API phase
+- **phase-8-testing-handover.md**: Testing-specific handover documentation
+
+**Use Case**: Knowledge transfer between phases and ensuring continuity
+
+### Testing Documentation (`testing/`)
+
+Comprehensive testing framework and reports:
+- **testing-framework.md**: Overall testing approach, strategy, and coverage targets
+- **phase-8-comprehensive-testing-plan.md**: Detailed testing plan for critical Phase 8
+- **phase-8-full-pipeline-testing-framework.md**: Complete pipeline testing framework
+- **local-ai-report/**: Detailed testing reports generated during implementation
+
+**Use Case**: Testing strategy, execution guidelines, and result analysis
 
 ### Implementation Files (`implementation/`)
 
