@@ -776,11 +776,23 @@ class OpportunityPipeline:
             has_opportunity = self.config.enable_opportunity_scoring
             has_profile = self.config.enable_profiler or self.config.enable_trust
 
+            # DEBUG: Log storage decision criteria
+            logger.info(f"Storage decision: has_opportunity={has_opportunity}, has_profile={has_profile}")
+            logger.info(f"Service config: enable_opportunity_scoring={self.config.enable_opportunity_scoring}, enable_profiler={self.config.enable_profiler}, enable_trust={self.config.enable_trust}")
+
+            # ENHANCEMENT FIX: Use EnhancedHybridStore for complete enrichment data persistence
+            # This ensures enrichment data is written to specialized tables for 90%+ field coverage
             if has_opportunity and has_profile:
-                # Use HybridStore for both opportunity and profile data
-                # PHASE 2: Pass supabase_client for trust data preservation
-                store = HybridStore(supabase_client=self.config.supabase_client)
-                logger.info("Using HybridStore for combined data")
+                # Use EnhancedHybridStore for complete enrichment data persistence
+                logger.info("Both opportunity and profile services enabled - attempting EnhancedHybridStore")
+                try:
+                    from core.storage.enhanced_hybrid_store import EnhancedHybridStore
+                    store = EnhancedHybridStore(supabase_client=self.config.supabase_client)
+                    logger.info("✓ Using EnhancedHybridStore for complete enrichment data persistence")
+                except ImportError as e:
+                    logger.warning(f"✗ EnhancedHybridStore not available, falling back to HybridStore: {e}")
+                    store = HybridStore(supabase_client=self.config.supabase_client)
+                    logger.info("✓ Using HybridStore for combined data")
             elif has_opportunity:
                 # Use OpportunityStore for opportunity data only
                 store = OpportunityStore()
@@ -792,13 +804,22 @@ class OpportunityPipeline:
 
             success = store.store(results)
 
-            # Log storage statistics
-            storage_stats = store.get_statistics()
-            logger.info(
-                f"[OK] Storage stats - Loaded: {storage_stats['loaded']}, "
-                f"Failed: {storage_stats['failed']}, "
-                f"Skipped: {storage_stats.get('skipped', 0)}"
-            )
+            # Log storage statistics (enhanced for specialized tables)
+            if hasattr(store, 'get_enhanced_statistics'):
+                storage_stats = store.get_enhanced_statistics()
+                logger.info(
+                    f"[OK] Enhanced storage stats - Loaded: {storage_stats['loaded']}, "
+                    f"Failed: {storage_stats['failed']}, "
+                    f"Skipped: {storage_stats.get('skipped', 0)}, "
+                    f"Enrichment tables: {len(storage_stats.get('enrichment_tables_written', []))}"
+                )
+            else:
+                storage_stats = store.get_statistics()
+                logger.info(
+                    f"[OK] Storage stats - Loaded: {storage_stats['loaded']}, "
+                    f"Failed: {storage_stats['failed']}, "
+                    f"Skipped: {storage_stats.get('skipped', 0)}"
+                )
             return success
 
         except Exception as e:

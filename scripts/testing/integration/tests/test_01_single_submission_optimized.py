@@ -464,8 +464,32 @@ def run_optimized_test(args) -> dict:
     print("\nApplying field mapping fixes...")
     fixed_submission = fix_field_mapping(enriched_submission)
 
-    # Calculate field coverage with fixed data
-    field_coverage, populated_fields = calculate_field_coverage(fixed_submission)
+    # Get the actual database UUID submission_id from the enriched submission
+    # The pipeline converts non-UUID submission_ids (like "hybrid_1") to valid UUIDs
+    # We need to use the actual UUID for querying enrichment tables
+    db_submission_id = fixed_submission.get("submission_id", submission_id)
+    if db_submission_id != submission_id:
+        print(f"  - Original submission_id: {submission_id}")
+        print(f"  - Database submission_id (UUID): {db_submission_id}")
+    else:
+        print(f"  - Using submission_id: {db_submission_id}")
+
+    # ENHANCEMENT FIX: Use enhanced field coverage calculation that checks specialized tables
+    print("\nCalculating enhanced field coverage (checking specialized enrichment tables)...")
+
+    try:
+        from utils.enhanced_metrics import calculate_enhanced_field_coverage
+        field_coverage, populated_fields = calculate_enhanced_field_coverage(
+            enriched_submission=fixed_submission,
+            supabase_client=supabase_client,
+            submission_id=db_submission_id
+        )
+        print("✓ Using enhanced field coverage calculation (checks specialized tables)")
+    except ImportError as e:
+        print(f"⚠️  Enhanced metrics not available, using basic calculation: {e}")
+        from utils.metrics import calculate_field_coverage
+        field_coverage, populated_fields = calculate_field_coverage(fixed_submission)
+        print("✓ Using basic field coverage calculation")
 
     print(f"\n✓ Submission enriched successfully")
     print(f"  - Fields populated: {len(populated_fields)}/38")
@@ -478,6 +502,34 @@ def run_optimized_test(args) -> dict:
         print(f"⚠️  FIELD COVERAGE ACCEPTABLE: {field_coverage:.1f}% ≥ 80%")
     else:
         print(f"❌ FIELD COVERAGE TARGET MISSED: {field_coverage:.1f}% < 90%")
+    print("")
+
+    # ENHANCEMENT FIX: Validate enrichment tables are actually populated
+    print("Validating enrichment table population...")
+    try:
+        from utils.enhanced_metrics import validate_enrichment_tables_populated
+        table_validation = validate_enrichment_tables_populated(supabase_client, db_submission_id)
+
+        print("Enrichment Table Validation:")
+        for table_name, is_populated in table_validation.items():
+            status = "✓ POPULATED" if is_populated else "✗ EMPTY"
+            print(f"  {table_name:25s} {status}")
+
+        # Count populated tables
+        populated_tables = sum(1 for is_populated in table_validation.values() if is_populated)
+        total_tables = len(table_validation)
+        table_coverage = (populated_tables / total_tables * 100)
+
+        print(f"\nEnrichment table coverage: {populated_tables}/{total_tables} ({table_coverage:.1f}%)")
+
+        if table_coverage < 80:
+            print("⚠️  WARNING: Low enrichment table coverage - data persistence issue")
+
+    except ImportError as e:
+        print(f"⚠️  Table validation not available: {e}")
+    except Exception as e:
+        print(f"❌ Table validation failed: {e}")
+
     print("")
 
     # Track service execution (from pipeline stats)

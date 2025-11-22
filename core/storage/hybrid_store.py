@@ -22,18 +22,18 @@ APP_OPPORTUNITIES_COLUMNS = {
     "opportunity_score": {"data_type": "double"},
     "final_score": {"data_type": "double"},
     "status": {"data_type": "text"},
-    # ProfilerService enrichment fields - CRITICAL JSONB FIELDS
+    # ProfilerService enrichment fields - CRITICAL JSON FIELDS
     "ai_profile": {"data_type": "json"},
     "app_name": {"data_type": "text"},
     "app_category": {"data_type": "text"},
     "profession": {"data_type": "text"},
     "core_problems": {"data_type": "json"},
-    # OpportunityService enrichment fields - CRITICAL JSONB FIELDS
+    # OpportunityService enrichment fields - CRITICAL JSON FIELDS
     "dimension_scores": {"data_type": "json"},
     "priority": {"data_type": "text"},
     "confidence": {"data_type": "double"},
     "evidence_based": {"data_type": "bool"},
-    # TrustService enrichment fields - CRITICAL JSONB FIELDS
+    # TrustService enrichment fields - CRITICAL JSON FIELDS
     "trust_score": {"data_type": "double"},
     "trust_badge": {"data_type": "text"},
     "activity_score": {"data_type": "double"},
