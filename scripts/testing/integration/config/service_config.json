@@ -49,8 +49,8 @@
     },
 
     "monetization": {
-      "enabled": true,
-      "description": "Multi-agent monetization analysis using Agno framework",
+      "enabled": false,
+      "description": "Multi-agent monetization analysis using Agno framework (DISABLED: insufficient OpenRouter credits)",
       "config": {
         "use_agno": true,
         "model": "openai/gpt-4o-mini",

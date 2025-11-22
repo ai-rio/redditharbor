@@ -31,9 +31,8 @@ classifiers = [
 
 # Core dependencies
 dependencies = [
-    # Reddit API
+    # Reddit API (usingpraw only, asyncpraw conflicts with crawl4ai)
     "praw>=7.6.0",
-    "asyncpraw>=7.6.0",
     # Data processing
     "pandas>=1.5.0",
     "numpy>=1.21.0",
@@ -84,6 +83,22 @@ prompt-optimization = [
     "dspy-ai>=2.5.0",
     # Note: Promptfoo is a Node.js tool, install via: npm install -g promptfoo
 ]
+
+# Async Reddit API (conflicts with crawl4ai)
+async-reddit = [
+    "asyncpraw>=7.6.0",
+]
+
+# Web crawling with Crawl4AI (conflicts with asyncpraw)
+web-crawler = [
+    "crawl4ai>=0.3.73",
+    "aiosqlite>=0.20.0",  # Crawl4AI requires newer aiosqlite
+]
+
+# Note: asyncpraw and crawl4ai cannot be installed together due to aiosqlite conflicts
+# Install separately:
+# - For async Reddit: uv sync --extra async-reddit
+# - For web crawling: uv sync --extra web-crawler
 
 dev = [
     "pytest>=7.0.0",

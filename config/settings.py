@@ -179,6 +179,40 @@ MARKET_VALIDATION_MIN_COMPETITORS = int(os.getenv("MARKET_VALIDATION_MIN_COMPETI
 MARKET_VALIDATION_MAX_SEARCHES = int(os.getenv("MARKET_VALIDATION_MAX_SEARCHES", "10"))
 
 # =============================================================================
+# HYBRID WEB CRAWLER CONFIGURATION (Crawl4AI + Jina AI)
+# =============================================================================
+# Smart crawler that combines Crawl4AI (primary) with Jina AI (fallback)
+# - Crawl4AI: No token limits, full browser control, better for complex sites
+# - Jina AI: Simple API integration, good for basic content extraction
+# - Automatic switching based on performance and success rates
+# =============================================================================
+
+# Enable/disable hybrid crawler functionality
+HYBRID_CRAWLER_ENABLED = os.getenv("HYBRID_CRAWLER_ENABLED", "true").lower() == "true"
+
+# Crawler preferences
+HYBRID_CRAWLER_ENABLE_CRAWL4AI = os.getenv("HYBRID_CRAWLER_ENABLE_CRAWL4AI", "true").lower() == "true"
+HYBRID_CRAWLER_ENABLE_JINA_FALLBACK = os.getenv("HYBRID_CRAWLER_ENABLE_JINA_FALLBACK", "true").lower() == "true"
+
+# Performance thresholds
+HYBRID_CRAWLER_PERFORMANCE_THRESHOLD = float(os.getenv("HYBRID_CRAWLER_PERFORMANCE_THRESHOLD", "80.0"))  # Switch if success rate below this
+HYBRID_CRAWLER_ENABLE_QUALITY_COMPARISON = os.getenv("HYBRID_CRAWLER_ENABLE_QUALITY_COMPARISON", "false").lower() == "true"
+
+# Crawl4AI specific settings
+HYBRID_CRAWLER_CRAWL4AI_TIMEOUT = int(os.getenv("HYBRID_CRAWLER_CRAWL4AI_TIMEOUT", "30"))  # seconds
+HYBRID_CRAWLER_CRAWL4AI_HEADLESS = os.getenv("HYBRID_CRAWLER_CRAWL4AI_HEADLESS", "true").lower() == "true"
+HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_WIDTH = int(os.getenv("HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_WIDTH", "1920"))
+HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_HEIGHT = int(os.getenv("HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_HEIGHT", "1080"))
+
+# Fallback behavior
+HYBRID_CRAWLER_USE_FALLBACK = os.getenv("HYBRID_CRAWLER_USE_FALLBACK", "true").lower() == "true"
+HYBRID_CRAWLER_FALLBACK_TIMEOUT = int(os.getenv("HYBRID_CRAWLER_FALLBACK_TIMEOUT", "30"))  # seconds
+
+# Token usage monitoring for Jina AI
+HYBRID_CRAWLER_JINA_TOKEN_THRESHOLD = int(os.getenv("HYBRID_CRAWLER_JINA_TOKEN_THRESHOLD", "1000000"))  # Switch to Crawl4AI near token limits
+HYBRID_CRAWLER_MONITOR_TOKEN_USAGE = os.getenv("HYBRID_CRAWLER_MONITOR_TOKEN_USAGE", "true").lower() == "true"
+
+# =============================================================================
 # DATABASE CONFIGURATION FUNCTION
 # =============================================================================
 
