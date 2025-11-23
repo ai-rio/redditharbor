@@ -27,7 +27,15 @@ DATASET_NAME = "public"
 
 def create_app_opportunities_pipeline() -> dlt.Pipeline:
     """Create DLT pipeline for app_opportunities table."""
-    connection_string = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    # Use secure database configuration from config/settings
+    from config.settings import DATABASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+
+    # Use DATABASE_URL if available (most secure)
+    if DATABASE_URL:
+        connection_string = DATABASE_URL
+    else:
+        # Build connection string from environment variables
+        connection_string = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,

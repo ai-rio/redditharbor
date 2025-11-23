@@ -166,9 +166,17 @@ def collect_niche_data(niches: dict, posts_per_niche: int = 100, sort_type: str 
             }
             transformed_posts.append(transformed_post)
 
-        # Create custom pipeline with new dataset to avoid schema conflicts
-        connection_string = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+        # Use secure database configuration from config/settings
+        from config.settings import DATABASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 
+        # Use DATABASE_URL if available (most secure)
+        if DATABASE_URL:
+            connection_string = DATABASE_URL
+        else:
+            # Build connection string from environment variables
+            connection_string = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+        # Create custom pipeline with new dataset to avoid schema conflicts
         pipeline = dlt.pipeline(
             pipeline_name="niche_collection_pipeline",
             destination=dlt.destinations.postgres(connection_string),

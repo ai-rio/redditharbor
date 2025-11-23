@@ -28,7 +28,10 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from dotenv import load_dotenv
+from config.settings import get_psycopg2_config
+
 load_dotenv(project_root / ".env.local")
+load_dotenv(project_root / ".env", override=False)
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +42,15 @@ class SchemaValidator:
     def __init__(self):
         self.supabase_url = os.getenv('SUPABASE_URL')
         self.supabase_key = os.getenv('SUPABASE_KEY')
-        self.db_url = os.getenv('DATABASE_URL') or self._get_db_url_from_supabase()
+        self.db_config = get_psycopg2_config()
 
-    def _get_db_url_from_supabase(self) -> str:
-        """Extract PostgreSQL URL from Supabase URL."""
-        # Extract host from SUPABASE_URL and construct PostgreSQL connection
-        supabase_host = self.supabase_url.replace('https://', '').replace('http://', '')
-        return f"postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    def _get_db_url(self) -> str:
+        """Get PostgreSQL URL using secure configuration."""
+        if isinstance(self.db_config, str):
+            return self.db_config  # It's already a connection string
+
+        # Build connection string from config dict
+        return f"postgresql://{self.db_config['user']}:{self.db_config['password']}@{self.db_config['host']}:{self.db_config['port']}/{self.db_config['database']}"
 
     def get_actual_schema(self) -> Dict[str, Any]:
         """Extract current database schema."""
@@ -57,7 +62,10 @@ class SchemaValidator:
         }
 
         try:
-            conn = psycopg2.connect(self.db_url)
+            if isinstance(self.db_config, str):
+                conn = psycopg2.connect(self.db_config)
+            else:
+                conn = psycopg2.connect(**self.db_config)
             cursor = conn.cursor(cursor_factory=DictCursor)
 
             # Get tables and columns

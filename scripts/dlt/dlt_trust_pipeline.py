@@ -577,10 +577,20 @@ def load_trusted_opportunities_to_supabase(posts: list[dict[str, Any]], test_mod
                 # DLT automatically handles Python list to JSONB conversion
                 yield profile
 
+        # Use secure database configuration from config/settings
+        from config.settings import DATABASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+
+        # Use DATABASE_URL if available (most secure)
+        if DATABASE_URL:
+            connection_string = DATABASE_URL
+        else:
+            # Build connection string from environment variables
+            connection_string = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
         # Create new pipeline for app_opportunities_trust
         trust_pipeline = dlt.pipeline(
             pipeline_name="reddit_harbor_trust_opportunities",
-            destination=dlt.destinations.postgres("postgresql://postgres:postgres@127.0.0.1:54322/postgres"),
+            destination=dlt.destinations.postgres(connection_string),
             dataset_name="public"
         )
 

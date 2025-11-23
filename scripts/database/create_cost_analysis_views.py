@@ -25,43 +25,18 @@ except ImportError:
     from psycopg2.extras import DictCursor
 
 from dotenv import load_dotenv
-
+from config.settings import get_psycopg2_config
 
 def get_database_connection():
-    """Get database connection using Supabase credentials."""
+    """Get database connection using secure configuration."""
     load_dotenv(project_root / '.env.local')
+    load_dotenv(project_root / '.env', override=False)
 
-    db_url = os.getenv("SUPABASE_DB_URL")
-    if db_url:
-        return psycopg2.connect(db_url)
-
-    supabase_url = os.getenv("SUPABASE_URL", "")
-    supabase_key = os.getenv("SUPABASE_KEY")
-
-    if not supabase_url or not supabase_key:
-        raise ValueError("Missing database credentials")
-
-    # Parse Supabase URL for local development
-    if "http://127.0.0.1" in supabase_url:
-        # Extract host from URL like http://127.0.0.1:54321
-        host = "127.0.0.1"
-        port = "54322"
-        # For local development, the password is 'postgres'
-        password = "postgres"
-    elif "https://" in supabase_url:
-        # Remove https:// and any path
-        host = supabase_url.replace("https://", "").split("/")[0]
-        port = "5432"  # Default PostgreSQL port for production
-        password = supabase_key
+    db_config = get_psycopg2_config()
+    if isinstance(db_config, str):
+        return psycopg2.connect(db_config)
     else:
-        # Assume it's already a hostname
-        host = supabase_url
-        port = "5432"
-        password = supabase_key
-
-    # Construct connection string
-    conn_string = f"postgresql://postgres:{password}@{host}:{port}/postgres"
-    return psycopg2.connect(conn_string)
+        return psycopg2.connect(**db_config)
 
 
 def create_cost_analysis_views(conn) -> Dict[str, Any]:

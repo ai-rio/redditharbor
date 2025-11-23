@@ -6,6 +6,7 @@ This script directly tests the EnhancedHybridStore to verify it can write data
 to enrichment tables. This bypasses the pipeline to isolate the storage issue.
 """
 
+import os
 import sys
 import json
 import logging
@@ -14,6 +15,13 @@ from pathlib import Path
 # Add project root to Python path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
+
+from dotenv import load_dotenv
+from config.settings import SUPABASE_URL, SUPABASE_KEY
+
+# Load environment variables
+load_dotenv(project_root / '.env.local', override=True)
+load_dotenv(project_root / '.env', override=False)
 
 from supabase import create_client
 from core.storage.enhanced_hybrid_store import EnhancedHybridStore
@@ -28,9 +36,11 @@ logger = logging.getLogger(__name__)
 def test_enhanced_store():
     """Test EnhancedHybridStore with sample data."""
 
-    # Supabase configuration
-    SUPABASE_URL = "http://127.0.0.1:54330"
-    SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+    # Supabase configuration from environment variables (loaded in config/settings)
+    if not SUPABASE_URL:
+        raise ValueError("SUPABASE_URL environment variable is required")
+    if not SUPABASE_KEY:
+        raise ValueError("SUPABASE_KEY environment variable is required")
 
     try:
         # Initialize Supabase client

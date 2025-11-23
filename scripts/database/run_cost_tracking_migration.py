@@ -24,52 +24,26 @@ except ImportError:
     from psycopg2.extras import DictCursor
 
 from dotenv import load_dotenv
-
+from config.settings import get_psycopg2_config
 
 def get_database_connection():
     """
-    Get database connection using Supabase credentials.
+    Get database connection using secure configuration.
 
     Returns:
         psycopg2 connection object
     """
     # Load environment variables
     load_dotenv(project_root / '.env.local')
+    load_dotenv(project_root / '.env', override=False)
 
-    # Get Supabase connection details
-    db_url = os.getenv("SUPABASE_DB_URL")
-    if db_url:
-        return psycopg2.connect(db_url)
-
-    # Fallback to individual credentials
-    supabase_url = os.getenv("SUPABASE_URL", "")
-    supabase_key = os.getenv("SUPABASE_KEY")
-
-    if not supabase_url or not supabase_key:
-        raise ValueError("Missing database credentials. Please check SUPABASE_URL and SUPABASE_KEY in .env.local")
-
-    # Parse Supabase URL for local development
-    if "http://127.0.0.1" in supabase_url:
-        # Extract host from URL like http://127.0.0.1:54321
-        host = "127.0.0.1"
-        port = "54322"
-        # For local development, the password is 'postgres'
-        password = "postgres"
-    elif "https://" in supabase_url:
-        # Remove https:// and any path
-        host = supabase_url.replace("https://", "").split("/")[0]
-        port = "5432"  # Default PostgreSQL port for production
-        password = supabase_key
+    db_config = get_psycopg2_config()
+    if isinstance(db_config, str):
+        print(f"  Connecting using DATABASE_URL")
+        return psycopg2.connect(db_config)
     else:
-        # Assume it's already a hostname
-        host = supabase_url
-        port = "5432"
-        password = supabase_key
-
-    # Construct connection string
-    conn_string = f"postgresql://postgres:{password}@{host}:{port}/postgres"
-    print(f"  Connecting to: {host}:{port}")
-    return psycopg2.connect(conn_string)
+        print(f"  Connecting to: {db_config['host']}:{db_config['port']}")
+        return psycopg2.connect(**db_config)
 
 
 def execute_migration(conn, migration_file: Path) -> Dict[str, Any]:

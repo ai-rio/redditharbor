@@ -462,10 +462,9 @@ def collect_post_comments(
 
 
 def create_dlt_pipeline() -> dlt.Pipeline:
-    """Create and configure DLT pipeline with explicit Postgres connection string."""
-    # Use connection string for Postgres destination
-    # Format: postgresql://username:password@host:port/database
-    connection_string = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    """Create and configure DLT pipeline with secure Postgres connection."""
+    # Use secure database configuration
+    connection_string = get_database_connection_string()
 
     pipeline = dlt.pipeline(
         pipeline_name=PIPELINE_NAME,
@@ -473,6 +472,18 @@ def create_dlt_pipeline() -> dlt.Pipeline:
         dataset_name=DATASET_NAME
     )
     return pipeline
+
+
+def get_database_connection_string() -> str:
+    """Get secure database connection string from environment."""
+    from config.settings import DATABASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+
+    # Use DATABASE_URL if available (most secure)
+    if DATABASE_URL:
+        return DATABASE_URL
+
+    # Build connection string from environment variables
+    return f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 
 def load_to_supabase(problem_posts: list[dict[str, Any]], write_mode: str = "merge") -> bool:

@@ -37,24 +37,32 @@ def define_colors():
 
 @app.cell
 def database_config():
-    """Database connection configuration"""
+    """Secure database connection configuration using environment variables"""
+    import os
+
+    # Get database configuration from environment variables
+    db_host = os.getenv('DB_HOST', '127.0.0.1')
+    db_port = int(os.getenv('DB_PORT', '54322'))
+    db_name = os.getenv('DB_NAME', 'postgres')
+    db_user = os.getenv('DB_USER', 'postgres')
+    db_password = os.getenv('DB_PASSWORD', 'postgres')
 
     DB_CONFIG = {
-        'host': '127.0.0.1',
-        'port': 54322,
-        'database': 'postgres',
-        'user': 'postgres',
-        'password': 'postgres'
+        'host': db_host,
+        'port': db_port,
+        'database': db_name,
+        'user': db_user,
+        'password': db_password
     }
     return (DB_CONFIG,)
 
 
 @app.cell
 def database_connection(DB_CONFIG, create_engine, mo, text):
-    """Create database connection with error handling"""
+    """Create secure database connection with error handling"""
 
     def get_db_engine():
-        """Create SQLAlchemy engine for database"""
+        """Create SQLAlchemy engine for database using secure config"""
         try:
             conn_str = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
             engine = create_engine(conn_str)

@@ -213,6 +213,21 @@ HYBRID_CRAWLER_JINA_TOKEN_THRESHOLD = int(os.getenv("HYBRID_CRAWLER_JINA_TOKEN_T
 HYBRID_CRAWLER_MONITOR_TOKEN_USAGE = os.getenv("HYBRID_CRAWLER_MONITOR_TOKEN_USAGE", "true").lower() == "true"
 
 # =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# Database configuration - supports both URL and individual parameters
+# Priority: DATABASE_URL > Individual DB_* variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Individual database parameters (used if DATABASE_URL not set)
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT = int(os.getenv("DB_PORT", "54322"))
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
+DB_NAME = os.getenv("DB_NAME", "postgres")
+
+# =============================================================================
 # DATABASE CONFIGURATION FUNCTION
 # =============================================================================
 
@@ -223,6 +238,15 @@ def get_database_config():
     Returns:
         dict: Database connection parameters for asyncpg
     """
+    # Use DATABASE_URL if available (most secure)
+    if DATABASE_URL:
+        # For asyncpg, we need to parse the URL or pass it directly
+        return {
+            'dsn': DATABASE_URL,
+            'min_size': 2,
+            'max_size': 10
+        }
+
     # Parse Supabase URL to extract connection details
     supabase_url = SUPABASE_URL
     if supabase_url.endswith('/'):
@@ -231,8 +255,8 @@ def get_database_config():
     # Extract host and port from Supabase URL
     if 'localhost' in supabase_url or '127.0.0.1' in supabase_url:
         # Local development setup
-        host = '127.0.0.1'
-        port = 54322  # Default Supabase local port
+        host = DB_HOST
+        port = DB_PORT
     else:
         # Production setup - parse from URL
         # Expected format: https://<project>.supabase.co
@@ -242,11 +266,31 @@ def get_database_config():
     return {
         'host': host,
         'port': port,
-        'user': 'postgres',
-        'password': 'postgres',
-        'database': 'postgres',
+        'user': DB_USER,
+        'password': DB_PASSWORD,
+        'database': DB_NAME,
         'min_size': 2,
         'max_size': 10
+    }
+
+def get_psycopg2_config():
+    """
+    Get database configuration for psycopg2 connections.
+
+    Returns:
+        dict: Database connection parameters for psycopg2 or connection string
+    """
+    # Use DATABASE_URL if available (most secure)
+    if DATABASE_URL:
+        return DATABASE_URL
+
+    # Use individual environment variables
+    return {
+        'host': DB_HOST,
+        'port': DB_PORT,
+        'user': DB_USER,
+        'password': DB_PASSWORD,
+        'database': DB_NAME
     }
 
 
