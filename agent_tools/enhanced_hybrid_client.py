@@ -9,15 +9,17 @@ Extends the existing JinaHybridClient with intelligent Crawl4AI integration:
 - Token usage monitoring and proactive switching
 """
 
-import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from agent_tools.crawl_result_normalizer import (
+    CrawlResultNormalizer,
+    NormalizedCrawlResult,
+)
 from agent_tools.hybrid_crawler import CrawlerType, HybridWebCrawler
-from agent_tools.jina_hybrid_client import JinaHybridClient, MCPCapability
-from agent_tools.crawl_result_normalizer import CrawlResultNormalizer, NormalizedCrawlResult
+from agent_tools.jina_hybrid_client import JinaHybridClient
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -224,7 +226,7 @@ class EnhancedHybridClient:
             # Return raw result if normalization disabled
             return raw_result
 
-    async def search(self, query: str, max_results: int = 10) -> List[Any]:
+    async def search(self, query: str, max_results: int = 10) -> list[Any]:
         """
         Perform web search using Jina AI (Crawl4AI doesn't have search capabilities)
 
@@ -318,7 +320,7 @@ class EnhancedHybridClient:
             logger.error(f"Crawl4AI read failed for {url}: {e}")
             raise
 
-    async def _search_with_jina(self, query: str, max_results: int) -> List[Any]:
+    async def _search_with_jina(self, query: str, max_results: int) -> list[Any]:
         """Search using Jina AI"""
         try:
             return self.jina_client._primary_client.search(query, max_results=max_results)
@@ -326,7 +328,7 @@ class EnhancedHybridClient:
             logger.error(f"Jina AI search failed for '{query}': {e}")
             return []
 
-    async def _compare_results(self, url: str, jina_result: Any, crawl4ai_result: Optional[Any]) -> None:
+    async def _compare_results(self, url: str, jina_result: Any, crawl4ai_result: Any | None) -> None:
         """Compare results quality between crawlers"""
         if not self.crawl4ai_client:
             return
@@ -371,7 +373,7 @@ class EnhancedHybridClient:
         self.token_stats.daily_usage = estimated_tokens
         self.token_stats.hourly_usage = estimated_tokens % self.token_stats.hourly_limit
 
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_performance_stats(self) -> dict[str, Any]:
         """Get comprehensive performance statistics"""
         jina_rate = self._get_jina_success_rate()
         crawl4ai_rate = 0.0
@@ -418,9 +420,9 @@ class EnhancedHybridClient:
 
 # Factory function for easy instantiation
 def create_enhanced_hybrid_client(
-    enable_crawl4ai: Optional[bool] = None,
-    token_threshold: Optional[float] = None,
-    performance_threshold: Optional[float] = None
+    enable_crawl4ai: bool | None = None,
+    token_threshold: float | None = None,
+    performance_threshold: float | None = None
 ) -> EnhancedHybridClient:
     """
     Factory function to create enhanced hybrid client with settings from config

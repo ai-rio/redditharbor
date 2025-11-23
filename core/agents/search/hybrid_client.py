@@ -20,12 +20,13 @@ import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from config import settings
+
 from .reader_client import (
     JinaResponse,
     RateLimiter,
     SearchResult,
 )
-from config import settings
 
 logger = logging.getLogger(__name__)
 

@@ -11,12 +11,11 @@ consistent data format throughout the pipeline. Handles:
 4. Quality assessment with consistent metrics
 """
 
-import re
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Dict, Optional
-from urllib.parse import urlparse
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ class NormalizedCrawlResult:
     # Core content
     content: str
     url: str
-    title: Optional[str] = None
+    title: str | None = None
 
     # Standardized metadata
     source_crawler: str = "unknown"
@@ -308,7 +307,7 @@ class CrawlResultNormalizer:
 
         return jina_string.strip()
 
-    def _extract_jina_title_from_string(self, jina_string: str) -> Optional[str]:
+    def _extract_jina_title_from_string(self, jina_string: str) -> str | None:
         """Extract title from Jina AI string response"""
         # Look for Title: line
         title_match = re.search(r'^Title:\s*(.+)$', jina_string, re.MULTILINE)
@@ -386,7 +385,7 @@ class CrawlResultNormalizer:
 
         return content
 
-    def get_normalization_stats(self) -> Dict[str, Any]:
+    def get_normalization_stats(self) -> dict[str, Any]:
         """Get statistics about normalization performed"""
         return self.normalization_stats.copy()
 

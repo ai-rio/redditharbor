@@ -15,10 +15,9 @@ import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from agent_tools.jina_reader_client import JinaReaderClient, JinaResponse
-from config import settings
+from agent_tools.jina_reader_client import JinaReaderClient
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +33,10 @@ class CrawlResult:
     """Unified result from any crawler"""
     content: str
     url: str
-    title: Optional[str] = None
+    title: str | None = None
     crawler_used: CrawlerType = CrawlerType.CRAWL4AI
     success: bool = True
-    error_message: Optional[str] = None
+    error_message: str | None = None
     response_time: float = 0.0
     word_count: int = 0
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -60,7 +59,7 @@ class CrawlerPerformance:
     failed_requests: int = 0
     average_response_time: float = 0.0
     average_quality_score: float = 0.0
-    last_used: Optional[datetime] = None
+    last_used: datetime | None = None
 
     @property
     def success_rate(self) -> float:
@@ -100,7 +99,7 @@ class HybridWebCrawler:
         }
 
         # Initialize clients
-        self.jina_client: Optional[JinaReaderClient] = None
+        self.jina_client: JinaReaderClient | None = None
         self.crawl4ai_available = False
 
         # Setup clients
@@ -141,7 +140,7 @@ class HybridWebCrawler:
     async def crawl_url(
         self,
         url: str,
-        prefer_crawler: Optional[CrawlerType] = None,
+        prefer_crawler: CrawlerType | None = None,
         use_fallback: bool = True,
         timeout: int = 30
     ) -> CrawlResult:
@@ -210,7 +209,7 @@ class HybridWebCrawler:
             response_time=time.time() - start_time
         )
 
-    def _get_optimal_crawler_order(self) -> List[CrawlerType]:
+    def _get_optimal_crawler_order(self) -> list[CrawlerType]:
         """Get crawler order based on performance and availability"""
         order = []
 
@@ -297,7 +296,7 @@ class HybridWebCrawler:
                 url=url,
                 crawler_used=CrawlerType.CRAWL4AI,
                 success=False,
-                error_message=f"Crawl4AI error: {str(e)}"
+                error_message=f"Crawl4AI error: {e!s}"
             )
 
     async def _crawl_with_jina(self, url: str, timeout: int) -> CrawlResult:
@@ -332,11 +331,11 @@ class HybridWebCrawler:
                 url=url,
                 crawler_used=CrawlerType.JINA_AI,
                 success=False,
-                error_message=f"Jina AI error: {str(e)}"
+                error_message=f"Jina AI error: {e!s}"
             )
 
     async def _compare_quality(
-        self, url: str, primary_result: CrawlResult, crawler_order: List[CrawlerType]
+        self, url: str, primary_result: CrawlResult, crawler_order: list[CrawlerType]
     ) -> None:
         """Compare results from different crawlers for quality assessment"""
         if len(crawler_order) < 2:
@@ -389,7 +388,7 @@ class HybridWebCrawler:
         else:
             perf.failed_requests += 1
 
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_performance_stats(self) -> dict[str, Any]:
         """Get current performance statistics"""
         return {
             crawler_type.value: {

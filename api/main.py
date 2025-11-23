@@ -19,32 +19,39 @@ Version: 2.0.0
 """
 
 import asyncio
+import json
 import logging
+import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
-import json
-import os
+from typing import Any
 
+import redis.asyncio as redis
+import uvicorn
 from fastapi import (
-    FastAPI, HTTPException, Depends, status, BackgroundTasks,
-    WebSocket, WebSocketDisconnect, Request, Response, UploadFile, File
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
-import uvicorn
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, validator
-import redis.asyncio as redis
-from supabase import create_client
-import httpx
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
+from supabase import create_client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -75,7 +82,7 @@ async def lifespan(app: FastAPI):
         os.getenv('SUPABASE_KEY')
     )
 
-    app.state.active_websockets: Dict[str, WebSocket] = {}
+    app.state.active_websockets: dict[str, WebSocket] = {}
 
     logger.info("✅ RedditHarbor API startup complete")
 
@@ -151,7 +158,7 @@ class BaseResponse(BaseModel):
 class ErrorResponse(BaseResponse):
     success: bool = False
     error_code: str
-    details: Optional[Dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
 # Authentication Models
 class TokenRequest(BaseModel):
@@ -163,7 +170,7 @@ class TokenResponse(BaseResponse):
     token_type: str = "bearer"
     expires_in: int
     user_id: str
-    permissions: List[str]
+    permissions: list[str]
 
 # Profiler Models
 class ProfilerRequest(BaseModel):
@@ -171,9 +178,9 @@ class ProfilerRequest(BaseModel):
     submission_title: str
     submission_content: str
     subreddit: str
-    author: Optional[str] = None
-    score: Optional[int] = 0
-    num_comments: Optional[int] = 0
+    author: str | None = None
+    score: int | None = 0
+    num_comments: int | None = 0
 
     @validator('submission_content')
     def validate_content_length(cls, v):
@@ -183,16 +190,16 @@ class ProfilerRequest(BaseModel):
 
 class ProfilerResponse(BaseResponse):
     submission_id: str
-    app_name: Optional[str]
-    app_concept: Optional[str]
-    problem_description: Optional[str]
-    core_functions: List[str] = []
-    value_proposition: Optional[str]
-    target_user: Optional[str]
-    monetization_model: Optional[str]
-    ai_confidence: Optional[float]
-    cost_tracking: Optional[Dict[str, Any]]
-    evidence_validation: Optional[Dict[str, Any]]
+    app_name: str | None
+    app_concept: str | None
+    problem_description: str | None
+    core_functions: list[str] = []
+    value_proposition: str | None
+    target_user: str | None
+    monetization_model: str | None
+    ai_confidence: float | None
+    cost_tracking: dict[str, Any] | None
+    evidence_validation: dict[str, Any] | None
 
 # Opportunity Scoring Models
 class OpportunityRequest(BaseModel):
@@ -200,10 +207,10 @@ class OpportunityRequest(BaseModel):
     title: str
     content: str
     subreddit: str
-    author: Optional[str] = None
-    score: Optional[int] = 0
-    num_comments: Optional[int] = 0
-    created_utc: Optional[str] = None
+    author: str | None = None
+    score: int | None = 0
+    num_comments: int | None = 0
+    created_utc: str | None = None
 
 class OpportunityResponse(BaseResponse):
     submission_id: str
@@ -214,8 +221,8 @@ class OpportunityResponse(BaseResponse):
     technical_feasibility_score: float
     simplicity_score: float
     final_score: float
-    reasoning: Optional[str]
-    evidence_summary: Optional[Dict[str, Any]]
+    reasoning: str | None
+    evidence_summary: dict[str, Any] | None
 
 # Monetization Models
 class MonetizationRequest(BaseModel):
@@ -223,22 +230,22 @@ class MonetizationRequest(BaseModel):
     title: str
     content: str
     subreddit: str
-    existing_analysis: Optional[Dict[str, Any]] = None
+    existing_analysis: dict[str, Any] | None = None
 
 class MonetizationResponse(BaseResponse):
     submission_id: str
     llm_monetization_score: float
-    customer_segment: Optional[str]
+    customer_segment: str | None
     willingness_to_pay_score: float
     price_sensitivity_score: float
     revenue_potential_score: float
-    payment_sentiment: Optional[str]
-    urgency_level: Optional[str]
-    existing_payment_behavior: Optional[List[str]]
-    mentioned_price_points: Optional[List[str]]
-    payment_friction_indicators: Optional[List[str]]
-    confidence: Optional[float]
-    reasoning: Optional[str]
+    payment_sentiment: str | None
+    urgency_level: str | None
+    existing_payment_behavior: list[str] | None
+    mentioned_price_points: list[str] | None
+    payment_friction_indicators: list[str] | None
+    confidence: float | None
+    reasoning: str | None
 
 # Trust Validation Models
 class TrustRequest(BaseModel):
@@ -246,34 +253,34 @@ class TrustRequest(BaseModel):
     title: str
     content: str
     subreddit: str
-    author: Optional[str] = None
-    score: Optional[int] = 0
-    num_comments: Optional[int] = 0
-    created_utc: Optional[str] = None
+    author: str | None = None
+    score: int | None = 0
+    num_comments: int | None = 0
+    created_utc: str | None = None
 
 class TrustResponse(BaseResponse):
     submission_id: str
     trust_score: float
-    engagement_level: Optional[str]
-    problem_validity: Optional[str]
-    discussion_quality: Optional[str]
-    ai_confidence_level: Optional[str]
-    trust_factors: Optional[Dict[str, Any]]
+    engagement_level: str | None
+    problem_validity: str | None
+    discussion_quality: str | None
+    ai_confidence_level: str | None
+    trust_factors: dict[str, Any] | None
 
 # Market Validation Models
 class MarketValidationRequest(BaseModel):
     submission_id: str
-    app_concept: Optional[str]
-    problem_description: Optional[str]
-    target_competitors: Optional[List[str]] = []
+    app_concept: str | None
+    problem_description: str | None
+    target_competitors: list[str] | None = []
 
 class MarketValidationResponse(BaseResponse):
     submission_id: str
     market_validation_score: float
-    competitor_analysis: Optional[Dict[str, Any]]
-    market_evidence: Optional[Dict[str, Any]]
-    validation_summary: Optional[str]
-    confidence: Optional[float]
+    competitor_analysis: dict[str, Any] | None
+    market_evidence: dict[str, Any] | None
+    validation_summary: str | None
+    confidence: float | None
 
 # Pipeline Models
 class PipelineConfig(BaseModel):
@@ -289,37 +296,37 @@ class PipelineConfig(BaseModel):
 class PipelineRequest(BaseModel):
     source: str = Field(..., description="Data source: 'database' or 'reddit'")
     limit: int = Field(100, ge=1, le=1000, description="Number of submissions to process")
-    subreddits: Optional[List[str]] = Field(None, description="Subreddits for Reddit API source")
+    subreddits: list[str] | None = Field(None, description="Subreddits for Reddit API source")
     config: PipelineConfig = Field(default_factory=PipelineConfig)
     test_mode: bool = Field(False, description="Run in test mode without persistent storage")
 
 class PipelineResponse(BaseResponse):
     pipeline_id: str
     status: str
-    stats: Dict[str, Any]
-    summary: Optional[str]
-    opportunities: Optional[List[Dict[str, Any]]]
+    stats: dict[str, Any]
+    summary: str | None
+    opportunities: list[dict[str, Any]] | None
 
 class PipelineStatusResponse(BaseResponse):
     pipeline_id: str
     status: str
     progress: float
     current_step: str
-    stats: Dict[str, Any]
-    errors: List[str] = []
+    stats: dict[str, Any]
+    errors: list[str] = []
     started_at: datetime
-    estimated_completion: Optional[datetime]
+    estimated_completion: datetime | None
 
 # Data Models
 class DataFetchRequest(BaseModel):
     table_name: str
-    filters: Optional[Dict[str, Any]] = {}
+    filters: dict[str, Any] | None = {}
     limit: int = Field(100, ge=1, le=1000)
     offset: int = Field(0, ge=0)
 
 class DataFetchResponse(BaseResponse):
     table_name: str
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
     total_count: int
     limit: int
     offset: int
@@ -327,7 +334,7 @@ class DataFetchResponse(BaseResponse):
 class FileUploadResponse(BaseResponse):
     filename: str
     file_size: int
-    upload_url: Optional[str]
+    upload_url: str | None
     processing_status: str
 
 # ============================================================================
@@ -336,7 +343,7 @@ class FileUploadResponse(BaseResponse):
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Validate JWT token and return user information"""
 
     try:
@@ -385,7 +392,7 @@ async def get_current_user(
 
 def require_permission(permission: str):
     """Decorator to require specific permission"""
-    def permission_dependency(current_user: Dict[str, Any] = Depends(get_current_user)):
+    def permission_dependency(current_user: dict[str, Any] = Depends(get_current_user)):
         if permission not in current_user.get("permissions", []):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -398,7 +405,7 @@ def require_permission(permission: str):
 # UTILITY FUNCTIONS
 # ============================================================================
 
-async def fetch_submission_from_db(submission_id: str) -> Optional[Dict[str, Any]]:
+async def fetch_submission_from_db(submission_id: str) -> dict[str, Any] | None:
     """Fetch submission from database"""
     try:
         response = app.state.supabase_client.table("submissions").select(
@@ -424,7 +431,7 @@ async def cache_result(key: str, data: Any, ttl: int = 3600):
     except Exception as e:
         logger.error(f"Cache error: {e}")
 
-async def get_cached_result(key: str) -> Optional[Any]:
+async def get_cached_result(key: str) -> Any | None:
     """Get cached result from Redis"""
     try:
         cached = await app.state.redis_client.get(key)
@@ -438,7 +445,7 @@ async def get_cached_result(key: str) -> Optional[Any]:
 def create_error_response(
     error_code: str,
     message: str,
-    details: Optional[Dict[str, Any]] = None,
+    details: dict[str, Any] | None = None,
     status_code: int = status.HTTP_400_BAD_REQUEST
 ) -> JSONResponse:
     """Create standardized error response"""
@@ -452,7 +459,7 @@ def create_error_response(
         ).dict()
     )
 
-async def broadcast_to_websockets(message: Dict[str, Any]):
+async def broadcast_to_websockets(message: dict[str, Any]):
     """Broadcast message to all connected WebSocket clients"""
     disconnected_clients = []
 
@@ -524,7 +531,7 @@ async def authenticate_token(request: Request, token_req: TokenRequest):
 async def analyze_with_profiler(
     request: Request,
     profiler_req: ProfilerRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Analyze submission with AI Profiler (EnhancedLLMProfiler)"""
     try:
@@ -581,7 +588,7 @@ async def analyze_with_profiler(
         logger.error(f"Profiler analysis error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Profiler analysis failed: {str(e)}"
+            detail=f"Profiler analysis failed: {e!s}"
         )
 
 # ============================================================================
@@ -593,7 +600,7 @@ async def analyze_with_profiler(
 async def score_opportunity(
     request: Request,
     opportunity_req: OpportunityRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Score opportunity with OpportunityAnalyzerAgent"""
     try:
@@ -649,7 +656,7 @@ async def score_opportunity(
         logger.error(f"Opportunity scoring error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Opportunity scoring failed: {str(e)}"
+            detail=f"Opportunity scoring failed: {e!s}"
         )
 
 # ============================================================================
@@ -661,7 +668,7 @@ async def score_opportunity(
 async def analyze_monetization(
     request: Request,
     monetization_req: MonetizationRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Analyze monetization potential with MonetizationAgnoAnalyzer"""
     try:
@@ -720,7 +727,7 @@ async def analyze_monetization(
         logger.error(f"Monetization analysis error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Monetization analysis failed: {str(e)}"
+            detail=f"Monetization analysis failed: {e!s}"
         )
 
 # ============================================================================
@@ -732,7 +739,7 @@ async def analyze_monetization(
 async def validate_trust(
     request: Request,
     trust_req: TrustRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Validate trust with TrustLayerValidator"""
     try:
@@ -785,7 +792,7 @@ async def validate_trust(
         logger.error(f"Trust validation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Trust validation failed: {str(e)}"
+            detail=f"Trust validation failed: {e!s}"
         )
 
 # ============================================================================
@@ -797,7 +804,7 @@ async def validate_trust(
 async def validate_market(
     request: Request,
     market_req: MarketValidationRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Validate market with MarketDataValidator"""
     try:
@@ -809,7 +816,9 @@ async def validate_market(
 
         # Import and use MarketValidationService
         try:
-            from core.enrichment.market_validation_service import MarketValidationService
+            from core.enrichment.market_validation_service import (
+                MarketValidationService,
+            )
 
             market_service = MarketValidationService()
             submission_data = market_req.dict()
@@ -849,7 +858,7 @@ async def validate_market(
         logger.error(f"Market validation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Market validation failed: {str(e)}"
+            detail=f"Market validation failed: {e!s}"
         )
 
 # ============================================================================
@@ -862,7 +871,7 @@ async def run_pipeline(
     request: Request,
     pipeline_req: PipelineRequest,
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(require_permission("pipeline:run"))
+    current_user: dict[str, Any] = Depends(require_permission("pipeline:run"))
 ):
     """Run full opportunity discovery pipeline"""
     try:
@@ -912,20 +921,20 @@ async def run_pipeline(
         logger.error(f"Pipeline start error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start pipeline: {str(e)}"
+            detail=f"Failed to start pipeline: {e!s}"
         )
 
 async def run_pipeline_background(
     pipeline_id: str,
-    pipeline_config: Dict[str, Any],
-    current_user: Dict[str, Any]
+    pipeline_config: dict[str, Any],
+    current_user: dict[str, Any]
 ):
     """Background task to run pipeline"""
     try:
         # Import pipeline orchestrator
-        from core.pipeline.orchestrator import OpportunityPipeline
         from core.fetchers.database_fetcher import DatabaseFetcher
         from core.fetchers.reddit_api_fetcher import RedditAPIFetcher
+        from core.pipeline.orchestrator import OpportunityPipeline
 
         # Update status
         await update_pipeline_status(pipeline_id, "setting_up", 0.1, "Initializing pipeline components")
@@ -982,7 +991,7 @@ async def run_pipeline_background(
             pipeline_id,
             "failed",
             1.0,
-            f"Pipeline failed: {str(e)}"
+            f"Pipeline failed: {e!s}"
         )
 
         # Broadcast error
@@ -998,7 +1007,7 @@ async def update_pipeline_status(
     status: str,
     progress: float,
     current_step: str,
-    error: Optional[str] = None
+    error: str | None = None
 ):
     """Update pipeline status in Redis"""
     try:
@@ -1040,7 +1049,7 @@ async def update_pipeline_status(
 @limiter.limit("30/minute")
 async def get_pipeline_status(
     pipeline_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Get pipeline execution status"""
     try:
@@ -1059,14 +1068,14 @@ async def get_pipeline_status(
         logger.error(f"Error getting pipeline status: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get pipeline status: {str(e)}"
+            detail=f"Failed to get pipeline status: {e!s}"
         )
 
 @app.get("/api/v1/pipeline/{pipeline_id}/result", tags=["pipeline"])
 @limiter.limit("10/minute")
 async def get_pipeline_result(
     pipeline_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Get pipeline execution result"""
     try:
@@ -1085,7 +1094,7 @@ async def get_pipeline_result(
         logger.error(f"Error getting pipeline result: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get pipeline result: {str(e)}"
+            detail=f"Failed to get pipeline result: {e!s}"
         )
 
 # ============================================================================
@@ -1121,7 +1130,7 @@ async def websocket_pipeline_updates(websocket: WebSocket, pipeline_id: str):
                 elif message.get("type") == "unsubscribe":
                     break
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Send heartbeat
                 await websocket.send_json({"type": "heartbeat"})
 
@@ -1143,7 +1152,7 @@ async def websocket_pipeline_updates(websocket: WebSocket, pipeline_id: str):
 async def fetch_data(
     request: Request,
     data_req: DataFetchRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Fetch data from Supabase tables"""
     try:
@@ -1215,7 +1224,7 @@ async def fetch_data(
         logger.error(f"Data fetch error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Data fetch failed: {str(e)}"
+            detail=f"Data fetch failed: {e!s}"
         )
 
 # ============================================================================
@@ -1228,7 +1237,7 @@ async def upload_file(
     request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Upload file for processing"""
     try:
@@ -1268,7 +1277,7 @@ async def upload_file(
         logger.error(f"File upload error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"File upload failed: {str(e)}"
+            detail=f"File upload failed: {e!s}"
         )
 
 # ============================================================================
@@ -1285,14 +1294,14 @@ async def health_check():
             db_health = app.state.supabase_client.table("submissions").select("id").limit(1).execute()
             db_status = "healthy" if db_health.data is not None else "unhealthy"
         except Exception as e:
-            db_status = f"unhealthy: {str(e)}"
+            db_status = f"unhealthy: {e!s}"
 
         # Check Redis connection
         try:
             await app.state.redis_client.ping()
             redis_status = "healthy"
         except Exception as e:
-            redis_status = f"unhealthy: {str(e)}"
+            redis_status = f"unhealthy: {e!s}"
 
         # Check active WebSocket connections
         active_connections = len(app.state.active_websockets)
@@ -1325,7 +1334,7 @@ async def health_check():
 @app.get("/api/v1/metrics", tags=["monitoring"])
 @limiter.limit("30/minute")
 async def get_metrics(
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user)
 ):
     """Get application metrics"""
     try:
@@ -1367,7 +1376,7 @@ async def get_metrics(
         logger.error(f"Metrics error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get metrics: {str(e)}"
+            detail=f"Failed to get metrics: {e!s}"
         )
 
 # ============================================================================

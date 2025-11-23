@@ -28,9 +28,9 @@ project_root = Path(__file__).parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+import config.settings as settings
 from core.agents.search.hybrid_client import JinaHybridClient, get_jina_hybrid_client
 from core.agents.search.reader_client import JinaReaderClient, get_jina_client
-import config.settings as settings
 
 logger = logging.getLogger(__name__)
 
