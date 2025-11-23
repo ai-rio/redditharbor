@@ -11,22 +11,28 @@ Usage:
     result = verifier.verify_submission_storage(submission_id, pipeline_result)
 """
 
+import logging
 import sys
-import os
-from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
-import logging
+from typing import Any
 
 # Add project root to path for imports
-sys.path.append('/home/carlos/projects/redditharbor-core-functions-fix')
+sys.path.append("/home/carlos/projects/redditharbor-core-functions-fix")
 
 try:
-    from sqlalchemy import create_engine, text, inspect
-    from sqlalchemy.orm import sessionmaker, Session
+    from sqlalchemy import create_engine, inspect, text
     from sqlalchemy.exc import SQLAlchemyError
-except ImportError:
-    print("ERROR: SQLAlchemy not available. Install with: pip install sqlalchemy")
+    from sqlalchemy.orm import Session, sessionmaker
+
+    from core.utils.id_resolver import ResolutionResult, resolve_submission_id
+except ImportError as e:
+    if "sqlalchemy" in str(e).lower():
+        print("ERROR: SQLAlchemy not available. Install with: pip install sqlalchemy")
+    elif "id_resolver" in str(e).lower():
+        print("ERROR: Canonical ID resolver not available. Check core/utils/id_resolver.py")
+    else:
+        print(f"ERROR: Import failed: {e}")
     sys.exit(1)
 
 # Configure logging
@@ -36,14 +42,15 @@ logger = logging.getLogger(__name__)
 @dataclass
 class VerificationResult:
     """Result of database verification operation."""
+
     success: bool
     message: str
     stored_fields: int = 0
     expected_fields: int = 0
     field_coverage: float = 0.0
-    missing_fields: List[str] = None
-    table_status: Dict[str, bool] = None
-    timestamp: Optional[datetime] = None
+    missing_fields: list[str] = None
+    table_status: dict[str, bool] = None
+    timestamp: datetime | None = None
 
     def __post_init__(self):
         if self.missing_fields is None:
@@ -57,11 +64,12 @@ class VerificationResult:
 @dataclass
 class TableSchema:
     """Schema information for database tables."""
+
     table_name: str
-    columns: List[str]
-    primary_keys: List[str]
-    nullable_columns: List[str]
-    column_types: Dict[str, str]
+    columns: list[str]
+    primary_keys: list[str]
+    nullable_columns: list[str]
+    column_types: dict[str, str]
 
 
 class DatabaseVerifier:
@@ -72,7 +80,7 @@ class DatabaseVerifier:
     transaction control, and connection handling following SQLAlchemy best practices.
     """
 
-    def __init__(self, database_url: Optional[str] = None):
+    def __init__(self, database_url: str | None = None):
         """
         Initialize database verifier with SQLAlchemy engine and session factory.
 
@@ -91,8 +99,8 @@ class DatabaseVerifier:
             self.engine = create_engine(
                 database_url,
                 pool_pre_ping=True,  # Validate connections before use
-                pool_recycle=3600,    # Recycle connections after 1 hour
-                echo=False            # Set to True for SQL debugging
+                pool_recycle=3600,  # Recycle connections after 1 hour
+                echo=False,  # Set to True for SQL debugging
             )
 
             # Create session factory
@@ -122,12 +130,16 @@ class DatabaseVerifier:
         except Exception as e:
             raise SQLAlchemyError(f"Database connection failed: {e}")
 
-    def _load_table_schemas(self) -> Dict[str, TableSchema]:
+    def _load_table_schemas(self) -> dict[str, TableSchema]:
         """Load and cache table schema information."""
         schemas = {}
         tables_to_check = [
-            'submissions', 'app_opportunities', 'opportunity_scores',
-            'market_validations', 'monetization_patterns', 'competitive_landscape'
+            "submissions",
+            "app_opportunities",
+            "opportunity_scores",
+            "market_validations",
+            "monetization_patterns",
+            "competitive_landscape",
         ]
 
         try:
@@ -140,10 +152,16 @@ class DatabaseVerifier:
 
                         schema = TableSchema(
                             table_name=table_name,
-                            columns=[col['name'] for col in columns],
-                            primary_keys=inspector.get_pk_constraint(table_name)['constrained_columns'],
-                            nullable_columns=[col['name'] for col in columns if col['nullable']],
-                            column_types={col['name']: str(col['type']) for col in columns}
+                            columns=[col["name"] for col in columns],
+                            primary_keys=inspector.get_pk_constraint(table_name)[
+                                "constrained_columns"
+                            ],
+                            nullable_columns=[
+                                col["name"] for col in columns if col["nullable"]
+                            ],
+                            column_types={
+                                col["name"]: str(col["type"]) for col in columns
+                            },
                         )
                         schemas[table_name] = schema
 
@@ -154,7 +172,9 @@ class DatabaseVerifier:
             logger.warning(f"Failed to load table schemas: {e}")
             return {}
 
-    def verify_submission_storage(self, submission_id: str, pipeline_result: Dict[str, Any]) -> VerificationResult:
+    def verify_submission_storage(
+        self, submission_id: str, pipeline_result: dict[str, Any]
+    ) -> VerificationResult:
         """
         Verify that submission data was stored correctly across all relevant tables.
 
@@ -169,41 +189,72 @@ class DatabaseVerifier:
             success=False,
             message="Verification not completed",
             expected_fields=0,
-            stored_fields=0
+            stored_fields=0,
         )
 
         try:
             with self.SessionLocal() as session:
-                # Verify base submission exists
+                # CRITICAL FIX: Use canonical ID resolver for consistent ID handling
+                # The pipeline may store data using UUID transformation, but queries
+                # might use raw IDs like "hybrid_1". The resolver provides the single
+                # source of truth for all ID transformations.
+                resolution_result = resolve_submission_id(submission_id)
+
+                if not resolution_result or not resolution_result.uuid:
+                    result.message = f"Failed to resolve submission_id '{submission_id}' to UUID"
+                    logger.warning(f"ID resolution failed for {submission_id}")
+                    return result
+
+                resolved_uuid = resolution_result.uuid
+                logger.debug(f"Resolved '{submission_id}' -> '{resolved_uuid}' (source: {resolution_result.source})")
+
+                # Verify base submission exists using resolved UUID first, fallback to reddit_id
                 submission_query = text("""
                     SELECT submission_id, title, subreddit, reddit_score,
                            created_utc
                     FROM submissions
-                    WHERE submission_id = :submission_id
+                    WHERE submission_id = :resolved_uuid
+                       OR reddit_id = :original_id
                 """)
 
-                submission_result = session.execute(submission_query, {"submission_id": submission_id}).fetchone()
+                submission_result = session.execute(
+                    submission_query, {
+                        "resolved_uuid": resolved_uuid,
+                        "original_id": submission_id
+                    }
+                ).fetchone()
 
                 if not submission_result:
-                    result.message = f"Submission {submission_id} not found in database"
+                    result.message = f"Submission {submission_id} (resolved to {resolved_uuid}) not found in database"
+                    logger.warning(f"Database lookup failed for resolved UUID {resolved_uuid} and original ID {submission_id}")
                     return result
 
                 # Verify app_opportunities entry (contains all pipeline data)
-                opportunity_result = self._verify_app_opportunities(session, submission_id, pipeline_result)
-                result.table_status['app_opportunities'] = opportunity_result
+                opportunity_result = self._verify_app_opportunities(
+                    session, resolved_uuid, submission_id, pipeline_result
+                )
+                result.table_status["app_opportunities"] = opportunity_result
 
                 # For now, we consider successful storage in app_opportunities as complete verification
                 # since it contains all the consolidated pipeline data
 
                 # Calculate overall success and field coverage
-                success_count = sum(1 for status in result.table_status.values() if status)
+                success_count = sum(
+                    1 for status in result.table_status.values() if status
+                )
                 total_tables = len(result.table_status)
                 result.success = success_count == total_tables
 
                 # Estimate field coverage based on pipeline services
                 result.expected_fields = self._estimate_expected_fields(pipeline_result)
-                result.stored_fields = result.expected_fields * success_count // total_tables
-                result.field_coverage = (result.stored_fields / result.expected_fields * 100) if result.expected_fields > 0 else 0
+                result.stored_fields = (
+                    result.expected_fields * success_count // total_tables
+                )
+                result.field_coverage = (
+                    (result.stored_fields / result.expected_fields * 100)
+                    if result.expected_fields > 0
+                    else 0
+                )
 
                 result.message = (
                     f"Verification completed: {success_count}/{total_tables} tables "
@@ -213,40 +264,57 @@ class DatabaseVerifier:
                 return result
 
         except SQLAlchemyError as e:
-            result.message = f"Database verification failed: {str(e)}"
+            result.message = f"Database verification failed: {e!s}"
             logger.error(f"Verification error for submission {submission_id}: {e}")
             return result
         except Exception as e:
-            result.message = f"Unexpected verification error: {str(e)}"
-            logger.error(f"Unexpected verification error for submission {submission_id}: {e}")
+            result.message = f"Unexpected verification error: {e!s}"
+            logger.error(
+                f"Unexpected verification error for submission {submission_id}: {e}"
+            )
             return result
 
-    def _verify_app_opportunities(self, session: Session, submission_id: str, pipeline_result: Dict[str, Any]) -> bool:
+    def _verify_app_opportunities(
+        self, session: Session, resolved_uuid: str, original_id: str, pipeline_result: dict[str, Any]
+    ) -> bool:
         """Verify app_opportunities table entry with comprehensive field validation."""
         try:
+            # CRITICAL FIX: Use resolved UUID for FK lookups with fallback to original ID
+            # The app_opportunities table should use the resolved UUID for submission_id FK
             query = text("""
                 SELECT submission_id, app_name, value_proposition, problem_description,
                        target_user, monetization_model, final_score, opportunity_score,
                        market_validation_score, monetization_score, dimension_scores,
                        priority, confidence, status, trust_level, analyzed_at
                 FROM app_opportunities
-                WHERE submission_id = :submission_id
+                WHERE submission_id = :resolved_uuid
+                   OR submission_id = :original_id
             """)
 
-            result = session.execute(query, {"submission_id": submission_id}).fetchone()
+            result = session.execute(query, {
+                "resolved_uuid": resolved_uuid,
+                "original_id": original_id
+            }).fetchone()
 
             if not result:
                 return False
 
             # Verify key fields are populated
             key_fields = [
-                'submission_id', 'app_name', 'value_proposition', 'final_score',
-                'opportunity_score', 'dimension_scores', 'priority'
+                "submission_id",
+                "app_name",
+                "value_proposition",
+                "final_score",
+                "opportunity_score",
+                "dimension_scores",
+                "priority",
             ]
 
             for field in key_fields:
                 if getattr(result, field) is None:
-                    logger.warning(f"Missing key field {field} in app_opportunities for {submission_id}")
+                    logger.warning(
+                        f"Missing key field {field} in app_opportunities for resolved UUID {resolved_uuid} (original: {original_id})"
+                    )
                     return False
 
             return True
@@ -255,20 +323,20 @@ class DatabaseVerifier:
             logger.error(f"Error verifying app_opportunities: {e}")
             return False
 
-    def _estimate_expected_fields(self, pipeline_result: Dict[str, Any]) -> int:
+    def _estimate_expected_fields(self, pipeline_result: dict[str, Any]) -> int:
         """Estimate expected field count based on executed services."""
-        services = pipeline_result.get('services', [])
+        services = pipeline_result.get("services", [])
 
         # Base fields from submission
         base_fields = 7  # submission_id, title, subreddit, reddit_score, num_comments, selftext, created_at
 
         # Service-specific fields
         service_fields = {
-            'ProfilerService': 6,      # app_name, value_proposition, problem_description, target_user, monetization_model, created_at
-            'OpportunityService': 6,   # final_score, dimension_scores, priority, core_functions, weights, created_at
-            'TrustService': 12,        # various trust score fields + badges + validation fields
-            'MonetizationService': 14, # willingness_to_pay, market_segment, price_sensitivity, revenue_potential, etc.
-            'MarketValidationService': 7  # market_validation_score, competitor_count, market_size, etc.
+            "ProfilerService": 6,  # app_name, value_proposition, problem_description, target_user, monetization_model, created_at
+            "OpportunityService": 6,  # final_score, dimension_scores, priority, core_functions, weights, created_at
+            "TrustService": 12,  # various trust score fields + badges + validation fields
+            "MonetizationService": 14,  # willingness_to_pay, market_segment, price_sensitivity, revenue_potential, etc.
+            "MarketValidationService": 7,  # market_validation_score, competitor_count, market_size, etc.
         }
 
         total_fields = base_fields
@@ -277,7 +345,9 @@ class DatabaseVerifier:
 
         return total_fields
 
-    def verify_batch_storage(self, submission_ids: List[str], pipeline_results: List[Dict[str, Any]]) -> List[VerificationResult]:
+    def verify_batch_storage(
+        self, submission_ids: list[str], pipeline_results: list[dict[str, Any]]
+    ) -> list[VerificationResult]:
         """
         Verify storage for multiple submissions.
 
@@ -296,7 +366,7 @@ class DatabaseVerifier:
 
         return results
 
-    def get_storage_summary(self, results: List[VerificationResult]) -> Dict[str, Any]:
+    def get_storage_summary(self, results: list[VerificationResult]) -> dict[str, Any]:
         """
         Generate summary statistics for batch verification results.
 
@@ -311,7 +381,9 @@ class DatabaseVerifier:
 
         successful_verifications = sum(1 for r in results if r.success)
         total_verifications = len(results)
-        avg_field_coverage = sum(r.field_coverage for r in results) / total_verifications
+        avg_field_coverage = (
+            sum(r.field_coverage for r in results) / total_verifications
+        )
 
         table_success_rates = {}
         if results:
@@ -326,21 +398,24 @@ class DatabaseVerifier:
         return {
             "total_submissions": total_verifications,
             "successful_verifications": successful_verifications,
-            "overall_success_rate": (successful_verifications / total_verifications) * 100,
+            "overall_success_rate": (successful_verifications / total_verifications)
+            * 100,
             "average_field_coverage": avg_field_coverage,
             "table_success_rates": table_success_rates,
-            "issues": [r.message for r in results if not r.success]
+            "issues": [r.message for r in results if not r.success],
         }
 
     def close(self):
         """Close database connections and cleanup resources."""
-        if hasattr(self, 'engine'):
+        if hasattr(self, "engine"):
             self.engine.dispose()
             logger.info("Database verifier connections closed")
 
 
 # Convenience function for quick verification
-def verify_storage(submission_id: str, pipeline_result: Dict[str, Any]) -> VerificationResult:
+def verify_storage(
+    submission_id: str, pipeline_result: dict[str, Any]
+) -> VerificationResult:
     """
     Quick verification function for single submission.
 

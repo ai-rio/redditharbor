@@ -23,15 +23,13 @@ Author: RedditHarbor Data Engineering Team
 
 import json
 import logging
-import re
 import uuid
-from dataclasses import asdict
 from datetime import UTC, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from core.storage.hybrid_store import HybridStore, APP_OPPORTUNITIES_COLUMNS
-from core.dlt import PK_SUBMISSION_ID
 from core.storage.dlt_loader import DLTLoader, LoadStatistics
+from core.storage.hybrid_store import HybridStore
+from core.utils.id_resolver import resolve_submission_id
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +105,7 @@ class EnhancedHybridStore(HybridStore):
         self.enrichment_loader = DLTLoader()
         self.enrichment_stats = LoadStatistics()
 
-    def store(self, hybrid_submissions: List[Dict[str, Any]]) -> bool:
+    def store(self, hybrid_submissions: list[dict[str, Any]]) -> bool:
         """
         Store hybrid submissions to ALL appropriate tables.
 
@@ -123,7 +121,9 @@ class EnhancedHybridStore(HybridStore):
         fixed_submissions = self._fix_submission_id_formats(hybrid_submissions)
 
         # Map AI profile data to app_opportunities fields BEFORE storing to main tables
-        mapped_submissions = self._map_ai_profile_to_app_opportunities(fixed_submissions)
+        mapped_submissions = self._map_ai_profile_to_app_opportunities(
+            fixed_submissions
+        )
 
         # First, store to main tables using parent method
         main_success = super().store(mapped_submissions)
@@ -137,11 +137,15 @@ class EnhancedHybridStore(HybridStore):
 
         # Log comprehensive results
         total_success = main_success and enrichment_success
-        logger.info(f"Enhanced storage complete: Main={main_success}, Enrichment={enrichment_success}, Overall={total_success}")
+        logger.info(
+            f"Enhanced storage complete: Main={main_success}, Enrichment={enrichment_success}, Overall={total_success}"
+        )
 
         return total_success
 
-    def _map_ai_profile_to_app_opportunities(self, submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _map_ai_profile_to_app_opportunities(
+        self, submissions: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Extract AI-generated app metadata from ProfilerService output and map to app_opportunities fields.
 
@@ -158,7 +162,7 @@ class EnhancedHybridStore(HybridStore):
         mapped_submissions = []
 
         for submission in submissions:
-            submission_id = submission.get('submission_id', 'unknown')
+            submission_id = submission.get("submission_id", "unknown")
             mapped_submission = submission.copy()
 
             # ProfilerService returns AI profile data as TOP-LEVEL fields, not nested under ai_profile
@@ -177,40 +181,58 @@ class EnhancedHybridStore(HybridStore):
             if not app_name:
                 app_name = submission.get("generated_app_name")
             if not app_category:
-                app_category = submission.get("category") or submission.get("app_category_generated")
+                app_category = submission.get("category") or submission.get(
+                    "app_category_generated"
+                )
             if not core_functions:
-                core_functions = submission.get("features") or submission.get("key_features")
+                core_functions = submission.get("features") or submission.get(
+                    "key_features"
+                )
 
             # Update submission with extracted AI data (ensure fields are present)
             # Always set the fields to ensure they're included in the DLT load
             if app_name:
                 mapped_submission["app_name"] = app_name
-                logger.info(f"✓ Mapped AI-generated app_name '{app_name}' for submission {submission_id}")
+                logger.info(
+                    f"✓ Mapped AI-generated app_name '{app_name}' for submission {submission_id}"
+                )
 
             if app_category:
                 mapped_submission["app_category"] = app_category
-                logger.debug(f"✓ Mapped AI-generated app_category '{app_category}' for submission {submission_id}")
+                logger.debug(
+                    f"✓ Mapped AI-generated app_category '{app_category}' for submission {submission_id}"
+                )
 
             if core_functions:
                 mapped_submission["core_functions"] = core_functions
-                logger.debug(f"✓ Mapped AI-generated core_functions for submission {submission_id}")
+                logger.debug(
+                    f"✓ Mapped AI-generated core_functions for submission {submission_id}"
+                )
 
             # IMPORTANT: Ensure subreddit is preserved from original submission
             subreddit = submission.get("subreddit")
             if subreddit:
                 mapped_submission["subreddit"] = subreddit
-                logger.info(f"✓ Preserved subreddit '{subreddit}' for submission {submission_id}")
+                logger.info(
+                    f"✓ Preserved subreddit '{subreddit}' for submission {submission_id}"
+                )
             else:
-                logger.warning(f"⚠️  Subreddit field missing for submission {submission_id}")
+                logger.warning(
+                    f"⚠️  Subreddit field missing for submission {submission_id}"
+                )
 
             if not (app_name or app_category or core_functions or subreddit):
-                logger.debug(f"No AI profile data found to map for submission {submission_id}")
+                logger.debug(
+                    f"No AI profile data found to map for submission {submission_id}"
+                )
 
             mapped_submissions.append(mapped_submission)
 
         return mapped_submissions
 
-    def _fix_submission_id_formats(self, hybrid_submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _fix_submission_id_formats(
+        self, hybrid_submissions: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Fix UUID format mismatch in submission IDs.
 
@@ -224,7 +246,9 @@ class EnhancedHybridStore(HybridStore):
         Returns:
             List[Dict[str, Any]]: Submissions with fixed UUID submission_ids
         """
-        logger.info(f"Fixing submission ID formats for {len(hybrid_submissions)} submissions")
+        logger.info(
+            f"Fixing submission ID formats for {len(hybrid_submissions)} submissions"
+        )
 
         fixed_submissions = []
         id_mapping = {}
@@ -248,17 +272,21 @@ class EnhancedHybridStore(HybridStore):
                 continue
             except (ValueError, AttributeError):
                 # Not a valid UUID, convert it
-                logger.info(f"Converting invalid UUID '{original_id}' to valid UUID format")
+                logger.info(
+                    f"Converting invalid UUID '{original_id}' to valid UUID format"
+                )
 
                 # Create a deterministic UUID based on the original ID for consistency
                 # Use a namespace based on the original ID string
-                namespace = uuid.uuid5(uuid.NAMESPACE_DNS, 'redditharbor-pipeline')
+                namespace = uuid.uuid5(uuid.NAMESPACE_DNS, "redditharbor-pipeline")
                 new_id = str(uuid.uuid5(namespace, original_id))
 
                 # Update submission with new UUID
                 fixed_submission = submission.copy()
                 fixed_submission["submission_id"] = new_id
-                fixed_submission["original_submission_id"] = original_id  # Keep for debugging
+                fixed_submission["original_submission_id"] = (
+                    original_id  # Keep for debugging
+                )
 
                 fixed_submissions.append(fixed_submission)
                 id_mapping[original_id] = new_id
@@ -268,7 +296,9 @@ class EnhancedHybridStore(HybridStore):
 
         return fixed_submissions
 
-    def _store_to_enrichment_tables(self, hybrid_submissions: List[Dict[str, Any]]) -> bool:
+    def _store_to_enrichment_tables(
+        self, hybrid_submissions: list[dict[str, Any]]
+    ) -> bool:
         """
         Store enrichment data to specialized tables using direct Supabase insertion.
 
@@ -281,10 +311,14 @@ class EnhancedHybridStore(HybridStore):
         Returns:
             bool: True if at least one enrichment record was successfully stored
         """
-        logger.info(f"Storing enrichment data for {len(hybrid_submissions)} submissions using direct Supabase insertion")
+        logger.info(
+            f"Storing enrichment data for {len(hybrid_submissions)} submissions using direct Supabase insertion"
+        )
 
         if not self.supabase_client:
-            logger.warning("No Supabase client available, cannot store to enrichment tables")
+            logger.warning(
+                "No Supabase client available, cannot store to enrichment tables"
+            )
             return False
 
         success_count = 0
@@ -311,20 +345,25 @@ class EnhancedHybridStore(HybridStore):
                 skipped_count += 1
                 continue
 
-            logger.info(f"Processing submission {submission_id} with opportunity_id {opportunity_id}")
+            logger.info(
+                f"Processing submission {submission_id} with opportunity_id {opportunity_id}"
+            )
 
             # Store to opportunity_scores table (upsert to handle re-runs)
             scores_data = self._map_to_opportunity_scores(submission, opportunity_id)
             if scores_data:
                 total_count += 1
                 try:
-                    response = self.supabase_client.table("opportunity_scores").upsert(
-                        scores_data,
-                        on_conflict="opportunity_id"
-                    ).execute()
+                    response = (
+                        self.supabase_client.table("opportunity_scores")
+                        .upsert(scores_data, on_conflict="opportunity_id")
+                        .execute()
+                    )
                     if response.data:
                         success_count += 1
-                        logger.info(f"[SUCCESS] opportunity_scores upserted for opportunity_id={opportunity_id}")
+                        logger.info(
+                            f"[SUCCESS] opportunity_scores upserted for opportunity_id={opportunity_id}"
+                        )
                     else:
                         logger.error(
                             f"[FAILED] opportunity_scores upsert returned no data for opportunity_id={opportunity_id}. "
@@ -332,7 +371,10 @@ class EnhancedHybridStore(HybridStore):
                         )
                 except Exception as e:
                     error_msg = str(e)
-                    if "duplicate key" in error_msg.lower() or "unique constraint" in error_msg.lower():
+                    if (
+                        "duplicate key" in error_msg.lower()
+                        or "unique constraint" in error_msg.lower()
+                    ):
                         logger.error(
                             f"[DUPLICATE_KEY] opportunity_scores upsert failed for opportunity_id={opportunity_id}. "
                             f"Error: {error_msg}"
@@ -350,7 +392,9 @@ class EnhancedHybridStore(HybridStore):
                         )
 
             # Store to monetization_patterns table (delete-then-insert since no unique constraint)
-            monetization_data = self._map_to_monetization_patterns(submission, opportunity_id)
+            monetization_data = self._map_to_monetization_patterns(
+                submission, opportunity_id
+            )
             if monetization_data:
                 total_count += 1
                 try:
@@ -358,13 +402,21 @@ class EnhancedHybridStore(HybridStore):
                     self.supabase_client.table("monetization_patterns").delete().eq(
                         "opportunity_id", opportunity_id
                     ).execute()
-                    logger.debug(f"Deleted existing monetization_patterns for opportunity_id={opportunity_id}")
+                    logger.debug(
+                        f"Deleted existing monetization_patterns for opportunity_id={opportunity_id}"
+                    )
 
                     # Insert new monetization pattern
-                    response = self.supabase_client.table("monetization_patterns").insert(monetization_data).execute()
+                    response = (
+                        self.supabase_client.table("monetization_patterns")
+                        .insert(monetization_data)
+                        .execute()
+                    )
                     if response.data:
                         success_count += 1
-                        logger.info(f"[SUCCESS] monetization_patterns stored for opportunity_id={opportunity_id}")
+                        logger.info(
+                            f"[SUCCESS] monetization_patterns stored for opportunity_id={opportunity_id}"
+                        )
                     else:
                         logger.error(
                             f"[FAILED] monetization_patterns insert returned no data for opportunity_id={opportunity_id}. "
@@ -393,13 +445,21 @@ class EnhancedHybridStore(HybridStore):
                     self.supabase_client.table("market_validations").delete().eq(
                         "opportunity_id", opportunity_id
                     ).execute()
-                    logger.debug(f"Deleted existing market_validations for opportunity_id={opportunity_id}")
+                    logger.debug(
+                        f"Deleted existing market_validations for opportunity_id={opportunity_id}"
+                    )
 
                     # Insert new market validation
-                    response = self.supabase_client.table("market_validations").insert(market_data).execute()
+                    response = (
+                        self.supabase_client.table("market_validations")
+                        .insert(market_data)
+                        .execute()
+                    )
                     if response.data:
                         success_count += 1
-                        logger.info(f"[SUCCESS] market_validations stored for opportunity_id={opportunity_id}")
+                        logger.info(
+                            f"[SUCCESS] market_validations stored for opportunity_id={opportunity_id}"
+                        )
                     else:
                         logger.error(
                             f"[FAILED] market_validations insert returned no data for opportunity_id={opportunity_id}. "
@@ -421,7 +481,9 @@ class EnhancedHybridStore(HybridStore):
 
             # Store to competitive_landscape table (can be multiple competitors per opportunity)
             # Delete existing records first, then insert new ones to handle re-runs
-            competitive_data = self._map_to_competitive_landscape(submission, opportunity_id)
+            competitive_data = self._map_to_competitive_landscape(
+                submission, opportunity_id
+            )
             if competitive_data:
                 total_count += 1
                 try:
@@ -429,10 +491,16 @@ class EnhancedHybridStore(HybridStore):
                     self.supabase_client.table("competitive_landscape").delete().eq(
                         "opportunity_id", opportunity_id
                     ).execute()
-                    logger.debug(f"Deleted existing competitive_landscape records for opportunity_id={opportunity_id}")
+                    logger.debug(
+                        f"Deleted existing competitive_landscape records for opportunity_id={opportunity_id}"
+                    )
 
                     # Insert new competitive landscape records
-                    response = self.supabase_client.table("competitive_landscape").insert(competitive_data).execute()
+                    response = (
+                        self.supabase_client.table("competitive_landscape")
+                        .insert(competitive_data)
+                        .execute()
+                    )
                     if response.data:
                         success_count += 1
                         logger.info(
@@ -446,7 +514,10 @@ class EnhancedHybridStore(HybridStore):
                         )
                 except Exception as e:
                     error_msg = str(e)
-                    if "duplicate key" in error_msg.lower() or "unique constraint" in error_msg.lower():
+                    if (
+                        "duplicate key" in error_msg.lower()
+                        or "unique constraint" in error_msg.lower()
+                    ):
                         logger.error(
                             f"[DUPLICATE_KEY] competitive_landscape insert failed for opportunity_id={opportunity_id}. "
                             f"Error: {error_msg}"
@@ -470,9 +541,12 @@ class EnhancedHybridStore(HybridStore):
         # Return True only if we successfully stored at least one record
         return success_count > 0
 
-    def _resolve_submission_uuid(self, submission_id: str) -> Optional[str]:
+    def _resolve_submission_uuid(self, submission_id: str) -> str | None:
         """
-        Resolve a submission identifier to a valid UUID from the submissions table.
+        Resolve a submission identifier to a valid UUID using the canonical resolver.
+
+        DELEGATION: This method now delegates to the canonical ID resolver for
+        consistent ID transformation across the entire codebase.
 
         The submission_id can be in various formats:
         - A valid UUID (already matches submissions.id)
@@ -487,54 +561,61 @@ class EnhancedHybridStore(HybridStore):
             Optional[str]: The UUID from submissions.id, or None if not found
         """
         if not submission_id:
+            logger.debug("Cannot resolve empty submission_id")
             return None
 
-        # Step 1: Check if it's already a valid UUID
+        # DELEGATE: Use the canonical ID resolver for all ID transformations
         try:
-            uuid.UUID(submission_id)
-            # It's a valid UUID - verify it exists in submissions table
-            response = self.supabase_client.table("submissions")\
-                .select("id").eq("id", submission_id).execute()
-            if response.data and len(response.data) > 0:
-                logger.debug(f"submission_id={submission_id} is a valid UUID in submissions table")
-                return submission_id
-            else:
-                logger.debug(f"UUID {submission_id} not found in submissions.id, will try reddit_id lookup")
-        except (ValueError, AttributeError):
-            # Not a valid UUID - continue to try other resolution methods
-            pass
+            resolution_result = resolve_submission_id(
+                submission_id,
+                supabase_client=self.supabase_client,
+                require_db_existence=False,  # Don't fail if not found in DB
+                fallback_to_generated=True   # Generate UUID if lookup fails
+            )
 
-        # Step 2: Extract Reddit ID from URL if needed
-        reddit_id = submission_id
-        if "reddit.com" in submission_id:
-            # Extract Reddit ID from URL like https://reddit.com/r/datascience/comments/1fp7k8t/
-            match = re.search(r'/comments/([a-zA-Z0-9]+)', submission_id)
-            if match:
-                reddit_id = match.group(1)
-                logger.debug(f"Extracted reddit_id={reddit_id} from URL {submission_id}")
-            else:
-                logger.warning(f"Could not extract reddit_id from URL: {submission_id}")
+            if not resolution_result:
+                logger.warning(f"ID resolver returned None for submission_id='{submission_id}'")
                 return None
 
-        # Step 3: Look up the UUID using reddit_id
-        try:
-            response = self.supabase_client.table("submissions")\
-                .select("id").eq("reddit_id", reddit_id).execute()
-            if response.data and len(response.data) > 0:
-                resolved_uuid = response.data[0]["id"]
-                logger.info(f"Resolved reddit_id={reddit_id} to submissions.id={resolved_uuid}")
-                return resolved_uuid
-            else:
+            if not resolution_result.uuid:
                 logger.warning(
-                    f"[ENHANCED_STORE] Could not find submissions.id for reddit_id={reddit_id}. "
-                    f"Original submission_id={submission_id}"
+                    f"ID resolver failed to generate UUID for submission_id='{submission_id}'. "
+                    f"Error: {resolution_result.error}"
                 )
                 return None
+
+            # Additional validation: For database-dependent resolutions, verify the UUID exists
+            if resolution_result.source == "database" and self.supabase_client:
+                try:
+                    response = (
+                        self.supabase_client.table("submissions")
+                        .select("id")
+                        .eq("id", resolution_result.uuid)
+                        .execute()
+                    )
+                    if not response.data or len(response.data) == 0:
+                        logger.warning(
+                            f"Resolver returned database UUID {resolution_result.uuid} but it's not in submissions table"
+                        )
+                        # Don't return None here - the resolver might have fallback logic
+                except Exception as e:
+                    logger.warning(f"Failed to verify resolved UUID in database: {e}")
+
+            logger.debug(
+                f"Resolved '{submission_id}' -> '{resolution_result.uuid}' "
+                f"(source: {resolution_result.source})"
+            )
+
+            return resolution_result.uuid
+
         except Exception as e:
-            logger.error(f"Error looking up submissions.id for reddit_id={reddit_id}: {e}")
+            logger.error(
+                f"Unexpected error in ID resolution delegation for '{submission_id}': {e}"
+            )
+            # Fallback: Return None to trigger existing error handling
             return None
 
-    def _get_or_create_opportunity_id(self, submission: Dict[str, Any]) -> Optional[str]:
+    def _get_or_create_opportunity_id(self, submission: dict[str, Any]) -> str | None:
         """
         Get or create opportunity_id for linking enrichment tables.
 
@@ -587,17 +668,27 @@ class EnhancedHybridStore(HybridStore):
 
         try:
             # First try to get existing opportunity_id from opportunities table
-            logger.debug(f"Looking up existing opportunity for submission_id={submission_uuid}")
-            response = self.supabase_client.table("opportunities")\
-                .select("id").eq("submission_id", submission_uuid).execute()
+            logger.debug(
+                f"Looking up existing opportunity for submission_id={submission_uuid}"
+            )
+            response = (
+                self.supabase_client.table("opportunities")
+                .select("id")
+                .eq("submission_id", submission_uuid)
+                .execute()
+            )
 
             if response.data and len(response.data) > 0:
                 existing_id = response.data[0]["id"]
-                logger.info(f"Found existing opportunity_id={existing_id} for submission_id={submission_uuid}")
+                logger.info(
+                    f"Found existing opportunity_id={existing_id} for submission_id={submission_uuid}"
+                )
                 return existing_id
 
             # If not found, create a new opportunity record
-            logger.info(f"No existing opportunity found. Creating new opportunity record for submission_id={submission_uuid}")
+            logger.info(
+                f"No existing opportunity found. Creating new opportunity record for submission_id={submission_uuid}"
+            )
 
             # Prepare opportunity data with safe defaults
             title = submission.get("title", "")
@@ -609,13 +700,16 @@ class EnhancedHybridStore(HybridStore):
                 "description": description,
                 "problem_statement": submission.get("problem_description", "") or "",
                 "target_audience": submission.get("target_user", "") or "",
-                "submission_id": submission_uuid  # Use the resolved UUID, not the raw value
+                "submission_id": submission_uuid,  # Use the resolved UUID, not the raw value
             }
 
             logger.debug(f"Inserting opportunity data: {opportunity_data}")
 
-            create_response = self.supabase_client.table("opportunities")\
-                .insert(opportunity_data).execute()
+            create_response = (
+                self.supabase_client.table("opportunities")
+                .insert(opportunity_data)
+                .execute()
+            )
 
             if create_response.data and len(create_response.data) > 0:
                 new_opportunity_id = create_response.data[0]["id"]
@@ -640,14 +734,22 @@ class EnhancedHybridStore(HybridStore):
                     "Attempting to retrieve existing opportunity..."
                 )
                 try:
-                    retry_response = self.supabase_client.table("opportunities")\
-                        .select("id").eq("submission_id", submission_uuid).execute()
+                    retry_response = (
+                        self.supabase_client.table("opportunities")
+                        .select("id")
+                        .eq("submission_id", submission_uuid)
+                        .execute()
+                    )
                     if retry_response.data and len(retry_response.data) > 0:
                         existing_id = retry_response.data[0]["id"]
-                        logger.info(f"Retrieved existing opportunity_id={existing_id} after duplicate key error")
+                        logger.info(
+                            f"Retrieved existing opportunity_id={existing_id} after duplicate key error"
+                        )
                         return existing_id
                 except Exception as retry_error:
-                    logger.error(f"Failed to retrieve opportunity after duplicate key error: {retry_error}")
+                    logger.error(
+                        f"Failed to retrieve opportunity after duplicate key error: {retry_error}"
+                    )
                     return None
 
             # Check for FK violation which indicates submission doesn't exist
@@ -665,9 +767,13 @@ class EnhancedHybridStore(HybridStore):
             )
             return None
 
-    def _map_to_opportunity_scores(self, submission: Dict[str, Any], opportunity_id: str) -> Optional[Dict[str, Any]]:
+    def _map_to_opportunity_scores(
+        self, submission: dict[str, Any], opportunity_id: str
+    ) -> dict[str, Any] | None:
         """Map submission data to opportunity_scores table schema."""
-        if not submission.get("final_score") and not submission.get("opportunity_score"):
+        if not submission.get("final_score") and not submission.get(
+            "opportunity_score"
+        ):
             return None  # No opportunity scoring data
 
         dimension_scores = submission.get("dimension_scores", {})
@@ -683,7 +789,11 @@ class EnhancedHybridStore(HybridStore):
         # Ensure scores are in 0-1 range
         def normalize_score(score):
             if isinstance(score, (int, float)):
-                return max(0.0, min(1.0, float(score) / 100.0)) if score > 1.0 else float(score)
+                return (
+                    max(0.0, min(1.0, float(score) / 100.0))
+                    if score > 1.0
+                    else float(score)
+                )
             return 0.5
 
         return {
@@ -699,9 +809,13 @@ class EnhancedHybridStore(HybridStore):
             "updated_at": datetime.now(UTC).isoformat(),
         }
 
-    def _map_to_monetization_patterns(self, submission: Dict[str, Any], opportunity_id: str) -> Optional[Dict[str, Any]]:
+    def _map_to_monetization_patterns(
+        self, submission: dict[str, Any], opportunity_id: str
+    ) -> dict[str, Any] | None:
         """Map submission data to monetization_patterns table schema."""
-        if not submission.get("willingness_to_pay_score") and not submission.get("llm_monetization_score"):
+        if not submission.get("willingness_to_pay_score") and not submission.get(
+            "llm_monetization_score"
+        ):
             return None  # No monetization data
 
         return {
@@ -718,7 +832,9 @@ class EnhancedHybridStore(HybridStore):
             "created_at": datetime.now(UTC).isoformat(),
         }
 
-    def _map_to_market_validations(self, submission: Dict[str, Any], opportunity_id: str) -> Optional[Dict[str, Any]]:
+    def _map_to_market_validations(
+        self, submission: dict[str, Any], opportunity_id: str
+    ) -> dict[str, Any] | None:
         """Map submission data to market_validations table schema."""
         if not submission.get("market_validation_score"):
             return None  # No market validation data
@@ -727,25 +843,36 @@ class EnhancedHybridStore(HybridStore):
         return {
             "opportunity_id": opportunity_id,
             "validation_type": "jina_reader_market_validation",
-            "evidence": json.dumps({
-                "validation_score": submission.get("market_validation_score", 0),
-                "data_quality_score": submission.get("market_data_quality_score", 0),
-                "reasoning": submission.get("market_validation_reasoning", ""),
-                "competitor_count": len(submission.get("market_competitors_found", [])),
-                "market_size_estimate": submission.get("market_size_tam"),
-                "similar_launches_count": submission.get("market_similar_launches", 0),
-                "validation_reasoning": submission.get("validation_reasoning", ""),
-                # Fields that don't exist in schema: notes, status, evidence_url, market_validation_score,
-                # market_data_quality_score, market_validation_reasoning, market_competitors_found,
-                # market_size_tam, market_size_sam, market_size_growth, market_similar_launches,
-                # market_validation_cost_usd, search_queries_used, urls_fetched, extraction_stats,
-                # jina_api_calls_count, jina_cache_hit_rate, validation_source, validation_date
-            }),
-            "confidence_level": submission.get("market_data_quality_score", 50) / 100.0,  # Convert to 0-1 range
+            "evidence": json.dumps(
+                {
+                    "validation_score": submission.get("market_validation_score", 0),
+                    "data_quality_score": submission.get(
+                        "market_data_quality_score", 0
+                    ),
+                    "reasoning": submission.get("market_validation_reasoning", ""),
+                    "competitor_count": len(
+                        submission.get("market_competitors_found", [])
+                    ),
+                    "market_size_estimate": submission.get("market_size_tam"),
+                    "similar_launches_count": submission.get(
+                        "market_similar_launches", 0
+                    ),
+                    "validation_reasoning": submission.get("validation_reasoning", ""),
+                    # Fields that don't exist in schema: notes, status, evidence_url, market_validation_score,
+                    # market_data_quality_score, market_validation_reasoning, market_competitors_found,
+                    # market_size_tam, market_size_sam, market_size_growth, market_similar_launches,
+                    # market_validation_cost_usd, search_queries_used, urls_fetched, extraction_stats,
+                    # jina_api_calls_count, jina_cache_hit_rate, validation_source, validation_date
+                }
+            ),
+            "confidence_level": submission.get("market_data_quality_score", 50)
+            / 100.0,  # Convert to 0-1 range
             "created_at": datetime.now(UTC).isoformat(),
         }
 
-    def _map_to_competitive_landscape(self, submission: Dict[str, Any], opportunity_id: str) -> List[Dict[str, Any]]:
+    def _map_to_competitive_landscape(
+        self, submission: dict[str, Any], opportunity_id: str
+    ) -> list[dict[str, Any]]:
         """Map submission data to competitive_landscape table schema."""
         competitors = []
         market_competitors = submission.get("market_competitors_found", [])
@@ -756,40 +883,48 @@ class EnhancedHybridStore(HybridStore):
         for competitor in market_competitors:
             if isinstance(competitor, dict):
                 # Only include fields that exist in the actual database schema
-                competitors.append({
-                    "opportunity_id": opportunity_id,
-                    "competitor_name": competitor.get("company_name", "unknown"),
-                    "competitor_features": competitor.get("features", {}),
-                    "competitive_analysis": competitor.get("analysis", ""),
-                    "market_share": competitor.get("market_share"),
-                    # Fields that don't exist in schema: pricing_model, target_market, source_url, extracted_at
-                    "created_at": datetime.now(UTC).isoformat(),
-                })
+                competitors.append(
+                    {
+                        "opportunity_id": opportunity_id,
+                        "competitor_name": competitor.get("company_name", "unknown"),
+                        "competitor_features": competitor.get("features", {}),
+                        "competitive_analysis": competitor.get("analysis", ""),
+                        "market_share": competitor.get("market_share"),
+                        # Fields that don't exist in schema: pricing_model, target_market, source_url, extracted_at
+                        "created_at": datetime.now(UTC).isoformat(),
+                    }
+                )
             elif isinstance(competitor, str):
                 # Simple string competitor name - only include fields that exist in schema
-                competitors.append({
-                    "opportunity_id": opportunity_id,
-                    "competitor_name": competitor,
-                    "competitor_features": {},
-                    "competitive_analysis": "",
-                    "market_share": None,
-                    # Fields that don't exist in schema: pricing_model, target_market, source_url, extracted_at
-                    "created_at": datetime.now(UTC).isoformat(),
-                })
+                competitors.append(
+                    {
+                        "opportunity_id": opportunity_id,
+                        "competitor_name": competitor,
+                        "competitor_features": {},
+                        "competitive_analysis": "",
+                        "market_share": None,
+                        # Fields that don't exist in schema: pricing_model, target_market, source_url, extracted_at
+                        "created_at": datetime.now(UTC).isoformat(),
+                    }
+                )
 
         return competitors
 
-    def get_enhanced_statistics(self) -> Dict[str, Any]:
+    def get_enhanced_statistics(self) -> dict[str, Any]:
         """Get comprehensive statistics including enrichment table storage."""
         base_stats = self.get_statistics()
 
         # Add enrichment-specific statistics
         enhanced_stats = base_stats.copy()
-        enhanced_stats.update({
-            "enrichment_tables_written": list(self.enrichment_stats.get_summary().keys()),
-            "enrichment_records_loaded": self.enrichment_stats.loaded,
-            "enrichment_records_failed": self.enrichment_stats.failed,
-            "enhancement_version": "v1.0.0",
-        })
+        enhanced_stats.update(
+            {
+                "enrichment_tables_written": list(
+                    self.enrichment_stats.get_summary().keys()
+                ),
+                "enrichment_records_loaded": self.enrichment_stats.loaded,
+                "enrichment_records_failed": self.enrichment_stats.failed,
+                "enhancement_version": "v1.0.0",
+            }
+        )
 
         return enhanced_stats
