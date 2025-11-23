@@ -143,13 +143,14 @@ class EnhancedHybridStore(HybridStore):
 
     def _map_ai_profile_to_app_opportunities(self, submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Extract AI-generated app metadata from ai_profile and map to app_opportunities fields.
+        Extract AI-generated app metadata from ProfilerService output and map to app_opportunities fields.
 
-        The ProfilerService stores extracted app data inside the ai_profile JSON field,
-        but these fields need to be mapped to the main app_opportunities table columns.
+        The ProfilerService.enrich() method returns AI profile data as top-level fields in the submission
+        dictionary, not nested under an ai_profile field. This method extracts those fields and ensures
+        they're properly mapped to the app_opportunities table columns.
 
         Args:
-            submissions: List of submission dictionaries with ai_profile JSON data
+            submissions: List of submission dictionaries with ProfilerService-enriched data
 
         Returns:
             List of submissions with app_name, app_category, and core_functions properly mapped
@@ -157,50 +158,53 @@ class EnhancedHybridStore(HybridStore):
         mapped_submissions = []
 
         for submission in submissions:
+            submission_id = submission.get('submission_id', 'unknown')
             mapped_submission = submission.copy()
 
-            # Extract AI profile data if available
-            ai_profile = submission.get("ai_profile", {})
+            # ProfilerService returns AI profile data as TOP-LEVEL fields, not nested under ai_profile
+            # The enrich() method directly adds these fields to the submission dictionary
 
-            if isinstance(ai_profile, dict) and ai_profile:
-                # Extract app_name from multiple possible locations in ai_profile
-                app_name = None
-                if ai_profile.get("analysis_summary", {}).get("app_name"):
-                    app_name = ai_profile["analysis_summary"]["app_name"]
-                elif ai_profile.get("market_analysis", {}).get("app_name"):
-                    app_name = ai_profile["market_analysis"]["app_name"]
-                elif ai_profile.get("app_name"):
-                    app_name = ai_profile["app_name"]
+            # Extract app_name directly from top-level fields (ProfilerService output)
+            app_name = submission.get("app_name")
 
-                # Extract app_category from multiple possible locations in ai_profile
-                app_category = None
-                if ai_profile.get("analysis_summary", {}).get("app_category"):
-                    app_category = ai_profile["analysis_summary"]["app_category"]
-                elif ai_profile.get("market_analysis", {}).get("app_category"):
-                    app_category = ai_profile["market_analysis"]["app_category"]
-                elif ai_profile.get("app_category"):
-                    app_category = ai_profile["app_category"]
+            # Extract app_category directly from top-level fields
+            app_category = submission.get("app_category")
 
-                # Extract core_functions from ai_profile
-                core_functions = None
-                if ai_profile.get("technical_feasibility", {}).get("core_function_count"):
-                    # If we have function count, we might extract the functions differently
-                    pass
-                elif ai_profile.get("core_functions"):
-                    core_functions = ai_profile["core_functions"]
+            # Extract core_functions directly from top-level fields
+            core_functions = submission.get("core_functions")
 
-                # Update submission with extracted AI data (only if not already set)
-                if app_name and not mapped_submission.get("app_name"):
-                    mapped_submission["app_name"] = app_name
+            # Also check for alternative field names that ProfilerService might use
+            if not app_name:
+                app_name = submission.get("generated_app_name")
+            if not app_category:
+                app_category = submission.get("category") or submission.get("app_category_generated")
+            if not core_functions:
+                core_functions = submission.get("features") or submission.get("key_features")
 
-                if app_category and not mapped_submission.get("app_category"):
-                    mapped_submission["app_category"] = app_category
+            # Update submission with extracted AI data (ensure fields are present)
+            # Always set the fields to ensure they're included in the DLT load
+            if app_name:
+                mapped_submission["app_name"] = app_name
+                logger.info(f"✓ Mapped AI-generated app_name '{app_name}' for submission {submission_id}")
 
-                if core_functions and not mapped_submission.get("core_functions"):
-                    mapped_submission["core_functions"] = core_functions
+            if app_category:
+                mapped_submission["app_category"] = app_category
+                logger.debug(f"✓ Mapped AI-generated app_category '{app_category}' for submission {submission_id}")
 
-                logger.debug(f"Mapped AI profile data for submission {submission.get('submission_id', 'unknown')}: "
-                             f"app_name={app_name}, app_category={app_category}")
+            if core_functions:
+                mapped_submission["core_functions"] = core_functions
+                logger.debug(f"✓ Mapped AI-generated core_functions for submission {submission_id}")
+
+            # IMPORTANT: Ensure subreddit is preserved from original submission
+            subreddit = submission.get("subreddit")
+            if subreddit:
+                mapped_submission["subreddit"] = subreddit
+                logger.info(f"✓ Preserved subreddit '{subreddit}' for submission {submission_id}")
+            else:
+                logger.warning(f"⚠️  Subreddit field missing for submission {submission_id}")
+
+            if not (app_name or app_category or core_functions or subreddit):
+                logger.debug(f"No AI profile data found to map for submission {submission_id}")
 
             mapped_submissions.append(mapped_submission)
 

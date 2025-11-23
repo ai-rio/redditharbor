@@ -281,6 +281,8 @@ class HybridStore:
                     or trust_data.get("trust_level"),
                     "trust_badges": submission.get("trust_badges")
                     or trust_data.get("trust_badges"),
+                    # Reddit source field - IMPORTANT: Preserve subreddit reference
+                    "subreddit": submission.get("subreddit"),
                     # MonetizationService enrichment fields
                     "monetization_score": (
                         submission.get("monetization_score")
