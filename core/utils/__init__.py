@@ -10,9 +10,12 @@ Version: 1.0.0
 """
 
 from .logging import LoggerMixin, get_logger, setup_logging
+from .http_client_config import get_configured_httpx_client, initialize_http_clients
 
 __all__ = [
     'LoggerMixin',
     'get_logger',
-    'setup_logging'
+    'setup_logging',
+    'get_configured_httpx_client',
+    'initialize_http_clients',
 ]
