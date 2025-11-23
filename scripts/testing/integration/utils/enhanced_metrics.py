@@ -21,8 +21,9 @@ Created: 2025-11-22
 Author: RedditHarbor Data Engineering Team
 """
 
+import json
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,24 @@ EXPECTED_ENRICHMENT_FIELDS = {
     "validation_reasoning": "market_validations",
 }
 
+# Field name mappings for app_opportunities (expected name -> actual column name)
+APP_FIELD_MAPPINGS = {
+    "monetization_methods": "monetization_model",
+    "overall_trust_score": "trust_score",
+    "activity_validation_score": "activity_score",
+}
+
+# Field name mappings for market_validations.evidence JSON (expected name -> evidence field name)
+# Some fields can have multiple possible names in the evidence JSON
+EVIDENCE_FIELD_MAPPINGS: Dict[str, Union[str, List[str]]] = {
+    "market_validation_score": "validation_score",
+    "market_data_quality": "data_quality_score",
+    "competitor_count": "competitor_count",
+    "market_size_estimate": "market_size_estimate",
+    "similar_launches_count": "similar_launches_count",
+    "validation_reasoning": ["validation_reasoning", "reasoning"],  # Try both
+}
+
 
 def calculate_enhanced_field_coverage(
     enriched_submission: Dict[str, Any],
@@ -105,7 +124,11 @@ def calculate_enhanced_field_coverage(
     for field_name, source_table in EXPECTED_ENRICHMENT_FIELDS.items():
         if source_table == "app_opportunities":
             # Check in main submission dictionary
+            # First try the expected field name, then try the mapped column name
             value = enriched_submission.get(field_name)
+            if not _is_field_populated(value) and field_name in APP_FIELD_MAPPINGS:
+                # Try the alternate column name
+                value = enriched_submission.get(APP_FIELD_MAPPINGS[field_name])
             if _is_field_populated(value):
                 populated_fields.append(field_name)
                 logger.debug(f"✓ Found {field_name} in main submission")
@@ -144,11 +167,40 @@ def calculate_enhanced_field_coverage(
 
                 if market_data.data and len(market_data.data) > 0:
                     record = market_data.data[0]
+
+                    # Parse the evidence JSON column
+                    evidence_str = record.get("evidence")
+                    evidence = {}
+                    if evidence_str:
+                        try:
+                            evidence = json.loads(evidence_str) if isinstance(evidence_str, str) else evidence_str
+                        except (json.JSONDecodeError, TypeError):
+                            logger.warning(f"Could not parse evidence JSON: {evidence_str[:100] if evidence_str else 'None'}")
+                            evidence = {}
+
+                    # Check market_validations fields using evidence JSON mappings
                     for field_name, source_table in EXPECTED_ENRICHMENT_FIELDS.items():
                         if source_table == "market_validations" and field_name not in populated_fields:
+                            # First try direct column access
                             if _is_field_populated(record.get(field_name)):
                                 populated_fields.append(field_name)
-                                logger.debug(f"✓ Found {field_name} in market_validations")
+                                logger.debug(f"✓ Found {field_name} in market_validations (direct column)")
+                            # Then try evidence JSON with field mappings
+                            elif field_name in EVIDENCE_FIELD_MAPPINGS and evidence:
+                                evidence_field = EVIDENCE_FIELD_MAPPINGS[field_name]
+                                value = None
+                                if isinstance(evidence_field, list):
+                                    # Try multiple field names
+                                    for ef in evidence_field:
+                                        value = evidence.get(ef)
+                                        if value is not None:
+                                            break
+                                else:
+                                    value = evidence.get(evidence_field)
+
+                                if _is_field_populated(value):
+                                    populated_fields.append(field_name)
+                                    logger.debug(f"✓ Found {field_name} in market_validations.evidence")
 
                 # Check competitive_landscape table for competitor count
                 competitive_data = supabase_client.table("competitive_landscape")\

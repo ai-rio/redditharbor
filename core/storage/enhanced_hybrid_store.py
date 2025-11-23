@@ -56,6 +56,11 @@ MONETIZATION_PATTERNS_COLUMNS = {
     "revenue_model": {"data_type": "text"},
     "target_pricing": {"data_type": "double"},
     "market_size": {"data_type": "double"},
+    # New columns for monetization enrichment data
+    "willingness_to_pay_score": {"data_type": "double"},
+    "customer_segment": {"data_type": "text"},
+    "price_sensitivity_score": {"data_type": "double"},
+    "revenue_potential_score": {"data_type": "double"},
     "created_at": {"data_type": "timestamp"},
     "updated_at": {"data_type": "timestamp"},
 }
@@ -627,16 +632,17 @@ class EnhancedHybridStore(HybridStore):
         if not submission.get("willingness_to_pay_score") and not submission.get("llm_monetization_score"):
             return None  # No monetization data
 
-        # Only include fields that exist in the actual database schema
         return {
             "opportunity_id": opportunity_id,
             "pattern_type": "ai_analysis",
             "revenue_model": submission.get("monetization_model", "unknown"),
             "target_pricing": None,  # Could be extracted from mentioned_price_points
             "market_size": None,  # Could be estimated from market validation
-            # Fields that don't exist in schema: customer_segment, price_sensitivity_score, revenue_potential_score,
-            # mentioned_price_points, existing_payment_behavior, urgency_level, sentiment_toward_payment,
-            # payment_friction_indicators, llm_monetization_score, reasoning, willingness_to_pay_score
+            # New columns for monetization enrichment data
+            "willingness_to_pay_score": submission.get("willingness_to_pay_score"),
+            "customer_segment": submission.get("customer_segment"),
+            "price_sensitivity_score": submission.get("price_sensitivity_score"),
+            "revenue_potential_score": submission.get("revenue_potential_score"),
             "created_at": datetime.now(UTC).isoformat(),
         }
 
