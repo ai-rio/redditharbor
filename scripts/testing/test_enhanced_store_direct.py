@@ -53,9 +53,12 @@ def test_enhanced_store():
 
         # Create sample enriched submission data
         sample_submission = {
-            "submission_id": "e7763e41-d7bf-4bf1-a004-decff9f0f0c5",
+            "submission_id": "e7763e41-d7bf-4bf1-a004-decff9f0c5",
             "title": "Need feedback on timezone scheduling tool",
             "content": "I've been working on a timezone scheduling tool for remote teams...",
+            "problem_description": "Remote teams struggle with timezone coordination when scheduling meetings across different time zones, leading to confusion and missed opportunities.",
+            "app_concept": "AI-powered timezone scheduling tool that automatically finds optimal meeting times",
+            "core_functions": "Automatic timezone detection, meeting scheduling, calendar integration, availability tracking",
             "subreddit": "remotework",
 
             # Opportunity scoring data

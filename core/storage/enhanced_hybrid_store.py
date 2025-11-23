@@ -122,8 +122,11 @@ class EnhancedHybridStore(HybridStore):
         # Fix UUID format mismatch: Ensure submission_ids are valid UUIDs
         fixed_submissions = self._fix_submission_id_formats(hybrid_submissions)
 
+        # Map AI profile data to app_opportunities fields BEFORE storing to main tables
+        mapped_submissions = self._map_ai_profile_to_app_opportunities(fixed_submissions)
+
         # First, store to main tables using parent method
-        main_success = super().store(fixed_submissions)
+        main_success = super().store(mapped_submissions)
 
         if not main_success:
             logger.error("Main table storage failed, skipping enrichment tables")
@@ -137,6 +140,71 @@ class EnhancedHybridStore(HybridStore):
         logger.info(f"Enhanced storage complete: Main={main_success}, Enrichment={enrichment_success}, Overall={total_success}")
 
         return total_success
+
+    def _map_ai_profile_to_app_opportunities(self, submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Extract AI-generated app metadata from ai_profile and map to app_opportunities fields.
+
+        The ProfilerService stores extracted app data inside the ai_profile JSON field,
+        but these fields need to be mapped to the main app_opportunities table columns.
+
+        Args:
+            submissions: List of submission dictionaries with ai_profile JSON data
+
+        Returns:
+            List of submissions with app_name, app_category, and core_functions properly mapped
+        """
+        mapped_submissions = []
+
+        for submission in submissions:
+            mapped_submission = submission.copy()
+
+            # Extract AI profile data if available
+            ai_profile = submission.get("ai_profile", {})
+
+            if isinstance(ai_profile, dict) and ai_profile:
+                # Extract app_name from multiple possible locations in ai_profile
+                app_name = None
+                if ai_profile.get("analysis_summary", {}).get("app_name"):
+                    app_name = ai_profile["analysis_summary"]["app_name"]
+                elif ai_profile.get("market_analysis", {}).get("app_name"):
+                    app_name = ai_profile["market_analysis"]["app_name"]
+                elif ai_profile.get("app_name"):
+                    app_name = ai_profile["app_name"]
+
+                # Extract app_category from multiple possible locations in ai_profile
+                app_category = None
+                if ai_profile.get("analysis_summary", {}).get("app_category"):
+                    app_category = ai_profile["analysis_summary"]["app_category"]
+                elif ai_profile.get("market_analysis", {}).get("app_category"):
+                    app_category = ai_profile["market_analysis"]["app_category"]
+                elif ai_profile.get("app_category"):
+                    app_category = ai_profile["app_category"]
+
+                # Extract core_functions from ai_profile
+                core_functions = None
+                if ai_profile.get("technical_feasibility", {}).get("core_function_count"):
+                    # If we have function count, we might extract the functions differently
+                    pass
+                elif ai_profile.get("core_functions"):
+                    core_functions = ai_profile["core_functions"]
+
+                # Update submission with extracted AI data (only if not already set)
+                if app_name and not mapped_submission.get("app_name"):
+                    mapped_submission["app_name"] = app_name
+
+                if app_category and not mapped_submission.get("app_category"):
+                    mapped_submission["app_category"] = app_category
+
+                if core_functions and not mapped_submission.get("core_functions"):
+                    mapped_submission["core_functions"] = core_functions
+
+                logger.debug(f"Mapped AI profile data for submission {submission.get('submission_id', 'unknown')}: "
+                             f"app_name={app_name}, app_category={app_category}")
+
+            mapped_submissions.append(mapped_submission)
+
+        return mapped_submissions
 
     def _fix_submission_id_formats(self, hybrid_submissions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
