@@ -27,40 +27,30 @@ class TestNullAndEmptyInputs:
     """Test handling of null and empty inputs."""
 
     def test_resolve_none_input(self):
-        """UT-001: None input returns result with error."""
-        result = resolve_submission_id(submission_id=None)
+        """UT-001: None input returns None immediately."""
+        result = resolve_submission_id(None)
 
-        assert result is not None
-        assert result.error is not None
-        assert "Empty or null submission ID provided" in result.error
-        assert result.canonical_id is None
+        assert result is None
 
     def test_resolve_empty_string(self):
-        """UT-002: Empty string returns result with error."""
-        result = resolve_submission_id(submission_id="")
+        """UT-002: Empty string returns None immediately."""
+        result = resolve_submission_id("")
 
-        assert result is not None
-        assert result.error is not None
-        assert "Empty or null submission ID provided" in result.error
-        assert result.canonical_id is None
+        assert result is None
 
     def test_resolve_whitespace_only(self):
-        """UT-003: Whitespace-only string returns result with error."""
-        result = resolve_submission_id(submission_id="   ")
+        """UT-003: Whitespace-only string returns None immediately."""
+        result = resolve_submission_id("   ")
 
-        assert result is not None
-        assert result.error is not None
-        assert "Empty or null submission ID provided" in result.error
-        assert result.canonical_id is None
+        assert result is None
 
     def test_resolve_tabs_and_newlines(self):
-        """Tabs and newlines should also return error."""
-        result1 = resolve_submission_id(submission_id="\t\n")
-        result2 = resolve_submission_id(submission_id="  \t  ")
+        """Tabs and newlines should also return None."""
+        result1 = resolve_submission_id("\t\n")
+        result2 = resolve_submission_id("  \t  ")
 
-        assert result1.error is not None
-        assert result2.error is not None
-        assert "Empty or null submission ID" in result1.error
+        assert result1 is None
+        assert result2 is None
 
 
 class TestUUIDPassthrough:
@@ -69,34 +59,31 @@ class TestUUIDPassthrough:
     def test_resolve_valid_uuid_passthrough(self):
         """UT-004: Valid UUID passes through unchanged."""
         test_uuid = "e7763e41-d7bf-4bf1-a004-decff9f0f0c5"
-        result = resolve_submission_id(submission_id=test_uuid)
+        result = resolve_submission_id(test_uuid)
 
         assert result is not None
-        assert result.canonical_id == test_uuid.lower()
-        assert result.input_type == "uuid"
-        assert result.extraction_method == "uuid_validation"
+        assert result.uuid == test_uuid.lower()
+        assert result.source == "passthrough"
+        assert result.original_input == test_uuid
         assert result.error is None
 
     def test_resolve_valid_uuid_uppercase(self):
         """UUID with uppercase letters should be normalized."""
         test_uuid = "E7763E41-D7BF-4BF1-A004-DECFF9F0F0C5"
-        result = resolve_submission_id(submission_id=test_uuid)
+        result = resolve_submission_id(test_uuid)
 
         assert result is not None
-        assert result.canonical_id == test_uuid.lower()
-        assert result.input_type == "uuid"
-        assert result.extraction_method == "uuid_validation"
+        assert result.uuid == test_uuid.lower()
+        assert result.source == "passthrough"
 
     def test_resolve_invalid_uuid_format(self):
         """UT-005: Invalid UUID format triggers generation."""
-        result = resolve_submission_id(submission_id="not-a-uuid")
+        result = resolve_submission_id("not-a-uuid")
 
         assert result is not None
-        assert result.canonical_id is not None
-        assert result.input_type == "unknown"
-        assert result.extraction_method == "generation"
-        assert result.is_synthetic is True
-        assert is_valid_uuid(result.canonical_id)
+        assert result.uuid is not None
+        assert result.source == "generated"
+        assert is_valid_uuid(result.uuid)
 
 
 class TestSyntheticIDs:
@@ -105,36 +92,33 @@ class TestSyntheticIDs:
     def test_resolve_synthetic_id_hybrid(self):
         """UT-006: Synthetic ID with synthetic_ prefix generates deterministic UUID."""
         synthetic_id = "synthetic_1a2b3c4d5e6f7g8h9i0j"
-        result = resolve_submission_id(submission_id=synthetic_id)
+        result = resolve_submission_id(synthetic_id)
 
         assert result is not None
-        assert result.canonical_id is not None
-        assert result.input_type == "synthetic_id"
-        assert result.extraction_method == "synthetic_detection"
-        assert result.is_synthetic is True
-        assert is_valid_uuid(result.canonical_id)
+        assert result.uuid is not None
+        assert result.source == "generated"
+        assert result.original_input == synthetic_id
+        assert is_valid_uuid(result.uuid)
 
     def test_resolve_synthetic_id_high_quality(self):
         """Test another synthetic ID."""
         synthetic_id = "synthetic_high_quality_1234567890"
-        result = resolve_submission_id(submission_id=synthetic_id)
+        result = resolve_submission_id(synthetic_id)
 
         assert result is not None
-        assert result.input_type == "synthetic_id"
-        assert result.is_synthetic is True
-        assert is_valid_uuid(result.canonical_id)
+        assert result.source == "generated"
+        assert result.original_input == synthetic_id
+        assert is_valid_uuid(result.uuid)
 
     def test_resolve_reddit_style_id(self):
         """Test Reddit-style alphanumeric ID."""
         reddit_id = "1fp7k8t"
-        result = resolve_submission_id(submission_id=reddit_id)
+        result = resolve_submission_id(reddit_id)
 
         assert result is not None
-        assert result.input_type == "reddit_id"
-        assert result.extraction_method == "reddit_id_pattern"
-        assert result.reddit_id == reddit_id
-        assert result.is_synthetic is False
-        assert is_valid_uuid(result.canonical_id)
+        assert result.source == "generated"
+        assert result.original_input == reddit_id
+        assert is_valid_uuid(result.uuid)
 
 
 class TestURLExtraction:
@@ -142,47 +126,47 @@ class TestURLExtraction:
 
     def test_resolve_reddit_url_standard(self):
         """UT-007: Standard Reddit URL extracts ID correctly."""
-        # Use URL format that matches current regex pattern
-        url = "https://reddit.com/comments/1fp7k8t/title"
-        result = resolve_submission_id(submission_id=url)
+        # Use proper Reddit URL format with subreddit
+        url = "https://reddit.com/r/Python/comments/1fp7k8t/title"
+        result = resolve_submission_id(url)
 
         assert result is not None
-        assert result.input_type == "url"
-        assert result.extraction_method == "url_parsing"
-        assert result.reddit_id == "1fp7k8t"
+        assert result.source == "generated"
+        assert result.original_input == url
+        assert result.metadata["extracted_reddit_id"] == "1fp7k8t"
         assert result.error is None
-        assert is_valid_uuid(result.canonical_id)
+        assert is_valid_uuid(result.uuid)
 
     def test_resolve_reddit_url_with_www(self):
         """URL with www prefix - should fall back to generation with current pattern."""
         url = "https://www.reddit.com/r/Python/comments/abc123/my_post/"
-        result = resolve_submission_id(submission_id=url)
+        result = resolve_submission_id(url)
 
         assert result is not None
         # Current regex doesn't match this URL pattern, so it falls back to generation
-        assert result.input_type == "unknown"
-        assert result.extraction_method == "generation"
+        assert result.source == "generated"
+        assert result.original_input == url
 
     def test_resolve_reddit_url_old_format(self):
         """Old Reddit URL format - falls back to generation with current pattern."""
         url = "https://old.reddit.com/r/programming/comments/xyz789/discussion"
-        result = resolve_submission_id(submission_id=url)
+        result = resolve_submission_id(url)
 
         assert result is not None
         # Current regex doesn't match this URL pattern, so it falls back to generation
-        assert result.input_type == "unknown"
-        assert result.extraction_method == "generation"
+        assert result.source == "generated"
+        assert result.original_input == url
 
     def test_resolve_invalid_reddit_url(self):
         """UT-014: Invalid Reddit URL returns generated UUID."""
         url = "https://reddit.com/r/test/invalid_no_comments"
-        result = resolve_submission_id(submission_id=url)
+        result = resolve_submission_id(url)
 
         assert result is not None
-        assert result.canonical_id is not None
+        assert result.uuid is not None
         assert result.error is None  # Should fall back to generation, not error
-        assert result.input_type == "unknown"
-        assert result.extraction_method == "generation"
+        assert result.source == "generated"
+        assert result.original_input == url
 
 
 class TestDictExtraction:
@@ -192,65 +176,62 @@ class TestDictExtraction:
         """UT-008: Dict with submission_id uses that field."""
         # Use value that doesn't match reddit_id pattern to test dict extraction
         data = {"submission_id": "very_long_submission_id", "other": "data"}
-        result = resolve_submission_id(submission_id=data)
+        result = resolve_submission_id(data)
 
         assert result is not None
         assert result.error is None
-        # Dict extraction works, but extracted value gets processed further
-        # Since "very_long_submission_id" doesn't match patterns, it becomes "unknown"
-        assert result.input_type in ["dict", "unknown"]
-        assert result.extraction_method in ["dict_key_submission_id", "generation"]
-        assert result.canonical_id is not None
-        assert is_valid_uuid(result.canonical_id)
+        assert result.source == "generated"
+        assert result.uuid is not None
+        assert is_valid_uuid(result.uuid)
         # Check metadata indicates dict processing occurred
-        has_metadata = ("original_dict_keys" in result.metadata or
-                       "original_input" in result.metadata)
-        assert has_metadata
+        assert "original_dict_keys" in result.metadata
+        assert "extraction_method" in result.metadata
+        assert result.metadata["extraction_method"] == "dict_submission_id"
 
     def test_resolve_dict_with_reddit_id_only(self):
         """UT-009: Dict with only reddit_id falls back to it."""
         data = {"reddit_id": "1fp7k8t", "title": "Test"}
-        result = resolve_submission_id(submission_id=data)
+        result = resolve_submission_id(data)
 
         assert result is not None
         assert result.error is None
-        assert result.input_type == "dict"
-        assert result.extraction_method == "dict_key_reddit_id"
-        assert result.reddit_id == "1fp7k8t"
+        assert result.source == "generated"
+        assert result.metadata["extraction_method"] == "dict_reddit_id"
 
     def test_resolve_empty_dict(self):
         """UT-010: Empty dict returns error result."""
-        result = resolve_submission_id(submission_id={})
+        result = resolve_submission_id({})
 
         assert result is not None
-        assert result.canonical_id is None
+        assert result.uuid is None
         assert result.error is not None
-        assert "No valid ID found in dictionary" in result.error
-        assert result.input_type == "dict"
+        assert "missing submission_id and reddit_id" in result.error
 
     def test_resolve_dict_with_both_fields(self):
         """UT-015: Dict with both fields prioritizes submission_id."""
         data = {"submission_id": "very_long_primary_id", "reddit_id": "secondary_id"}
-        result = resolve_submission_id(submission_id=data)
+        result = resolve_submission_id(data)
 
         assert result is not None
         # The dict should extract submission_id and process it
-        assert result.canonical_id is not None
+        assert result.uuid is not None
         assert result.error is None
         # Test direct submission_id resolution - should produce same UUID
-        direct_result = resolve_submission_id(submission_id="very_long_primary_id")
-        assert result.canonical_id == direct_result.canonical_id
+        direct_result = resolve_submission_id("very_long_primary_id")
+        assert result.uuid == direct_result.uuid
 
     def test_resolve_dict_with_uuid_submission_id(self):
         """Dict with UUID as submission_id should passthrough."""
         test_uuid = "550e8400-e29b-41d4-a716-446655440000"
         data = {"submission_id": test_uuid}
-        result = resolve_submission_id(submission_id=data)
+        result = resolve_submission_id(data)
 
         assert result is not None
-        assert result.canonical_id == test_uuid.lower()
-        assert result.input_type == "uuid"  # UUID passthrough applies after extraction
-        assert result.extraction_method == "uuid_validation"
+        assert result.uuid == test_uuid.lower()
+        assert (
+            result.source == "passthrough"
+        )  # UUID passthrough applies after extraction
+        assert result.metadata["extraction_method"] == "dict_submission_id"
 
 
 class TestDeterminism:
@@ -260,31 +241,31 @@ class TestDeterminism:
         """UT-011: Same input always produces same UUID."""
         input_value = "test_determinism_123"
 
-        result1 = resolve_submission_id(submission_id=input_value)
-        result2 = resolve_submission_id(submission_id=input_value)
+        result1 = resolve_submission_id(input_value)
+        result2 = resolve_submission_id(input_value)
 
-        assert result1.canonical_id == result2.canonical_id
+        assert result1.uuid == result2.uuid
 
     def test_uuid_determinism_across_formats(self):
         """Same ID via different paths produces same UUID."""
         # Direct Reddit ID
-        direct = resolve_submission_id(submission_id="abc123")
+        direct = resolve_submission_id("abc123")
 
         # Via URL extraction
         url = "https://reddit.com/r/test/comments/abc123/title"
-        from_url = resolve_submission_id(submission_id=url)
+        from_url = resolve_submission_id(url)
 
         # Via dict
-        from_dict = resolve_submission_id(submission_id={"reddit_id": "abc123"})
+        from_dict = resolve_submission_id({"reddit_id": "abc123"})
 
-        assert direct.canonical_id == from_url.canonical_id == from_dict.canonical_id
+        assert direct.uuid == from_url.uuid == from_dict.uuid
 
     def test_different_inputs_different_uuids(self):
         """UT-012: Different inputs produce different UUIDs."""
-        result1 = resolve_submission_id(submission_id="input_a")
-        result2 = resolve_submission_id(submission_id="input_b")
+        result1 = resolve_submission_id("input_a")
+        result2 = resolve_submission_id("input_b")
 
-        assert result1.canonical_id != result2.canonical_id
+        assert result1.uuid != result2.uuid
 
 
 class TestHelperFunctions:
@@ -390,108 +371,100 @@ class TestEdgeCases:
     def test_very_long_input(self):
         """Very long input strings should still work."""
         long_input = "a" * 10000
-        result = resolve_submission_id(submission_id=long_input)
+        result = resolve_submission_id(long_input)
 
         assert result is not None
-        assert result.input_type == "unknown"
-        assert result.extraction_method == "generation"
-        assert result.is_synthetic is True
-        assert is_valid_uuid(result.canonical_id)
+        assert result.source == "generated"
+        assert result.original_input == long_input
+        assert is_valid_uuid(result.uuid)
 
     def test_special_characters_in_id(self):
         """IDs with special characters should be handled."""
-        result = resolve_submission_id(submission_id="test_id_with_underscores_123")
+        result = resolve_submission_id("test_id_with_underscores_123")
 
         assert result is not None
-        assert result.canonical_id is not None
-        assert is_valid_uuid(result.canonical_id)
+        assert result.uuid is not None
+        assert is_valid_uuid(result.uuid)
 
     def test_unicode_in_input(self):
         """Unicode characters in input should be handled."""
-        result = resolve_submission_id(submission_id="test_unicode_café")
+        result = resolve_submission_id("test_unicode_café")
 
         assert result is not None
-        assert result.canonical_id is not None
-        assert is_valid_uuid(result.canonical_id)
+        assert result.uuid is not None
+        assert is_valid_uuid(result.uuid)
 
     def test_numeric_string(self):
         """Pure numeric strings should be handled."""
-        result = resolve_submission_id(submission_id="1234567890")
+        result = resolve_submission_id("1234567890")
 
         assert result is not None
-        assert result.input_type == "unknown"  # Too long for reddit_id pattern
-        assert result.extraction_method == "generation"
-        assert result.is_synthetic is True
+        assert result.source == "generated"  # Too long for reddit_id pattern
+        assert result.original_input == "1234567890"
 
     def test_short_reddit_style_id(self):
         """Test short IDs that don't match reddit pattern."""
-        result = resolve_submission_id(submission_id="abc12")  # 5 chars
+        result = resolve_submission_id("abc12")  # 5 chars
 
         assert result is not None
-        assert result.input_type == "unknown"  # Too short for reddit_id pattern
-        assert result.extraction_method == "generation"
+        assert result.source == "generated"  # Too short for reddit_id pattern
+        assert result.original_input == "abc12"
 
     def test_valid_reddit_id_length_6(self):
         """Test exactly 6 character reddit ID."""
-        result = resolve_submission_id(submission_id="abcdef")  # 6 chars
+        result = resolve_submission_id("abcdef")  # 6 chars
 
         assert result is not None
-        assert result.input_type == "reddit_id"
-        assert result.extraction_method == "reddit_id_pattern"
+        assert result.source == "generated"  # Reddit IDs are still generated to UUIDs
 
     def test_valid_reddit_id_length_7(self):
         """Test exactly 7 character reddit ID."""
-        result = resolve_submission_id(submission_id="abcdefg")  # 7 chars
+        result = resolve_submission_id("abcdefg")  # 7 chars
 
         assert result is not None
-        assert result.input_type == "reddit_id"
-        assert result.extraction_method == "reddit_id_pattern"
+        assert result.source == "generated"  # Reddit IDs are still generated to UUIDs
 
     def test_invalid_input_type(self):
         """Test completely invalid input type."""
-        result = resolve_submission_id(submission_id=12345)  # Integer
+        result = resolve_submission_id(12345)  # Integer
 
         assert result is not None
         assert result.error is not None
         assert "Invalid input type" in result.error
-        assert result.canonical_id is None
+        assert result.uuid is None
 
 
 class TestFallbackBehavior:
-    """Test allow_generation parameter behavior."""
+    """Test fallback_to_generated parameter behavior."""
 
     def test_fallback_enabled_default(self):
         """Default behavior generates UUID for unknown IDs."""
-        result = resolve_submission_id(submission_id="unknown_id_12345")
+        result = resolve_submission_id("unknown_id_12345")
 
         assert result is not None
-        assert result.canonical_id is not None
-        assert result.input_type == "unknown"
-        assert result.extraction_method == "generation"
-        assert result.is_synthetic is True
+        assert result.uuid is not None
+        assert result.source == "generated"
+        assert result.original_input == "unknown_id_12345"
 
     def test_fallback_disabled_no_db(self):
         """With generation disabled, should error."""
-        result = resolve_submission_id(
-            submission_id="unknown_id", allow_generation=False
-        )
+        result = resolve_submission_id("unknown_id", fallback_to_generated=False)
 
         assert result is not None
-        assert result.canonical_id is None
+        assert result.uuid is None
         assert result.error is not None
         assert "Unable to resolve submission ID" in result.error
 
     def test_fallback_disabled_with_reddit_id(self):
         """Generation disabled with valid reddit ID should still work."""
         result = resolve_submission_id(
-            submission_id="abc123",  # Valid reddit ID pattern
-            allow_generation=False,
+            "abc123",  # Valid reddit ID pattern - but will still generate
+            fallback_to_generated=False,
         )
 
         assert result is not None
-        assert result.canonical_id is not None
-        assert result.input_type == "reddit_id"
-        assert result.error is None
+        assert result.uuid is None  # Should fail because generation disabled
+        assert result.error is not None
 
 
 class TestResolutionResultDataclass:
@@ -499,51 +472,44 @@ class TestResolutionResultDataclass:
 
     def test_result_has_all_fields(self):
         """Result has all expected fields."""
-        result = resolve_submission_id(submission_id="test")
+        result = resolve_submission_id("test")
 
         # Check all expected fields exist
-        assert hasattr(result, "canonical_id")
-        assert hasattr(result, "input_type")
-        assert hasattr(result, "extraction_method")
-        assert hasattr(result, "reddit_id")
-        assert hasattr(result, "is_synthetic")
+        assert hasattr(result, "uuid")
+        assert hasattr(result, "source")
+        assert hasattr(result, "original_input")
         assert hasattr(result, "error")
         assert hasattr(result, "metadata")
 
     def test_result_metadata_is_dict(self):
         """Metadata field should be a dict."""
-        result = resolve_submission_id(submission_id="test")
+        result = resolve_submission_id("test")
 
         assert isinstance(result.metadata, dict)
 
     def test_result_original_input_preserved(self):
-        """Original input should be preserved in result metadata for unknown inputs."""
+        """Original input should be preserved in result."""
         test_input = "my_test_input"
-        result = resolve_submission_id(submission_id=test_input)
+        result = resolve_submission_id(test_input)
 
-        if result.input_type == "unknown":
-            assert "original_input" in result.metadata
-            assert result.metadata["original_input"] == test_input
+        assert result.original_input == test_input
 
     def test_result_initialization(self):
         """Test ResolutionResult can be initialized properly."""
         result = ResolutionResult(
-            canonical_id="test-uuid",
-            input_type="test_type",
-            extraction_method="test_method",
-            reddit_id="test_reddit_id",
-            is_synthetic=True,
+            uuid="test-uuid",
+            source="generated",
+            original_input="test_input",
             error="test_error",
+            metadata={"test": "value"},
         )
 
-        assert result.canonical_id == "test-uuid"
-        assert result.input_type == "test_type"
-        assert result.extraction_method == "test_method"
-        assert result.reddit_id == "test_reddit_id"
-        assert result.is_synthetic is True
+        assert result.uuid == "test-uuid"
+        assert result.source == "generated"
+        assert result.original_input == "test_input"
         assert result.error == "test_error"
         assert isinstance(result.metadata, dict)
-        assert len(result.metadata) == 0  # Should be empty dict by default
+        assert result.metadata["test"] == "value"
 
 
 class TestParameterValidation:
@@ -556,32 +522,30 @@ class TestParameterValidation:
             pass
 
         mock_client = MockSupabaseClient()
-        result = resolve_submission_id(
-            submission_id="test_id", supabase_client=mock_client
-        )
+        result = resolve_submission_id("test_id", supabase_client=mock_client)
 
         assert result is not None
-        assert result.canonical_id is not None
+        assert result.uuid is not None
         # Should behave the same as no client provided
 
     def test_use_cache_ignored(self):
-        """use_cache parameter should be ignored in Phase 1."""
-        result1 = resolve_submission_id(submission_id="test_id", use_cache=True)
-        result2 = resolve_submission_id(submission_id="test_id", use_cache=False)
+        """require_db_existence parameter should be ignored in Phase 1."""
+        result1 = resolve_submission_id("test_id", require_db_existence=True)
+        result2 = resolve_submission_id("test_id", require_db_existence=False)
 
         # Both should produce the same result
-        assert result1.canonical_id == result2.canonical_id
+        assert result1.uuid == result2.uuid
 
     def test_keyword_only_parameters(self):
-        """Test that keyword-only parameters work correctly."""
-        # This should work
-        result1 = resolve_submission_id(submission_id="test")
+        """Test that positional first argument works correctly."""
+        # This should work - positional first argument
+        result1 = resolve_submission_id("test")
 
-        # This should fail if keyword-only is enforced properly
-        # Note: In pytest, we expect the function call to work if it accepts
-        # positional args or to fail if it truly only accepts keyword args. The
-        # current implementation accepts positional args, so this test documents
-        # current behavior.
+        # This should also work - same result
         result2 = resolve_submission_id("test")
 
-        assert result1.canonical_id == result2.canonical_id
+        assert result1.uuid == result2.uuid
+
+        # Test keyword-only arguments after positional
+        result3 = resolve_submission_id("test", fallback_to_generated=True)
+        assert result3.uuid == result1.uuid

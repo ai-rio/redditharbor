@@ -13,11 +13,15 @@ import re
 import uuid
 from dataclasses import dataclass, field
 from re import Pattern
-from typing import Any
+from typing import Any, Literal
 
 # Constants
-REDDITHARBOR_NAMESPACE: uuid.UUID = uuid.uuid5(uuid.NAMESPACE_DNS, "redditharbor-pipeline")
-REDDIT_URL_PATTERN: Pattern[str] = re.compile(r'reddit\.com/comments/([a-zA-Z0-9]+)')
+REDDITHARBOR_NAMESPACE: uuid.UUID = uuid.uuid5(
+    uuid.NAMESPACE_DNS, "redditharbor-pipeline"
+)
+REDDIT_URL_PATTERN: Pattern[str] = re.compile(
+    r"reddit\.com(?:/r/[^/]+)?/comments/([a-zA-Z0-9]+)"
+)
 UUID_PATTERN: Pattern[str] = re.compile(
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
     re.IGNORECASE
@@ -30,19 +34,15 @@ class ResolutionResult:
     Result of ID resolution attempt containing canonical UUID and metadata.
 
     Attributes:
-        canonical_id: Deterministic UUID for the input
-        input_type: Type of input provided (uuid, reddit_id, synthetic_id, url, dict, unknown)
-        extraction_method: Method used to extract ID (uuid_validation, url_parsing, dict_key, generation)
-        reddit_id: Extracted Reddit base36 ID if available
-        is_synthetic: Whether the ID was synthetically generated
+        uuid: The resolved submissions.id UUID or None
+        source: Source of UUID ("database", "passthrough", "generated") or None
+        original_input: What was passed in (stringified)
         error: Error message if resolution failed
         metadata: Additional resolution metadata
     """
-    canonical_id: str | None = None
-    input_type: str = "unknown"
-    extraction_method: str = "unknown"
-    reddit_id: str | None = None
-    is_synthetic: bool = False
+    uuid: str | None
+    source: Literal["database", "passthrough", "generated"] | None
+    original_input: str
     error: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -88,9 +88,12 @@ def generate_deterministic_uuid(input_string: str) -> str:
 
     Returns:
         Deterministic UUID string
+
+    Raises:
+        ValueError: If input_string is empty or whitespace-only
     """
-    if not input_string:
-        raise ValueError("Input string cannot be empty for UUID generation")
+    if not input_string or not input_string.strip():
+        raise ValueError("Input string cannot be empty")
 
     return str(uuid.uuid5(REDDITHARBOR_NAMESPACE, input_string.strip()))
 
@@ -119,96 +122,131 @@ def extract_id_from_dict(data: dict[str, Any]) -> tuple[str | None, str | None]:
 
 
 def resolve_submission_id(
+    input_value: str | dict[str, Any] | None,
     *,
-    submission_id: str | dict[str, Any] | None = None,
-    supabase_client: Any = None,  # Phase 1: ignored
-    allow_generation: bool = True,
-    use_cache: bool = True
-) -> ResolutionResult:
+    require_db_existence: bool = False,
+    fallback_to_generated: bool = True,
+    supabase_client: Any = None,
+) -> ResolutionResult | None:
     """
     Resolve various ID formats to canonical RedditHarbor UUID.
 
     Args:
-        submission_id: Input ID in various formats (UUID, Reddit ID, URL, dict)
+        input_value: Input ID in various formats (UUID, Reddit ID, URL, dict)
+        require_db_existence: Whether to require database existence for valid UUIDs
+        fallback_to_generated: Whether to generate UUID for unknown inputs
         supabase_client: Database client (Phase 1: ignored)
-        allow_generation: Whether to generate synthetic IDs for unknown inputs
-        use_cache: Whether to use caching (Phase 1: ignored)
 
     Returns:
-        ResolutionResult containing canonical UUID and resolution metadata
+        ResolutionResult containing canonical UUID and resolution metadata,
+        or None for null/empty inputs
     """
-    result = ResolutionResult()
+    # Store the original input as string for the result
+    original_input = str(input_value) if input_value is not None else "None"
 
     try:
-        # 1. Null/Empty Check
-        if submission_id is None or (isinstance(submission_id, str) and not submission_id.strip()):
-            result.error = "Empty or null submission ID provided"
-            return result
+        # 1. Null/Empty Check - Return None immediately
+        if input_value is None or (
+            isinstance(input_value, str) and not input_value.strip()
+        ):
+            return None
 
-        # Handle dictionary input
-        if isinstance(submission_id, dict):
-            result.input_type = "dict"
-            extracted_id, key_used = extract_id_from_dict(submission_id)
+        # Handle dictionary input - extract ID first
+        processed_value = input_value
+        extraction_method = None
+        dict_metadata = {}
+
+        if isinstance(input_value, dict):
+            extracted_id, key_used = extract_id_from_dict(input_value)
             if extracted_id:
-                result.extraction_method = f"dict_key_{key_used}"
-                submission_id = extracted_id
-                result.metadata["original_dict_keys"] = list(submission_id.keys()) if isinstance(submission_id, dict) else []
+                processed_value = extracted_id
+                extraction_method = f"dict_{key_used}"
+                dict_metadata["original_dict_keys"] = list(input_value.keys())
+                dict_metadata["extraction_method"] = extraction_method
             else:
-                result.error = "No valid ID found in dictionary (missing submission_id or reddit_id keys)"
-                return result
+                return ResolutionResult(
+                    uuid=None,
+                    source=None,
+                    original_input=original_input,
+                    error="Invalid dict format: missing submission_id and reddit_id",
+                    metadata={"available_keys": list(input_value.keys())}
+                )
 
-        # At this point, submission_id should be a string
-        if not isinstance(submission_id, str):
-            result.error = f"Invalid input type: {type(submission_id)}. Expected str, uuid, or dict."
-            return result
+        # At this point, processed_value should be a string
+        if not isinstance(processed_value, str):
+            return ResolutionResult(
+                uuid=None,
+                source=None,
+                original_input=original_input,
+                error=(
+            f"Invalid input type: {type(processed_value)}. "
+            "Expected str, dict, or None."
+        )
+            )
 
-        submission_id = submission_id.strip()
+        processed_value = processed_value.strip()
 
-        # 2. UUID Validation
-        if is_valid_uuid(submission_id):
-            result.input_type = "uuid"
-            result.extraction_method = "uuid_validation"
-            result.canonical_id = submission_id.lower()  # Normalize case
-            return result
+        # 2. UUID Validation - Passthrough path
+        if is_valid_uuid(processed_value):
+            # If database existence is required, we would query here
+            # For Phase 1, we just passthrough the UUID
+            return ResolutionResult(
+                uuid=processed_value.lower(),  # Normalize case
+                source="passthrough",
+                original_input=original_input,
+                metadata=dict_metadata
+            )
 
         # 3. URL Extraction
-        reddit_id = extract_reddit_id_from_url(submission_id)
+        reddit_id = extract_reddit_id_from_url(processed_value)
         if reddit_id:
-            result.input_type = "url"
-            result.extraction_method = "url_parsing"
-            result.reddit_id = reddit_id
-            result.canonical_id = generate_deterministic_uuid(f"reddit_id:{reddit_id}")
-            return result
+            # Process the extracted reddit_id the same way as direct input
+            # for deterministic behavior across different input formats
+            generated_uuid = generate_deterministic_uuid(reddit_id)
+            return ResolutionResult(
+                uuid=generated_uuid,
+                source="generated",
+                original_input=original_input,
+                metadata={
+                    **dict_metadata,
+                    "extracted_reddit_id": reddit_id,
+                    "url_pattern": "comments"
+                }
+            )
 
-        # 4. Reddit ID Detection (base36 pattern)
-        if re.match(r'^[a-zA-Z0-9]{6,7}$', submission_id):
-            result.input_type = "reddit_id"
-            result.extraction_method = "reddit_id_pattern"
-            result.reddit_id = submission_id
-            result.canonical_id = generate_deterministic_uuid(f"reddit_id:{submission_id}")
-            return result
+        # 4. Database lookup (Phase 1: skipped, always generate)
+        # In Phase 2, this would query submissions.reddit_id = processed_value
+        # For now, we fall through to generation
 
-        # 5. Synthetic ID Detection (already has deterministic format)
-        if submission_id.startswith('synthetic_') and len(submission_id) > 20:
-            result.input_type = "synthetic_id"
-            result.extraction_method = "synthetic_detection"
-            result.canonical_id = generate_deterministic_uuid(f"synthetic:{submission_id}")
-            result.is_synthetic = True
-            return result
+        # 5. UUID Generation for all other valid inputs
+        if fallback_to_generated:
+            generated_uuid = generate_deterministic_uuid(processed_value)
+            metadata = dict_metadata.copy()
+            if extraction_method:
+                metadata["fallback_used"] = True
 
-        # 6. UUID Generation for unknown valid inputs
-        if allow_generation and len(submission_id) > 0:
-            result.input_type = "unknown"
-            result.extraction_method = "generation"
-            result.canonical_id = generate_deterministic_uuid(f"unknown:{submission_id}")
-            result.is_synthetic = True
-            result.metadata["original_input"] = submission_id
-            return result
+            return ResolutionResult(
+                uuid=generated_uuid,
+                source="generated",
+                original_input=original_input,
+                metadata=metadata
+            )
 
-        # 7. Error Fallback
-        result.error = f"Unable to resolve submission ID from input: {submission_id[:50]}..."
-        return result
+        # 6. Error Fallback - no generation allowed
+        return ResolutionResult(
+            uuid=None,
+            source=None,
+            original_input=original_input,
+            error=(
+            "Unable to resolve submission ID and fallback_to_generated=False: "
+            f"{processed_value[:50]}..."
+        )
+        )
 
     except Exception as e:
-        result.error = f"Error during ID resolution: {e!s}"
-        return result
+        return ResolutionResult(
+            uuid=None,
+            source=None,
+            original_input=original_input,
+            error=f"Error during ID resolution: {e!s}"
+        )
