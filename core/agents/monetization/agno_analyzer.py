@@ -1018,18 +1018,12 @@ class MonetizationAgnoAnalyzer:
                     "subreddit": getattr(self, 'current_subreddit', 'unknown')
                 })
             except AttributeError:
-                # Fallback to older API if Event doesn't exist
-                agentops.record({
-                    "event_name": f"{agent_name}_execution",
-                    "agent_name": agent_name,
-                    "model": self.model,
-                    "input_tokens": input_tokens,
-                    "output_tokens": output_tokens,
-                    "total_tokens": total_tokens,
-                    "cost_usd": round(cost, 6),
-                    "text_length": len(text),
-                    "subreddit": getattr(self, 'current_subreddit', 'unknown')
-                })
+                # In AgentOps v4, record() is deprecated and automatically tracked
+                # Log the event data instead for debugging purposes
+                logger.debug(
+                    f"AgentOps event (v4 auto-tracked): {agent_name}_execution - "
+                    f"tokens={total_tokens}, cost=${cost:.6f}"
+                )
 
             logger.info(f"AgentOps recorded {agent_name}: {total_tokens} tokens, ${cost:.6f}")
 
@@ -1120,12 +1114,11 @@ class MonetizationAgnoAnalyzer:
                         "parsing_successful": True
                     })
                 except AttributeError:
-                    agentops.record({
-                        "event_name": "parse_team_response",
-                        "tool_name": "parse_team_response",
-                        "response_length": len(str(combined_response)),
-                        "parsing_successful": True
-                    })
+                    # In AgentOps v4, record() is deprecated and automatically tracked
+                    logger.debug(
+                        f"AgentOps event (v4 auto-tracked): parse_team_response - "
+                        f"response_length={len(str(combined_response))}"
+                    )
 
             # Calculate composite scores
             scores = self._calculate_scores(analysis_data, subreddit)
@@ -1277,8 +1270,8 @@ class MonetizationAgnoAnalyzer:
                 }
             )
 
-            if self.agentops_enabled:
-                agentops.end_session("Success")
+            if self.agentops_enabled and hasattr(self, 'session_id') and self.session_id:
+                agentops.end_trace(self.session_id, "Success")
 
         except Exception as e:
             logger.error(f"Stream analysis failed: {e}")
@@ -1289,8 +1282,8 @@ class MonetizationAgnoAnalyzer:
                     "timestamp": datetime.now().isoformat(),
                 }
             )
-            if self.agentops_enabled:
-                agentops.end_session("Error")
+            if self.agentops_enabled and hasattr(self, 'session_id') and self.session_id:
+                agentops.end_trace(self.session_id, "Error")
 
     async def _run_agent_async(self, agent: Agent, prompt: str) -> dict[str, Any]:
         """Run agent asynchronously (placeholder implementation)"""
@@ -1478,10 +1471,14 @@ class MonetizationAgnoAnalyzer:
             return {"error": f"Failed to get cost report: {e}"}
 
     def __del__(self):
-        """Cleanup AgentOps session"""
+        """Cleanup AgentOps trace"""
         if hasattr(self, "agentops_enabled") and self.agentops_enabled:
             try:
-                agentops.end_session("Analyzer destroyed")
+                # Use end_trace instead of deprecated end_session (v4 compatibility)
+                if hasattr(self, 'agentops_trace') and self.agentops_trace:
+                    agentops.end_trace(self.agentops_trace, "Analyzer destroyed")
+                elif hasattr(self, 'session_id') and self.session_id:
+                    agentops.end_trace(self.session_id, "Analyzer destroyed")
             except Exception:
                 pass
 

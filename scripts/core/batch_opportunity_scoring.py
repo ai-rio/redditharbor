@@ -542,17 +542,17 @@ def should_run_profiler_analysis(
                     # This is a duplicate opportunity, check if concept has AI profiling
                     concept_response = (
                         supabase.table("business_concepts")
-                        .select("has_ai_profiling")
+                        .select("has_profiler_analysis")
                         .eq("id", concept_id)
                         .execute()
                     )
 
                     if concept_response.data and len(concept_response.data) > 0:
                         has_profiler = concept_response.data[0].get(
-                            "has_ai_profiling", False
+                            "has_profiler_analysis", False
                         )
                         logger.info(
-                            f"Submission {submission_id} is duplicate of concept {concept_id}, has_ai_profiling={has_profiler}"
+                            f"Submission {submission_id} is duplicate of concept {concept_id}, has_profiler_analysis={has_profiler}"
                         )
                         return not has_profiler, str(
                             concept_id
@@ -744,29 +744,30 @@ def update_concept_profiler_stats(
         if profiler_score is not None:
             profiler_score = float(profiler_score)
 
-        # Call the database function to update profiler tracking
-        response = supabase.rpc(
-            "update_profiler_analysis_tracking",
-            {
-                "p_concept_id": int(concept_id),
-                "p_has_analysis": True,
-                "p_profiler_score": profiler_score,
-            },
-        ).execute()
+        # Build update data for the business_concepts table
+        update_data = {
+            "has_profiler_analysis": True,
+        }
 
-        if response.data and len(response.data) > 0:
-            success = response.data[0].get("update_profiler_analysis_tracking", False)
-            if success:
-                logger.info(
-                    f"Updated profiler stats for concept {concept_id} (Score: {profiler_score})"
-                )
-            else:
-                logger.warning(
-                    f"Failed to update profiler stats for concept {concept_id}"
-                )
+        # Note: profiler_score could be stored if needed in future schema updates
+        # Currently the schema only tracks has_profiler_analysis boolean
+
+        # Update business_concepts directly
+        response = (
+            supabase.table("business_concepts")
+            .update(update_data)
+            .eq("id", int(concept_id))
+            .execute()
+        )
+
+        if response.data:
+            logger.info(
+                f"Updated profiler stats for concept {concept_id} (Score: {profiler_score})"
+            )
         else:
             logger.warning(
-                f"No response from update_profiler_analysis_tracking for concept {concept_id}"
+                f"Failed to update profiler stats for concept {concept_id} "
+                "(no rows affected)"
             )
 
     except Exception as e:

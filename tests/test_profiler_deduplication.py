@@ -63,9 +63,9 @@ class TestShouldRunProfilerAnalysis:
         opportunities_response = Mock()
         opportunities_response.data = [{"business_concept_id": "456"}]
 
-        # Mock response for business_concepts table (has_ai_profiling=True)
+        # Mock response for business_concepts table (has_profiler_analysis=True)
         concept_response = Mock()
-        concept_response.data = [{"has_ai_profiling": True}]
+        concept_response.data = [{"has_profiler_analysis": True}]
 
         # Set up the mock to return different responses for different calls
         mock_execute = Mock()
@@ -100,9 +100,9 @@ class TestShouldRunProfilerAnalysis:
         opportunities_response = Mock()
         opportunities_response.data = [{"business_concept_id": "456"}]
 
-        # Mock response for business_concepts table (has_ai_profiling=False)
+        # Mock response for business_concepts table (has_profiler_analysis=False)
         concept_response = Mock()
-        concept_response.data = [{"has_ai_profiling": False}]
+        concept_response.data = [{"has_profiler_analysis": False}]
 
         # Set up the mock to return different responses for different calls
         mock_execute = Mock()
@@ -357,9 +357,9 @@ class TestUpdateConceptProfilerStats:
         mock_supabase = Mock()
         mock_create_client.return_value = mock_supabase
 
-        # Mock successful RPC response
-        mock_supabase.rpc.return_value.execute.return_value = Mock(
-            data=[{"update_profiler_analysis_tracking": True}]
+        # Mock successful table update response
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = Mock(
+            data=[{"id": 123, "has_profiler_analysis": True}]
         )
 
         # Test data - use integer concept_id
@@ -373,11 +373,10 @@ class TestUpdateConceptProfilerStats:
         # Execute function
         update_concept_profiler_stats(concept_id, ai_profile, mock_supabase)
 
-        # Verify RPC call was made correctly
-        mock_supabase.rpc.assert_called_once_with("update_profiler_analysis_tracking", {
-            "p_concept_id": int(concept_id),
-            "p_has_analysis": True,
-            "p_profiler_score": 75.0
+        # Verify table update was made correctly
+        mock_supabase.table.assert_called_with("business_concepts")
+        mock_supabase.table.return_value.update.assert_called_once_with({
+            "has_profiler_analysis": True
         })
 
     @patch('scripts.core.batch_opportunity_scoring.create_client')
@@ -387,9 +386,9 @@ class TestUpdateConceptProfilerStats:
         mock_supabase = Mock()
         mock_create_client.return_value = mock_supabase
 
-        # Mock successful RPC response
-        mock_supabase.rpc.return_value.execute.return_value = Mock(
-            data=[{"update_profiler_analysis_tracking": True}]
+        # Mock successful table update response
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = Mock(
+            data=[{"id": 123, "has_profiler_analysis": True}]
         )
 
         # Test data without final_score - use integer concept_id
@@ -402,23 +401,22 @@ class TestUpdateConceptProfilerStats:
         # Execute function
         update_concept_profiler_stats(concept_id, ai_profile, mock_supabase)
 
-        # Verify RPC call was made with None score
-        mock_supabase.rpc.assert_called_once_with("update_profiler_analysis_tracking", {
-            "p_concept_id": int(concept_id),
-            "p_has_analysis": True,
-            "p_profiler_score": None
+        # Verify table update was made (score is just logged, not stored)
+        mock_supabase.table.assert_called_with("business_concepts")
+        mock_supabase.table.return_value.update.assert_called_once_with({
+            "has_profiler_analysis": True
         })
 
     @patch('scripts.core.batch_opportunity_scoring.create_client')
-    def test_update_concept_profiler_stats_rpc_failure(self, mock_create_client):
-        """Test handling when RPC call returns failure."""
+    def test_update_concept_profiler_stats_no_rows_affected(self, mock_create_client):
+        """Test handling when update affects no rows."""
         # Setup mock Supabase client
         mock_supabase = Mock()
         mock_create_client.return_value = mock_supabase
 
-        # Mock failed RPC response
-        mock_supabase.rpc.return_value.execute.return_value = Mock(
-            data=[{"update_profiler_analysis_tracking": False}]
+        # Mock empty response (no rows affected)
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = Mock(
+            data=[]
         )
 
         # Test data - use integer concept_id
@@ -428,8 +426,8 @@ class TestUpdateConceptProfilerStats:
         # Execute function - should not raise exception
         update_concept_profiler_stats(concept_id, ai_profile, mock_supabase)
 
-        # Verify RPC call was made
-        mock_supabase.rpc.assert_called_once()
+        # Verify table update was attempted
+        mock_supabase.table.assert_called_with("business_concepts")
 
     @patch('scripts.core.batch_opportunity_scoring.create_client')
     def test_update_concept_profiler_stats_database_error(self, mock_create_client):
@@ -439,7 +437,7 @@ class TestUpdateConceptProfilerStats:
         mock_create_client.return_value = mock_supabase
 
         # Mock database error
-        mock_supabase.rpc.return_value.execute.side_effect = Exception("Database error")
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.side_effect = Exception("Database error")
 
         # Test data - use integer concept_id
         concept_id = 123
@@ -448,18 +446,18 @@ class TestUpdateConceptProfilerStats:
         # Execute function - should not raise exception
         update_concept_profiler_stats(concept_id, ai_profile, mock_supabase)
 
-        # Verify RPC call was attempted
-        mock_supabase.rpc.assert_called_once()
+        # Verify table update was attempted
+        mock_supabase.table.assert_called_with("business_concepts")
 
     @patch('scripts.core.batch_opportunity_scoring.create_client')
     def test_update_concept_profiler_stats_no_response_data(self, mock_create_client):
-        """Test handling when RPC response has no data."""
+        """Test handling when response has no data."""
         # Setup mock Supabase client
         mock_supabase = Mock()
         mock_create_client.return_value = mock_supabase
 
-        # Mock empty RPC response
-        mock_supabase.rpc.return_value.execute.return_value = Mock(data=None)
+        # Mock None response data
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = Mock(data=None)
 
         # Test data - use integer concept_id
         concept_id = 123
@@ -468,8 +466,8 @@ class TestUpdateConceptProfilerStats:
         # Execute function - should not raise exception
         update_concept_profiler_stats(concept_id, ai_profile, mock_supabase)
 
-        # Verify RPC call was made
-        mock_supabase.rpc.assert_called_once()
+        # Verify table update was attempted
+        mock_supabase.table.assert_called_with("business_concepts")
 
 
 class TestIntegration:
@@ -488,7 +486,7 @@ class TestIntegration:
         concept_response = Mock()
 
         opportunities_response.data = [{"business_concept_id": "456"}]
-        concept_response.data = [{"has_ai_profiling": True}]
+        concept_response.data = [{"has_profiler_analysis": True}]
 
         mock_execute = Mock()
         mock_execute.side_effect = [
@@ -526,17 +524,16 @@ class TestIntegration:
         assert copied_profile["copied_from_primary"] is True
 
         # Step 3: Update concept stats - use integer concept_id for this function
-        rpc_response = Mock()
-        rpc_response.data = [{"update_profiler_analysis_tracking": True}]
+        update_response = Mock()
+        update_response.data = [{"id": 456, "has_profiler_analysis": True}]
 
-        mock_supabase.rpc.return_value.execute.return_value = rpc_response
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = update_response
 
         update_concept_profiler_stats(456, copied_profile, mock_supabase)
 
-        mock_supabase.rpc.assert_called_with("update_profiler_analysis_tracking", {
-            "p_concept_id": 456,
-            "p_has_analysis": True,
-            "p_profiler_score": 75.0
+        mock_supabase.table.assert_called_with("business_concepts")
+        mock_supabase.table.return_value.update.assert_called_with({
+            "has_profiler_analysis": True
         })
 
 

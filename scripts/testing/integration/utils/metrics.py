@@ -212,45 +212,64 @@ class MetricsCollector:
 
 
 # Expected enrichment fields for coverage calculation
+# Updated to match actual pipeline output from enrichment services
 EXPECTED_ENRICHMENT_FIELDS = [
-    # Opportunity analysis
-    "opportunity_score",
+    # OpportunityService fields (opportunity_service.py:89-100)
     "final_score",
     "dimension_scores",
     "priority",
     "core_functions",
+    "weights",
+    "function_count",
+
+    # ProfilerService fields (profiler_service.py:99-108)
+    "app_name",
+    "value_proposition",
     "problem_description",
-    "target_market",
+    "target_user",
+    "monetization_model",
 
-    # Profiler
-    "profession",
-    "ai_profile",
-    "evidence_based",
-    "confidence",
-
-    # Monetization
-    "monetization_score",
-    "monetization_methods",
+    # MonetizationService fields (monetization_service.py:98-113)
     "willingness_to_pay_score",
-    "customer_segment",
+    "market_segment_score",
     "price_sensitivity_score",
     "revenue_potential_score",
+    "customer_segment",
+    "mentioned_price_points",
+    "existing_payment_behavior",
+    "urgency_level",
+    "sentiment_toward_payment",
+    "payment_friction_indicators",
+    "llm_monetization_score",
+    "confidence",
+    "reasoning",
+    "subreddit_multiplier",
 
-    # Trust
-    "trust_level",
+    # TrustService fields (trust_service.py:97-112)
+    "subreddit_activity_score",
+    "post_engagement_score",
+    "community_health_score",
+    "trend_velocity_score",
+    "problem_validity_score",
+    "discussion_quality_score",
+    "ai_analysis_confidence",
     "overall_trust_score",
+    "trust_level",
     "trust_badges",
-    "activity_validation_score",
-    "problem_authenticity_score",
-    "solution_readiness_score",
+    "activity_constraints_met",
+    "quality_constraints_met",
+    "validation_timestamp",
+    "validation_method",
 
-    # Market validation
+    # MarketValidationService fields (market_validation_service.py:87-97)
     "market_validation_score",
     "market_data_quality",
     "competitor_count",
     "market_size_estimate",
     "similar_launches_count",
     "validation_reasoning",
+    "evidence_urls",
+    "total_cost",
 ]
 
 

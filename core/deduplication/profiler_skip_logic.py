@@ -93,7 +93,7 @@ class ProfilerSkipLogic:
             # Check if concept already has AI profiler analysis
             concept = self.concept_manager.get_concept_by_id(business_concept_id)
 
-            if concept and concept.get("has_ai_profiling"):
+            if concept and concept.get("has_profiler_analysis"):
                 self.stats["skipped"] += 1
                 return (
                     False,
@@ -308,8 +308,8 @@ class ProfilerSkipLogic:
         """
         Update business concept with AI profile metadata.
 
-        Calls database RPC function to update concept's has_ai_profiling flag
-        and track profiler scores.
+        Updates concept's has_profiler_analysis flag directly in the database.
+        Uses direct UPDATE instead of RPC function for simplicity.
 
         Args:
             concept_id: Business concept ID to update
@@ -329,35 +329,32 @@ class ProfilerSkipLogic:
             if profiler_score is not None:
                 profiler_score = float(profiler_score)
 
-            # Call database function to update profiler tracking
-            response = self.client.rpc(
-                "update_profiler_analysis_tracking",
-                {
-                    "p_concept_id": int(concept_id),
-                    "p_has_analysis": True,
-                    "p_profiler_score": profiler_score,
-                },
-            ).execute()
+            # Build update data for the business_concepts table
+            update_data: dict[str, Any] = {
+                "has_profiler_analysis": True,
+            }
 
-            if response.data and len(response.data) > 0:
-                success = response.data[0].get(
-                    "update_profiler_analysis_tracking", False
+            # Note: profiler_score could be stored if needed in future schema updates
+            # Currently the schema only tracks has_profiler_analysis boolean
+
+            # Update business_concepts directly
+            response = (
+                self.client.table("business_concepts")
+                .update(update_data)
+                .eq("id", int(concept_id))
+                .execute()
+            )
+
+            if response.data:
+                logger.info(
+                    f"Updated profiler stats for concept {concept_id} "
+                    f"(Score: {profiler_score})"
                 )
-                if success:
-                    logger.info(
-                        f"Updated profiler stats for concept {concept_id} "
-                        f"(Score: {profiler_score})"
-                    )
-                    return True
-                else:
-                    logger.warning(
-                        f"Failed to update profiler stats for concept {concept_id}"
-                    )
-                    return False
+                return True
             else:
                 logger.warning(
-                    f"No response from update_profiler_analysis_tracking for "
-                    f"concept {concept_id}"
+                    f"Failed to update profiler stats for concept {concept_id} "
+                    "(no rows affected)"
                 )
                 return False
 

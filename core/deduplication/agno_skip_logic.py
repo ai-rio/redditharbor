@@ -149,7 +149,30 @@ class AgnoSkipLogic:
                 },
             ).execute()
 
-            if response.data and len(response.data) > 0:
+            # Handle different response formats from Supabase RPC
+            # RPC can return: bool directly, list with dict, or empty/None
+            if response.data is None:
+                logger.warning(
+                    f"No response from update_agno_analysis_tracking for "
+                    f"concept {concept_id}"
+                )
+                return False
+
+            # Handle boolean response (RPC returns bool directly)
+            if isinstance(response.data, bool):
+                if response.data:
+                    logger.info(
+                        f"Updated Agno stats for concept {concept_id} (WTP: {wtp_score})"
+                    )
+                    return True
+                else:
+                    logger.warning(
+                        f"Failed to update Agno stats for concept {concept_id}"
+                    )
+                    return False
+
+            # Handle list response (RPC returns list with result dict)
+            if isinstance(response.data, list) and len(response.data) > 0:
                 success = response.data[0].get("update_agno_analysis_tracking", False)
                 if success:
                     logger.info(
@@ -161,12 +184,13 @@ class AgnoSkipLogic:
                         f"Failed to update Agno stats for concept {concept_id}"
                     )
                     return False
-            else:
-                logger.warning(
-                    f"No response from update_agno_analysis_tracking for "
-                    f"concept {concept_id}"
-                )
-                return False
+
+            # Fallback for unexpected response types
+            logger.warning(
+                f"Unexpected response type from update_agno_analysis_tracking for "
+                f"concept {concept_id}: {type(response.data)}"
+            )
+            return False
 
         except Exception as e:
             logger.error(f"Error updating concept Agno stats for {concept_id}: {e}")
