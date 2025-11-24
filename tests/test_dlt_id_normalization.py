@@ -284,13 +284,22 @@ class TestIDResolverIntegration:
     def test_comment_id_resolver_with_invalid_input(self):
         """Test comment ID resolver with invalid input"""
         with patch('core.dlt.collection.resolve_submission_id') as mock_resolver:
-            mock_resolver.return_value = Mock(uuid=None)
+            # Mock the resolver to return None for invalid comment_id but valid UUID for valid submission_id
+            def side_effect(reddit_id):
+                if reddit_id == "":
+                    return Mock(uuid=None)
+                elif reddit_id == "test_sub_valid":
+                    return Mock(uuid="550e8400-e29b-41d4-a716-446655440000")
+                else:
+                    return Mock(uuid=None)
+
+            mock_resolver.side_effect = side_effect
 
             comment_data = {"comment_id": "", "submission_id": "test_sub_valid"}
             result = transform_comment_to_schema(comment_data)
 
             assert result["comment_id"] is None
-            assert result["submission_id"] is not None
+            assert result["submission_id"] == "550e8400-e29b-41d4-a716-446655440000"
 
     def test_submission_id_resolver_with_invalid_input(self):
         """Test submission ID resolver with invalid input"""
