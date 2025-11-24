@@ -71,7 +71,7 @@ DLT_RESOURCE_PK_MAP: Final[dict[str, str]] = {
     "activity_trends": PK_DISPLAY_NAME,
 
     # Collection Resources
-    "submissions": PK_SUBMISSION_ID,
+    "submissions": PK_ID,  # Clean-break: submissions use 'id' as primary key (UUID)
     "comments": PK_COMMENT_ID,
 
     # Cost Tracking Resources
@@ -83,7 +83,7 @@ DLT_RESOURCE_PK_MAP: Final[dict[str, str]] = {
 # Table Schema Primary Key Definitions
 TABLE_PRIMARY_KEYS: Final[dict[str, str]] = {
     # Core tables
-    "submissions": PK_SUBMISSION_ID,
+    "submissions": PK_ID,  # Clean-break: submissions table uses 'id' column (UUID)
     "comments": PK_COMMENT_ID,
     "redditors": PK_ID,
 

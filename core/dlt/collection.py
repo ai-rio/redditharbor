@@ -35,7 +35,7 @@ sys.path.insert(0, str(project_root))
 # Load environment variables manually
 import os
 
-from core.dlt import PK_SUBMISSION_ID
+from core.dlt import PK_ID
 
 # Manually read .env file
 env_file = project_root / '.env'
@@ -155,21 +155,19 @@ def transform_submission_to_schema(submission_data: dict[str, Any]) -> dict[str,
     comments_count = submission_data.get("num_comments", 0)
 
     transformed = {
-        "submission_id": resolved_id,  # Canonical UUID
+        "id": resolved_id,  # Canonical UUID - primary key
         "reddit_id": str(raw_reddit_id) if raw_reddit_id is not None else raw_reddit_id,    # Convert to string for consistency
         "title": submission_data.get("title"),
-        "text": selftext,
-        "content": selftext,  # Also store as content for public schema
-        "subreddit": submission_data.get("subreddit"),
-        "upvotes": score_value,  # Store score as upvotes (integer column)
-        "comments_count": comments_count,  # Store as comments_count (integer column)
+        "content": selftext,  # Store as content (not text)
         "url": submission_data.get("url"),
+        "score": score_value,  # Store as score (not upvotes)
+        "num_comments": comments_count,  # Store as num_comments (not comments_count)
         "created_at": datetime.fromtimestamp(submission_data.get("created_utc", 0)).isoformat(),
     }
 
     # Only remove None values for non-critical fields to preserve schema structure
     # Keep ID-related fields even if None for test consistency
-    critical_fields = {"submission_id", "reddit_id", "title", "text", "content", "subreddit"}
+    critical_fields = {"id", "reddit_id", "title", "content"}
     return {k: v for k, v in transformed.items()
             if (k in critical_fields) or (v is not None)}
 
@@ -574,15 +572,13 @@ def load_to_supabase(problem_posts: list[dict[str, Any]], write_mode: str = "mer
             name="submissions",
             write_disposition=write_mode,
             columns={
-                "submission_id": {"data_type": "uuid", "nullable": True, "unique": True},
-                "reddit_id": {"data_type": "text", "nullable": True},
-                "title": {"data_type": "text", "nullable": True},
-                "text": {"data_type": "text", "nullable": True},
+                "id": {"data_type": "text", "nullable": True, "unique": True},
+                "reddit_id": {"data_type": "text", "nullable": False},
+                "title": {"data_type": "text", "nullable": False},
                 "content": {"data_type": "text", "nullable": True},
-                "subreddit": {"data_type": "text", "nullable": True},
-                "upvotes": {"data_type": "bigint", "nullable": True},
-                "comments_count": {"data_type": "bigint", "nullable": True},
                 "url": {"data_type": "text", "nullable": True},
+                "score": {"data_type": "bigint", "nullable": True},
+                "num_comments": {"data_type": "bigint", "nullable": True},
                 "created_at": {"data_type": "timestamp", "nullable": True},
             }
         )
@@ -590,16 +586,16 @@ def load_to_supabase(problem_posts: list[dict[str, Any]], write_mode: str = "mer
             yield problem_posts
 
         # Run DLT pipeline with merge disposition for incremental loading
-        # Use submission_id for deduplication (unique constraint)
+        # Use id for deduplication (unique constraint)
         load_info = pipeline.run(
             submission_resource(),
-            primary_key=PK_SUBMISSION_ID if write_mode == "merge" else None
+            primary_key=PK_ID if write_mode == "merge" else None
         )
 
         print("✓ Data loaded successfully!")
         print(f"  - Started: {load_info.started_at}")
         print(f"  - Write mode: {write_mode}")
-        print("  - Deduplication key: submission_id")
+        print(f"  - Deduplication key: {PK_ID}")
 
         return True
 

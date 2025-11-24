@@ -1,4 +1,5 @@
 # File: tests/test_dlt_id_normalization.py
+# Updated for clean-break implementation: submissions use 'id' (not 'submission_id')
 
 import pytest
 import uuid
@@ -12,13 +13,13 @@ class TestTransformSubmissionIDNormalization:
     """Test submission ID normalization (10 tests)"""
 
     def test_submission_id_is_uuid_format(self):
-        """Test that submission_id is a UUID after transformation"""
+        """Test that id is a UUID after transformation"""
         submission_data = {"id": "test_sub_123"}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is not None
+        assert result["id"] is not None
         # Verify UUID format (8-4-4-4-12)
-        uuid.UUID(str(result["submission_id"]))  # Will raise if not valid UUID
+        uuid.UUID(str(result["id"]))  # Will raise if not valid UUID
 
     def test_original_reddit_id_preserved(self):
         """Test that reddit_id field preserves original Reddit ID"""
@@ -33,14 +34,14 @@ class TestTransformSubmissionIDNormalization:
         result1 = transform_submission_to_schema(submission_data.copy())
         result2 = transform_submission_to_schema(submission_data.copy())
 
-        assert result1["submission_id"] == result2["submission_id"]
+        assert result1["id"] == result2["id"]
 
     def test_submission_id_not_raw_reddit_id(self):
-        """Test that submission_id is not the raw Reddit ID"""
+        """Test that id is not the raw Reddit ID"""
         submission_data = {"id": "test_sub_999"}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] != "test_sub_999"
+        assert result["id"] != "test_sub_999"
         assert result["reddit_id"] == "test_sub_999"
 
     def test_other_fields_unchanged(self):
@@ -49,7 +50,6 @@ class TestTransformSubmissionIDNormalization:
             "id": "test_sub_fields",
             "title": "Test Title",
             "selftext": "Test content",
-            "subreddit": "testsub",
             "score": 100,
             "num_comments": 5,
             "created_utc": 1609459200  # 2021-01-01
@@ -57,10 +57,9 @@ class TestTransformSubmissionIDNormalization:
         result = transform_submission_to_schema(submission_data)
 
         assert result["title"] == "Test Title"
-        assert result["text"] == "Test content"
-        assert result["subreddit"] == "testsub"
-        assert result["upvotes"] == 100  # Note: field name change
-        assert result["comments_count"] == 5  # Note: field name change
+        assert result["content"] == "Test content"  # Clean-break: stored as 'content'
+        assert result["score"] == 100  # Clean-break: stored as 'score'
+        assert result["num_comments"] == 5  # Clean-break: stored as 'num_comments'
 
     @pytest.mark.parametrize("reddit_id", [
         "abc123", "t1_abc123", "https://reddit.com/r/test/abc123",
@@ -72,9 +71,9 @@ class TestTransformSubmissionIDNormalization:
         submission_data = {"id": reddit_id}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is not None
+        assert result["id"] is not None
         # Verify UUID format - should not raise
-        uuid.UUID(str(result["submission_id"]))
+        uuid.UUID(str(result["id"]))
 
     @pytest.mark.parametrize("id1,id2", [
         ("abc", "def"), ("same", "different"), ("123", "456")
@@ -84,7 +83,7 @@ class TestTransformSubmissionIDNormalization:
         result1 = transform_submission_to_schema({"id": id1})
         result2 = transform_submission_to_schema({"id": id2})
 
-        assert result1["submission_id"] != result2["submission_id"]
+        assert result1["id"] != result2["id"]
 
 
 class TestTransformCommentIDNormalization:
@@ -169,7 +168,8 @@ class TestForeignKeyAlignment:
         submission_result = transform_submission_to_schema(submission_data)
         comment_result = transform_comment_to_schema(comment_data)
 
-        assert comment_result["submission_id"] == submission_result["submission_id"]
+        # Clean-break: submissions use 'id' field
+        assert comment_result["submission_id"] == submission_result["id"]
 
     def test_multiple_comments_same_submission(self):
         """Test multiple comments referencing same submission have matching UUIDs"""
@@ -183,7 +183,8 @@ class TestForeignKeyAlignment:
         comment1_result = transform_comment_to_schema(comment1_data)
         comment2_result = transform_comment_to_schema(comment2_data)
 
-        expected_uuid = submission_result["submission_id"]
+        # Clean-break: submissions use 'id' field
+        expected_uuid = submission_result["id"]
         assert comment1_result["submission_id"] == expected_uuid
         assert comment2_result["submission_id"] == expected_uuid
 
@@ -200,8 +201,9 @@ class TestForeignKeyAlignment:
         comm1_result = transform_comment_to_schema(comm1_data)
         comm2_result = transform_comment_to_schema(comm2_data)
 
-        assert comm1_result["submission_id"] == sub1_result["submission_id"]
-        assert comm2_result["submission_id"] == sub2_result["submission_id"]
+        # Clean-break: submissions use 'id' field
+        assert comm1_result["submission_id"] == sub1_result["id"]
+        assert comm2_result["submission_id"] == sub2_result["id"]
         assert comm1_result["submission_id"] != comm2_result["submission_id"]
 
     def test_fk_alignment_with_edge_cases(self):
@@ -216,7 +218,7 @@ class TestIDResolverIntegration:
     """Test ID resolver integration (8 tests)"""
 
     def test_submission_id_uses_resolver(self):
-        """Test that submission_id uses the resolver function"""
+        """Test that id uses the resolver function"""
         with patch('core.dlt.collection.resolve_submission_id') as mock_resolver:
             mock_resolver.return_value = Mock(uuid="test-uuid-123")
 
@@ -224,7 +226,8 @@ class TestIDResolverIntegration:
             result = transform_submission_to_schema(submission_data)
 
             mock_resolver.assert_called_once_with("test_sub_resolver")
-            assert result["submission_id"] == "test-uuid-123"
+            # Clean-break: result field is 'id' not 'submission_id'
+            assert result["id"] == "test-uuid-123"
 
     def test_comment_id_uses_resolver(self):
         """Test that comment_id uses the resolver function"""
@@ -309,7 +312,8 @@ class TestIDResolverIntegration:
             submission_data = {"id": "invalid_input"}
             result = transform_submission_to_schema(submission_data)
 
-            assert result["submission_id"] is None
+            # Clean-break: result field is 'id' not 'submission_id'
+            assert result["id"] is None
 
 
 class TestEdgeCases:
@@ -320,7 +324,8 @@ class TestEdgeCases:
         submission_data = {"id": None}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is None
+        # Clean-break: result field is 'id' not 'submission_id'
+        assert result["id"] is None
         assert result["reddit_id"] is None
 
     def test_submission_with_empty_id(self):
@@ -328,7 +333,8 @@ class TestEdgeCases:
         submission_data = {"id": ""}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is None
+        # Clean-break: result field is 'id' not 'submission_id'
+        assert result["id"] is None
         assert result["reddit_id"] == ""
 
     def test_submission_with_whitespace_id(self):
@@ -336,7 +342,8 @@ class TestEdgeCases:
         submission_data = {"id": "   "}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is None
+        # Clean-break: result field is 'id' not 'submission_id'
+        assert result["id"] is None
         assert result["reddit_id"] == "   "
 
     def test_comment_with_none_ids(self):
@@ -370,7 +377,8 @@ class TestEdgeCases:
         submission_data = {}  # No 'id' field
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is None
+        # Clean-break: result field is 'id' not 'submission_id'
+        assert result["id"] is None
         assert result["reddit_id"] is None
 
     def test_comment_missing_id_fields(self):
@@ -386,7 +394,8 @@ class TestEdgeCases:
         submission_data = {"id": "test_@#$%^&*()"}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is not None
+        # Clean-break: result field is 'id' not 'submission_id'
+        assert result["id"] is not None
         assert result["reddit_id"] == "test_@#$%^&*()"
 
     def test_very_long_reddit_id(self):
@@ -395,7 +404,8 @@ class TestEdgeCases:
         submission_data = {"id": long_id}
         result = transform_submission_to_schema(submission_data)
 
-        assert result["submission_id"] is not None
+        # Clean-break: result field is 'id' not 'submission_id'
+        assert result["id"] is not None
         assert result["reddit_id"] == long_id
 
 
@@ -403,11 +413,12 @@ class TestDataTypeConsistency:
     """Test data type consistency (5 tests)"""
 
     def test_submission_id_is_string(self):
-        """Test that submission_id is returned as string"""
+        """Test that id is returned as string"""
         submission_data = {"id": "test_type_sub"}
         result = transform_submission_to_schema(submission_data)
 
-        assert isinstance(result["submission_id"], str) or result["submission_id"] is None
+        # Clean-break: result field is 'id' not 'submission_id'
+        assert isinstance(result["id"], str) or result["id"] is None
 
     def test_comment_id_is_string(self):
         """Test that comment_id is returned as string"""
@@ -433,7 +444,8 @@ class TestDataTypeConsistency:
         for test_id in test_ids:
             submission_data = {"id": test_id}
             result = transform_submission_to_schema(submission_data)
-            results.append(result["submission_id"])
+            # Clean-break: result field is 'id' not 'submission_id'
+            results.append(result["id"])
 
         # All should be valid UUIDs
         for uuid_str in results:
@@ -441,12 +453,13 @@ class TestDataTypeConsistency:
                 uuid.UUID(uuid_str)  # Will raise if not valid
 
     def test_field_name_consistency(self):
-        """Test that field names are consistent"""
+        """Test that field names are consistent with clean-break schema"""
         submission_data = {"id": "test_fields"}
         result = transform_submission_to_schema(submission_data)
 
-        # Check expected fields exist
-        expected_fields = ["submission_id", "reddit_id", "title", "text", "content", "subreddit"]
+        # Clean-break: Check expected fields exist
+        # Expected: id (UUID), reddit_id, title, content, url, score, num_comments, created_at
+        expected_fields = ["id", "reddit_id", "title", "content"]
         for field in expected_fields:
             assert field in result
 
@@ -470,13 +483,15 @@ class TestBatchProcessingConsistency:
         for sub_id in submission_ids:
             submission_data = {"id": sub_id}
             result = transform_submission_to_schema(submission_data)
-            results[sub_id] = result["submission_id"]
+            # Clean-break: result field is 'id' not 'submission_id'
+            results[sub_id] = result["id"]
 
         # Same ID should produce same UUID if processed again
         for sub_id in submission_ids:
             submission_data = {"id": sub_id}
             result = transform_submission_to_schema(submission_data)
-            assert result["submission_id"] == results[sub_id]
+            # Clean-break: result field is 'id' not 'submission_id'
+            assert result["id"] == results[sub_id]
 
     def test_multiple_comments_consistent(self):
         """Test that multiple comments processed consistently"""
