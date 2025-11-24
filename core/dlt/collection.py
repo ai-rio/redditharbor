@@ -300,8 +300,10 @@ def transform_comment_to_schema(comment_data: dict[str, Any]) -> dict[str, Any]:
     Transform Reddit API comment data to match Supabase schema.
 
     Mapping:
-    - comment_id → comment_id (Reddit comment ID)
-    - submission_id → submission_id (Reddit submission ID string, will be backfilled to UUID)
+    - comment_id → comment_id (Reddit comment ID → UUID)
+    - reddit_comment_id → reddit_comment_id (preserved original comment ID)
+    - submission_id → submission_id (Reddit submission ID string → UUID)
+    - reddit_submission_id → reddit_submission_id (preserved original submission ID)
     - link_id → link_id (Reddit submission ID for foreign key linkage)
     - body → body and content (store as both for compatibility)
     - created_utc → created_at (Unix timestamp to ISO datetime)
@@ -316,12 +318,38 @@ def transform_comment_to_schema(comment_data: dict[str, Any]) -> dict[str, Any]:
     """
     from datetime import datetime
 
+    # Get raw Reddit IDs
+    raw_comment_id = comment_data.get("comment_id")
+    raw_submission_id = comment_data.get("submission_id")
+
+    # Normalize comment_id to deterministic UUID
+    resolved_comment_id = None
+    if raw_comment_id and str(raw_comment_id).strip():
+        try:
+            resolution_result = resolve_submission_id(raw_comment_id)
+            if resolution_result and resolution_result.uuid:
+                resolved_comment_id = resolution_result.uuid
+        except Exception:
+            resolved_comment_id = None
+
+    # Normalize submission_id to deterministic UUID (FK alignment)
+    resolved_submission_id = None
+    if raw_submission_id and str(raw_submission_id).strip():
+        try:
+            resolution_result = resolve_submission_id(raw_submission_id)
+            if resolution_result and resolution_result.uuid:
+                resolved_submission_id = resolution_result.uuid
+        except Exception:
+            resolved_submission_id = None
+
     body_text = comment_data.get("body", "")
 
     transformed = {
-        "comment_id": comment_data.get("comment_id"),
-        "submission_id": comment_data.get("submission_id"),  # Reddit submission ID (string)
-        "link_id": comment_data.get("link_id"),  # Same as submission_id, for FK backfill
+        "comment_id": resolved_comment_id,          # Canonical UUID
+        "reddit_comment_id": raw_comment_id,        # Preserve original
+        "submission_id": resolved_submission_id,    # Canonical UUID (FK)
+        "reddit_submission_id": raw_submission_id,  # Preserve original
+        "link_id": comment_data.get("link_id"),     # Keep for backward compatibility
         "body": body_text,
         "content": body_text,  # Also store as content for public schema
         "score": comment_data.get("score"),
@@ -332,8 +360,11 @@ def transform_comment_to_schema(comment_data: dict[str, Any]) -> dict[str, Any]:
         "subreddit": comment_data.get("subreddit"),  # Denormalized subreddit name
     }
 
-    # Remove None values to avoid schema issues
-    return {k: v for k, v in transformed.items() if v is not None}
+    # Only remove None values for non-critical fields to preserve schema structure
+    # Keep ID-related fields even if None for test consistency
+    critical_fields = {"comment_id", "reddit_comment_id", "submission_id", "reddit_submission_id"}
+    return {k: v for k, v in transformed.items()
+            if (k in critical_fields) or (v is not None)}
 
 
 def collect_post_comments(
