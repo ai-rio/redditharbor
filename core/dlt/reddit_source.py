@@ -303,6 +303,7 @@ def active_subreddits(
     primary_key=PK_ID,
     columns={
         "id": {"data_type": "text", "nullable": False},
+        "reddit_comment_id": {"data_type": "text", "nullable": True},
         "subreddit": {"data_type": "text", "nullable": False},
         "author": {"data_type": "text", "nullable": True},
         "body": {"data_type": "text", "nullable": True},
@@ -316,6 +317,7 @@ def active_subreddits(
         "stickied": {"data_type": "bool", "nullable": False},
         "parent_id": {"data_type": "text", "nullable": True},
         "submission_id": {"data_type": "uuid", "nullable": True},
+        "reddit_submission_id": {"data_type": "text", "nullable": True},
         "submission_title": {"data_type": "text", "nullable": True},
         "submission_score": {"data_type": "bigint", "nullable": False},
         "quick_opportunity_score": {"data_type": "decimal", "nullable": True},
@@ -411,6 +413,7 @@ def validated_comments(
                             if quick_score >= min_opportunity_score:
                                 yield {
                                     "id": comment.id,
+                                    "reddit_comment_id": comment.id,
                                     "subreddit": subreddit.display_name,
                                     "author": (
                                         str(comment.author)
@@ -430,6 +433,7 @@ def validated_comments(
                                     "stickied": getattr(comment, "stickied", False),
                                     "parent_id": getattr(comment, "parent_id", ""),
                                     "submission_id": submission.id,
+                                    "reddit_submission_id": submission.id,
                                     "submission_title": submission.title,
                                     "submission_score": submission.score,
                                     "quick_opportunity_score": quick_score,

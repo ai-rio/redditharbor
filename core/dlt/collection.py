@@ -156,7 +156,7 @@ def transform_submission_to_schema(submission_data: dict[str, Any]) -> dict[str,
 
     transformed = {
         "submission_id": resolved_id,  # Canonical UUID
-        "reddit_id": raw_reddit_id,    # Preserve original Reddit ID
+        "reddit_id": str(raw_reddit_id) if raw_reddit_id is not None else raw_reddit_id,    # Convert to string for consistency
         "title": submission_data.get("title"),
         "text": selftext,
         "content": selftext,  # Also store as content for public schema
@@ -167,8 +167,11 @@ def transform_submission_to_schema(submission_data: dict[str, Any]) -> dict[str,
         "created_at": datetime.fromtimestamp(submission_data.get("created_utc", 0)).isoformat(),
     }
 
-    # Remove None values to avoid schema issues
-    return {k: v for k, v in transformed.items() if v is not None}
+    # Only remove None values for non-critical fields to preserve schema structure
+    # Keep ID-related fields even if None for test consistency
+    critical_fields = {"submission_id", "reddit_id", "title", "text", "content", "subreddit"}
+    return {k: v for k, v in transformed.items()
+            if (k in critical_fields) or (v is not None)}
 
 
 def collect_problem_posts(
@@ -346,9 +349,9 @@ def transform_comment_to_schema(comment_data: dict[str, Any]) -> dict[str, Any]:
 
     transformed = {
         "comment_id": resolved_comment_id,          # Canonical UUID
-        "reddit_comment_id": raw_comment_id,        # Preserve original
+        "reddit_comment_id": str(raw_comment_id) if raw_comment_id is not None else raw_comment_id,        # Convert to string
         "submission_id": resolved_submission_id,    # Canonical UUID (FK)
-        "reddit_submission_id": raw_submission_id,  # Preserve original
+        "reddit_submission_id": str(raw_submission_id) if raw_submission_id is not None else raw_submission_id,  # Convert to string
         "link_id": comment_data.get("link_id"),     # Keep for backward compatibility
         "body": body_text,
         "content": body_text,  # Also store as content for public schema
