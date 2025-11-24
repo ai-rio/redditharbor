@@ -20,6 +20,7 @@ Main Functions:
 - load_to_supabase(): Load data using DLT pipeline for incremental updates
 """
 
+import logging
 import sys
 import time
 from pathlib import Path
@@ -56,6 +57,12 @@ import praw
 
 # Import problem keywords from existing collection
 from core.fetchers.collection import PROBLEM_KEYWORDS
+
+# Import ID resolver for canonical UUID generation
+from core.utils.id_resolver import resolve_submission_id
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # DLT pipeline configuration
 PIPELINE_NAME = "reddit_harbor_problem_collection"
@@ -109,7 +116,8 @@ def transform_submission_to_schema(submission_data: dict[str, Any]) -> dict[str,
     Transform Reddit API submission data to match Supabase schema.
 
     Mapping:
-    - id → submission_id (Reddit API ID)
+    - id → submission_id (Reddit API ID normalized to canonical UUID)
+    - id → reddit_id (preserved original Reddit ID)
     - selftext → text and content (post body content)
     - created_utc → created_at (Unix timestamp to ISO datetime)
     - Keep: title, subreddit, score, url, num_comments
@@ -123,12 +131,32 @@ def transform_submission_to_schema(submission_data: dict[str, Any]) -> dict[str,
     """
     from datetime import datetime
 
+    # Get raw Reddit ID and resolve to canonical UUID
+    raw_reddit_id = submission_data.get("id")
+
+    # Normalize ID to deterministic UUID using canonical resolver
+    resolved_id = None
+    if raw_reddit_id and str(raw_reddit_id).strip():
+        try:
+            resolution_result = resolve_submission_id(raw_reddit_id)
+            if resolution_result and resolution_result.uuid:
+                resolved_id = resolution_result.uuid
+                logger.debug(f"Successfully resolved reddit_id {raw_reddit_id} to UUID {resolved_id}")
+            else:
+                logger.warning(f"Failed to resolve submission_id for reddit_id: {raw_reddit_id} - resolution_result={resolution_result}")
+        except Exception as e:
+            logger.error(f"Error resolving submission_id for reddit_id {raw_reddit_id}: {e}")
+            resolved_id = None
+    else:
+        logger.debug(f"Skipping ID resolution for empty or None reddit_id: {raw_reddit_id}")
+
     selftext = submission_data.get("selftext", "")
     score_value = submission_data.get("score", 0)
     comments_count = submission_data.get("num_comments", 0)
 
     transformed = {
-        "submission_id": submission_data.get("id"),
+        "submission_id": resolved_id,  # Canonical UUID
+        "reddit_id": raw_reddit_id,    # Preserve original Reddit ID
         "title": submission_data.get("title"),
         "text": selftext,
         "content": selftext,  # Also store as content for public schema
@@ -512,14 +540,15 @@ def load_to_supabase(problem_posts: list[dict[str, Any]], write_mode: str = "mer
             name="submissions",
             write_disposition=write_mode,
             columns={
-                "submission_id": {"data_type": "text", "nullable": True, "unique": True},
+                "submission_id": {"data_type": "uuid", "nullable": True, "unique": True},
+                "reddit_id": {"data_type": "text", "nullable": True},
                 "title": {"data_type": "text", "nullable": True},
                 "text": {"data_type": "text", "nullable": True},
                 "content": {"data_type": "text", "nullable": True},
                 "subreddit": {"data_type": "text", "nullable": True},
-                "score": {"data_type": "bigint", "nullable": True},
+                "upvotes": {"data_type": "bigint", "nullable": True},
+                "comments_count": {"data_type": "bigint", "nullable": True},
                 "url": {"data_type": "text", "nullable": True},
-                "num_comments": {"data_type": "bigint", "nullable": True},
                 "created_at": {"data_type": "timestamp", "nullable": True},
             }
         )

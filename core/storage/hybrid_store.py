@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # JSONB column type hints for proper PostgreSQL storage
 APP_OPPORTUNITIES_COLUMNS = {
     # Basic fields
-    "submission_id": {"data_type": "text", "nullable": False},
+    "submission_id": {"data_type": "uuid", "nullable": False},
     "problem_description": {"data_type": "text"},
     "app_concept": {"data_type": "text"},
     "core_functions": {"data_type": "text"},

@@ -51,7 +51,7 @@ def create_app_opportunities_pipeline() -> dlt.Pipeline:
     primary_key=PK_SUBMISSION_ID,  # Specify primary key for merge operations
     columns={
         # Basic fields
-        "submission_id": {"data_type": "varchar", "nullable": False},
+        "submission_id": {"data_type": "uuid", "nullable": False},
         "problem_description": {"data_type": "varchar"},
         "app_concept": {"data_type": "varchar"},
         "core_functions": {"data_type": "varchar"},

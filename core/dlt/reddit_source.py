@@ -315,7 +315,7 @@ def active_subreddits(
         "is_edited": {"data_type": "bool", "nullable": False},
         "stickied": {"data_type": "bool", "nullable": False},
         "parent_id": {"data_type": "text", "nullable": True},
-        "submission_id": {"data_type": "text", "nullable": True},
+        "submission_id": {"data_type": "uuid", "nullable": True},
         "submission_title": {"data_type": "text", "nullable": True},
         "submission_score": {"data_type": "bigint", "nullable": False},
         "quick_opportunity_score": {"data_type": "decimal", "nullable": True},
