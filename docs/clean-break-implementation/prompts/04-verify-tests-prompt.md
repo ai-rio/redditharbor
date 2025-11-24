@@ -4,6 +4,132 @@
 
 **Agent**: `python-pro`
 
+## 🚨 CRITICAL: COMPREHENSIVE TEST FILE RECREATION REQUIRED
+
+The test file `tests/test_dlt_id_normalization.py` has been **DELETED**. Before ANY verification work, you MUST ensure the complete test file with all 55 tests exists.
+
+## TEST-FIRST DEVELOPMENT REQUIREMENTS
+
+### CRITICAL: Test File Recreation Required
+
+**BEFORE ANY VERIFICATION WORK, you must verify the test file exists:**
+
+```bash
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# Check if test file exists
+if [ ! -f "tests/test_dlt_id_normalization.py" ]; then
+    echo "ERROR: test file does not exist - MUST recreate with all 55 tests"
+    exit 1
+fi
+
+# Verify it has the expected number of tests
+test_count=$(pytest tests/test_dlt_id_normalization.py --collect-only 2>/dev/null | grep "<Function" | wc -l)
+if [ "$test_count" -ne 55 ]; then
+    echo "ERROR: Expected 55 tests, found $test_count - file incomplete"
+    exit 1
+fi
+
+echo "✓ Test file exists with all 55 tests"
+```
+
+**If the test file is missing or incomplete, you MUST recreate it before proceeding with verification.**
+
+The complete 55-test specification includes:
+- `TestTransformSubmissionIDNormalization` (10 tests)
+- `TestTransformCommentIDNormalization` (11 tests)
+- `TestForeignKeyAlignment` (4 tests)
+- `TestIDResolverIntegration` (9 tests)
+- `TestEdgeCases` (10 tests)
+- `TestDataTypeConsistency` (5 tests)
+- `TestBatchProcessingConsistency` (2 tests)
+- **ADDITIONAL**: Schema validation tests from Task 03
+
+## MANDATORY FINAL VERIFICATION COMMANDS
+
+### Pre-Verification (TEST FILE EXISTENCE CHECK)
+```bash
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# 1. Verify test file exists with all 55 tests
+pytest tests/test_dlt_id_normalization.py --collect-only | grep "test session starts" -A 100 | grep "<Function" | wc -l
+# Expected: 55
+
+# 2. List all test functions to verify completeness
+pytest tests/test_dlt_id_normalization.py --collect-only | grep "test_session starts" -A 200 | grep -E "::test_"
+
+# 3. Verify test file structure and imports
+python -c "
+import ast
+with open('tests/test_dlt_id_normalization.py') as f:
+    tree = ast.parse(f.read())
+    classes = [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
+    expected_classes = [
+        'TestTransformSubmissionIDNormalization',
+        'TestTransformCommentIDNormalization',
+        'TestForeignKeyAlignment',
+        'TestIDResolverIntegration',
+        'TestEdgeCases',
+        'TestDataTypeConsistency',
+        'TestBatchProcessingConsistency'
+    ]
+    missing = set(expected_classes) - set(classes)
+    if missing:
+        print(f'Missing test classes: {missing}')
+    else:
+        print('✓ All expected test classes found')
+"
+```
+
+### Final Verification (GREEN STATE CONFIRMATION)
+```bash
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# 1. Run complete test suite with verbose output
+pytest tests/test_dlt_id_normalization.py -v
+
+# 2. Verify exactly 55 tests run and pass
+pytest tests/test_dlt_id_normalization.py -v --tb=no 2>&1 | tail -3
+
+# 3. Capture detailed test results
+pytest tests/test_dlt_id_normalization.py -v --tb=short > test_results.txt 2>&1
+
+# 4. Check for any warnings or errors
+pytest tests/test_dlt_id_normalization.py -v -W error 2>&1 | tail -5
+
+# 5. Generate test summary
+pytest tests/test_dlt_id_normalization.py -v --tb=no 2>&1 | grep -E "(PASSED|FAILED|ERROR)" | wc -l
+```
+
+### Regression Testing (END-TO-END WORKFLOW)
+```bash
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# 1. Run broader DLT tests to check for regressions
+pytest tests/test_dlt_collection.py -v --tb=short 2>/dev/null || echo "Note: Some tests may require database connection"
+
+# 2. Run collection-related tests
+pytest tests/ -k "dlt" -v --tb=short 2>/dev/null || echo "Note: Some tests may require database connection"
+
+# 3. Test core functionality without database
+python -c "
+from core.dlt.collection import load_to_supabase
+from core.utils.id_resolver import IdResolver
+print('✓ Core imports successful')
+"
+
+# 4. Verify DLT resource definitions work
+python -c "
+import inspect
+from core.dlt.collection import load_to_supabase
+source = inspect.getsource(load_to_supabase)
+if 'reddit_id' in source:
+    print('✓ reddit_id column found in DLT resource')
+else:
+    print('ERROR: reddit_id column missing from DLT resource')
+"
+```
+
 ## TDD Context
 
 **This implementation follows Test-Driven Development (TDD):**
@@ -14,7 +140,7 @@
 
 **Your job is to verify that the transition from RED to GREEN is complete.**
 
-### TDD Verification Checkpoint
+### TDD Phase Verification Checkpoint
 
 This is the final verification step in the TDD cycle. Before Tasks 01-03, the tests were in RED state (34 of 55 failing). After implementation, all 55 tests should be GREEN (passing).
 
@@ -30,6 +156,8 @@ Before Implementation:    After Implementation:
 - **Implementation is correct**: Tests define expected behavior, passing tests prove correctness
 - **No regressions**: All original passing tests still pass
 - **Feature is complete**: All acceptance criteria from Tasks 01-03 are met
+- **Test file is complete**: All 55 tests exist and are functional
+- **GREEN STATE CONFIRMED**: Tests pass, proving implementation meets specification
 
 ---
 
@@ -65,6 +193,30 @@ The test file `tests/test_dlt_id_normalization.py` was written in TDD style (tes
 - [ ] Run tests with coverage reporting
 - [ ] Create a summary of test categories and their results
 - [ ] Benchmark test execution time
+
+### TEST COUNT VALIDATION (CRITICAL)
+
+- [ ] Verify exactly 55 tests exist in the test file
+- [ ] Verify all 7 test classes are present
+- [ ] Verify no duplicate test functions
+- [ ] Verify test naming follows consistent patterns
+- [ ] Document any discrepancies from expected 55 tests
+
+### REGRESSION TESTING (REQUIRED)
+
+- [ ] Run broader DLT test suite to ensure no regressions
+- [ ] Test core import functionality without breaking existing code
+- [ ] Verify DLT resource definitions work correctly
+- [ ] Test end-to-end workflow where possible
+- [ ] Check for performance degradation in transform functions
+
+### GREEN STATE CONFIRMATION (REQUIRED)
+
+- [ ] All 55 tests must pass (0 failures, 0 errors)
+- [ ] Test execution time must be reasonable (under 60 seconds)
+- [ ] No critical warnings or deprecations
+- [ ] No memory leaks or resource issues
+- [ ] Test file must be reproducible and stable across runs
 
 ## Files to Verify
 
@@ -149,6 +301,34 @@ All of the following MUST be true for this task to be accepted:
 5. [ ] Test count matches expected (55 tests)
 6. [ ] No critical warnings that indicate issues
 
+## END-TO-END WORKFLOW VERIFICATION
+
+As the final verification step, you must confirm the complete workflow functions correctly:
+
+### Core Integration Verification
+- [ ] Transform functions properly integrate with DLT pipeline
+- [ ] ID resolution works consistently across submissions and comments
+- [ ] Schema column definitions match transformed data structure
+- [ ] No import errors or circular dependencies
+
+### Data Flow Verification
+- [ ] Original Reddit IDs are preserved in transformed data
+- [ ] UUID generation is deterministic and consistent
+- [ ] Foreign key relationships are maintained correctly
+- [ ] Null/edge case handling works as expected
+
+### Implementation Completeness
+- [ ] All Tasks 01-03 acceptance criteria are met
+- [ ] No incomplete features or TODO comments
+- [ ] Code follows project standards and conventions
+- [ ] Documentation is updated where necessary
+
+### Final State Confirmation
+- [ ] Test file exists with all 55 tests
+- [ ] All tests pass consistently across multiple runs
+- [ ] No performance degradation or memory issues
+- [ ] Clean implementation ready for production use
+
 ## Verification Commands
 
 Run these commands in order:
@@ -215,6 +395,7 @@ docs/clean-break-implementation/partner-ai-reports/04-implementation-report.md
 | Task 01 | Required Complete | Submission transform implemented |
 | Task 02 | Required Complete | Comment transform implemented |
 | Task 03 | Required Complete | Schema columns updated |
+| Test File | **DELETED - MUST RECREATE** | `tests/test_dlt_id_normalization.py` was deleted - ensure it exists with all 55 tests |
 | pytest | Available | Test framework installed |
 
 ## Reference Materials

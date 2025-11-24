@@ -4,32 +4,120 @@
 
 **Agent**: `python-pro`
 
+## 🚨 CRITICAL: TEST FILE RECREATION REQUIRED
+
+The test file `tests/test_dlt_id_normalization.py` has been **DELETED**. Before ANY implementation work, you MUST ensure the complete test file with all 55 tests exists.
+
+## TEST-FIRST DEVELOPMENT REQUIREMENTS
+
+### CRITICAL: Test File Recreation Required
+
+**BEFORE ANY IMPLEMENTATION WORK, you must verify the test file exists:**
+
+```bash
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# Check if test file exists
+if [ ! -f "tests/test_dlt_id_normalization.py" ]; then
+    echo "ERROR: test file does not exist - MUST recreate with all 55 tests"
+    exit 1
+fi
+
+# Verify it has the expected number of tests
+test_count=$(pytest tests/test_dlt_id_normalization.py --collect-only 2>/dev/null | grep "<Function" | wc -l)
+if [ "$test_count" -ne 55 ]; then
+    echo "ERROR: Expected 55 tests, found $test_count - file incomplete"
+    exit 1
+fi
+
+echo "✓ Test file exists with all 55 tests"
+```
+
+**If the test file is missing or incomplete, you MUST recreate it before proceeding with implementation.**
+
+The complete 55-test specification includes:
+- `TestTransformSubmissionIDNormalization` (10 tests)
+- `TestTransformCommentIDNormalization` (11 tests)
+- `TestForeignKeyAlignment` (4 tests)
+- `TestIDResolverIntegration` (9 tests)
+- `TestEdgeCases` (10 tests)
+- `TestDataTypeConsistency` (5 tests)
+- `TestBatchProcessingConsistency` (2 tests)
+- **NEW FOR TASK 03**: Additional schema validation tests for DLT resource definitions
+
+## MANDATORY VERIFICATION COMMANDS
+
+### Pre-Implementation (TEST FILE VERIFICATION)
+```bash
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# 1. Verify test file exists with all 55 tests
+pytest tests/test_dlt_id_normalization.py --collect-only | grep "test session starts" -A 100 | grep "<Function" | wc -l
+# Expected: 55
+
+# 2. Verify current test state (should be RED)
+pytest tests/test_dlt_id_normalization.py -v --tb=no 2>&1 | tail -10
+
+# 3. Count specific failing tests
+pytest tests/test_dlt_id_normalization.py -v --tb=no 2>&1 | grep -c "FAILED"
+```
+
+### Post-Implementation (GREEN STATE VERIFICATION)
+```bash
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# 1. All tests must pass
+pytest tests/test_dlt_id_normalization.py -v
+
+# 2. Verify exactly 55 tests run and pass
+pytest tests/test_dlt_id_normalization.py -v --tb=no 2>&1 | tail -3
+
+# 3. Check for any warnings or errors
+pytest tests/test_dlt_id_normalization.py -v -W error 2>&1 | tail -5
+```
+
+### Incremental Testing (TDD Best Practice)
+```bash
+# After each code change
+cd /home/carlos/projects/redditharbor-core-functions-fix
+
+# Quick check - all tests still passing?
+pytest tests/test_dlt_id_normalization.py -v --tb=no 2>&1 | tail -5
+
+# If any failures, see details immediately
+pytest tests/test_dlt_id_normalization.py -v --tb=short -x
+```
+
 ## TDD Context
 
 **This implementation follows Test-Driven Development (TDD):**
 
-1. **RED Phase (COMPLETE)**: Tests have been written FIRST and currently FAIL
-2. **GREEN Phase (YOUR TASK)**: Implement code to make tests PASS
+1. **RED Phase (YOUR FIRST TASK)**: VERIFY TEST FILE EXISTS and confirm tests FAIL
+2. **GREEN Phase (YOUR SECOND TASK)**: Implement code to make tests PASS
 3. **REFACTOR Phase (LATER)**: Clean up code while keeping tests green
 
 **Your job is to transition from RED to GREEN by implementing the minimum code needed to pass the tests.**
 
-### Pre-Implementation Verification
+**TDD PHASE COMPLIANCE INSTRUCTIONS:**
 
-Before making ANY code changes, verify the current test state:
+### RED Phase (Required First Step)
+1. **Verify test file exists** with all 55 tests
+2. **Run tests** to confirm they are in RED state (failing)
+3. **Document the RED state** - which tests are failing and why
+4. **DO NOT** write any implementation code until RED state is confirmed
 
-```bash
-cd /home/carlos/projects/redditharbor-core-functions-fix
-pytest tests/test_dlt_id_normalization.py -v --tb=no | grep -E "(PASSED|FAILED|ERROR)" | tail -10
-```
-
-Note: After Tasks 01 and 02, most tests should be passing. Task 03 ensures schema definitions don't break anything.
+### GREEN Phase (Implementation)
+1. **Write minimal code** to make failing tests pass
+2. **Run tests after each change** to verify progress toward GREEN
+3. **Stop immediately** when all tests are GREEN
+4. **NO EXTRA FEATURES** - only implement what tests require
 
 ### Key TDD Principles
 
 - **Tests are the specification** - Read the tests to understand exactly what the code should do
 - **Minimum viable implementation** - Only write code needed to pass tests, nothing more
 - **Test after each change** - Run tests frequently to verify no regressions
+- **RED→GREEN→REFACTOR cycle** - Never skip phases
 
 ---
 
@@ -66,6 +154,17 @@ Without updating these definitions, DLT may infer incorrect types or miss the ne
 
 - [ ] Add indexes for lookup performance on reddit_id columns
 - [ ] Document the schema changes in inline comments
+
+### SCHEMA VALIDATION TESTS (Task 03 Specific)
+
+Task 03 may need additional schema validation tests beyond the 55 core tests:
+
+- [ ] Verify `reddit_id` column is defined in DLT resource schema hints
+- [ ] Verify column data types are correct (`text` for all new columns)
+- [ ] Verify nullable constraints are properly set
+- [ ] Verify unique constraints (if applied) don't conflict with existing data
+- [ ] Test DLT resource definitions can be imported without syntax errors
+- [ ] Validate schema consistency across all DLT resources
 
 ## Files to Modify
 
@@ -240,6 +339,7 @@ docs/clean-break-implementation/partner-ai-reports/03-implementation-report.md
 |------------|--------|-------|
 | Task 01 | Required Complete | Submission transform adds `reddit_id` field |
 | Task 02 | Required Complete | Comment transform adds preservation fields |
+| Test File | **DELETED - MUST RECREATE** | `tests/test_dlt_id_normalization.py` was deleted - ensure it exists with all 55 tests |
 
 ## Reference Materials
 
