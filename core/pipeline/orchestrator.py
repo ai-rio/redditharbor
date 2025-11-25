@@ -281,7 +281,11 @@ class OpportunityPipeline:
 
             return DatabaseFetcher(
                 client=self.config.supabase_client,
-                config=self.config.source_config or {},
+                config={
+                    'use_orm': True,
+                    'table_name': 'submissions',
+                    'id_field': 'id'
+                },
             )
 
         elif self.config.data_source == DataSource.REDDIT_API:

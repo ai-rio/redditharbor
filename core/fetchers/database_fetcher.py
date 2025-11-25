@@ -89,18 +89,23 @@ class DatabaseFetcher(BaseFetcher):
                 - batch_size: Records per batch (default: 1000)
                 - deduplicate: Enable deduplication (default: True)
                 - table_name: Table to query (default: "app_opportunities")
+                - use_orm: Use SQLAlchemy ORM instead of REST queries (default: False)
+                - id_field: Field to use as primary identifier (default: "submission_id")
         """
         super().__init__(config)
         self.client = client
         self.batch_size = self.config.get("batch_size", 1000)
         self.deduplicate = self.config.get("deduplicate", True)
         self.table_name = self.config.get("table_name", "app_opportunities")
+        self.use_orm = self.config.get("use_orm", False)
+        self.id_field = self.config.get("id_field", "submission_id")
 
     def fetch(self, limit: int | None = None, **kwargs) -> Iterator[dict[str, Any]]:
         """
         Fetch submissions from database.
 
-        Retrieves submissions from app_opportunities table with optional limit.
+        Retrieves submissions from database table with optional limit.
+        Supports both REST (Supabase) and ORM (SQLAlchemy) modes.
         Supports batch fetching, content-based deduplication, and automatic
         formatting for AI analysis.
 
@@ -123,12 +128,17 @@ class DatabaseFetcher(BaseFetcher):
             >>> all_subs = list(fetcher.fetch())
         """
         try:
-            if limit:
-                # Simple fetch for limited results
-                yield from self._fetch_limited(limit)
+            if self.use_orm:
+                # Use SQLAlchemy ORM mode
+                yield from self._fetch_orm(limit)
             else:
-                # Batch fetch with deduplication for unlimited results
-                yield from self._fetch_all()
+                # Use original REST mode
+                if limit:
+                    # Simple fetch for limited results
+                    yield from self._fetch_limited(limit)
+                else:
+                    # Batch fetch with deduplication for unlimited results
+                    yield from self._fetch_all()
 
         except Exception as e:
             self.stats["errors"] += 1
@@ -277,6 +287,76 @@ class DatabaseFetcher(BaseFetcher):
             str: Source identifier for logging and monitoring
         """
         return f"Database ({self.table_name})"
+
+    def _fetch_orm(self, limit: int | None = None) -> Iterator[dict[str, Any]]:
+        """
+        Fetch submissions using SQLAlchemy ORM.
+
+        Retrieves submissions using the configured ORM model instead of
+        hardcoded REST queries. This allows for dynamic schema introspection
+        and proper field mapping.
+
+        Args:
+            limit: Maximum number of submissions to fetch. None = fetch all.
+
+        Yields:
+            dict: Formatted submission data in standardized format
+
+        Raises:
+            Exception: If ORM query fails
+        """
+        try:
+            # Import ORM components only when needed
+            from core.db import get_db_session, Submission
+            from sqlalchemy import select
+
+            with get_db_session() as session:
+                # Build query
+                if self.table_name == "submissions":
+                    stmt = select(Submission)
+
+                    # Apply limit if specified
+                    if limit:
+                        stmt = stmt.limit(limit)
+
+                    # Execute query
+                    result = session.execute(stmt)
+                    submissions = result.scalars().all()
+
+                    # Convert ORM objects to dictionaries and format
+                    for submission in submissions:
+                        submission_dict = submission.to_dict()
+
+                        # Use configured id field for validation
+                        if self.validate_submission_orm(submission_dict):
+                            self.stats["fetched"] += 1
+                            # In ORM mode, don't use legacy fields to test dynamic schema handling
+                            yield format_submission_for_agent(submission_dict, use_legacy_fields=False)
+                        else:
+                            self.stats["filtered"] += 1
+                else:
+                    # For other tables, fall back to original method or raise error
+                    raise ValueError(f"ORM mode not supported for table: {self.table_name}")
+
+        except Exception as e:
+            self.stats["errors"] += 1
+            raise Exception(f"ORM fetch failed: {e}") from e
+
+    def validate_submission_orm(self, submission: dict[str, Any]) -> bool:
+        """
+        Validate submission has required fields for ORM records.
+
+        Args:
+            submission: Submission data from ORM
+
+        Returns:
+            bool: True if valid, False otherwise
+        """
+        # Use configured id field instead of hardcoded submission_id
+        required_fields = [self.id_field, "title", "subreddit"]
+        return all(
+            field in submission and submission[field] for field in required_fields
+        )
 
     def validate_submission(self, submission: dict[str, Any]) -> bool:
         """

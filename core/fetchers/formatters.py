@@ -9,7 +9,8 @@ from datetime import datetime
 from typing import Any
 
 
-def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
+def format_submission_for_agent(submission: dict[str, Any], *,
+                               use_legacy_fields: bool = True) -> dict[str, Any]:
     """
     Format an opportunity from app_opportunities for LLM profiler enrichment.
 
@@ -62,9 +63,9 @@ def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
     if trust_badge:
         comments.append(f"Trust Badge: {trust_badge}")
 
-    return {
-        "submission_id": submission.get("submission_id", submission.get("id", "unknown")),
-        "id": submission.get("submission_id", submission.get("id", "unknown")),
+    # Build the formatted submission
+    formatted = {
+        "reddit_id": submission.get("reddit_id"),  # Include Reddit's native ID
         "title": title,
         "text": full_text,
         "subreddit": submission.get("subreddit", ""),
@@ -75,6 +76,20 @@ def format_submission_for_agent(submission: dict[str, Any]) -> dict[str, Any]:
         "sentiment_score": submission.get("sentiment_score", 0.0),
         "db_id": submission.get("id"),  # Keep reference to database UUID
     }
+
+    # Add legacy fields if requested (default for backward compatibility)
+    if use_legacy_fields:
+        formatted["submission_id"] = submission.get("submission_id", submission.get("id", "unknown"))
+        formatted["id"] = submission.get("submission_id", submission.get("id", "unknown"))
+    else:
+        # Use configured primary identifier as 'id'
+        # For ORM mode, we'll let the DatabaseFetcher handle this
+        if "submission_id" in submission:
+            formatted["id"] = submission["submission_id"]
+        elif "id" in submission:
+            formatted["id"] = submission["id"]
+
+    return formatted
 
 
 def format_batch_submissions(

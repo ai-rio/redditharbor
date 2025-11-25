@@ -39,6 +39,7 @@ dependencies = [
     # Database and storage
     "supabase>=1.0.0",
     "psycopg2-binary>=2.9.0",
+    "sqlalchemy>=2.0.0",
     # Privacy and PII handling
     "spacy>=3.4.0",
     # Web requests and scraping
