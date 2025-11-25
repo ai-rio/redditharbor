@@ -52,6 +52,11 @@ logger = logging.getLogger(__name__)
 # Problem-first filtering: minimum keywords required
 MIN_PROBLEM_KEYWORDS = 1
 
+# Pre-AI quality filtering thresholds
+MIN_ENGAGEMENT_SCORE = 5   # Minimum upvotes
+MIN_COMMENT_COUNT = 1      # Minimum comments
+MIN_QUALITY_SCORE = 15.0   # Minimum quality score before storage
+
 # Subreddits for collection
 TARGET_SUBREDDITS = [
     "opensource", "SideProject", "productivity", "freelance", "personalfinance"
@@ -100,6 +105,70 @@ def contains_problem_keywords(text: str, min_keywords: int = MIN_PROBLEM_KEYWORD
     text_lower = text.lower()
     keyword_count = sum(1 for keyword in PROBLEM_KEYWORDS if keyword.lower() in text_lower)
     return keyword_count >= min_keywords
+
+
+def calculate_quality_score(submission: Any) -> float:
+    """
+    Calculate quality score BEFORE storage to filter low-quality posts.
+
+    Quality factors:
+    - Engagement (upvotes + comments)
+    - Problem keyword density
+    - Recency (newer = better)
+
+    Returns:
+        Float quality score (0-100)
+    """
+    # Engagement score (0-40 points)
+    score = submission.score
+    num_comments = submission.num_comments
+    engagement = min(40, (score + num_comments * 2) / 2)
+
+    # Problem keyword density (0-30 points)
+    full_text = f"{submission.title} {submission.selftext}"
+    problem_kw_count = len([kw for kw in PROBLEM_KEYWORDS if kw.lower() in full_text.lower()])
+    keyword_score = min(30, problem_kw_count * 10)
+
+    # Recency score (0-30 points)
+    age_hours = (time.time() - submission.created_utc) / 3600
+    recency_score = max(0, 30 - (age_hours / 24))  # Decay over 24 hours
+
+    total = engagement + keyword_score + recency_score
+    return round(total, 2)
+
+
+def should_store_submission(submission: Any) -> tuple[bool, float]:
+    """
+    Pre-filter submissions to determine if they should be stored.
+    Prevents storing low-quality content and saves storage costs.
+
+    Args:
+        submission: PRAW submission object
+
+    Returns:
+        Tuple of (should_store: bool, quality_score: float)
+    """
+    # Check minimum engagement
+    if submission.score < MIN_ENGAGEMENT_SCORE:
+        return False, 0.0
+
+    # Check minimum comments
+    if submission.num_comments < MIN_COMMENT_COUNT:
+        return False, 0.0
+
+    # Check problem keywords
+    full_text = f"{submission.title} {submission.selftext}"
+    if not contains_problem_keywords(full_text):
+        return False, 0.0
+
+    # Calculate quality score
+    quality_score = calculate_quality_score(submission)
+
+    # Check minimum quality threshold
+    if quality_score < MIN_QUALITY_SCORE:
+        return False, quality_score
+
+    return True, quality_score
 
 
 def transform_submission(submission: Any) -> Dict[str, Any]:
@@ -231,9 +300,10 @@ def collect_and_store_submissions(
             else:
                 submissions = subreddit.new(limit=limit)
 
-            # Filter for problem posts
+            # Filter for quality problem posts
             problem_count = 0
             checked_count = 0
+            filtered_low_quality = 0
 
             for submission in submissions:
                 checked_count += 1
@@ -241,12 +311,20 @@ def collect_and_store_submissions(
                 # Check if contains problem keywords
                 combined_text = f"{submission.title} {submission.selftext}"
                 if contains_problem_keywords(combined_text):
-                    # Transform and add to list
-                    transformed = transform_submission(submission)
-                    all_submissions.append(transformed)
-                    problem_count += 1
+                    # Pre-filter quality BEFORE storage
+                    should_store, quality_score = should_store_submission(submission)
 
-            print(f"✓ Checked {checked_count} posts, found {problem_count} problem posts")
+                    if should_store:
+                        # Transform and add to list
+                        transformed = transform_submission(submission)
+                        all_submissions.append(transformed)
+                        problem_count += 1
+                    else:
+                        filtered_low_quality += 1
+
+            print(f"✓ Checked {checked_count} posts, found {problem_count} quality problem posts")
+            if filtered_low_quality > 0:
+                print(f"  💾 Filtered {filtered_low_quality} low-quality posts (saved storage)")
 
         except Exception as e:
             print(f"✗ Error processing r/{subreddit_name}: {e}")
