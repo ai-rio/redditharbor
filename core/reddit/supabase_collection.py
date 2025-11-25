@@ -18,6 +18,7 @@ Main Functions:
 """
 
 import logging
+import re
 import sys
 import time
 from datetime import datetime
@@ -66,6 +67,34 @@ TARGET_SUBREDDITS = [
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'http://127.0.0.1:54330')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
+# Business logic filtering: Monetization signals
+MONETIZATION_SIGNALS = [
+    # Willingness to pay phrases
+    "would pay", "willing to pay", "happy to pay", "i'd pay", "i'll pay",
+    "subscription", "worth $", "worth paying", "premium", "paid version",
+    # Commercial gap mentions
+    "nothing good exists", "existing solutions suck", "can't find anything",
+    "no good options", "everything is bad", "all options are terrible",
+    "existing tools don't work", "current solutions are expensive",
+    # Revenue model discussions
+    "freemium", "saas", "pricing", "business model", "pay monthly",
+    "pay yearly", "one-time payment", "affordable price", "free trial",
+    "upgrade to pro", "premium features"
+]
+
+# Business logic filtering: Feature/function indicators
+FEATURE_INDICATORS = [
+    "feature", "function", "functionality", "capability", "can do",
+    "does", "ability to", "allows", "enables", "supports"
+]
+
+# Business logic filtering: Simple list patterns
+LIST_PATTERNS = [
+    r'\d+\.',  # Numbered lists: 1. 2. 3.
+    r'[-•*]',  # Bullet points: - • *
+    r'\n\s*\d+\)',  # Parenthetical numbers: 1) 2) 3)
+]
+
 
 def get_supabase_client() -> Client:
     """Get configured Supabase client."""
@@ -107,6 +136,129 @@ def contains_problem_keywords(text: str, min_keywords: int = MIN_PROBLEM_KEYWORD
     return keyword_count >= min_keywords
 
 
+def has_monetization_signals(text: str) -> bool:
+    """
+    Check if text contains signals of willingness to pay or commercial viability.
+
+    Based on monetizable app research methodology, this function identifies:
+    - Willingness-to-pay phrases: "would pay", "willing to pay", "subscription"
+    - Commercial gap mentions: "nothing good exists", "existing solutions suck"
+    - Revenue model discussions: "freemium", "saas", "pricing", "business model"
+
+    Args:
+        text: Text to analyze for monetization signals
+
+    Returns:
+        True if at least one monetization signal found, False otherwise
+
+    Examples:
+        >>> has_monetization_signals("I would pay $10/month for this")
+        True
+        >>> has_monetization_signals("Nothing good exists for this problem")
+        True
+        >>> has_monetization_signals("This is just a random post")
+        False
+    """
+    if not text:
+        return False
+
+    text_lower = text.lower()
+
+    # Check if any monetization signal is present
+    has_signal = any(signal in text_lower for signal in MONETIZATION_SIGNALS)
+
+    return has_signal
+
+
+def meets_simplicity_constraint(text: str) -> bool:
+    """
+    Check if described solution is simple (1-3 core functions only).
+
+    Based on monetizable app research methodology, apps with 4+ core functions
+    are automatically disqualified. This function analyzes text to count
+    distinct functions described.
+
+    Function identification approach:
+    - Look for explicit feature/function mentions with indicators
+    - Parse lists of features (bullet points, numbered lists)
+    - Count distinct function descriptions
+    - Return True if 1-3 functions, False if 4+ functions
+    - Return True by default if can't determine (benefit of doubt)
+
+    Args:
+        text: Text to analyze for function/feature count
+
+    Returns:
+        True if 1-3 functions or indeterminate, False if 4+ functions
+
+    Examples:
+        >>> meets_simplicity_constraint("A timer and break reminder")
+        True
+        >>> meets_simplicity_constraint("Track habits, set goals, view stats, share progress, compete")
+        False
+        >>> meets_simplicity_constraint("Just a simple todo list")
+        True
+    """
+    if not text:
+        return True  # Benefit of doubt
+
+    text_lower = text.lower()
+
+    # Strategy 1: Count explicit feature/function mentions
+    feature_count = 0
+    for indicator in FEATURE_INDICATORS:
+        if indicator in text_lower:
+            # Count occurrences (rough heuristic)
+            feature_count += text_lower.count(indicator)
+
+    # If many explicit feature mentions (4+), likely complex
+    if feature_count >= 4:
+        return False
+
+    # Strategy 2: Detect lists and count items
+    list_items = []
+    for pattern in LIST_PATTERNS:
+        matches = re.findall(pattern, text)
+        list_items.extend(matches)
+
+    # If list has 4+ items, likely describing multiple functions
+    if len(list_items) >= 4:
+        return False
+
+    # Strategy 3: Count comma-separated items in feature descriptions
+    # Look for patterns like "track X, set Y, view Z, share W"
+    # This catches lists without explicit numbering
+    for sentence in text.split('.'):
+        sentence_lower = sentence.lower()
+
+        # Count commas in sentences that describe capabilities
+        if any(word in sentence_lower for word in ["track", "manage", "monitor", "create", "generate", "send", "receive"]):
+            # Count distinct actions separated by commas
+            comma_count = sentence_lower.count(",")
+
+            # If 3+ commas in an action sentence, likely 4+ functions
+            if comma_count >= 3:
+                return False
+
+    # Strategy 4: Count "and" conjunctions in function descriptions
+    # Look for patterns like "does X and Y and Z and W"
+    if any(keyword in text_lower for keyword in ["can", "does", "allows", "enables"]):
+        # Extract sentences with these keywords
+        sentences = text.split('.')
+        for sentence in sentences:
+            sentence_lower = sentence.lower()
+            if any(keyword in sentence_lower for keyword in ["can", "does", "allows", "enables"]):
+                # Count "and" occurrences as function separators
+                and_count = sentence_lower.count(" and ")
+                comma_count = sentence_lower.count(",")
+                # If many conjunctions, likely listing multiple functions
+                if and_count + comma_count >= 3:
+                    return False
+
+    # Default: benefit of doubt (assume simple unless proven complex)
+    return True
+
+
 def calculate_quality_score(submission: Any) -> float:
     """
     Calculate quality score BEFORE storage to filter low-quality posts.
@@ -139,8 +291,14 @@ def calculate_quality_score(submission: Any) -> float:
 
 def should_store_submission(submission: Any) -> tuple[bool, float]:
     """
-    Pre-filter submissions to determine if they should be stored.
-    Prevents storing low-quality content and saves storage costs.
+    Pre-filter submissions with business logic based on monetizable app research methodology.
+
+    This function filters submissions through multiple quality gates:
+    1. Basic engagement checks (minimum score and comments)
+    2. Problem keyword presence (pain points, frustrations)
+    3. Monetization signals (willingness to pay, commercial gaps)
+    4. Simplicity constraint (1-3 core functions maximum)
+    5. Quality score threshold (engagement + keyword density + recency)
 
     Args:
         submission: PRAW submission object
@@ -156,12 +314,24 @@ def should_store_submission(submission: Any) -> tuple[bool, float]:
     if submission.num_comments < MIN_COMMENT_COUNT:
         return False, 0.0
 
-    # Check problem keywords
+    # Combine title and content for analysis
     full_text = f"{submission.title} {submission.selftext}"
+
+    # Check problem keywords (existing filter)
     if not contains_problem_keywords(full_text):
         return False, 0.0
 
-    # Calculate quality score
+    # NEW: Check monetization signals
+    # Filter out posts without willingness-to-pay or commercial viability signals
+    if not has_monetization_signals(full_text):
+        return False, 0.0
+
+    # NEW: Check simplicity constraint
+    # Filter out complex apps with 4+ core functions
+    if not meets_simplicity_constraint(full_text):
+        return False, 0.0
+
+    # Calculate quality score (existing scoring)
     quality_score = calculate_quality_score(submission)
 
     # Check minimum quality threshold
