@@ -11,8 +11,8 @@ class Submission(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True)
     reddit_id = Column(String(100))
-    redditor_id = Column(UUID)
-    subreddit_id = Column(UUID)
+    redditor_id = Column(UUID(as_uuid=True))
+    subreddit_id = Column(UUID(as_uuid=True))
     title = Column(Text)
     content = Column(Text)
     url = Column(Text)

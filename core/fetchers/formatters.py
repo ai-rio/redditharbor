@@ -12,25 +12,25 @@ from typing import Any
 def format_submission_for_agent(submission: dict[str, Any], *,
                                use_legacy_fields: bool = True) -> dict[str, Any]:
     """
-    Format an opportunity from app_opportunities for LLM profiler enrichment.
+    Format a submission for LLM profiler enrichment.
 
     Standardizes field names, handles missing data, and adds engagement metadata.
-    This function was extracted from batch_opportunity_scoring.py to enable reuse
-    across different pipeline components.
+    Supports both legacy (app_opportunities) and new (submissions) schemas.
 
     Args:
-        submission: Opportunity data from app_opportunities table or raw Reddit data
+        submission: Submission data from database table or raw Reddit data
+        use_legacy_fields: Include legacy submission_id field for backward compatibility
 
     Returns:
         dict: Formatted opportunity data for AI profile generation
 
     Examples:
         >>> raw = {
-        ...     'submission_id': 'abc123',
+        ...     'id': 'uuid-123',
+        ...     'reddit_id': 't3_abc123',
         ...     'title': 'Looking for fitness app',
-        ...     'problem_description': 'Need something to track workouts',
-        ...     'subreddit': 'fitness',
-        ...     'reddit_score': 42,
+        ...     'content': 'Need something to track workouts',
+        ...     'score': 42,
         ...     'num_comments': 5
         ... }
         >>> formatted = format_submission_for_agent(raw)
@@ -47,13 +47,15 @@ def format_submission_for_agent(submission: dict[str, Any], *,
     )
     full_text = f"{title}\n\n{text}".strip() if text else title
 
-    # Format engagement data using app_opportunities column names
+    # Format engagement data - support both old and new column names
+    # Legacy: reddit_score, New: score
+    score_value = submission.get("score") or submission.get("reddit_score", 0) or 0
     engagement = {
-        "upvotes": submission.get("reddit_score", 0) or 0,
+        "upvotes": score_value,
         "num_comments": submission.get("num_comments", 0) or 0,
     }
 
-    # Include trust metadata for context
+    # Include trust metadata for context (legacy fields)
     comments = []
     trust_score = submission.get("trust_score")
     trust_badge = submission.get("trust_badge")
@@ -63,31 +65,46 @@ def format_submission_for_agent(submission: dict[str, Any], *,
     if trust_badge:
         comments.append(f"Trust Badge: {trust_badge}")
 
+    # Handle timestamp fields - support both created_at and created_utc
+    created_timestamp = submission.get("created_at") or submission.get("created_utc")
+
     # Build the formatted submission
     formatted = {
-        "reddit_id": submission.get("reddit_id"),  # Include Reddit's native ID
+        "reddit_id": submission.get("reddit_id"),  # Reddit's native ID (e.g., "t3_abc123")
         "title": title,
         "text": full_text,
-        "subreddit": submission.get("subreddit", ""),
+        "subreddit": submission.get("subreddit", ""),  # May be empty for new schema
         "engagement": engagement,
         "comments": comments,
-        "created_utc": submission.get("created_utc"),
+        "created_utc": created_timestamp,
         "author": submission.get("author"),
         "sentiment_score": submission.get("sentiment_score", 0.0),
-        "db_id": submission.get("id"),  # Keep reference to database UUID
+        "db_id": submission.get("id"),  # Database UUID
+        "url": submission.get("url"),  # Submission URL
     }
 
     # Add legacy fields if requested (default for backward compatibility)
     if use_legacy_fields:
-        formatted["submission_id"] = submission.get("submission_id", submission.get("id", "unknown"))
-        formatted["id"] = submission.get("submission_id", submission.get("id", "unknown"))
+        # Prefer submission_id if available, fallback to id, then reddit_id
+        legacy_id = (
+            submission.get("submission_id") or
+            submission.get("id") or
+            submission.get("reddit_id") or
+            "unknown"
+        )
+        formatted["submission_id"] = legacy_id
+        formatted["id"] = legacy_id
     else:
         # Use configured primary identifier as 'id'
-        # For ORM mode, we'll let the DatabaseFetcher handle this
+        # Priority: submission_id > id > reddit_id
         if "submission_id" in submission:
             formatted["id"] = submission["submission_id"]
         elif "id" in submission:
             formatted["id"] = submission["id"]
+        elif "reddit_id" in submission:
+            formatted["id"] = submission["reddit_id"]
+        else:
+            formatted["id"] = "unknown"
 
     return formatted
 
@@ -163,7 +180,7 @@ def validate_submission_completeness(
     Validate submission has all required fields for AI analysis.
 
     Checks for presence of essential fields needed for opportunity scoring
-    and AI enrichment.
+    and AI enrichment. Supports both legacy and new schemas.
 
     Args:
         submission: Submission data dictionary
@@ -175,27 +192,41 @@ def validate_submission_completeness(
 
     Examples:
         >>> valid_sub = {
-        ...     'submission_id': 'abc123',
-        ...     'title': 'Need app',
-        ...     'subreddit': 'SaaS'
+        ...     'id': 'uuid-123',
+        ...     'reddit_id': 't3_abc123',
+        ...     'title': 'Need app'
         ... }
         >>> is_valid, missing = validate_submission_completeness(valid_sub)
         >>> assert is_valid is True
         >>> assert len(missing) == 0
 
-        >>> incomplete = {'submission_id': 'abc123'}
+        >>> incomplete = {'id': 'uuid-123'}
         >>> is_valid, missing = validate_submission_completeness(incomplete)
         >>> assert is_valid is False
         >>> assert 'title' in missing
-        >>> assert 'subreddit' in missing
     """
-    required_fields = ["submission_id", "title", "subreddit"]
     missing = []
 
-    for field in required_fields:
-        value = submission.get(field)
-        # Check if field is missing, None, or empty string
+    # Check for title (always required)
+    value = submission.get("title")
+    if not value or (isinstance(value, str) and not value.strip()):
+        missing.append("title")
+
+    # Check for ID field - accept any of: submission_id, id, or reddit_id
+    has_id = (
+        submission.get("submission_id") or
+        submission.get("id") or
+        submission.get("reddit_id")
+    )
+    if not has_id:
+        missing.append("id_field")  # Generic ID field missing
+
+    # Subreddit is optional for new schema (has subreddit_id instead)
+    # Only require for legacy schema
+    if "submission_id" in submission:
+        # Legacy schema - require subreddit
+        value = submission.get("subreddit")
         if not value or (isinstance(value, str) and not value.strip()):
-            missing.append(field)
+            missing.append("subreddit")
 
     return len(missing) == 0, missing

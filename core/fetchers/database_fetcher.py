@@ -1,7 +1,7 @@
 """Database fetcher for retrieving submissions from Supabase.
 
 This module provides a DatabaseFetcher class for fetching Reddit submissions
-from the app_opportunities table in Supabase. Extracted from
+from the submissions table in Supabase. Extracted from
 scripts/core/batch_opportunity_scoring.py to enable code reuse across pipeline
 components.
 """
@@ -14,7 +14,7 @@ from core.fetchers.formatters import format_submission_for_agent
 
 class DatabaseFetcher(BaseFetcher):
     """
-    Fetch submissions from Supabase app_opportunities table.
+    Fetch submissions from Supabase submissions table.
 
     Provides efficient batch fetching with pagination, content-based deduplication,
     and standardized data formatting. Implements BaseFetcher interface for
@@ -25,7 +25,7 @@ class DatabaseFetcher(BaseFetcher):
         config: Configuration dictionary with optional settings:
             - batch_size: Number of records per batch (default: 1000)
             - deduplicate: Enable content-based deduplication (default: True)
-            - table_name: Database table name (default: "app_opportunities")
+            - table_name: Database table name (default: "submissions")
         stats: Fetching statistics (fetched, filtered, errors)
 
     Examples:
@@ -88,17 +88,17 @@ class DatabaseFetcher(BaseFetcher):
             config: Optional configuration dictionary with settings:
                 - batch_size: Records per batch (default: 1000)
                 - deduplicate: Enable deduplication (default: True)
-                - table_name: Table to query (default: "app_opportunities")
+                - table_name: Table to query (default: "submissions")
                 - use_orm: Use SQLAlchemy ORM instead of REST queries (default: False)
-                - id_field: Field to use as primary identifier (default: "submission_id")
+                - id_field: Field to use as primary identifier (default: "id")
         """
         super().__init__(config)
         self.client = client
         self.batch_size = self.config.get("batch_size", 1000)
         self.deduplicate = self.config.get("deduplicate", True)
-        self.table_name = self.config.get("table_name", "app_opportunities")
+        self.table_name = self.config.get("table_name", "submissions")
         self.use_orm = self.config.get("use_orm", False)
-        self.id_field = self.config.get("id_field", "submission_id")
+        self.id_field = self.config.get("id_field", "id")
 
     def fetch(self, limit: int | None = None, **kwargs) -> Iterator[dict[str, Any]]:
         """
@@ -158,12 +158,20 @@ class DatabaseFetcher(BaseFetcher):
             Exception: If query fails
         """
         try:
-            query = (
-                self.client.table(self.table_name)
-                .select(
+            # Build column list based on table name for backward compatibility
+            if self.table_name == "submissions":
+                # New schema: id (UUID), reddit_id, content, score, num_comments
+                columns = "id, reddit_id, title, content, score, num_comments, created_at, url"
+            else:
+                # Legacy schema: submission_id, subreddit, reddit_score, selftext
+                columns = (
                     "submission_id, title, content, subreddit, reddit_score, "
                     "num_comments, trust_score, trust_level, created_utc, author, selftext"
                 )
+
+            query = (
+                self.client.table(self.table_name)
+                .select(columns)
                 .limit(limit)
             )
 
@@ -203,13 +211,21 @@ class DatabaseFetcher(BaseFetcher):
             total_filtered = 0
 
             while True:
-                # Build query with pagination
-                query = (
-                    self.client.table(self.table_name)
-                    .select(
+                # Build column list based on table name for backward compatibility
+                if self.table_name == "submissions":
+                    # New schema: id (UUID), reddit_id, content, score, num_comments
+                    columns = "id, reddit_id, title, content, score, num_comments, created_at, url"
+                else:
+                    # Legacy schema: submission_id, subreddit, reddit_score, selftext
+                    columns = (
                         "submission_id, title, content, subreddit, reddit_score, "
                         "num_comments, trust_score, trust_level, created_utc, author, selftext"
                     )
+
+                # Build query with pagination
+                query = (
+                    self.client.table(self.table_name)
+                    .select(columns)
                     .range(offset, offset + self.batch_size - 1)
                 )
 
@@ -325,7 +341,16 @@ class DatabaseFetcher(BaseFetcher):
 
                     # Convert ORM objects to dictionaries and format
                     for submission in submissions:
+                        # Skip None submissions (possible NULL records)
+                        if submission is None:
+                            continue
+
                         submission_dict = submission.to_dict()
+
+                        # Convert UUID objects to strings for JSON compatibility
+                        for key, value in submission_dict.items():
+                            if hasattr(value, 'hex'):  # UUID object
+                                submission_dict[key] = str(value)
 
                         # Use configured id field for validation
                         if self.validate_submission_orm(submission_dict):
@@ -353,7 +378,9 @@ class DatabaseFetcher(BaseFetcher):
             bool: True if valid, False otherwise
         """
         # Use configured id field instead of hardcoded submission_id
-        required_fields = [self.id_field, "title", "subreddit"]
+        # NOTE: Database has subreddit_id (UUID), not subreddit (string)
+        # subreddit_id can be None in our current data, so don't require it
+        required_fields = [self.id_field, "title"]
         return all(
             field in submission and submission[field] for field in required_fields
         )
@@ -364,6 +391,7 @@ class DatabaseFetcher(BaseFetcher):
 
         Checks for essential fields needed for AI analysis and processing.
         Overrides base class to provide database-specific validation.
+        Supports both legacy (submission_id, subreddit) and new (id, reddit_id) schemas.
 
         Args:
             submission: Submission data from database
@@ -371,7 +399,25 @@ class DatabaseFetcher(BaseFetcher):
         Returns:
             bool: True if valid, False otherwise
         """
-        required_fields = ["submission_id", "title", "subreddit"]
-        return all(
-            field in submission and submission[field] for field in required_fields
+        # Must have title
+        if "title" not in submission or not submission["title"]:
+            return False
+
+        # Check for ID field - support both legacy and new schemas
+        has_id = (
+            ("submission_id" in submission and submission["submission_id"]) or
+            ("id" in submission and submission["id"]) or
+            ("reddit_id" in submission and submission["reddit_id"])
         )
+
+        if not has_id:
+            return False
+
+        # For legacy schema, require subreddit field
+        # For new schema, subreddit_id is optional
+        if "submission_id" in submission:
+            # Legacy schema validation
+            return "subreddit" in submission and submission["subreddit"]
+
+        # New schema validation - just needs id and title
+        return True

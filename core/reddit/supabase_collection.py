@@ -364,7 +364,13 @@ def transform_submission(submission: Any) -> Dict[str, Any]:
 
     # Resolve canonical UUID
     resolution = resolve_submission_id(submission_data["id"])
-    resolved_id = resolution.uuid  # Extract UUID string from ResolutionResult
+    if resolution is None:
+        # Handle None resolution (null/empty input)
+        logger.warning(f"Failed to resolve ID for submission: {submission.id}")
+        resolved_id = None
+    else:
+        # Extract UUID string from ResolutionResult
+        resolved_id = resolution.uuid
 
     # Get content
     selftext = submission_data.get("selftext", "") or ""

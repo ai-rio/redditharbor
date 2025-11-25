@@ -70,7 +70,7 @@ class SupabaseTrustRepository(TrustRepositoryInterface):
     def __init__(self, supabase_client):
         """Initialize with Supabase client."""
         self.client = supabase_client
-        self.default_table = TrustTables.APP_OPPORTUNITIES
+        self.default_table = TrustTables.SUBMISSIONS
 
     def get_trust_indicators(self, submission_id: str) -> TrustIndicators | None:
         """Get trust indicators for a submission."""
