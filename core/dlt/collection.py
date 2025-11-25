@@ -567,20 +567,10 @@ def load_to_supabase(problem_posts: list[dict[str, Any]], write_mode: str = "mer
     pipeline = create_dlt_pipeline()
 
     try:
-        # Create DLT resource with schema hints for proper column handling
+        # Create DLT resource - no schema hints, use existing database table
         @dlt.resource(
             name="submissions",
-            write_disposition=write_mode,
-            columns={
-                "id": {"data_type": "text", "nullable": True, "unique": True},
-                "reddit_id": {"data_type": "text", "nullable": False},
-                "title": {"data_type": "text", "nullable": False},
-                "content": {"data_type": "text", "nullable": True},
-                "url": {"data_type": "text", "nullable": True},
-                "score": {"data_type": "bigint", "nullable": True},
-                "num_comments": {"data_type": "bigint", "nullable": True},
-                "created_at": {"data_type": "timestamp", "nullable": True},
-            }
+            write_disposition=write_mode
         )
         def submission_resource():
             yield problem_posts
