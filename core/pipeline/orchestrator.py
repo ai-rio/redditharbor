@@ -791,11 +791,17 @@ class OpportunityPipeline:
                 logger.info("Both opportunity and profile services enabled - attempting EnhancedHybridStore")
                 try:
                     from core.storage.enhanced_hybrid_store import EnhancedHybridStore
-                    store = EnhancedHybridStore(supabase_client=self.config.supabase_client)
+                    store = EnhancedHybridStore(
+                        supabase_client=self.config.supabase_client,
+                        opportunity_table="submissions"
+                    )
                     logger.info("✓ Using EnhancedHybridStore for complete enrichment data persistence")
                 except ImportError as e:
                     logger.warning(f"✗ EnhancedHybridStore not available, falling back to HybridStore: {e}")
-                    store = HybridStore(supabase_client=self.config.supabase_client)
+                    store = HybridStore(
+                        supabase_client=self.config.supabase_client,
+                        opportunity_table="submissions"
+                    )
                     logger.info("✓ Using HybridStore for combined data")
             elif has_opportunity:
                 # Use OpportunityStore for opportunity data only

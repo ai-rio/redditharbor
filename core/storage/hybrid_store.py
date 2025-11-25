@@ -127,8 +127,14 @@ class HybridStore:
         if not submission_ids:
             return {}
 
+        # Skip trust data fetch for submissions table (doesn't have trust columns)
+        if self.opportunity_table == "submissions":
+            logger.debug("Using submissions table - trust data not available, skipping fetch")
+            return {}
+
         try:
-            # Batch query for all trust fields from app_opportunities
+            # Batch query for all trust fields from app_opportunities table
+            # Note: app_opportunities table uses 'submission_id' as primary key
             response = (
                 self.supabase_client.table(self.opportunity_table)
                 .select(
@@ -143,7 +149,7 @@ class HybridStore:
             trust_data = {}
             if response.data:
                 for record in response.data:
-                    submission_id = record.get("submission_id")
+                    submission_id = record.get("submission_id")  # app_opportunities uses 'submission_id'
                     if submission_id:
                         trust_data[submission_id] = {
                             "trust_score": record.get("trust_score"),

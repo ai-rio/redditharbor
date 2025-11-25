@@ -303,8 +303,10 @@ class ServiceFactory:
             validator = None
             try:
                 if self.config.supabase_client:
+                    # Use submissions table for trust data
                     repository = TrustRepositoryFactory.create_repository(
-                        self.config.supabase_client
+                        self.config.supabase_client,
+                        table_name="submissions"
                     )
                     validator = TrustValidationService(repository)
                 else:
