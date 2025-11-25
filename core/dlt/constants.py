@@ -58,8 +58,8 @@ LEGACY_PK_MAP: Final[dict[str, str]] = {
 # DLT Resource Primary Key Mappings
 DLT_RESOURCE_PK_MAP: Final[dict[str, str]] = {
     # App Opportunities DLT Resources
-    "app_opportunities": PK_SUBMISSION_ID,
-    "app_opportunities_trust": PK_SUBMISSION_ID,
+    "opportunities": PK_ID,
+    "app_opportunities_trust": PK_ID,
 
     # Opportunity Analysis Resources
     "opportunity_analysis": PK_SUBMISSION_ID,
@@ -88,7 +88,7 @@ TABLE_PRIMARY_KEYS: Final[dict[str, str]] = {
     "redditors": PK_ID,
 
     # Application tables
-    "app_opportunities": PK_SUBMISSION_ID,
+    "app_opportunities": PK_ID,
     "opportunity_analysis": PK_SUBMISSION_ID,
     "workflow_results": PK_OPPORTUNITY_ID,
 

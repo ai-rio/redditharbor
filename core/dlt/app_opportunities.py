@@ -16,11 +16,11 @@ import dlt
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.dlt import PK_SUBMISSION_ID
+from core.dlt import PK_ID
 from core.utils.core_functions_serialization import dlt_standardize_core_functions
 
 # DLT pipeline configuration
-PIPELINE_NAME = "app_opportunities_loader"  # Consistent with expected resource name
+PIPELINE_NAME = "opportunities_loader"  # Fixed: match resource name
 DESTINATION = "postgres"
 DATASET_NAME = "public"
 
@@ -46,54 +46,19 @@ def create_app_opportunities_pipeline() -> dlt.Pipeline:
 
 
 @dlt.resource(
-    name="app_opportunities",
+    name="opportunities",
     write_disposition="merge",  # Deduplication via primary key
-    primary_key=PK_SUBMISSION_ID,  # Specify primary key for merge operations
+    primary_key=PK_ID,  # Specify primary key for merge operations
     columns={
-        # Basic fields
-        "submission_id": {"data_type": "uuid", "nullable": False},
-        "problem_description": {"data_type": "varchar"},
-        "app_concept": {"data_type": "varchar"},
-        "core_functions": {"data_type": "varchar"},
-        "value_proposition": {"data_type": "varchar"},
-        "target_user": {"data_type": "varchar"},
-        "monetization_model": {"data_type": "varchar"},
-        "opportunity_score": {"data_type": "double"},
-        "final_score": {"data_type": "double"},
-        "status": {"data_type": "varchar"},
-
-        # ProfilerService enrichment fields
-        "ai_profile": {"data_type": "jsonb"},
-        "app_name": {"data_type": "text"},
-        "app_category": {"data_type": "text"},
-        "profession": {"data_type": "text"},
-        "core_problems": {"data_type": "jsonb"},
-
-        # OpportunityService enrichment fields
-        "dimension_scores": {"data_type": "jsonb"},
-        "priority": {"data_type": "text"},
-        "confidence": {"data_type": "numeric"},
-        "evidence_based": {"data_type": "boolean"},
-
-        # TrustService enrichment fields
-        "trust_level": {"data_type": "text"},
-        "trust_badges": {"data_type": "jsonb"},
-
-        # MonetizationService enrichment fields
-        "monetization_score": {"data_type": "numeric"},
-
-        # MarketValidationService enrichment fields
-        "market_validation_score": {"data_type": "numeric"},
-
-        # Metadata fields
-        "analyzed_at": {"data_type": "timestamp"},
-        "enrichment_version": {"data_type": "varchar"},
-        "pipeline_source": {"data_type": "varchar"},
-
-        # Reddit metadata fields
-        "title": {"data_type": "varchar"},
-        "subreddit": {"data_type": "varchar"},
-        "reddit_score": {"data_type": "bigint"},
+        # Match existing database schema exactly with DLT hints
+        "id": {"data_type": "uuid", "nullable": False, "x-normalizer": "disable"},  # Primary key - disable normalizer
+        "title": {"data_type": "text", "nullable": False},  # Required field
+        "description": {"data_type": "text"},  # Main content
+        "problem_statement": {"data_type": "text"},  # Problem details
+        "target_audience": {"data_type": "text"},  # Target users
+        "submission_id": {"data_type": "uuid", "nullable": True, "x-normalizer": "disable"},  # Foreign key - disable normalizer
+        "created_at": {"data_type": "timestamp"},  # Auto-populated
+        "updated_at": {"data_type": "timestamp"},  # Auto-populated
     }
 )
 def app_opportunities_resource(ai_profiles: list[dict[str, Any]]):
@@ -120,7 +85,7 @@ def load_app_opportunities(ai_profiles: list[dict[str, Any]]) -> bool:
 
     Args:
         ai_profiles: List of AI-generated opportunity profiles with fields:
-            - submission_id (required)
+            - id (required, primary key - changed from submission_id)
             - problem_description (required)
             - app_concept (required)
             - core_functions (required)
@@ -135,7 +100,7 @@ def load_app_opportunities(ai_profiles: list[dict[str, Any]]) -> bool:
 
     Example:
         >>> profiles = [{
-        ...     "submission_id": "abc123",
+        ...     "id": "abc123",  # Changed from submission_id
         ...     "problem_description": "Teams waste time...",
         ...     "app_concept": "Integrated PM platform...",
         ...     "core_functions": ["Feature 1", "Feature 2"],
@@ -166,15 +131,15 @@ def load_app_opportunities(ai_profiles: list[dict[str, Any]]) -> bool:
 
     try:
         # Run DLT pipeline with merge disposition
-        # Primary key = submission_id → automatic deduplication
+        # Primary key = id → automatic deduplication
         load_info = pipeline.run(
             app_opportunities_resource(ai_only),
-            primary_key=PK_SUBMISSION_ID
+            primary_key=PK_ID
         )
 
         print("✓ AI profiles loaded successfully!")
         print(f"  - Profiles processed: {len(ai_only)}")
-        print("  - Write mode: merge (deduplication on submission_id)")
+        print("  - Write mode: merge (deduplication on id)")
         print(f"  - Started: {load_info.started_at}")
 
         return True
@@ -189,7 +154,7 @@ def load_app_opportunities(ai_profiles: list[dict[str, Any]]) -> bool:
 # Example usage
 if __name__ == "__main__":
     test_profile = {
-        "submission_id": "test_abc123",
+        "id": "test_abc123",  # Changed from submission_id to id
         "problem_description": "Teams waste 10+ hours weekly juggling multiple tools",
         "app_concept": "An integrated project management platform",
         "core_functions": ["Time tracking", "Gantt charts", "Task dashboard"],

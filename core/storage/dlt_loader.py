@@ -14,13 +14,13 @@ Key Features:
 
 Usage:
     from core.storage.dlt_loader import DLTLoader
-    from core.dlt import PK_SUBMISSION_ID
+    from core.dlt import PK_ID
 
     loader = DLTLoader()
     success = loader.load(
         data=opportunities,
         table_name="app_opportunities",
-        primary_key=PK_SUBMISSION_ID,
+        primary_key=PK_ID,
         write_disposition="merge"
     )
 """
@@ -103,7 +103,7 @@ class DLTLoader:
         >>> success = loader.load(
         ...     data=opportunities,
         ...     table_name="app_opportunities",
-        ...     primary_key="submission_id",
+        ...     primary_key="id",
         ...     write_disposition="merge"
         ... )
 
@@ -112,7 +112,7 @@ class DLTLoader:
         >>> success = loader.load_batch(
         ...     data=submissions,
         ...     table_name="submissions",
-        ...     primary_key="submission_id",
+        ...     primary_key="id",
         ...     batch_size=100
         ... )
 
@@ -248,7 +248,7 @@ class DLTLoader:
             ...     data=opportunities,
             ...     table_name="app_opportunities",
             ...     write_disposition="merge",
-            ...     primary_key="submission_id"
+            ...     primary_key="id"
             ... )
 
             >>> # Replace load (truncate and reload)
@@ -349,7 +349,7 @@ class DLTLoader:
             >>> loader.load_with_resource(
             ...     resource=opportunities_resource(data),
             ...     table_name="app_opportunities",
-            ...     primary_key="submission_id"
+            ...     primary_key="id"
             ... )
         """
         pipeline_name = pipeline_name or f"{table_name}_resource_loader"
@@ -412,7 +412,7 @@ class DLTLoader:
             >>> results = loader.load_batch(
             ...     data=large_dataset,
             ...     table_name="submissions",
-            ...     primary_key="submission_id",
+            ...     primary_key="id",
             ...     batch_size=50
             ... )
             >>> print(f"Loaded {results['total_records']} records in {results['batches']} batches")
