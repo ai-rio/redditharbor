@@ -32,28 +32,37 @@ import argparse
 import logging
 import sys
 import time
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Set up basic logging for import error handling
 logging.basicConfig(level=logging.WARNING)
 
 # Add pipeline-v2 directory to path for local imports (must be first)
-pipeline_v2_root = Path(__file__).parent
-project_root = Path(__file__).parent.parent
+# Use absolute paths to ensure consistent behavior regardless of current working directory
+pipeline_v2_root = Path(__file__).parent.resolve()
+project_root = Path(__file__).parent.parent.resolve()
 
 def ensure_path_order():
     """Ensure pipeline-v2 directory stays first in sys.path for local imports."""
-    # Remove pipeline-v2 from anywhere in path
-    while str(pipeline_v2_root) in sys.path:
-        sys.path.remove(str(pipeline_v2_root))
-    # Insert pipeline_v2 at the beginning
-    sys.path.insert(0, str(pipeline_v2_root))
+    # Remove all existing entries for our paths to prevent duplicates
+    pipeline_v2_str = str(pipeline_v2_root)
+    project_root_str = str(project_root)
 
-    # Ensure project root is in path (for core imports)
-    if str(project_root) not in sys.path:
-        sys.path.append(str(project_root))
+    # Remove pipeline-v2 from anywhere in path
+    while pipeline_v2_str in sys.path:
+        sys.path.remove(pipeline_v2_str)
+
+    # Remove project root from anywhere in path to prevent duplicates
+    while project_root_str in sys.path:
+        sys.path.remove(project_root_str)
+
+    # Insert pipeline_v2 at the beginning (only once)
+    sys.path.insert(0, pipeline_v2_str)
+
+    # Ensure project root is in path (only once, after pipeline-v2)
+    sys.path.insert(1, project_root_str)
 
 # Initial path setup
 ensure_path_order()
@@ -66,33 +75,35 @@ from prawcore import ResponseException
 
 # Configuration imports
 from config.settings import (
-    REDDIT_PUBLIC, REDDIT_SECRET, REDDIT_USER_AGENT,
-    SUPABASE_URL, SUPABASE_KEY, ERROR_LOG_DIR
+    ERROR_LOG_DIR,
+    REDDIT_PUBLIC,
+    REDDIT_SECRET,
+    REDDIT_USER_AGENT,
+    SUPABASE_KEY,
+    SUPABASE_URL,
 )
 
 # ============================================================================
 # NEW IMPORT STRATEGY (PHASE 4)
 # ============================================================================
 
-# Step 2: Quality filters (ensure path before import)
-ensure_path_order()
+# Step 2: Quality filters
 try:
-    from filters.quality import should_analyze_with_ai, filter_submissions_batch
+    from filters.quality import filter_submissions_batch, should_analyze_with_ai
     QUALITY_FILTERS_AVAILABLE = True
 except ImportError as e:
     QUALITY_FILTERS_AVAILABLE = False
     logging.warning(f"Quality filters not available: {e}")
 
-# Step 3: Deduplication (ensure path before import)
-ensure_path_order()
+# Step 3: Deduplication
 try:
     from deduplication.concept_tracker import (
-        should_run_agno_analysis,
-        should_run_profiler_analysis,
         copy_agno_from_primary,
         copy_profiler_from_primary,
+        should_run_agno_analysis,
+        should_run_profiler_analysis,
         update_concept_agno_stats,
-        update_concept_profiler_stats
+        update_concept_profiler_stats,
     )
     DEDUPLICATION_AVAILABLE = True
 except ImportError as e:
@@ -122,8 +133,7 @@ except ImportError as e:
     PROFILER_AVAILABLE = False
     logging.warning(f"EnhancedLLMProfiler not available: {e}")
 
-# Step 5: Trust validation (ensure path before import)
-ensure_path_order()
+# Step 5: Trust validation
 try:
     from trust.validator import TrustValidator
     TRUST_VALIDATOR_AVAILABLE = True
@@ -131,8 +141,7 @@ except ImportError as e:
     TRUST_VALIDATOR_AVAILABLE = False
     logging.warning(f"TrustValidator not available: {e}")
 
-# DLT and Supabase imports (ensure path before import)
-ensure_path_order()
+# DLT and Supabase imports
 try:
     from storage import DLTLoader, create_dlt_loader, load_opportunities_to_supabase
     DLT_STORAGE_AVAILABLE = True
@@ -183,10 +192,10 @@ def setup_logging(test_mode: bool = False) -> None:
 # ============================================================================
 
 def step1_fetch_reddit_submissions(
-    subreddits: List[str],
+    subreddits: list[str],
     limit: int,
     test_mode: bool = False
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Step 1: Fetch Reddit submissions using praw library.
 
@@ -266,9 +275,9 @@ def step1_fetch_reddit_submissions(
 
 
 def step2_pre_ai_quality_filter(
-    submissions: List[Dict[str, Any]],
+    submissions: list[dict[str, Any]],
     test_mode: bool = False
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Step 2: Pre-AI quality filter using pipeline_v2.filters.quality.
 
@@ -311,10 +320,10 @@ def step2_pre_ai_quality_filter(
 
 
 def step3_deduplication_check(
-    submissions: List[Dict[str, Any]],
+    submissions: list[dict[str, Any]],
     supabase_client: Any,
     test_mode: bool = False
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Step 3: Deduplication check using pipeline_v2.deduplication.concept_tracker.
 
@@ -398,9 +407,9 @@ def step3_deduplication_check(
 
 
 def step4_ai_analysis(
-    submissions: List[Dict[str, Any]],
+    submissions: list[dict[str, Any]],
     test_mode: bool = False
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Step 4: AI Analysis using mixed import strategy.
 
@@ -488,9 +497,9 @@ def step4_ai_analysis(
 
 
 def step5_trust_validation(
-    submissions: List[Dict[str, Any]],
+    submissions: list[dict[str, Any]],
     test_mode: bool = False
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Step 5: Trust validation using pipeline_v2.trust.validator.TrustValidator.
 
@@ -579,7 +588,7 @@ def step5_trust_validation(
 
 
 def step6_dlt_integration(
-    submissions: List[Dict[str, Any]],
+    submissions: list[dict[str, Any]],
     score_threshold: float = 40.0,
     test_mode: bool = False
 ) -> Any:
@@ -743,7 +752,7 @@ def main() -> int:
     logger.info("=" * 80)
     logger.info("RedditHarbor Pipeline v2 - 6-Step Opportunity Analysis")
     logger.info("=" * 80)
-    logger.info(f"Configuration:")
+    logger.info("Configuration:")
     logger.info(f"  - Limit: {args.limit}")
     logger.info(f"  - Subreddits: {args.subreddits}")
     logger.info(f"  - Score Threshold: {args.score_threshold}")
@@ -849,7 +858,7 @@ def main() -> int:
         # Calculate cost savings
         if metrics['step2_filtered'] > 0:
             quality_savings = metrics['step2_filtered'] * 0.105  # $0.105 per AI call
-            logger.info(f"Cost Savings:")
+            logger.info("Cost Savings:")
             logger.info(f"  - Quality filtering: ${quality_savings:.2f} saved")
             logger.info(f"  - Estimated annual savings: ${quality_savings * 365:.2f}")
 
