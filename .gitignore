@@ -487,3 +487,5 @@ AGENTS.md
 CLAUDE.md
 GEMINI.md
 .dlt/
+pipeline-v2/.dlt/
+pipeline-v2/logs/

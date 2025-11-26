@@ -36,17 +36,29 @@ from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# Add project root to path for core imports
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Set up basic logging for import error handling
+logging.basicConfig(level=logging.WARNING)
 
-# Add pipeline-v2 directory to path for relative import compatibility
+# Add pipeline-v2 directory to path for local imports (must be first)
 pipeline_v2_root = Path(__file__).parent
-sys.path.insert(0, str(pipeline_v2_root))
+project_root = Path(__file__).parent.parent
 
-# DLT imports for database integration
-import dlt
-from dlt.common.pipeline import LoadInfo
+def ensure_path_order():
+    """Ensure pipeline-v2 directory stays first in sys.path for local imports."""
+    # Remove pipeline-v2 from anywhere in path
+    while str(pipeline_v2_root) in sys.path:
+        sys.path.remove(str(pipeline_v2_root))
+    # Insert pipeline_v2 at the beginning
+    sys.path.insert(0, str(pipeline_v2_root))
+
+    # Ensure project root is in path (for core imports)
+    if str(project_root) not in sys.path:
+        sys.path.append(str(project_root))
+
+# Initial path setup
+ensure_path_order()
+
+# Note: DLT imports are now handled through the storage module
 
 # Reddit API imports
 import praw
@@ -62,21 +74,19 @@ from config.settings import (
 # NEW IMPORT STRATEGY (PHASE 4)
 # ============================================================================
 
-# Step 2: Quality filters (try relative first, then absolute for script execution)
+# Step 2: Quality filters (ensure path before import)
+ensure_path_order()
 try:
-    from .filters.quality import should_analyze_with_ai, filter_submissions_batch
+    from filters.quality import should_analyze_with_ai, filter_submissions_batch
     QUALITY_FILTERS_AVAILABLE = True
-except ImportError:
-    try:
-        from filters.quality import should_analyze_with_ai, filter_submissions_batch
-        QUALITY_FILTERS_AVAILABLE = True
-    except ImportError as e:
-        QUALITY_FILTERS_AVAILABLE = False
-        logging.warning(f"Quality filters not available: {e}")
+except ImportError as e:
+    QUALITY_FILTERS_AVAILABLE = False
+    logging.warning(f"Quality filters not available: {e}")
 
-# Step 3: Deduplication (try relative first, then absolute for script execution)
+# Step 3: Deduplication (ensure path before import)
+ensure_path_order()
 try:
-    from .deduplication.concept_tracker import (
+    from deduplication.concept_tracker import (
         should_run_agno_analysis,
         should_run_profiler_analysis,
         copy_agno_from_primary,
@@ -85,32 +95,17 @@ try:
         update_concept_profiler_stats
     )
     DEDUPLICATION_AVAILABLE = True
-except ImportError:
-    try:
-        from deduplication.concept_tracker import (
-            should_run_agno_analysis,
-            should_run_profiler_analysis,
-            copy_agno_from_primary,
-            copy_profiler_from_primary,
-            update_concept_agno_stats,
-            update_concept_profiler_stats
-        )
-        DEDUPLICATION_AVAILABLE = True
-    except ImportError as e:
-        DEDUPLICATION_AVAILABLE = False
-        logging.warning(f"Deduplication module not available: {e}")
+except ImportError as e:
+    DEDUPLICATION_AVAILABLE = False
+    logging.warning(f"Deduplication module not available: {e}")
 
-# Step 4: AI Analysis (try relative first, then absolute for script execution)
+# Step 4: AI Analysis (try absolute imports for script execution)
 try:
-    from .analysis import OpportunityAnalyzer
+    from analysis import OpportunityAnalyzer
     OPPORTUNITY_ANALYZER_AVAILABLE = True
-except ImportError:
-    try:
-        from analysis import OpportunityAnalyzer
-        OPPORTUNITY_ANALYZER_AVAILABLE = True
-    except ImportError as e:
-        OPPORTUNITY_ANALYZER_AVAILABLE = False
-        logging.warning(f"OpportunityAnalyzer wrapper not available: {e}")
+except ImportError as e:
+    OPPORTUNITY_ANALYZER_AVAILABLE = False
+    logging.warning(f"OpportunityAnalyzer wrapper not available: {e}")
 
 # Direct core imports for other agents
 try:
@@ -127,25 +122,37 @@ except ImportError as e:
     PROFILER_AVAILABLE = False
     logging.warning(f"EnhancedLLMProfiler not available: {e}")
 
-# Step 5: Trust validation (try relative first, then absolute for script execution)
+# Step 5: Trust validation (ensure path before import)
+ensure_path_order()
 try:
-    from .trust.validator import TrustValidator
+    from trust.validator import TrustValidator
     TRUST_VALIDATOR_AVAILABLE = True
-except ImportError:
-    try:
-        from trust.validator import TrustValidator
-        TRUST_VALIDATOR_AVAILABLE = True
-    except ImportError as e:
-        TRUST_VALIDATOR_AVAILABLE = False
-        logging.warning(f"TrustValidator not available: {e}")
+except ImportError as e:
+    TRUST_VALIDATOR_AVAILABLE = False
+    logging.warning(f"TrustValidator not available: {e}")
 
-# Supabase client for database operations
+# DLT and Supabase imports (ensure path before import)
+ensure_path_order()
+try:
+    from storage import DLTLoader, create_dlt_loader, load_opportunities_to_supabase
+    DLT_STORAGE_AVAILABLE = True
+except ImportError as e:
+    DLT_STORAGE_AVAILABLE = False
+    logging.warning(f"DLT storage module not available: {e}")
+
+# Supabase client for deduplication operations
 try:
     from supabase import create_client
     SUPABASE_AVAILABLE = True
 except ImportError as e:
     SUPABASE_AVAILABLE = False
     logging.warning(f"Supabase client not available: {e}")
+
+# ============================================================================
+# LOGGER DEFINITION (moved up for main() function access)
+# ============================================================================
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # LOGGING CONFIGURATION
@@ -170,8 +177,6 @@ def setup_logging(test_mode: bool = False) -> None:
             )
         ]
     )
-
-logger = logging.getLogger(__name__)
 
 # ============================================================================
 # PIPELINE STEP IMPLEMENTATIONS
@@ -577,7 +582,7 @@ def step6_dlt_integration(
     submissions: List[Dict[str, Any]],
     score_threshold: float = 40.0,
     test_mode: bool = False
-) -> LoadInfo:
+) -> Any:
     """
     Step 6: Load to Supabase via DLT with merge disposition.
 
@@ -587,7 +592,7 @@ def step6_dlt_integration(
         test_mode: Use test configuration
 
     Returns:
-        DLT LoadInfo with load results
+        DLT LoadInfo with load results or mock load info for test mode
     """
     logger.info(f"STEP 6: DLT database load with threshold {score_threshold}")
     start_time = time.time()
@@ -613,58 +618,38 @@ def step6_dlt_integration(
         )
         return mock_load_info
 
-    # Configure DLT pipeline
-    pipeline = dlt.pipeline(
-        pipeline_name="reddit_opportunity_pipeline_v2",
-        destination="supabase",
-        dataset_name="app_opportunities"
-    )
-
-    # Prepare data for DLT with field mapping
-    dlt_data = []
-    for submission in high_trust_submissions:
-        dlt_record = {
-            # Reddit submission fields
-            "submission_id": submission.get("submission_id"),
-            "title": submission.get("title"),
-            "text": submission.get("text"),
-            "subreddit": submission.get("subreddit"),
-            "upvotes": submission.get("upvotes"),
-            "comments_count": submission.get("comments_count"),
-            "created_utc": submission.get("created_utc"),
-            "permalink": submission.get("permalink"),
-
-            # Quality filter fields (Step 2)
-            "quality_score": submission.get("quality_score"),
-            "filter_reason": submission.get("filter_reason"),
-
-            # AI analysis fields (Step 4)
-            "opportunity_score": submission.get("final_score"),
-            "core_functions": submission.get("core_functions"),
-            "app_concept": submission.get("app_concept"),
-            "problem_description": submission.get("problem_description"),
-
-            # Trust validation fields (Step 5)
-            "trust_score": submission.get("overall_trust_score"),
-            "trust_level": submission.get("trust_level"),
-            "trust_badges": submission.get("trust_badges"),
-            "confidence_score": submission.get("confidence_score"),
-
-            # Monetization analysis fields
-            "monetization_score": submission.get("llm_monetization_score"),
-            "willingness_to_pay_score": submission.get("willingness_to_pay_score"),
-            "customer_segment": submission.get("customer_segment"),
-
-            # Metadata
-            "processed_at": submission.get("validation_timestamp"),
-            "pipeline_version": "pipeline_v2"
-        }
-        dlt_data.append(dlt_record)
+    if not DLT_STORAGE_AVAILABLE:
+        logger.error("DLT storage module not available, cannot load data")
+        raise RuntimeError("DLT storage is required for Step 6")
 
     try:
+        # Use DLT storage module for loading
+        loader = create_dlt_loader(
+            pipeline_name="reddit_opportunity_pipeline_v2",
+            use_local_dev=True
+        )
+
+        # Validate connection before loading
+        if not loader.validate_connection():
+            logger.error("DLT connection validation failed")
+            raise RuntimeError("Cannot connect to database via DLT")
+
+        # Prepare data for DLT with proper field mapping
+        opportunities = loader.prepare_opportunity_data(high_trust_submissions, score_threshold)
+
+        if not opportunities:
+            logger.warning("No opportunities to load after data preparation")
+            from types import SimpleNamespace
+            return SimpleNamespace(
+                load_id="empty_load",
+                schema_name="public",
+                table_names=["app_opportunities"],
+                counts={"app_opportunities": 0}
+            )
+
         # Run DLT pipeline with merge disposition
-        load_info = pipeline.run(
-            dlt_data,
+        load_info = loader.load_opportunities(
+            opportunities,
             table_name="app_opportunities",
             write_disposition="merge",
             primary_key="submission_id"
@@ -672,8 +657,15 @@ def step6_dlt_integration(
 
         load_time = time.time() - start_time
         logger.info(f"✓ DLT load completed in {load_time:.2f}s")
-        logger.info(f"  - Load ID: {load_info.load_id}")
-        logger.info(f"  - Records processed: {sum(load_info.counts.values())}")
+        logger.info(f"  - Load ID: {getattr(load_info, 'load_id', 'unknown')}")
+
+        # Get load statistics
+        if hasattr(load_info, 'counts') and load_info.counts:
+            records_processed = sum(load_info.counts.values())
+        else:
+            records_processed = len(opportunities)
+
+        logger.info(f"  - Records processed: {records_processed}")
 
         return load_info
 

@@ -35,9 +35,9 @@ project_root = Path(__file__).parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# NEW STRATEGY: Import from analysis wrapper using relative import
+# NEW STRATEGY: Import from analysis wrapper using absolute import
 try:
-    from ..analysis import OpportunityAnalyzer
+    from analysis import OpportunityAnalyzer
     OPPORTUNITY_ANALYZER_AVAILABLE = True
 except ImportError:
     OPPORTUNITY_ANALYZER_AVAILABLE = False
