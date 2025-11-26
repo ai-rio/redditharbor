@@ -21,17 +21,8 @@ from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-# DLT imports
-try:
-    import dlt
-    from dlt.common.pipeline import LoadInfo
-    from dlt.common.destination import Destination
-    DLT_AVAILABLE = True
-except ImportError as e:
-    DLT_AVAILABLE = False
-    dlt = None
-    LoadInfo = None
-    Destination = None
+# DLT availability flag - imports will be loaded lazily
+DLT_AVAILABLE = True  # Assume available until checked
 
 # TOML imports for configuration
 try:
@@ -110,7 +101,10 @@ class DLTLoader:
             DLTLoaderError: If DLT is not available
             DLTCredentialError: If configuration is invalid
         """
-        if not DLT_AVAILABLE:
+        # Check DLT availability lazily
+        try:
+            import dlt
+        except ImportError:
             raise DLTLoaderError("DLT library is not available. Install with: pip install dlt")
 
         self.pipeline_name = pipeline_name
@@ -275,6 +269,9 @@ user_agent = "RedditHarbor/1.0"
             DLTConnectionError: If pipeline creation fails
         """
         try:
+            # Lazy import DLT
+            import dlt
+
             logger.debug(f"Creating DLT pipeline: {self.pipeline_name}")
 
             # Create pipeline with credentials
@@ -309,7 +306,7 @@ user_agent = "RedditHarbor/1.0"
         primary_key: str = DEFAULT_PRIMARY_KEY,
         write_disposition: str = DEFAULT_WRITE_DISPOSITION,
         pipeline: Optional[Any] = None
-    ) -> LoadInfo:
+    ) -> Any:
         """
         Load opportunity data to Supabase using DLT with merge disposition.
 
@@ -321,7 +318,7 @@ user_agent = "RedditHarbor/1.0"
             pipeline: Existing pipeline instance (optional)
 
         Returns:
-            DLT LoadInfo with load results
+            DLT LoadInfo with load results (or SimpleNamespace for empty loads)
 
         Raises:
             DLTLoaderError: If load operation fails
@@ -397,7 +394,7 @@ user_agent = "RedditHarbor/1.0"
             logger.error(f"✗ DLT connection validation failed: {e}")
             return False
 
-    def get_load_statistics(self, load_info: LoadInfo) -> Dict[str, Any]:
+    def get_load_statistics(self, load_info: Any) -> Dict[str, Any]:
         """
         Extract and format load statistics from LoadInfo.
 
@@ -519,7 +516,16 @@ def create_dlt_loader(
 
     Returns:
         Configured DLT loader instance
+
+    Raises:
+        DLTLoaderError: If DLT is not available
     """
+    # Check DLT availability lazily
+    try:
+        import dlt
+    except ImportError:
+        raise DLTLoaderError("DLT library is not available. Install with: pip install dlt")
+
     return DLTLoader(
         pipeline_name=pipeline_name,
         secrets_path=secrets_path,
@@ -546,6 +552,12 @@ def load_opportunities_to_supabase(
         Tuple of (success_flag, load_statistics)
     """
     try:
+        # Check DLT availability lazily
+        try:
+            import dlt
+        except ImportError:
+            raise DLTLoaderError("DLT library is not available. Install with: pip install dlt")
+
         loader = create_dlt_loader(pipeline_name=pipeline_name)
 
         # Prepare data

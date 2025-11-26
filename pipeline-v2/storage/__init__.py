@@ -13,50 +13,90 @@ Author: Phase 5 Storage Implementation
 Version: Pipeline-v2 compatible
 """
 
-# Import DLT loader for external access
-try:
-    from .dlt_loader import (
-        DLTLoader,
-        DLTLoaderError,
-        DLTCredentialError,
-        DLTConnectionError,
-        create_dlt_loader,
-        load_opportunities_to_supabase,
-        DEFAULT_PIPELINE_NAME,
-        DEFAULT_TABLE_NAME,
-        DEFAULT_PRIMARY_KEY,
-        DEFAULT_WRITE_DISPOSITION
-    )
-    DLT_AVAILABLE = True
-except ImportError as e:
-    # DLT or dependencies not available
-    DLT_AVAILABLE = False
-    DLTLoader = None
-    DLTLoaderError = None
-    DLTCredentialError = None
-    DLTConnectionError = None
-    create_dlt_loader = None
-    load_opportunities_to_supabase = None
+# Constants (available without importing DLT)
+DEFAULT_PIPELINE_NAME = "reddit_opportunity_pipeline_v2"
+DEFAULT_TABLE_NAME = "app_opportunities"
+DEFAULT_PRIMARY_KEY = "submission_id"
+DEFAULT_WRITE_DISPOSITION = "merge"
 
-    # Define constants even if DLT is not available
-    DEFAULT_PIPELINE_NAME = "reddit_opportunity_pipeline_v2"
-    DEFAULT_TABLE_NAME = "app_opportunities"
-    DEFAULT_PRIMARY_KEY = "submission_id"
-    DEFAULT_WRITE_DISPOSITION = "merge"
+# DLT availability flag - DLT will be imported lazily
+DLT_AVAILABLE = True
+
+
+# Lazy module-level properties for backward compatibility
+class LazyModule:
+    """Module-level lazy loading for DLT components."""
+
+    def __init__(self):
+        self._dlt_module = None
+        self._imported = False
+
+    def _ensure_imported(self):
+        """Import DLT module only when needed."""
+        if not self._imported:
+            import importlib
+            self._dlt_module = importlib.import_module('.dlt_loader', package=__package__)
+            self._imported = True
+
+    @property
+    def DLTLoader(self):
+        """Lazy access to DLTLoader class."""
+        self._ensure_imported()
+        return self._dlt_module.DLTLoader
+
+    @property
+    def DLTLoaderError(self):
+        """Lazy access to DLTLoaderError class."""
+        self._ensure_imported()
+        return self._dlt_module.DLTLoaderError
+
+    @property
+    def DLTCredentialError(self):
+        """Lazy access to DLTCredentialError class."""
+        self._ensure_imported()
+        return self._dlt_module.DLTCredentialError
+
+    @property
+    def DLTConnectionError(self):
+        """Lazy access to DLTConnectionError class."""
+        self._ensure_imported()
+        return self._dlt_module.DLTConnectionError
+
+    @property
+    def create_dlt_loader(self):
+        """Lazy access to create_dlt_loader function."""
+        self._ensure_imported()
+        return self._dlt_module.create_dlt_loader
+
+    @property
+    def load_opportunities_to_supabase(self):
+        """Lazy access to load_opportunities_to_supabase function."""
+        self._ensure_imported()
+        return self._dlt_module.load_opportunities_to_supabase
+
+# Create lazy module instance
+_lazy = LazyModule()
+
+# Expose lazy variables at module level for backward compatibility
+def __getattr__(name):
+    """Module-level lazy loading for backward compatibility."""
+    if hasattr(_lazy, name):
+        return getattr(_lazy, name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 # Export public API
 __all__ = [
-    # Main classes
+    # Main classes (backward compatibility)
     "DLTLoader",
     "DLTLoaderError",
     "DLTCredentialError",
     "DLTConnectionError",
 
-    # Factory functions
+    # Factory functions (backward compatibility)
     "create_dlt_loader",
     "load_opportunities_to_supabase",
 
-    # Constants
+    # Constants (always available)
     "DEFAULT_PIPELINE_NAME",
     "DEFAULT_TABLE_NAME",
     "DEFAULT_PRIMARY_KEY",
