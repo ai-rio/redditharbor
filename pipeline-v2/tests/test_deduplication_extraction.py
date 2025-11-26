@@ -37,8 +37,12 @@ import pytest
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# Add pipeline-v2 parent directory to Python path for testing
+pipeline_v2_root = Path(__file__).parent.parent
+sys.path.insert(0, str(pipeline_v2_root))
+
 # Import from extracted module
-from pipeline_v2.deduplication.concept_tracker import (
+from deduplication.concept_tracker import (
     copy_agno_from_primary,
     copy_profiler_from_primary,
     should_run_agno_analysis,

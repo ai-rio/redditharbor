@@ -31,7 +31,7 @@ Key Functions:
     - update_concept_profiler_stats: Update concept after profiling
 
 Usage Example:
-    >>> from pipeline_v2.deduplication import (
+    >>> from deduplication import (
     ...     should_run_agno_analysis,
     ...     copy_agno_from_primary,
     ...     update_concept_agno_stats,
