@@ -8,6 +8,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -23,6 +24,68 @@ sys.path.insert(0, str(pipeline_v2_path))
 # ============================================================================
 # SHARED FIXTURES
 # ============================================================================
+
+
+@pytest.fixture(autouse=True)
+def mock_agentops():
+    """Automatically mock AgentOps for all tests to prevent initialization errors"""
+    with patch('agentops.agent', create=True) as mock_agent_decorator:
+        with patch('agentops.tool', create=True) as mock_tool_decorator:
+            with patch('agentops.trace', create=True) as mock_trace_decorator:
+                with patch('agentops.init', create=True) as mock_init:
+                    with patch('agentops.start_trace', create=True) as mock_start_trace:
+                        with patch('agentops.end_trace', create=True) as mock_end_trace:
+                            with patch('agentops.Event', create=True) as mock_event:
+                                # Configure mocks
+                                mock_init.return_value = None
+                                mock_start_trace.return_value = "test_trace_id"
+                                mock_end_trace.return_value = None
+
+                                # Mock decorator functions to return the original function/class
+                                def mock_decorator_func(*args, **kwargs):
+                                    def decorator(original_func_or_class):
+                                        return original_func_or_class
+                                    return decorator
+
+                                mock_agent_decorator.side_effect = mock_decorator_func
+                                mock_tool_decorator.side_effect = mock_decorator_func
+                                mock_trace_decorator.side_effect = mock_decorator_func
+
+                                # Create mock Event class
+                                mock_event_instance = Mock()
+                                mock_event.return_value = mock_event_instance
+
+                                yield {
+                                    'agent': mock_agent_decorator,
+                                    'tool': mock_tool_decorator,
+                                    'trace': mock_trace_decorator,
+                                    'init': mock_init,
+                                    'start_trace': mock_start_trace,
+                                    'end_trace': mock_end_trace,
+                                    'Event': mock_event
+                                }
+
+
+@pytest.fixture
+def mock_agentops_sdk():
+    """Alternative AgentOps mock for tests that need more control"""
+    mock_agentops = Mock()
+    mock_agentops.init = Mock(return_value=None)
+    mock_agentops.start_trace = Mock(return_value="test_trace_id")
+    mock_agentops.end_trace = Mock(return_value=None)
+    mock_agentops.Event = Mock()
+
+    # Mock decorator functions
+    def mock_decorator(*args, **kwargs):
+        def decorator(original):
+            return original
+        return decorator
+
+    mock_agentops.agent = mock_decorator
+    mock_agentops.tool = mock_decorator
+    mock_agentops.trace = mock_decorator
+
+    return mock_agentops
 
 
 @pytest.fixture
