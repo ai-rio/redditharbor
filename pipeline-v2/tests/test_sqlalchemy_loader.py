@@ -43,9 +43,11 @@ class TestSQLAlchemyLoader:
 
     @pytest.fixture
     def sample_opportunities(self):
-        """Sample opportunity data for testing."""
+        """Sample opportunity data for testing with UNIQUE submission_id."""
+        import time
+        unique_timestamp = int(time.time() * 1000000)
         return [{
-            "submission_id": "sqlalchemy_test_001",
+            "submission_id": f"sqlalchemy_test_{unique_timestamp}",
             "title": "SQLAlchemy Test Opportunity",
             "text": "This is a test opportunity for SQLAlchemy testing.",
             "subreddit": "test",
@@ -72,9 +74,11 @@ class TestSQLAlchemyLoader:
     @pytest.fixture
     def batch_opportunities(self):
         """Batch opportunity data for performance testing."""
+        import time
+        base_timestamp = int(time.time() * 1000000)
         return [
             {
-                "submission_id": f"batch_test_{i:03d}",
+                "submission_id": f"batch_test_{base_timestamp}_{i:03d}",
                 "title": f"Batch Test Opportunity {i}",
                 "text": f"This is batch test opportunity number {i}",
                 "subreddit": "batch_test",
@@ -254,9 +258,9 @@ class TestSQLAlchemyLoader:
     def test_id_resolution_integration(self, loader):
         """Reddit IDs properly resolved to UUIDs"""
         test_data = [
-            {"submission_id": "t3_test123", "title": "Reddit ID Test"},
-            {"submission_id": "https://reddit.com/r/test/comments/test123/title/", "title": "URL Test"},
-            {"submission_id": "550e8400-e29b-41d4-a716-446655440000", "title": "UUID Test"}
+            {"submission_id": "t3_test123", "title": "Reddit ID Test", "subreddit": "test"},
+            {"submission_id": "https://reddit.com/r/test/comments/test123/title/", "title": "URL Test", "subreddit": "test"},
+            {"submission_id": "550e8400-e29b-41d4-a716-446655440000", "title": "UUID Test", "subreddit": "test"}
         ]
 
         result = loader.load_opportunities(test_data, write_disposition="merge")
@@ -334,9 +338,11 @@ class TestSQLAlchemyLoader:
         result = loader.load_opportunities(duplicate_data, write_disposition="merge")
         assert result.success is True, "Duplicate load must succeed"
 
-        # With merge disposition, second record should update the first
+        # With merge disposition, the system handles duplicates by:
+        # - Inserting 1 record (first occurrence of the submission_id)
+        # - The second record with same submission_id is handled as an update by merge logic
         assert result.records_inserted == 1, "Should insert 1 record"
-        assert result.records_updated == 1, "Should update 1 record"
+        assert result.records_updated == 1, "Should update 1 record (duplicate handling)"
 
 
 class TestDLTCompatibilityAdapter:
@@ -354,15 +360,21 @@ class TestDLTCompatibilityAdapter:
 
     @pytest.fixture
     def sample_data(self):
-        """Sample data for adapter testing."""
+        """Sample data for adapter testing with UNIQUE submission_id."""
+        import time
+        unique_timestamp = int(time.time() * 1000000)
         return [{
-            "submission_id": "adapter_test_001",
+            "submission_id": f"adapter_test_{unique_timestamp}",
             "title": "Adapter Test Opportunity",
             "text": "Testing DLT compatibility adapter.",
             "subreddit": "adapter_test",
             "upvotes": 50,
             "score": 50.0,
-            "created_utc": datetime.now(UTC).isoformat()
+            "created_utc": datetime.now(UTC).isoformat(),
+            "trust_score": 75.0,
+            "opportunity_score": 80.0,
+            "confidence_score": 70.0,
+            "monetization_score": 65.0
         }]
 
     def test_dlt_interface_compatibility(self, adapter, sample_data):

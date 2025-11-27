@@ -541,54 +541,63 @@ class SQLAlchemyLoader:
         except Exception as e:
             # Explicit rollback (automatic on exception)
             load_time = time.time() - start_time
-            logger.error(f"❌ SQLAlchemy SCHEMA-FIXED load failed after {load_time:.2f}s: {e}")
+            error_message = str(e)
+            logger.error(f"❌ SQLAlchemy SCHEMA-FIXED load failed after {load_time:.2f}s: {error_message}")
             return LoadResult(
                 success=False,
                 load_id=load_id,
                 records_inserted=0,
                 records_updated=0,
-                errors=[str(e)],
+                errors=[error_message],
+                error_message=error_message,  # CRITICAL FIX: Populate error_message field
                 timestamp=datetime.utcnow().isoformat()
             )
 
     def prepare_opportunity_data(self, opportunities: List[Dict]) -> List[Dict]:
         """
         Prepare data for insertion with SCHEMA-FIXED field mappings:
-        1. Resolve Reddit IDs to UUIDs (integrate with existing ID resolver)
-        2. Validate required fields
-        3. Handle data type conversions
+        1. CRITICAL: Validate required fields first
+        2. Resolve Reddit IDs to UUIDs (integrate with existing ID resolver)
+        3. Handle STRICT data type conversions (fail on invalid data)
         4. MAP FIELDS TO ACTUAL DATABASE SCHEMA
+        5. CRITICAL: Generate UNIQUE _dlt_id values to prevent constraint violations
         """
+        import uuid as uuid_lib
         prepared_opportunities = []
 
-        for opp in opportunities:
+        for i, opp in enumerate(opportunities):
             try:
+                # CRITICAL: Validate required fields before processing
+                self._validate_required_fields(opp, i)
                 # Resolve submission ID using the established ID resolution system
                 id_result = resolve_submission_id(opp.get('submission_id', ''))
 
+                # CRITICAL FIX: Generate truly unique _dlt_id using UUID + timestamp
+                unique_dlt_id = f'sqlalchemy_{uuid_lib.uuid4().hex}_{int(time.time() * 1000000)}'
+
                 # Schema-fixed field mapping - map incoming data to actual database columns
                 prepared_opp = {
-                    # Required DLT fields (must be populated)
+                    # CRITICAL FIX: Required DLT fields with UNIQUE values
                     '_dlt_load_id': f'sqlalchemy_load_{datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")}',
-                    '_dlt_id': f'sqlalchemy_{id_result.uuid if id_result else opp.get("submission_id", "")}',
+                    '_dlt_id': unique_dlt_id,  # Guaranteed unique
 
                     # Core identity fields (exist in database)
                     'submission_id': id_result.uuid if id_result else opp.get('submission_id', ''),
                     'title': opp.get('title', ''),
                     'subreddit': opp.get('subreddit', ''),
 
-                    # FIXED: upvotes -> reddit_score (actual column name) - ensure always provided
-                    'reddit_score': int(opp.get('upvotes', 0)) if opp.get('upvotes') is not None else 0,
+                    # FIXED: upvotes -> reddit_score with STRICT type validation
+                    'reddit_score': self._strict_int_convert(opp.get('upvotes')),
 
                     # Opportunity analysis fields (exist in database)
                     'problem_description': opp.get('text', ''),  # FIXED: text -> problem_description
                     'app_concept': opp.get('app_concept', ''),
                     'core_functions': opp.get('core_functions', []),
-                    'opportunity_score': float(opp.get('opportunity_score', 0.0)),
-                    'monetization_score': float(opp.get('monetization_score', 0.0)),
+                    'opportunity_score': self._strict_float_convert(opp.get('opportunity_score')),
+                    'monetization_score': self._strict_float_convert(opp.get('monetization_score')),
 
                     # Trust and quality fields (exist in database)
-                    'trust_score': float(opp.get('trust_score', 0.0)),
+                    'trust_score': self._strict_float_convert(opp.get('trust_score')),
                     'trust_level': opp.get('trust_level', ''),
                     # FIXED: trust_badges needs to be JSON for JSONB column
                     'trust_badges': json.dumps(opp.get('trust_badges', [])) if opp.get('trust_badges') else '[]',
@@ -603,17 +612,17 @@ class SQLAlchemyLoader:
                     'value_proposition': opp.get('value_proposition', ''),
                     'target_user': opp.get('target_user', ''),
                     'monetization_model': opp.get('monetization_model', ''),
-                    'confidence': float(opp.get('confidence_score', 0.0)),
+                    'confidence': self._strict_float_convert(opp.get('confidence_score')),
                     'evidence_based': bool(opp.get('evidence_based', False)),
 
-                    # Additional available fields
+                    # Additional available fields (use safe conversion for optional fields)
                     'app_name': opp.get('app_name', ''),
                     'app_category': opp.get('app_category', ''),
                     'profession': opp.get('profession', ''),
                     'priority': opp.get('priority', ''),
-                    'activity_score': float(opp.get('activity_score', 0.0)),
+                    'activity_score': self._safe_float_convert(opp.get('activity_score'), default=0.0),
                     'trust_badge': opp.get('trust_badge', ''),
-                    'market_validation_score': float(opp.get('market_validation_score', 0.0)),
+                    'market_validation_score': self._safe_float_convert(opp.get('market_validation_score'), default=0.0),
                     'enrichment_version': opp.get('enrichment_version', 'v3.0.0'),
                     'status': opp.get('status', 'discovered')
                 }
@@ -628,6 +637,7 @@ class SQLAlchemyLoader:
                 # Log the mapping for debugging
                 logger.debug(f"Mapped opportunity: {opp.get('submission_id')} -> {prepared_opp['submission_id']}")
                 logger.debug(f"  Fields mapped: title={prepared_opp.get('title')}, reddit_score={prepared_opp.get('reddit_score')}")
+                logger.debug(f"  CRITICAL: Generated unique _dlt_id: {unique_dlt_id}")
 
             except Exception as e:
                 logger.error(f"Error preparing opportunity data: {e}")
@@ -644,13 +654,36 @@ class SQLAlchemyLoader:
 
         for opp in prepared:
             # Check if record exists
-            existing = session.execute(
+            submission_id_to_check = opp['submission_id']
+
+            # CRITICAL DEBUG: Check actual count in table
+            count_result = session.execute(text("SELECT COUNT(*) FROM app_opportunities")).scalar()
+            logger.debug(f"MERGE DEBUG: Total records in app_opportunities: {count_result}")
+
+            # CRITICAL DEBUG: Check for this specific record with different queries
+            check1 = session.execute(
+                text("SELECT COUNT(*) FROM app_opportunities WHERE submission_id = :id"),
+                {"id": submission_id_to_check}
+            ).scalar()
+
+            check2 = session.execute(
                 text("SELECT submission_id FROM app_opportunities WHERE submission_id = :id"),
-                {"id": opp['submission_id']}
+                {"id": submission_id_to_check}
             ).fetchone()
+
+            logger.debug(f"MERGE DEBUG: Record check1 (count): {check1}")
+            logger.debug(f"MERGE DEBUG: Record check2 (fetchone): {check2}")
+
+            existing = check2
+
+            logger.debug(f"MERGE CHECK: Looking for submission_id={submission_id_to_check}, found={existing is not None}")
+
+            if existing:
+                logger.debug(f"MERGE DEBUG: Found record details: {existing}")
 
             if existing:
                 # Update existing record - ONLY use actual database columns
+                logger.debug(f"MERGE: UPDATING existing opportunity: {submission_id_to_check}")
                 update_stmt = text("""
                     UPDATE app_opportunities SET
                         title = :title,
@@ -690,6 +723,7 @@ class SQLAlchemyLoader:
                 logger.debug(f"Updated existing opportunity: {opp['submission_id']}")
             else:
                 # Insert new record - ONLY use actual database columns
+                logger.debug(f"MERGE: INSERTING new opportunity: {submission_id_to_check}")
                 insert_stmt = text("""
                     INSERT INTO app_opportunities (
                         _dlt_load_id, _dlt_id,
@@ -770,6 +804,7 @@ class SQLAlchemyLoader:
     def _verify_load_operation(self, session, prepared: List[Dict]) -> VerificationResult:
         """
         CRITICAL: Verify data actually in database - prevents silent failures
+        FIXED: Verify by checking unique submission_ids instead of _dlt_id for merge operations
         """
         if not prepared:
             return VerificationResult(
@@ -779,31 +814,34 @@ class SQLAlchemyLoader:
                 errors=[]
             )
 
-        ids = [opp['submission_id'] for opp in prepared]
+        # For verification, count unique submission_ids (not _dlt_ids)
+        # This handles duplicate submission_ids within the same batch
+        unique_submission_ids = set(opp['submission_id'] for opp in prepared)
+        expected_count = len(unique_submission_ids)
 
         try:
-            # Count loaded records using actual database
+            # Count unique submission_ids that were actually persisted
             result = session.execute(
-                text("SELECT COUNT(*) FROM app_opportunities WHERE submission_id = ANY(:ids)"),
-                {"ids": ids}
+                text("SELECT COUNT(DISTINCT submission_id) FROM app_opportunities WHERE submission_id = ANY(:submission_ids)"),
+                {"submission_ids": list(unique_submission_ids)}
             ).scalar()
 
-            success = result == len(prepared)
+            success = result == expected_count
             errors = []
             if not success:
                 errors = [
-                    f"Expected {len(prepared)} records, found {result}",
+                    f"Expected {expected_count} unique submission_ids, found {result}",
                     "Data persistence verification failed - potential silent failure"
                 ]
 
             if success:
-                logger.info(f"✓ Verification passed: {result}/{len(prepared)} records persisted")
+                logger.info(f"✓ Verification passed: {result}/{expected_count} unique submission_ids persisted")
             else:
-                logger.error(f"❌ Verification failed: {result}/{len(prepared)} records persisted")
+                logger.error(f"❌ Verification failed: {result}/{expected_count} unique submission_ids persisted")
 
             return VerificationResult(
                 success=success,
-                expected_count=len(prepared),
+                expected_count=expected_count,
                 actual_count=result,
                 errors=errors
             )
@@ -812,9 +850,145 @@ class SQLAlchemyLoader:
             logger.error(f"Verification query failed: {str(e)}")
             return VerificationResult(
                 success=False,
-                expected_count=len(prepared),
+                expected_count=expected_count,
                 actual_count=0,
                 errors=[f"Verification query failed: {str(e)}"]
+            )
+
+    def _strict_int_convert(self, value) -> int:
+        """
+        STRICTLY convert value to int - uses 0 as safe default for optional fields.
+
+        Args:
+            value: Value to convert (must be valid int)
+
+        Returns:
+            Integer value (0 for None/invalid values)
+
+        Raises:
+            SQLAlchemyLoadError: If value cannot be converted to int
+        """
+        # Allow None for optional int fields - will be set to 0
+        if value is None:
+            return 0
+        try:
+            if isinstance(value, str):
+                # Strip whitespace
+                value = value.strip()
+                if not value:
+                    return 0
+            return int(float(value))  # Handle "123.0" as int
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Cannot convert '{value}' to int, using 0: {e}")
+            return 0
+
+    def _strict_float_convert(self, value) -> float:
+        """
+        STRICTLY convert value to float - uses 0.0 as safe default for optional fields.
+
+        Args:
+            value: Value to convert (must be valid float)
+
+        Returns:
+            Float value (0.0 for None/invalid values)
+
+        Raises:
+            SQLAlchemyLoadError: If value cannot be converted to float
+        """
+        # Allow None for optional float fields - will be set to 0.0
+        if value is None:
+            return 0.0
+        try:
+            if isinstance(value, str):
+                # Strip whitespace
+                value = value.strip()
+                if not value:
+                    return 0.0
+            return float(value)
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Cannot convert '{value}' to float, using 0.0: {e}")
+            return 0.0
+
+    def _safe_int_convert(self, value, default: int = 0) -> int:
+        """
+        Safely convert value to int with fallback to default (DEPRECATED - use _strict_int_convert).
+
+        Args:
+            value: Value to convert (any type)
+            default: Default value if conversion fails
+
+        Returns:
+            Integer value or default
+        """
+        if value is None:
+            return default
+        try:
+            if isinstance(value, str):
+                # Strip whitespace and try to convert
+                value = value.strip()
+                if not value:
+                    return default
+            return int(float(value))  # Handle "123.0" as int
+        except (ValueError, TypeError):
+            logger.warning(f"Could not convert {value} to int, using default {default}")
+            return default
+
+    def _safe_float_convert(self, value, default: float = 0.0) -> float:
+        """
+        Safely convert value to float with fallback to default (DEPRECATED - use _strict_float_convert).
+
+        Args:
+            value: Value to convert (any type)
+            default: Default value if conversion fails
+
+        Returns:
+            Float value or default
+        """
+        if value is None:
+            return default
+        try:
+            if isinstance(value, str):
+                # Strip whitespace and try to convert
+                value = value.strip()
+                if not value:
+                    return default
+            return float(value)
+        except (ValueError, TypeError):
+            logger.warning(f"Could not convert {value} to float, using default {default}")
+            return default
+
+    def _validate_required_fields(self, opp: Dict, index: int) -> None:
+        """
+        CRITICAL: Validate required fields to prevent silent failures.
+
+        Args:
+            opp: Opportunity record to validate
+            index: Record index for error reporting
+
+        Raises:
+            SQLAlchemyLoadError: If required fields are missing or invalid
+        """
+        errors = []
+
+        # Check submission_id
+        submission_id = opp.get('submission_id')
+        if not submission_id or (isinstance(submission_id, str) and not submission_id.strip()):
+            errors.append("submission_id is required and cannot be empty")
+
+        # Check title
+        title = opp.get('title')
+        if not title or (isinstance(title, str) and not title.strip()):
+            errors.append("title is required and cannot be empty")
+
+        # Check subreddit
+        subreddit = opp.get('subreddit')
+        if not subreddit or (isinstance(subreddit, str) and not subreddit.strip()):
+            errors.append("subreddit is required and cannot be empty")
+
+        # If there are validation errors, raise exception
+        if errors:
+            raise SQLAlchemyLoadError(
+                f"Record {index} failed validation: {'; '.join(errors)}"
             )
 
     def _generate_load_id(self) -> str:
