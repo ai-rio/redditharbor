@@ -1,30 +1,43 @@
 """
 RedditHarbor Pipeline v2 - Storage Module
 
-This module provides storage and database integration capabilities for the pipeline,
-including DLT (Data Load Tool) integration for loading validated opportunity data
-to Supabase (PostgreSQL) with proper merge disposition and error handling.
+This module provides storage and database integration capabilities for the pipeline.
+MIGRATED: Now defaults to SQLAlchemy loader for reliable data persistence with explicit
+transaction control, eliminating DLT silent failures.
 
 Components:
-- dlt_loader: DLT pipeline manager for Supabase integration
-- Future: Additional storage backends and utilities
+- sqlalchemy_loader: Primary SQLAlchemy-based loader (NEW DEFAULT)
+- dlt_compatibility_adapter: DLT-compatible interface for SQLAlchemy
+- dlt_loader: Legacy DLT loader (available for fallback)
 
-Author: Phase 5 Storage Implementation
-Version: Pipeline-v2 compatible
+Author: Phase 4 DLT to SQLAlchemy Migration
+Version: SQLAlchemy Default
 """
 
-# Constants (available without importing DLT)
+# Constants (available without importing loaders)
 DEFAULT_PIPELINE_NAME = "reddit_opportunity_pipeline_v2"
 DEFAULT_TABLE_NAME = "app_opportunities"
 DEFAULT_PRIMARY_KEY = "submission_id"
 DEFAULT_WRITE_DISPOSITION = "merge"
 
-# DLT availability flag - DLT will be imported lazily
+# Loader availability flags
+SQLALCHEMY_AVAILABLE = True
 DLT_AVAILABLE = True
 
+# Import SQLAlchemy components (new default)
+try:
+    from .sqlalchemy_loader import SQLAlchemyLoader, LoadResult, SQLAlchemyLoadError
+    from .dlt_compatibility_adapter import DLTCompatibilityAdapter
+    SQLALCHEMY_IMPORT_SUCCESS = True
+except ImportError as e:
+    SQLALCHEMY_IMPORT_SUCCESS = False
+    SQLAlchemyLoader = None
+    LoadResult = None
+    SQLAlchemyLoadError = None
+    DLTCompatibilityAdapter = None
 
-# Lazy module-level properties for backward compatibility
-class LazyModule:
+# Import DLT components (legacy support)
+class LazyDLTModule:
     """Module-level lazy loading for DLT components."""
 
     def __init__(self):
@@ -40,61 +53,142 @@ class LazyModule:
 
     @property
     def DLTLoader(self):
-        """Lazy access to DLTLoader class."""
         self._ensure_imported()
         return self._dlt_module.DLTLoader
 
     @property
     def DLTLoaderError(self):
-        """Lazy access to DLTLoaderError class."""
         self._ensure_imported()
         return self._dlt_module.DLTLoaderError
 
     @property
     def DLTCredentialError(self):
-        """Lazy access to DLTCredentialError class."""
         self._ensure_imported()
         return self._dlt_module.DLTCredentialError
 
     @property
     def DLTConnectionError(self):
-        """Lazy access to DLTConnectionError class."""
         self._ensure_imported()
         return self._dlt_module.DLTConnectionError
 
     @property
     def create_dlt_loader(self):
-        """Lazy access to create_dlt_loader function."""
         self._ensure_imported()
         return self._dlt_module.create_dlt_loader
 
     @property
     def load_opportunities_to_supabase(self):
-        """Lazy access to load_opportunities_to_supabase function."""
         self._ensure_imported()
         return self._dlt_module.load_opportunities_to_supabase
 
-# Create lazy module instance
-_lazy = LazyModule()
+# Create lazy module instance for DLT
+_lazy_dlt = LazyDLTModule()
 
-# Expose lazy variables at module level for backward compatibility
+# Factory function for SQLAlchemy loader (NEW DEFAULT)
+def create_loader(
+    connection_string: str,
+    loader_type: str = "sqlalchemy",  # Changed default from "dlt" to "sqlalchemy"
+    **kwargs
+):
+    """
+    Create a data loader instance.
+
+    Args:
+        connection_string: Database connection string
+        loader_type: Type of loader to create ("sqlalchemy" or "dlt")
+        **kwargs: Additional loader-specific parameters
+
+    Returns:
+        Loader instance (SQLAlchemyLoader by default)
+    """
+    if loader_type == "sqlalchemy":
+        if not SQLALCHEMY_IMPORT_SUCCESS:
+            raise ImportError("SQLAlchemy loader components not available")
+        return SQLAlchemyLoader(connection_string, **kwargs)
+
+    elif loader_type == "dlt":
+        return _lazy_dlt.create_dlt_loader(connection_string, **kwargs)
+
+    else:
+        raise ValueError(f"Unknown loader type: {loader_type}")
+
+
+# Convenience function for loading opportunities (NEW SQLAlchemy DEFAULT)
+def load_opportunities(
+    data: list,
+    connection_string: str,
+    table_name: str = DEFAULT_TABLE_NAME,
+    write_disposition: str = DEFAULT_WRITE_DISPOSITION,
+    loader_type: str = "sqlalchemy",  # Changed default
+    **kwargs
+) -> LoadResult:
+    """
+    Load opportunity data using the specified loader.
+
+    Args:
+        data: List of opportunity records to load
+        connection_string: Database connection string
+        table_name: Target table name (currently ignored by SQLAlchemy, uses DEFAULT_TABLE_NAME)
+        write_disposition: Write disposition (merge, append, replace)
+        loader_type: Type of loader to use ("sqlalchemy" or "dlt")
+        **kwargs: Additional loader-specific parameters
+
+    Returns:
+        LoadResult with operation details
+    """
+    loader = create_loader(connection_string, loader_type, **kwargs)
+    if loader_type == "sqlalchemy":
+        # SQLAlchemy loader has different signature
+        return loader.load_opportunities(data, write_disposition)
+    else:
+        # DLT loader signature (for backward compatibility)
+        return loader.load_opportunities(data, table_name, write_disposition)
+
+
+# DLT compatibility function (legacy support)
+def load_opportunities_to_supabase(data: list, **kwargs):
+    """Legacy function for DLT compatibility. Use load_opportunities() instead."""
+    return load_opportunities(data, loader_type="dlt", **kwargs)
+
+
+# Module-level lazy loading for backward compatibility
 def __getattr__(name):
     """Module-level lazy loading for backward compatibility."""
-    if hasattr(_lazy, name):
-        return getattr(_lazy, name)
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+    # DLT-related attributes (legacy support)
+    if name in ["DLTLoader", "DLTLoaderError", "DLTCredentialError", "DLTConnectionError"]:
+        return getattr(_lazy_dlt, name)
+    elif name in ["create_dlt_loader", "load_opportunities_to_supabase"]:
+        return getattr(_lazy_dlt, name)
+
+    # SQLAlchemy-related attributes (new default)
+    elif name in ["SQLAlchemyLoader", "LoadResult", "SQLAlchemyLoadError", "DLTCompatibilityAdapter"]:
+        if not SQLALCHEMY_IMPORT_SUCCESS:
+            raise AttributeError(f"SQLAlchemy components not available: {name}")
+        return globals()[name]
+
+    else:
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 # Export public API
 __all__ = [
-    # Main classes (backward compatibility)
+    # Primary classes (SQLAlchemy - NEW DEFAULT)
+    "SQLAlchemyLoader",
+    "LoadResult",
+    "SQLAlchemyLoadError",
+    "DLTCompatibilityAdapter",
+
+    # Factory functions (SQLAlchemy default)
+    "create_loader",
+    "load_opportunities",
+
+    # Legacy DLT support (backward compatibility)
+    "load_opportunities_to_supabase",
     "DLTLoader",
     "DLTLoaderError",
     "DLTCredentialError",
     "DLTConnectionError",
-
-    # Factory functions (backward compatibility)
     "create_dlt_loader",
-    "load_opportunities_to_supabase",
 
     # Constants (always available)
     "DEFAULT_PIPELINE_NAME",
@@ -102,10 +196,13 @@ __all__ = [
     "DEFAULT_PRIMARY_KEY",
     "DEFAULT_WRITE_DISPOSITION",
 
-    # Availability flag
-    "DLT_AVAILABLE"
+    # Availability flags
+    "SQLALCHEMY_AVAILABLE",
+    "DLT_AVAILABLE",
+    "SQLALCHEMY_IMPORT_SUCCESS"
 ]
 
 # Version information
-__version__ = "1.0.0"
+__version__ = "2.0.0"  # Major version bump for SQLAlchemy default
 __author__ = "RedditHarbor Pipeline v2 Team"
+__migration_status__ = "SQLAlchemy Default (Phase 4 Complete)"
