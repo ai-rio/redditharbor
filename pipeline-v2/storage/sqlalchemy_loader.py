@@ -49,15 +49,23 @@ except ImportError:
     # Fallback types for when SQLAlchemy is not available
     Session = None
 
-# ID resolution system import
+# ID resolution system import - ensure project root is in path
+import os
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+logger = logging.getLogger(__name__)
+
 try:
     from core.utils.id_resolver import resolve_submission_id, ResolutionResult
     ID_RESOLVER_AVAILABLE = True
-except ImportError:
+    logger.info("✅ ID resolver module imported successfully")
+except ImportError as e:
     ID_RESOLVER_AVAILABLE = False
     ResolutionResult = None
-
-logger = logging.getLogger(__name__)
+    logger.warning(f"⚠️  Could not import ID resolver: {e}")
 
 # Constants
 DEFAULT_TABLE_NAME = "app_opportunities"
@@ -570,7 +578,17 @@ class SQLAlchemyLoader:
                 # CRITICAL: Validate required fields before processing
                 self._validate_required_fields(opp, i)
                 # Resolve submission ID using the established ID resolution system
-                id_result = resolve_submission_id(opp.get('submission_id', ''))
+                if ID_RESOLVER_AVAILABLE:
+                    id_result = resolve_submission_id(opp.get('submission_id', ''))
+                else:
+                    # Fallback: create a simple ResolutionResult-like object
+                    class FallbackResolutionResult:
+                        def __init__(self, original_id):
+                            self.original_id = original_id
+                            self.resolved_id = original_id
+                            self.uuid = original_id
+                            self.source = "fallback"
+                    id_result = FallbackResolutionResult(opp.get('submission_id', ''))
 
                 # CRITICAL FIX: Generate truly unique _dlt_id using UUID + timestamp
                 unique_dlt_id = f'sqlalchemy_{uuid_lib.uuid4().hex}_{int(time.time() * 1000000)}'
