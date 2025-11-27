@@ -175,17 +175,30 @@ def setup_logging(test_mode: bool = False) -> None:
     error_log_path = Path(project_root) / ERROR_LOG_DIR
     error_log_path.mkdir(exist_ok=True)
 
-    # Configure logging
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(
-                error_log_path / f"pipeline_v2_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.log"
-            )
-        ]
+    # Remove all existing handlers to avoid conflicts
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    # Create formatters
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # Create and configure stdout handler
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(log_level)
+    stdout_handler.setFormatter(formatter)
+
+    # Create and configure file handler
+    file_handler = logging.FileHandler(
+        error_log_path / f"pipeline_v2_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.log"
     )
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(formatter)
+
+    # Configure root logger
+    root_logger.setLevel(log_level)
+    root_logger.addHandler(stdout_handler)
+    root_logger.addHandler(file_handler)
 
 # ============================================================================
 # PIPELINE STEP IMPLEMENTATIONS
