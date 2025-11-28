@@ -30,6 +30,7 @@ Version: Pipeline-v2 compatible
 
 import argparse
 import logging
+import os
 import sys
 import time
 from datetime import UTC, datetime
@@ -73,6 +74,15 @@ ensure_path_order()
 import praw
 from prawcore import ResponseException
 
+# Load environment variables from .env.local (required for DATABASE_URL)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(project_root / '.env.local', override=True)
+    ENV_LOADED = True
+except ImportError:
+    ENV_LOADED = False
+    logging.warning("dotenv not available, environment variables may not be loaded")
+
 # Configuration imports
 from config.settings import (
     ERROR_LOG_DIR,
@@ -110,13 +120,11 @@ except ImportError as e:
     DEDUPLICATION_AVAILABLE = False
     logging.warning(f"Deduplication module not available: {e}")
 
-# Step 4: AI Analysis (try absolute imports for script execution)
-try:
-    from analysis import OpportunityAnalyzer
-    OPPORTUNITY_ANALYZER_AVAILABLE = True
-except ImportError as e:
-    OPPORTUNITY_ANALYZER_AVAILABLE = False
-    logging.warning(f"OpportunityAnalyzer wrapper not available: {e}")
+# Step 4: AI Analysis (completely disabled - triggers DLT imports)
+# The analysis module imports core.agents.interactive.opportunity_analyzer which loads DLT
+# This causes conflicts with SQLAlchemy imports later in the module
+OPPORTUNITY_ANALYZER_AVAILABLE = False
+logging.info("Analysis disabled to prevent DLT import conflicts")
 
 # Direct core imports for other agents
 try:
@@ -141,13 +149,33 @@ except ImportError as e:
     TRUST_VALIDATOR_AVAILABLE = False
     logging.warning(f"TrustValidator not available: {e}")
 
-# DLT and Supabase imports
+# SQLAlchemy storage imports (absolute import with path fix)
 try:
-    from storage import DLTLoader, create_dlt_loader, load_opportunities_to_supabase
-    DLT_STORAGE_AVAILABLE = True
+    # Ensure pipeline-v2 comes before project root to avoid core/storage conflicts
+    pipeline_v2_path = str(Path(__file__).parent.resolve())
+    project_root_path = str(Path(__file__).parent.parent.resolve())
+
+    # Remove both paths to clean up any existing entries
+    while pipeline_v2_path in sys.path:
+        sys.path.remove(pipeline_v2_path)
+    while project_root_path in sys.path:
+        sys.path.remove(project_root_path)
+
+    # Insert in correct order: pipeline-v2 FIRST, then project root
+    sys.path.insert(0, pipeline_v2_path)
+    sys.path.insert(1, project_root_path)
+
+    # Now import storage (will find pipeline-v2/storage first)
+    from storage.sqlalchemy_loader import SQLAlchemyLoader, create_sqlalchemy_loader
+    SQLALCHEMY_STORAGE_AVAILABLE = True
+    logging.info(f"✅ SQLAlchemy storage imported successfully")
 except ImportError as e:
-    DLT_STORAGE_AVAILABLE = False
-    logging.warning(f"DLT storage module not available: {e}")
+    SQLALCHEMY_STORAGE_AVAILABLE = False
+    logging.warning(f"❌ SQLAlchemy storage module not available: {e}")
+
+# DLT imports removed - SQLAlchemy only
+DLT_STORAGE_AVAILABLE = False  # DLT completely removed
+logging.info("✅ DLT storage module removed - using SQLAlchemy only")
 
 # Supabase client for deduplication operations
 try:
@@ -162,6 +190,34 @@ except ImportError as e:
 # ============================================================================
 
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# PATH SETUP (CRITICAL FOR SQLAlchemy imports)
+# ============================================================================
+
+# Fix PYTHONPATH for storage module imports when running via shell script
+def ensure_path_for_storage_modules():
+    """Ensure pipeline-v2 directory comes BEFORE core directory for storage module imports."""
+    pipeline_v2_path = str(pipeline_v2_root)
+    core_path = str(project_root)
+
+    # Remove both paths first to eliminate duplicates and wrong order
+    while pipeline_v2_path in sys.path:
+        sys.path.remove(pipeline_v2_path)
+
+    while core_path in sys.path:
+        sys.path.remove(core_path)
+
+    # Insert pipeline-v2 FIRST (highest priority)
+    sys.path.insert(0, pipeline_v2_path)
+
+    # Insert project root (which contains core) SECOND
+    sys.path.insert(1, core_path)
+
+    logger.debug(f"Path order fixed for storage modules: {pipeline_v2_path} before {core_path}")
+
+# Apply the path fix immediately
+ensure_path_for_storage_modules()
 
 # ============================================================================
 # LOGGING CONFIGURATION
@@ -640,60 +696,28 @@ def step6_dlt_integration(
         )
         return mock_load_info
 
-    if not DLT_STORAGE_AVAILABLE:
-        logger.error("DLT storage module not available, cannot load data")
-        raise RuntimeError("DLT storage is required for Step 6")
+    # Use SQLAlchemy storage only (DLT completely removed)
+    logger.info(f"Storage availability check: SQLAlchemy={SQLALCHEMY_STORAGE_AVAILABLE}, DLT=removed")
 
-    try:
-        # Use DLT storage module for loading
-        loader = create_dlt_loader(
-            pipeline_name="reddit_opportunity_pipeline_v2",
-            use_local_dev=True
-        )
-
-        # Validate connection before loading
-        if not loader.validate_connection():
-            logger.error("DLT connection validation failed")
-            raise RuntimeError("Cannot connect to database via DLT")
-
-        # Prepare data for DLT with proper field mapping
-        opportunities = loader.prepare_opportunity_data(high_trust_submissions, score_threshold)
-
-        if not opportunities:
-            logger.warning("No opportunities to load after data preparation")
-            from types import SimpleNamespace
-            return SimpleNamespace(
-                load_id="empty_load",
-                schema_name="public",
-                table_names=["app_opportunities"],
-                counts={"app_opportunities": 0}
+    if SQLALCHEMY_STORAGE_AVAILABLE:
+        try:
+            logger.info("Using SQLAlchemy storage for data loading")
+            loader = create_sqlalchemy_loader(
+                connection_string=os.getenv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54331/postgres")
             )
+            return loader.load_opportunities(high_trust_submissions)
+        except Exception as e:
+            logger.error(f"SQLAlchemy storage failed: {e}")
+            raise RuntimeError("SQLAlchemy storage is required and no fallback available")
 
-        # Run DLT pipeline with merge disposition
-        load_info = loader.load_opportunities(
-            opportunities,
-            table_name="app_opportunities",
-            write_disposition="merge",
-            primary_key="submission_id"
-        )
+    # DLT completely removed - only SQLAlchemy available
+    if not SQLALCHEMY_STORAGE_AVAILABLE:
+        logger.error("SQLAlchemy storage not available, cannot load data")
+        raise RuntimeError("SQLAlchemy storage module is required for Step 6")
 
-        load_time = time.time() - start_time
-        logger.info(f"✓ DLT load completed in {load_time:.2f}s")
-        logger.info(f"  - Load ID: {getattr(load_info, 'load_id', 'unknown')}")
-
-        # Get load statistics
-        if hasattr(load_info, 'counts') and load_info.counts:
-            records_processed = sum(load_info.counts.values())
-        else:
-            records_processed = len(opportunities)
-
-        logger.info(f"  - Records processed: {records_processed}")
-
-        return load_info
-
-    except Exception as e:
-        logger.error(f"Error in DLT load: {e}")
-        raise
+    # This should not be reached since SQLAlchemy is the only option, but keeping for safety
+    logger.error("SQLAlchemy storage failed and DLT has been removed")
+    raise RuntimeError("SQLAlchemy storage is required and no fallback available")
 
 
 # ============================================================================

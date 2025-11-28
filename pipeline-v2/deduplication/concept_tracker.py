@@ -31,10 +31,109 @@ Dependencies: core/deduplication/{agno_skip_logic,profiler_skip_logic,concept_ma
 """
 
 import logging
+import os
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
+
+# SQLAlchemy imports for robust database access
+try:
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import sessionmaker
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    create_engine = None
+    text = None
+    sessionmaker = None
 
 logger = logging.getLogger(__name__)
+
+
+def get_sqlalchemy_connection():
+    """Get SQLAlchemy database connection for robust deduplication queries"""
+
+    if not SQLALCHEMY_AVAILABLE:
+        logger.warning("SQLAlchemy not available, falling back to Supabase client")
+        return None, None
+
+    try:
+        # Load environment variables
+        from pathlib import Path
+        from dotenv import load_dotenv
+
+        project_root = Path(__file__).parent.parent.parent.resolve()
+        load_dotenv(project_root / '.env.local', override=True)
+
+        # Database connection
+        connection_string = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54331/postgres")
+
+        # Create engine
+        engine = create_engine(connection_string)
+
+        return engine, connection_string
+
+    except Exception as e:
+        logger.error(f"Failed to create SQLAlchemy connection: {e}")
+        return None, None
+
+
+def get_submission_uuid_from_reddit_id(engine, reddit_id: str) -> Optional[str]:
+    """Get submission UUID from Reddit ID using SQLAlchemy"""
+
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id FROM submissions WHERE reddit_id = :reddit_id
+            """)
+            result = conn.execute(query, {"reddit_id": reddit_id})
+            row = result.fetchone()
+            return row[0] if row else None
+    except Exception as e:
+        logger.error(f"Error getting UUID for Reddit ID {reddit_id}: {e}")
+        return None
+
+
+def get_business_concept_id(engine, submission_uuid: str) -> Optional[int]:
+    """Get business concept ID from submission UUID using SQLAlchemy"""
+
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT business_concept_id FROM opportunities_unified
+                WHERE submission_id = :submission_uuid
+            """)
+            result = conn.execute(query, {"submission_uuid": submission_uuid})
+            row = result.fetchone()
+            return row[0] if row and row[0] is not None else None
+    except Exception as e:
+        logger.error(f"Error getting business concept for UUID {submission_uuid}: {e}")
+        return None
+
+
+def check_business_concept_analysis(engine, concept_id: int, analysis_type: str = "agno") -> Optional[bool]:
+    """Check if business concept has specific analysis using SQLAlchemy"""
+
+    try:
+        with engine.connect() as conn:
+            if analysis_type == "agno":
+                query = text("""
+                    SELECT has_agno_analysis FROM business_concepts
+                    WHERE id = :concept_id
+                """)
+            elif analysis_type == "profiler":
+                query = text("""
+                    SELECT has_profiler_analysis FROM business_concepts
+                    WHERE id = :concept_id
+                """)
+            else:
+                return None
+
+            result = conn.execute(query, {"concept_id": concept_id})
+            row = result.fetchone()
+            return row[0] if row else None
+    except Exception as e:
+        logger.error(f"Error checking {analysis_type} analysis for concept {concept_id}: {e}")
+        return None
 
 
 def should_run_agno_analysis(
@@ -87,9 +186,47 @@ def should_run_agno_analysis(
             )
             return True, None
 
-        # Check if submission has a business_concept_id (indicates it's a duplicate)
-        # First try to get from opportunities_unified table
+        # Try SQLAlchemy first for robust deduplication (preferred approach)
+        engine, conn_string = get_sqlalchemy_connection()
+        if engine:
+            try:
+                # Step 1: Get submission UUID from Reddit ID
+                submission_uuid = get_submission_uuid_from_reddit_id(engine, submission_id)
+                if submission_uuid:
+                    # Step 2: Get business concept ID from submission UUID
+                    concept_id = get_business_concept_id(engine, submission_uuid)
+                    if concept_id:
+                        # Step 3: Check if concept has Agno analysis
+                        has_agno = check_business_concept_analysis(engine, concept_id, "agno")
+                        if has_agno is not None:
+                            logger.info(
+                                f"Submission {submission_id} (UUID: {submission_uuid}) is duplicate of concept {concept_id}, "
+                                f"has_agno_analysis={has_agno}"
+                            )
+                            return not has_agno, str(concept_id)  # Skip if has Agno, run if no Agno
+                        else:
+                            # Found concept but no analysis data - assume no Agno
+                            return True, str(concept_id)
+                    else:
+                        # Found submission but no concept - new unique opportunity
+                        logger.debug(f"Submission {submission_id} (UUID: {submission_uuid}) has no business concept - new opportunity")
+                        return True, None
+                else:
+                    # No submission found - brand new Reddit ID
+                    logger.debug(f"Submission {submission_id} not found in database - new Reddit ID")
+                    return True, None
+
+            except Exception as sqlalchemy_error:
+                logger.warning(
+                    f"SQLAlchemy deduplication error for {submission_id}: {sqlalchemy_error}, "
+                    "falling back to Supabase client"
+                )
+                # Fall through to Supabase client backup
+
+        # Fallback: Try Supabase client if SQLAlchemy fails
+        logger.debug(f"Using Supabase client fallback for {submission_id}")
         try:
+            # Note: This will likely fail due to table access limitations
             response = (
                 supabase.table("opportunities_unified")
                 .select("business_concept_id")
@@ -100,7 +237,6 @@ def should_run_agno_analysis(
             if response.data and len(response.data) > 0:
                 concept_id = response.data[0].get("business_concept_id")
                 if concept_id:
-                    # This is a duplicate opportunity, check if concept has Agno analysis
                     concept_response = (
                         supabase.table("business_concepts")
                         .select("has_agno_analysis")
@@ -109,22 +245,16 @@ def should_run_agno_analysis(
                     )
 
                     if concept_response.data and len(concept_response.data) > 0:
-                        has_agno = concept_response.data[0].get(
-                            "has_agno_analysis", False
-                        )
+                        has_agno = concept_response.data[0].get("has_agno_analysis", False)
                         logger.info(
-                            f"Submission {submission_id} is duplicate of concept {concept_id}, "
-                            f"has_agno_analysis={has_agno}"
+                            f"Submission {submission_id} fallback: concept {concept_id}, has_agno_analysis={has_agno}"
                         )
-                        return not has_agno, str(
-                            concept_id
-                        )  # Skip if has Agno, run if no Agno
+                        return not has_agno, str(concept_id)
                     else:
-                        # Found concept but no concept data - assume no Agno
                         return True, str(concept_id)
-        except Exception as db_error:
+        except Exception as supabase_error:
             logger.warning(
-                f"Database error checking deduplication for {submission_id}: {db_error}"
+                f"Supabase client deduplication also failed for {submission_id}: {supabase_error}"
             )
             # Default to running analysis if database check fails
             return True, None
@@ -457,9 +587,47 @@ def should_run_profiler_analysis(
             )
             return True, None
 
-        # Check if submission has a business_concept_id (indicates it's a duplicate)
-        # First try to get from opportunities_unified table
+        # Try SQLAlchemy first for robust deduplication (preferred approach)
+        engine, conn_string = get_sqlalchemy_connection()
+        if engine:
+            try:
+                # Step 1: Get submission UUID from Reddit ID
+                submission_uuid = get_submission_uuid_from_reddit_id(engine, submission_id)
+                if submission_uuid:
+                    # Step 2: Get business concept ID from submission UUID
+                    concept_id = get_business_concept_id(engine, submission_uuid)
+                    if concept_id:
+                        # Step 3: Check if concept has profiler analysis
+                        has_profiler = check_business_concept_analysis(engine, concept_id, "profiler")
+                        if has_profiler is not None:
+                            logger.info(
+                                f"Submission {submission_id} (UUID: {submission_uuid}) is duplicate of concept {concept_id}, "
+                                f"has_profiler_analysis={has_profiler}"
+                            )
+                            return not has_profiler, str(concept_id)  # Skip if has profiler, run if no profiler
+                        else:
+                            # Found concept but no analysis data - assume no profiler
+                            return True, str(concept_id)
+                    else:
+                        # Found submission but no concept - new unique opportunity
+                        logger.debug(f"Submission {submission_id} (UUID: {submission_uuid}) has no business concept - new opportunity")
+                        return True, None
+                else:
+                    # No submission found - brand new Reddit ID
+                    logger.debug(f"Submission {submission_id} not found in database - new Reddit ID")
+                    return True, None
+
+            except Exception as sqlalchemy_error:
+                logger.warning(
+                    f"SQLAlchemy deduplication error for {submission_id}: {sqlalchemy_error}, "
+                    "falling back to Supabase client"
+                )
+                # Fall through to Supabase client backup
+
+        # Fallback: Try Supabase client if SQLAlchemy fails
+        logger.debug(f"Using Supabase client fallback for {submission_id}")
         try:
+            # Note: This will likely fail due to table access limitations
             response = (
                 supabase.table("opportunities_unified")
                 .select("business_concept_id")
@@ -470,7 +638,6 @@ def should_run_profiler_analysis(
             if response.data and len(response.data) > 0:
                 concept_id = response.data[0].get("business_concept_id")
                 if concept_id:
-                    # This is a duplicate opportunity, check if concept has AI profiling
                     concept_response = (
                         supabase.table("business_concepts")
                         .select("has_profiler_analysis")
@@ -479,22 +646,16 @@ def should_run_profiler_analysis(
                     )
 
                     if concept_response.data and len(concept_response.data) > 0:
-                        has_profiler = concept_response.data[0].get(
-                            "has_profiler_analysis", False
-                        )
+                        has_profiler = concept_response.data[0].get("has_profiler_analysis", False)
                         logger.info(
-                            f"Submission {submission_id} is duplicate of concept {concept_id}, "
-                            f"has_profiler_analysis={has_profiler}"
+                            f"Submission {submission_id} fallback: concept {concept_id}, has_profiler_analysis={has_profiler}"
                         )
-                        return not has_profiler, str(
-                            concept_id
-                        )  # Skip if has profiler, run if no profiler
+                        return not has_profiler, str(concept_id)
                     else:
-                        # Found concept but no concept data - assume no profiler
                         return True, str(concept_id)
-        except Exception as db_error:
+        except Exception as supabase_error:
             logger.warning(
-                f"Database error checking deduplication for {submission_id}: {db_error}"
+                f"Supabase client deduplication also failed for {submission_id}: {supabase_error}"
             )
             # Default to running profiling if database check fails
             return True, None
