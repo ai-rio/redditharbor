@@ -5,7 +5,7 @@ Analysis validation and quality checking module
 import logging
 from typing import List
 
-from models import AnalysisResult, AppIdea, MarketMetrics
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 
 logger = logging.getLogger(__name__)
 

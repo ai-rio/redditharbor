@@ -11,9 +11,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, mapped_column
 from sqlalchemy.sql import expression
-from pgvector.sqlalchemy import Vector
+# Use JSON for storing embeddings to avoid pgvector dependency issues
+PGVECTOR_AVAILABLE = False
+from sqlalchemy import JSON as Vector
+from sqlalchemy import JSON as VECTOR
 import uuid
 
 Base = declarative_base()
@@ -35,45 +38,45 @@ class Opportunity(Base):
     )
 
     # Source Reddit data
-    submission_id: str = Column(String(10), nullable=False, index=True, unique=True)
-    reddit_title: str = Column(String(300), nullable=False)
-    reddit_url: str = Column(String(500), nullable=False)
-    subreddit: str = Column(String(100), nullable=False, index=True)
-    reddit_author: str = Column(String(100), nullable=True)
-    reddit_upvotes: int = Column(Integer, nullable=False, default=0)
-    reddit_comments_count: int = Column(Integer, nullable=False, default=0)
-    reddit_created_at: Column(DateTime, nullable=False)
+    submission_id = Column(String(10), nullable=False, index=True, unique=True)
+    reddit_title = Column(String(300), nullable=False)
+    reddit_url = Column(String(500), nullable=False)
+    subreddit = Column(String(100), nullable=False, index=True)
+    reddit_author = Column(String(100), nullable=True)
+    reddit_upvotes = Column(Integer, nullable=False, default=0)
+    reddit_comments_count = Column(Integer, nullable=False, default=0)
+    reddit_created_at = Column(DateTime, nullable=False)
 
     # App idea analysis
-    app_title: str = Column(String(200), nullable=False, index=True)
-    app_concept: str = Column(Text, nullable=False)
-    problem_statement: str = Column(Text, nullable=False)
-    target_audience: str = Column(Text, nullable=False)
-    core_functions: Column = Column(JSON, nullable=False)  # List[str]
+    app_title = Column(String(200), nullable=False, index=True)
+    app_concept = Column(Text, nullable=False)
+    problem_statement = Column(Text, nullable=False)
+    target_audience = Column(Text, nullable=False)
+    core_functions = Column(JSON, nullable=False)  # List[str]
 
     # Market metrics
-    market_demand: Column = Column(Float, nullable=False)
-    pain_intensity: Column = Column(Float, nullable=False)
-    monetization_potential: Column = Column(Float, nullable=False)
-    competition_level: Column = Column(Float, nullable=False)
-    technical_feasibility: Column = Column(Float, nullable=False)
+    market_demand = Column(Float, nullable=False)
+    pain_intensity = Column(Float, nullable=False)
+    monetization_potential = Column(Float, nullable=False)
+    competition_level = Column(Float, nullable=False)
+    technical_feasibility = Column(Float, nullable=False)
 
     # Overall scoring
-    final_score: Column = Column(Float, nullable=False, index=True)
-    confidence_score: Column = Column(Float, nullable=False)
-    trust_level: Column = Column(String(10), nullable=False, index=True)
+    final_score = Column(Float, nullable=False, index=True)
+    confidence_score = Column(Float, nullable=False)
+    trust_level = Column(String(10), nullable=False, index=True)
 
-    # Semantic search
-    embedding: Optional[Vector] = Column(VECTOR(384), nullable=True)
+    # Semantic search - stored as JSON for compatibility
+    embedding: Optional[List[float]] = Column(JSON, nullable=True)
 
     # Metadata
-    analyzed_at: Column = Column(DateTime, nullable=False, default=datetime.utcnow)
-    created_at: Column = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at: Column = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    analyzed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Status flags
-    is_duplicate: Column = Column(Boolean, nullable=False, default=False, index=True)
-    duplicate_of_id: Optional[UUID] = Column(UUID(as_uuid=True), ForeignKey("opportunities.id"), nullable=True)
+    is_duplicate = Column(Boolean, nullable=False, default=False, index=True)
+    duplicate_of_id = Column(UUID(as_uuid=True), ForeignKey("opportunities.id"), nullable=True)
 
     # Self-referential relationship for duplicates
     original_opportunity = relationship("Opportunity", remote_side=[id])
@@ -85,11 +88,7 @@ class Opportunity(Base):
         Index('idx_opportunities_subreddit_created', 'subreddit', 'reddit_created_at'),
         Index('idx_opportunities_analyzed_created', 'analyzed_at', 'created_at'),
         Index('idx_opportunities_core_functions', 'core_functions', postgresql_using='gin'),
-        # pgvector index for similarity search
-        Index('idx_opportunities_embedding_cosine', 'embedding',
-              postgresql_using='hnsw',
-              postgresql_with={'m': 16, 'ef_construction': 64},
-              postgresql_ops={'embedding': 'vector_cosine_ops'}),
+        # Basic index for embedding (will be enhanced with pgvector later)
     )
 
     def __repr__(self) -> str:

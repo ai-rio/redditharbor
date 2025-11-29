@@ -1,6 +1,6 @@
 """LLM analysis and transformation module for Pipeline v3"""
 
-from .analyzer import OpportunityAnalyzer
+from .analyzer import OpportunityAnalyzer, SimpleOpportunityAnalyzer
 from .validator import AnalysisValidator
 
-__all__ = ["OpportunityAnalyzer", "AnalysisValidator"]
+__all__ = ["OpportunityAnalyzer", "SimpleOpportunityAnalyzer", "AnalysisValidator"]

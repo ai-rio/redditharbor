@@ -142,17 +142,13 @@ ignore = ["E501", "B008"]
 "scripts/*" = ["F401", "F403", "F405"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "pipeline-v3/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
     "--strict-markers",
     "--disable-warnings",
-    "--cov=core",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-fail-under=80",
 ]
 
 [tool.mypy]

@@ -2,10 +2,10 @@
 Reddit data models using Pydantic for validation
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class RedditSubmission(BaseModel):
@@ -33,17 +33,19 @@ class RedditSubmission(BaseModel):
     is_self: bool = Field(default=True, description="Whether it's a self post")
     over_18: bool = Field(default=False, description="NSFW flag")
 
-    @validator('permalink')
+    @field_validator('permalink')
+    @classmethod
     def validate_permalink(cls, v):
         """Validate permalink format"""
         if not v.startswith('https://reddit.com/') and not v.startswith('/r/'):
             raise ValueError("permalink must be a valid Reddit URL")
         return v
 
-    @validator('created_utc')
+    @field_validator('created_utc')
+    @classmethod
     def validate_timestamp(cls, v):
         """Ensure timestamp is in the past"""
-        if v > datetime.utcnow():
+        if v > datetime.now(timezone.utc):
             raise ValueError("created_utc cannot be in the future")
         return v
 
@@ -63,10 +65,11 @@ class RedditComment(BaseModel):
     upvotes: int = Field(..., ge=0, description="Number of upvotes")
     created_utc: datetime = Field(..., description="Creation timestamp")
 
-    @validator('created_utc')
+    @field_validator('created_utc')
+    @classmethod
     def validate_timestamp(cls, v):
         """Ensure timestamp is in the past"""
-        if v > datetime.utcnow():
+        if v > datetime.now(timezone.utc):
             raise ValueError("created_utc cannot be in the future")
         return v
 
