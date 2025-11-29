@@ -5,7 +5,7 @@ AI analysis data models with Pydantic validation for LLM output
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class MarketMetrics(BaseModel):
@@ -82,7 +82,8 @@ class AppIdea(BaseModel):
         description="Target audience description"
     )
 
-    @validator('core_functions')
+    @field_validator('core_functions')
+    @classmethod
     def validate_core_functions(cls, v):
         """Validate core functions are meaningful descriptions"""
         if not all(
@@ -140,7 +141,14 @@ class AnalysisResult(BaseModel):
         description="Text embedding vector for similarity search"
     )
 
-    @validator('trust_level')
+    # Optional embedding metadata
+    embedding_metadata: Optional[dict] = Field(
+        None,
+        description="Metadata about the embedding generation"
+    )
+
+    @field_validator('trust_level')
+    @classmethod
     def validate_trust_level(cls, v):
         """Validate trust level is one of allowed values"""
         allowed_levels = ["LOW", "MEDIUM", "HIGH"]
@@ -148,19 +156,12 @@ class AnalysisResult(BaseModel):
             raise ValueError(f"trust_level must be one of {allowed_levels}")
         return v.upper()
 
-    @validator('final_score')
-    def validate_final_score_logic(cls, v, values):
+    @field_validator('final_score')
+    @classmethod
+    def validate_final_score_logic(cls, v):
         """Final score should be consistent with market metrics"""
-        if 'market_metrics' in values:
-            metrics = values['market_metrics']
-            # Final score should be roughly the average of key metrics
-            expected_range = (
-                (metrics.market_demand + metrics.pain_intensity + metrics.monetization_potential) / 3
-            ) * 0.8  # Allow 20% variance
-
-            if abs(v - expected_range) > 20:  # Allow 20 point variance
-                pass  # Don't raise error, just note potential inconsistency
-
+        # In Pydantic v2, we don't have access to other fields in simple validators
+        # This validation would need to be moved to a model_validator if needed
         return v
 
     class Config:
