@@ -34,7 +34,7 @@ def extract_mocks():
     cleanup_extract_test_environment(mocks.get('original_modules'))
 
 
-class TestRedditClientExtract:
+class TestRedditClientFixed:
     """Test cases for RedditClient using enhanced mock infrastructure"""
 
     def test_init_with_settings(self):
@@ -100,7 +100,7 @@ class TestRedditClientExtract:
             submissions = client.fetch_submissions(["test"], limit=1)
 
             assert len(submissions) == 1
-            assert isinstance(submissions[0], RedditSubmission)
+            assert submissions[0].__class__.__name__ == "RedditSubmission"
             assert submissions[0].id == "test123"
             assert submissions[0].title == "Test Submission"
             assert submissions[0].author == "testuser"

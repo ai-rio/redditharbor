@@ -1,0 +1,14 @@
+"""Configuration for pytest in pipeline-v3 tests."""
+
+import sys
+from pathlib import Path
+
+# Add the pipeline-v3 root to Python path
+# This ensures that imports like 'from models import ...' work correctly
+# when tests are run from any directory
+pipeline_root = Path(__file__).parent.parent
+if str(pipeline_root) not in sys.path:
+    sys.path.insert(0, str(pipeline_root))
+
+# Note: We don't add the parent project root to avoid import conflicts
+# when running tests from the parent directory

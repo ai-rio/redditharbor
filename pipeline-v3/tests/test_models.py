@@ -81,12 +81,12 @@ class TestAppIdea:
 
     def test_too_many_functions(self):
         """Test validation fails with too many core functions"""
-        with pytest.raises(ValueError, match="Core functions.*maximum.*3"):
+        with pytest.raises(ValueError, match="List should have at most 3 items"):
             AppIdea(
                 title="Complex App",
                 app_concept="An app that does everything",
-                problem_statement="Complex problems",
-                target_audience="Everyone",
+                problem_statement="Complex problems require complex solutions",
+                target_audience="Everyone who needs help",
                 core_functions=["func1", "func2", "func3", "func4", "func5"]
             )
 
