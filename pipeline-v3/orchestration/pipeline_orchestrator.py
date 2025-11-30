@@ -13,6 +13,7 @@ from extract import RedditClient
 from transform import AnalysisValidator
 from transform.analyzer_factory import create_analyzer
 from load import DatabaseLoader
+from staging import StagingLayer, StagingConfig
 from models.analysis import AnalysisResult
 from models.reddit import RedditSubmission
 
@@ -32,6 +33,11 @@ class PipelineConfiguration:
     test_mode: bool = False
     dry_run: bool = False
     validate_quality: bool = False
+    enable_staging: bool = True
+    staging_batch_size: int = 50
+    enable_deduplication: bool = True
+    enable_checkpoints: bool = True
+    checkpoint_interval: int = 25
 
 
 @dataclass
@@ -52,7 +58,8 @@ class PipelineResults:
     analyses_skipped: int
     analysis_errors: int
 
-    # Quality metrics
+    # Quality metrics (with defaults)
+    staging_time: float = 0.0
     validation_rate: float = 0.0
     high_score_rate: float = 0.0
     average_score: float = 0.0
@@ -74,6 +81,7 @@ class PipelineOrchestrator:
         analyzer_factory=None,
         database_loader: Optional[DatabaseLoader] = None,
         validator: Optional[AnalysisValidator] = None,
+        staging_layer: Optional[StagingLayer] = None,
         settings=None
     ):
         """
@@ -84,6 +92,7 @@ class PipelineOrchestrator:
             analyzer_factory: Factory for creating analyzers (will use default if None)
             database_loader: Database loader (will create default if None)
             validator: Analysis validator (will create default if None)
+            staging_layer: Staging layer for extract→transform buffer (will create default if None)
             settings: Application settings
         """
         self.settings = settings or get_settings()
@@ -95,6 +104,9 @@ class PipelineOrchestrator:
 
         # Analyzer factory for creating appropriate analyzers
         self.analyzer_factory = analyzer_factory
+
+        # Initialize staging layer
+        self.staging_layer = staging_layer
 
         # Pipeline state
         self._current_analyzer = None
@@ -173,14 +185,38 @@ class PipelineOrchestrator:
         logger.info(f"  - Min confidence: {config.min_confidence}")
         logger.info(f"  - Test mode: {config.test_mode}")
         logger.info(f"  - Dry run: {config.dry_run}")
+        logger.info(f"  - Staging enabled: {config.enable_staging}")
+        if config.enable_staging:
+            logger.info(f"  - Staging batch size: {config.staging_batch_size}")
+            logger.info(f"  - Deduplication: {config.enable_deduplication}")
+            logger.info(f"  - Checkpoints: {config.enable_checkpoints}")
         logger.info("")
 
         try:
+            # Initialize staging layer if enabled
+            if config.enable_staging and not self.staging_layer:
+                from pathlib import Path
+                staging_dir = Path("pipeline_staging")
+                staging_config = StagingConfig(
+                    staging_directory=str(staging_dir),
+                    max_batch_size=config.staging_batch_size,
+                    deduplication_enabled=config.enable_deduplication,
+                    checkpoint_interval=config.checkpoint_interval if config.enable_checkpoints else 0
+                )
+                self.staging_layer = StagingLayer(staging_config)
+                logger.info("✓ Staging layer initialized")
+
             # Initialize connections
             self.initialize_connections(config)
 
             # Step 1: Extract Reddit submissions
             submissions, extraction_time = self._extract_submissions(config)
+
+            # Step 1.5: Stage submissions (if staging enabled)
+            if config.enable_staging and self.staging_layer:
+                submissions, staging_time = self._stage_submissions(submissions, config)
+            else:
+                staging_time = 0.0
 
             if not submissions:
                 logger.warning("No submissions found, ending pipeline")
@@ -199,7 +235,7 @@ class PipelineOrchestrator:
 
             # Create results
             results = self._create_results(
-                pipeline_start_time, extraction_time, analysis_time,
+                pipeline_start_time, extraction_time, staging_time, analysis_time,
                 validation_time, storage_time, submissions, analyses,
                 high_quality_analyses, storage_stats, config
             )
@@ -235,6 +271,47 @@ class PipelineOrchestrator:
         logger.info(f"✓ Extracted {len(submissions)} submissions in {extraction_time:.2f}s")
 
         return submissions, extraction_time
+
+    def _stage_submissions(self, submissions: List[RedditSubmission], config: PipelineConfiguration) -> tuple[List[RedditSubmission], float]:
+        """
+        Stage submissions with deduplication and checkpointing
+
+        Args:
+            submissions: List of extracted Reddit submissions
+            config: Pipeline configuration
+
+        Returns:
+            Tuple of (staged submissions, staging time)
+        """
+        logger.info("STEP 1.5: Staging submissions with deduplication")
+        staging_start = time.time()
+
+        if not self.staging_layer:
+            logger.warning("Staging layer not initialized, returning original submissions")
+            return submissions, 0.0
+
+        # Store submissions in staging layer
+        batch_ids = self.staging_layer.store_submissions(submissions)
+
+        # Retrieve deduplicated submissions from staging
+        staged_submissions = []
+        if isinstance(batch_ids, str):
+            batch_ids = [batch_ids]
+
+        for batch_id in batch_ids:
+            batch_submissions = self.staging_layer.get_batch(batch_id)
+            staged_submissions.extend(batch_submissions)
+
+        staging_time = time.time() - staging_start
+        logger.info(f"✓ Staged {len(staged_submissions)} unique submissions in {staging_time:.2f}s")
+
+        # Log staging statistics
+        if hasattr(self.staging_layer, 'get_statistics'):
+            stats = self.staging_layer.get_statistics()
+            logger.info(f"  - Processed submissions: {stats['processed_submissions']}")
+            logger.info(f"  - Deduplication rate: {((len(submissions) - len(staged_submissions)) / len(submissions) * 100):.1f}%")
+
+        return staged_submissions, staging_time
 
     def _analyze_submissions(
         self, submissions: List[RedditSubmission], config: PipelineConfiguration
@@ -307,6 +384,7 @@ class PipelineOrchestrator:
         self,
         pipeline_start_time: float,
         extraction_time: float,
+        staging_time: float,
         analysis_time: float,
         validation_time: float,
         storage_time: float,
@@ -334,6 +412,7 @@ class PipelineOrchestrator:
             # Execution metrics
             total_execution_time=total_time,
             extraction_time=extraction_time,
+            staging_time=staging_time,
             analysis_time=analysis_time,
             validation_time=validation_time,
             storage_time=storage_time,
@@ -363,6 +442,7 @@ class PipelineOrchestrator:
         return PipelineResults(
             total_execution_time=total_time,
             extraction_time=0.0,
+            staging_time=0.0,
             analysis_time=0.0,
             validation_time=0.0,
             storage_time=0.0,
