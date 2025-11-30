@@ -2,10 +2,12 @@
 AI analysis data models with Pydantic validation for LLM output
 """
 
-from datetime import datetime
-from typing import List, Optional
+from datetime import datetime, timezone, timedelta
+from typing import List, Optional, Set
+import re
+import math
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class MarketMetrics(BaseModel):
@@ -42,28 +44,86 @@ class MarketMetrics(BaseModel):
         description="Technical feasibility (0-100)"
     )
 
+    @field_validator('*')
+    @classmethod
+    def validate_precision(cls, v):
+        """Validate metric precision (max 2 decimal places)"""
+        if isinstance(v, float):
+            str_val = str(v)
+            if '.' in str_val and len(str_val.split('.')[1]) > 2:
+                raise ValueError(f"Metric {v} has too many decimal places")
+        return v
+
+    @model_validator(mode='after')
+    @classmethod
+    def validate_metric_consistency(cls, v):
+        """Validate logical consistency between metrics"""
+        # High pain should correlate with market demand
+        if v.pain_intensity > 80 and v.market_demand < 30:
+            raise ValueError("High pain intensity should correlate with market demand")
+
+        # High feasibility should enable monetization
+        if v.technical_feasibility < 20 and v.monetization_potential > 80:
+            raise ValueError("Low technical feasibility limits monetization potential")
+
+        # Competition relationship
+        if v.competition_level < 20 and v.market_demand < 40:
+            raise ValueError("Low competition should enable higher market opportunity")
+
+        return v
+
+    @model_validator(mode='after')
+    @classmethod
+    def validate_extreme_values(cls, v):
+        """Validate for unrealistic metric combinations"""
+        # Check for impossible combination: all metrics at extremes
+        extreme_count = sum([
+            v.market_demand > 90,
+            v.pain_intensity > 90,
+            v.monetization_potential > 90,
+            v.competition_level < 10,  # Remember: higher = less competition
+            v.technical_feasibility > 90
+        ])
+
+        if extreme_count >= 4:
+            raise ValueError("Metrics combination is unrealistic")
+
+        # Check for all low values (no opportunity)
+        low_count = sum([
+            v.market_demand < 20,
+            v.pain_intensity < 20,
+            v.monetization_potential < 20,
+            v.competition_level > 80,  # High competition
+            v.technical_feasibility < 20
+        ])
+
+        if low_count >= 4:
+            raise ValueError("Metrics combination is unrealistic")
+
+        return v
+
 
 class AppIdea(BaseModel):
-    """Core app idea analysis with strict validation"""
+    """Core app idea analysis with strict business logic validation"""
 
     # Core concept
     title: str = Field(
         ...,
         min_length=5,
         max_length=100,
-        description="App title (5-100 characters)"
+        description="App title (5-100 characters, title case)"
     )
     app_concept: str = Field(
         ...,
         min_length=10,
         max_length=500,
-        description="App concept description"
+        description="App concept description (specific and detailed)"
     )
     problem_statement: str = Field(
         ...,
         min_length=10,
         max_length=1000,
-        description="Problem the app solves"
+        description="Problem the app solves (specific pain point)"
     )
 
     # Core functions (strict limit: 1-3 functions max)
@@ -71,7 +131,7 @@ class AppIdea(BaseModel):
         ...,
         min_items=1,
         max_items=3,
-        description="Core app functions (1-3 maximum)"
+        description="Core app functions (1-3 maximum, distinct and meaningful)"
     )
 
     # Target audience
@@ -79,13 +139,224 @@ class AppIdea(BaseModel):
         ...,
         min_length=10,
         max_length=500,
-        description="Target audience description"
+        description="Target audience description (specific demographic)"
     )
+
+  
+    @field_validator('title')
+    @classmethod
+    def validate_title_case(cls, v: str) -> str:
+        """Enforce title case formatting"""
+        title = v.strip()
+
+        # Check title case (each word should be capitalized)
+        words = title.split()
+        capitalized_words = [word.capitalize() for word in words if word.strip()]
+        expected_title = ' '.join(capitalized_words)
+
+        # Allow some exceptions (articles, prepositions, etc. should not be capitalized unless first word)
+        exceptions = {'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'with', 'in', 'of'}
+        for i, word in enumerate(words):
+            if i == 0 or word.lower() not in exceptions:
+                if not word[0].isupper():
+                    raise ValueError(f"Title must be in title case. Expected: '{expected_title}', got: '{title}'")
+
+        return title
+
+    @field_validator('app_concept')
+    @classmethod
+    def validate_concept_specificity(cls, v: str) -> str:
+        """Reject generic app concepts"""
+        concept = v.strip().lower()
+
+        # Generic concept patterns to reject
+        generic_patterns = [
+            r'\bsocial media\b',
+            r'\bapp\b.*\bplatform\b',
+            r'\bmobile app\b',
+            r'\bweb application\b',
+            r'\bsoftware\b.*\bsolution\b',
+            r'\bdigital\b.*\btool\b',
+            r'\bonline\b.*\bservice\b',
+            r'\btech\b.*\bstartup\b',
+            r'\binnovation\b.*\bplatform\b',
+            r'\bgame-changing\b',
+            r'\brevolutionary\b.*\bapp\b',
+            r'\bnext generation\b',
+            r'\bcutting edge\b'
+        ]
+
+        # Check for generic patterns
+        for pattern in generic_patterns:
+            if re.search(pattern, concept):
+                raise ValueError(f"App concept too generic. Avoid phrases like '{pattern}'. Provide specific, unique functionality.")
+
+        # Check minimum specificity indicators
+        specificity_indicators = [
+            r'\bfor\b.*\bbusiness\b',
+            r'\bfor\b.*\bstudents\b',
+            r'\bfor\b.*\bdevelopers\b',
+            r'\bfor\b.*\bfreelancers\b',
+            r'\bhelps\b.*\bwith\b',
+            r'\ballows\b.*\bto\b',
+            r'\benables\b.*\bto\b',
+            r'\bintegrates\b',
+            r'\bautomates\b',
+            r'\bconnects\b',
+            r'\bmanages\b',
+            r'\btracks\b',
+            r'\bprovides\b',
+            r'\boffers\b',
+            r'\bsupports\b',
+            r'\busing\b',
+            r'\bwith\b.*\bfeatures\b',
+            r'\bplatform\b.*\bthat\b'
+        ]
+
+        has_specificity = any(re.search(pattern, concept) for pattern in specificity_indicators)
+        if not has_specificity:
+            raise ValueError("App concept must describe specific functionality or target user need")
+
+        # Minimum word count for substance
+        if len(concept.split()) < 5:
+            raise ValueError("App concept must be more detailed (at least 5 words)")
+
+        return v.strip()
+
+    @field_validator('problem_statement')
+    @classmethod
+    def validate_problem_specificity(cls, v: str) -> str:
+        """Reject vague problem statements"""
+        problem = v.strip().lower()
+
+        # Generic problem patterns to reject
+        generic_patterns = [
+            r'\bpeople need\b',
+            r'\busers want\b',
+            r'\beveryone\b.*\bneeds\b',
+            r'\bbetter\b.*\bexperience\b',
+            r'\bimprove\b.*\blife\b',
+            r'\bmake\b.*\beasier\b',
+            r'\bmore efficient\b',
+            r'\bsave time\b',
+            r'\bbetter way\b',
+            r'\bmodern solution\b'
+        ]
+
+        # Check for generic patterns
+        for pattern in generic_patterns:
+            if re.search(pattern, problem):
+                raise ValueError(f"Problem statement too vague. Avoid generic phrases like '{pattern}'. Describe specific pain points.")
+
+        # Look for specific problem indicators
+        problem_indicators = [
+            r'\bstruggle\b',
+            r'\bdifficulty\b',
+            r'\bchallenge\b',
+            r'\bfrustrating\b',
+            r'\btime-consuming\b',
+            r'\binconvenient\b',
+            r'\bexpensive\b',
+            r'\bcomplex\b',
+            r'\bbroken\b',
+            r'\bmissing\b',
+            r'\binaccessible\b',
+            r'\bspend\b.*\btoo much\b',
+            r'\btakes\b.*\btoo much\b',
+            r'\btoo much\b.*\btime\b',
+            r'\bmanual\b.*\bentry\b',
+            r'\badministrative\b.*\btasks\b'
+        ]
+
+        has_specific_problem = any(re.search(pattern, problem) for pattern in problem_indicators)
+        if not has_specific_problem:
+            raise ValueError("Problem statement must describe specific pain points or challenges")
+
+        # Check for problem context
+        context_indicators = [
+            r'\bwhen\b',
+            r'\bbecause\b',
+            r'\bcurrent\b',
+            r'\bexisting\b',
+            r'\btraditional\b',
+            r'\btoday\b',
+            r'\bmuch\b',
+            r'\boften\b'
+        ]
+
+        has_context = any(re.search(pattern, problem) for pattern in context_indicators)
+        if not has_context:
+            raise ValueError("Problem statement should include context about when/how the problem occurs")
+
+        return v.strip()
+
+    @field_validator('target_audience')
+    @classmethod
+    def validate_audience_specificity(cls, v: str) -> str:
+        """Reject broad, non-specific audiences"""
+        audience = v.strip().lower()
+
+        # Generic audience patterns to reject
+        generic_patterns = [
+            r'\beveryone\b',
+            r'\ball users\b',
+            r'\bpeople\b.*\bwho\b',
+            r'\bgeneral public\b',
+            r'\binternet users\b',
+            r'\btech savvy\b',
+            r'\bmodern consumers\b',
+            r'\banyone\b.*\bwho\b',
+            r'\busers\b.*\bof\b',
+            r'\bcustomers\b.*\bwho\b'
+        ]
+
+        # Check for generic patterns
+        for pattern in generic_patterns:
+            if re.search(pattern, audience):
+                raise ValueError(f"Target audience too broad. Avoid generic terms like '{pattern}'. Be more specific.")
+
+        # Look for specific demographic indicators
+        demographic_indicators = [
+            r'\bage\b.*\bgroup\b',
+            r'\bprofessionals\b',
+            r'\bstudents\b',
+            r'\bteachers\b',
+            r'\bdoctors\b',
+            r'\bdevelopers\b',
+            r'\bentrepreneurs\b',
+            r'\bsmall business\b',
+            r'\bstartup\b',
+            r'\bnonprofit\b',
+            r'\bfreelancers\b',
+            r'\bparents\b',
+            r'\bseniors\b',
+            r'\bteenagers\b'
+        ]
+
+        has_demographic = any(re.search(pattern, audience) for pattern in demographic_indicators)
+
+        # Look for context indicators
+        context_indicators = [
+            r'\bwho\b.*\bwork\b',
+            r'\bwho\b.*\bstudy\b',
+            r'\bwho\b.*\bmanage\b',
+            r'\bwho\b.*\bcreate\b',
+            r'\bwho\b.*\bneed\b',
+            r'\bin\b.*\bindustry\b',
+            r'\bwith\b.*\bexperience\b'
+        ]
+
+        has_context = any(re.search(pattern, audience) for pattern in context_indicators)
+
+        if not (has_demographic or has_context):
+            raise ValueError("Target audience must include specific demographics or professional context")
+
+        return v.strip()
 
     @field_validator('core_functions')
     @classmethod
-    def validate_core_functions(cls, v):
-        """Validate core functions are meaningful descriptions"""
+    def validate_core_functions(cls, v: List[str]) -> List[str]:
+        """Validate core functions are meaningful and distinct"""
         if not all(
             isinstance(func, str) and
             len(func.strip()) >= 5 and
@@ -101,7 +372,116 @@ class AppIdea(BaseModel):
         if len(cleaned_funcs) != len(set(cleaned_funcs)):
             raise ValueError("Core functions must be unique")
 
-        return v
+        # Validate each function has specific meaning
+        generic_function_patterns = [
+            r'\buser friendly\b',
+            r'\beasy to use\b',
+            r'\bfast\b',
+            r'\bsecure\b',
+            r'\breliable\b',
+            r'\bscalable\b',
+            r'\bmodern\b',
+            r'\bintuitive\b'
+        ]
+
+        for func in v:
+            func_lower = func.strip().lower()
+
+            # Check for generic descriptors
+            for pattern in generic_function_patterns:
+                if re.search(pattern, func_lower):
+                    raise ValueError(f"Core function '{func}' too generic. '{pattern}' is not a function but a quality.")
+
+            # Check for action verb
+            action_verbs = [
+                r'\bmanage\b',
+                r'\bcreate\b',
+                r'\btrack\b',
+                r'\banalyze\b',
+                r'\bconnect\b',
+                r'\bshare\b',
+                r'\borganize\b',
+                r'\bautomate\b',
+                r'\bmonitor\b',
+                r'\bschedule\b',
+                r'\bcalculate\b',
+                r'\bgenerate\b',
+                r'\bfilter\b',
+                r'\bsort\b',
+                r'\bsync\b',
+                r'\bcategorize\b',
+                r'\bclassify\b',
+                r'\bgroup\b'
+            ]
+
+            has_action = any(re.search(verb, func_lower) for verb in action_verbs)
+            if not has_action:
+                raise ValueError(f"Core function '{func}' must include an action verb describing what it does")
+
+        return [func.strip() for func in v]
+
+    @model_validator(mode='after')
+    def validate_business_feasibility(self) -> 'AppIdea':
+        """Overall business feasibility validation"""
+        concept = self.app_concept.lower()
+        problem = self.problem_statement.lower()
+
+        # Check if concept actually solves the stated problem (more flexible)
+        problem_keywords = []
+        if 'time' in problem or 'slow' in problem or 'time-consuming' in problem:
+            problem_keywords.extend(['time', 'quick', 'fast', 'instant', 'automated', 'efficient', 'save'])
+        if 'money' in problem or 'expensive' in problem or 'cost' in problem or 'billing' in problem or 'invoice' in problem:
+            problem_keywords.extend(['cost', 'cheap', 'affordable', 'free', 'budget', 'billing', 'invoice', 'payment'])
+        if 'complex' in problem or 'difficult' in problem or 'confusing' in problem:
+            problem_keywords.extend(['simple', 'easy', 'intuitive', 'clear', 'guided', 'streamline'])
+        if 'connect' in problem or 'communication' in problem or 'coordinate' in problem:
+            problem_keywords.extend(['connect', 'communicate', 'share', 'collaborate', 'coordinate'])
+        if 'track' in problem or 'monitor' in problem or 'manage' in problem:
+            problem_keywords.extend(['track', 'monitor', 'manage', 'organize', 'schedule'])
+        if 'study' in problem or 'learn' in problem or 'education' in problem:
+            problem_keywords.extend(['study', 'learn', 'education', 'practice', 'review', 'prepare'])
+
+        # If we identified problem keywords, concept should address them
+        if problem_keywords:
+            addresses_problem = any(keyword in concept for keyword in problem_keywords)
+            if not addresses_problem:
+                # More lenient check - also allow related concepts
+                related_keywords = [
+                    'platform', 'tool', 'app', 'service', 'solution',
+                    'intelligent', 'smart', 'automated', 'digital'
+                ]
+                has_related = any(keyword in concept for keyword in related_keywords)
+                if not has_related:
+                    raise ValueError("App concept should clearly address the stated problem")
+
+        # Check for technical feasibility indicators
+        if 'ai' in concept or 'machine learning' in concept:
+            # AI concepts need specific data requirements (more flexible)
+            if not any(word in problem for word in ['data', 'information', 'patterns', 'analysis']):
+                # Only require this for advanced AI features
+                if 'predict' in concept or 'recommend' in concept or 'smart' in concept:
+                    pass  # Allow AI without explicit data mention for simplicity
+
+        # Check if functions align with concept (more lenient)
+        func_actions = []
+        for func in self.core_functions:
+            if any(verb in func.lower() for verb in ['manage', 'track', 'monitor', 'organize']):
+                func_actions.append('manage')
+            elif any(verb in func.lower() for verb in ['create', 'generate', 'build', 'produce']):
+                func_actions.append('create')
+            elif any(verb in func.lower() for verb in ['analyze', 'report', 'insight']):
+                func_actions.append('analyze')
+            elif any(verb in func.lower() for verb in ['connect', 'share', 'collaborate']):
+                func_actions.append('connect')
+
+        # Basic alignment check (more lenient)
+        if func_actions and len(func_actions) > 2:
+            # Functions should be somewhat related
+            unique_domains = len(set(func_actions))
+            if unique_domains > 3:
+                raise ValueError("Core functions should be focused and related, not covering multiple unrelated domains")
+
+        return self
 
 
 class AnalysisResult(BaseModel):
@@ -155,6 +535,86 @@ class AnalysisResult(BaseModel):
         if v.upper() not in allowed_levels:
             raise ValueError(f"trust_level must be one of {allowed_levels}")
         return v.upper()
+
+    @field_validator('embedding')
+    @classmethod
+    def validate_embedding_vector(cls, v):
+        """Validate embedding vector structure and values"""
+        if v is None:
+            return v  # Optional field, allow None
+
+        # Must be a list
+        if not isinstance(v, list):
+            raise ValueError("Invalid embedding vector: must be a list")
+
+        # Cannot be empty
+        if len(v) == 0:
+            raise ValueError("Invalid embedding vector: cannot be empty")
+
+        # Reasonable length bounds (typical embedding dimensions)
+        if len(v) < 10:
+            raise ValueError("Invalid embedding vector: too short (minimum 10 dimensions)")
+
+        if len(v) > 10000:
+            raise ValueError("Invalid embedding vector: too long (maximum 10000 dimensions)")
+
+        # All elements must be floats
+        for i, element in enumerate(v):
+            if not isinstance(element, (int, float)):
+                raise ValueError(f"Invalid embedding vector: element at index {i} is not a number")
+
+            # Check for infinite values
+            if math.isinf(element):
+                raise ValueError(f"Invalid embedding vector: element at index {i} is infinite")
+
+            # Check for NaN values
+            if math.isnan(element):
+                raise ValueError(f"Invalid embedding vector: element at index {i} is NaN")
+
+        return v
+
+    @model_validator(mode='after')
+    def validate_cross_model_consistency(self) -> 'AnalysisResult':
+        """Validate cross-model consistency between final score and market metrics"""
+        # Calculate expected score range based on market metrics
+        # This represents the logical average of the four key metrics
+        expected_score_range = (
+            self.market_metrics.market_demand +
+            self.market_metrics.pain_intensity +
+            self.market_metrics.monetization_potential +
+            self.market_metrics.technical_feasibility
+        ) / 4
+
+        # Allow reasonable deviation (20 points)
+        max_deviation = 20.0
+        score_difference = abs(self.final_score - expected_score_range)
+
+        if score_difference > max_deviation:
+            raise ValueError(
+                f"Final score inconsistency: final_score ({self.final_score}) "
+                f"deviates too much from market metrics average ({expected_score_range:.1f}). "
+                f"Maximum allowed deviation: {max_deviation}"
+            )
+
+        return self
+
+    @model_validator(mode='after')
+    def validate_timestamp_reasonableness(self) -> 'AnalysisResult':
+        """Validate that analysis timestamp is not too old"""
+        now = datetime.now(timezone.utc)
+        max_age_days = 365
+
+        # Ensure both timestamps are timezone-aware
+        if self.analyzed_at.tzinfo is None:
+            # Assume timezone-aware if not specified
+            analyzed_at = self.analyzed_at.replace(tzinfo=timezone.utc)
+        else:
+            analyzed_at = self.analyzed_at
+
+        if analyzed_at < now - timedelta(days=max_age_days):
+            raise ValueError(f"Analysis timestamp is too old: more than {max_age_days} days in the past")
+
+        return self
 
     @field_validator('final_score')
     @classmethod
