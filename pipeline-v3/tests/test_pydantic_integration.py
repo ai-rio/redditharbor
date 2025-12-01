@@ -893,12 +893,12 @@ class TestDatabaseIntegration:
                     "core_functions": ["rollback function"],
                     "market_demand": 70.0,
                     "pain_intensity": 75.0,
-                    monetization_potential=80.0,
-                    competition_level=65.0,
-                    technical_feasibility=85.0,
-                    final_score=75.0,
-                    confidence_score=80.0,
-                    trust_level="HIGH"
+                    "monetization_potential": 80.0,
+                    "competition_level": 65.0,
+                    "technical_feasibility": 85.0,
+                    "final_score": 75.0,
+                    "confidence_score": 80.0,
+                    "trust_level": "HIGH"
                 }
 
                 # Override with test-specific args

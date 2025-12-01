@@ -408,7 +408,7 @@ class TestAppIdeaBusinessLogic:
                 "expensive" in scenario["concept"].lower()):
                 pytest.fail("High-cost apps need viable monetization")
 
-    def test_user acquisition_business_rules(self):
+    def test_user_acquisition_business_rules(self):
         """Test user acquisition business logic - SHOULD FAIL"""
         # Current implementation doesn't consider acquisition costs
 

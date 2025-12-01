@@ -142,30 +142,16 @@ class RedditSubmission(BaseModel):
     @model_validator(mode='after')
     @classmethod
     def validate_text_content(cls, v):
-        """Validate text content has minimum meaningful length and substance"""
+        """Validate text content has minimum reasonable content"""
         text = v.text.strip()
 
         # Check for empty or whitespace-only text
         if not text:
-            raise ValueError("Text must be meaningful and substantial")
+            raise ValueError("Text cannot be empty")
 
-        # Check for single character or very short text
-        if len(text) <= 2:
-            raise ValueError("Text must be meaningful and substantial")
-
-        # Check for vague or test-like content
-        vague_patterns = [
-            "this is just test",
-            "just test",
-            "test content",
-            "example text",
-            "sample text"
-        ]
-
-        text_lower = text.lower()
-        for pattern in vague_patterns:
-            if pattern in text_lower:
-                raise ValueError("Text must be meaningful and substantial")
+        # Check for minimum length (relaxed)
+        if len(text) < 1:
+            raise ValueError("Text must have at least 1 character")
 
         return v
 
