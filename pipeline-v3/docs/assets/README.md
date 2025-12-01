@@ -1,12 +1,106 @@
-# Pipeline v3 Documentation Assets
+# Pipeline v3 Visual Documentation Assets
 
 <div align="center">
 
-**Images, Diagrams, and Visual Resources**
+**Architecture Diagrams and Visual Resources**
 
-*Visual documentation and architectural diagrams*
+*Comprehensive visual documentation for Pipeline v3 architecture and workflows*
 
 </div>
+
+## 📋 Available Assets
+
+### Architecture Diagrams
+
+- [`pipeline-architecture.md`](./pipeline-architecture.md) - Overall system architecture
+- [`data-flow.md`](./data-flow.md) - Data flow through ELT pipeline
+- [`component-interaction.md`](./component-interaction.md) - Component interaction diagrams
+- [`deployment-architecture.md`](./deployment-architecture.md) - Production deployment architecture
+
+### Workflow Diagrams
+
+- [`elt-workflow.md`](./elt-workflow.md) - ELT workflow visualization
+- [`reddit-extraction.md`](./reddit-extraction.md) - Reddit API extraction workflow
+- [`llm-processing.md`](./llm-processing.md) - LLM analysis processing flow
+- [`database-storage.md`](./database-storage.md) - Database storage and retrieval workflow
+
+### Technical Diagrams
+
+- [`type-system.md`](./type-system.md) - Pydantic type system architecture
+- [`error-handling.md`](./error-handling.md) - Error handling and resilience patterns
+- [`performance-optimization.md`](./performance-optimization.md) - Performance optimization strategies
+- [`monitoring-metrics.md`](./monitoring-metrics.md) - Monitoring and metrics architecture
+
+### Integration Diagrams
+
+- [`api-integrations.md`](./api-integrations.md) - External API integrations
+- [`authentication-flow.md`](./authentication-flow.md) - Authentication and security flows
+- [`circuit-breaker.md`](./circuit-breaker.md) - Circuit breaker patterns
+- [`rate-limiting.md`](./rate-limiting.md) - Rate limiting strategies
+
+## 🖼️ Diagram Categories
+
+### 📐 Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "Pipeline v3 Architecture"
+        A[Reddit API] -->|Raw Data| B[Extract Layer]
+        B -->|Validated Data| C[Transform Layer]
+        C -->|Structured Results| D[Load Layer]
+        D -->|Stored Data| E[Supabase]
+    end
+
+    subgraph "Type Safety"
+        F[Pydantic Models] --> G[Runtime Validation]
+        F --> H[Type Annotations]
+        F --> I[SQLAlchemy ORM]
+    end
+
+    B -.-> F
+    C -.-> F
+    D -.-> F
+```
+
+### 🔄 Data Flow Patterns
+
+```mermaid
+flowchart LR
+    A[Reddit Submissions] --> B[PRAW Client]
+    B --> C{Validation}
+    C -->|Valid| D[Staging Layer]
+    C -->|Invalid| E[Error Handler]
+    D --> F[LLM Analysis]
+    F --> G{Quality Check}
+    G -->|High Quality| H[Database Storage]
+    G -->|Low Quality| I[Quality Filter]
+    H --> J[Vector Search]
+    I --> K[Retrial Queue]
+```
+
+### ⚡ Performance Optimization
+
+```mermaid
+graph TB
+    subgraph "Optimization Layers"
+        A[Batch Processing] --> B[Connection Pooling]
+        B --> C[Caching Strategy]
+        C --> D[Rate Limiting]
+        D --> E[Cost Optimization]
+    end
+
+    subgraph "Monitoring"
+        F[Performance Metrics]
+        G[Error Tracking]
+        H[Resource Usage]
+        I[Cost Analysis]
+    end
+
+    A -.-> F
+    B -.-> G
+    C -.-> H
+    D -.-> I
+```
 
 ## 📁 Asset Structure
 
