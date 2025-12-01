@@ -1,0 +1,222 @@
+# Alertmanager Configuration for Pipeline v3
+# Routes alerts to appropriate channels with proper escalation
+
+global:
+  # SMTP configuration for email alerts
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@pipeline-v3.local'
+  smtp_require_tls: true
+
+  # Slack webhook (if configured)
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+  # Default resolve timeout
+  resolve_timeout: 5m
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # If Reddit API is completely down, inhibit specific Reddit errors
+  - source_match:
+      alertname: RedditAPIHighErrorRate
+    target_match_re:
+      alertname: RedditAPISlowResponse
+    equal: ['service']
+
+  # If LLM is completely down, inhibit slow processing alerts
+  - source_match:
+      alertname: LLMHighErrorRate
+    target_match_re:
+      alertname: LLMSlowProcessing
+    equal: ['service']
+
+  # If pipeline is not running, inhibit performance alerts
+  - source_match:
+      alertname: PipelineNotRunning
+    target_match_re:
+      alertname: (PipelineSlowExecution|PipelineHighFailureRate)
+    equal: ['service']
+
+# Routing configuration
+route:
+  # Default receiver
+  receiver: 'default'
+
+  # Group alerts by service and alertname
+  group_by: ['alertname', 'service', 'severity']
+
+  # Wait 10 seconds for more alerts before sending
+  group_wait: 10s
+
+  # Wait 30 seconds between sending notifications for the same group
+  group_interval: 30s
+
+  # Repeat alerts every 2 hours
+  repeat_interval: 2h
+
+  # Routes for different alert types
+  routes:
+    # Critical alerts go to pagerduty immediately
+    - match:
+        severity: critical
+      receiver: 'pagerduty'
+      continue: true
+      group_wait: 0s
+      repeat_interval: 30m
+
+    # Service-specific routes
+    - match:
+        service: reddit-api
+      receiver: 'slack-reddit'
+      group_by: ['alertname', 'severity']
+
+    - match:
+        service: llm
+      receiver: 'slack-llm'
+      group_by: ['alertname', 'severity']
+
+    - match:
+        service: database
+      receiver: 'slack-database'
+      group_by: ['alertname', 'severity']
+
+    - match:
+        service: pipeline-v3
+      receiver: 'slack-pipeline'
+      group_by: ['alertname', 'severity']
+
+    # Info-level alerts only to email
+    - match:
+        severity: info
+      receiver: 'email-only'
+      group_interval: 1h
+      repeat_interval: 24h
+
+# Receiver configurations
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#alerts'
+        title: 'Pipeline v3 Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Service:* {{ .GroupLabels.service }}
+
+          {{ range .Alerts }}
+          *Description:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+        icon_emoji: ':warning:'
+
+    email_configs:
+      - to: 'devops@company.com'
+        subject: '[Pipeline v3] {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+
+  - name: 'pagerduty'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ .Annotations.summary }}'
+        details:
+          alertname: '{{ .GroupLabels.alertname }}'
+          severity: '{{ .GroupLabels.severity }}'
+          service: '{{ .GroupLabels.service }}'
+          runbook: '{{ .Annotations.runbook_url }}'
+        severity: 'critical'
+
+  - name: 'slack-reddit'
+    slack_configs:
+      - channel: '#reddit-api'
+        title: 'Reddit API Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+
+          {{ range .Alerts }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+        icon_emoji: ':robot_face:'
+
+  - name: 'slack-llm'
+    slack_configs:
+      - channel: '#llm-processing'
+        title: 'LLM Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+
+          {{ range .Alerts }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+        icon_emoji: ':brain:'
+
+  - name: 'slack-database'
+    slack_configs:
+      - channel: '#database'
+        title: 'Database Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+
+          {{ range .Alerts }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+        icon_emoji': ':database:'
+
+  - name: 'slack-pipeline'
+    slack_configs:
+      - channel: '#pipeline-monitoring'
+        title: 'Pipeline Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+
+          {{ range .Alerts }}
+          *Description:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+        icon_emoji': ':gear:'
+
+  - name: 'email-only'
+    email_configs:
+      - to: 'team@company.com'
+        subject: '[Pipeline v3 Info] {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+# Time intervals for different alerting periods
+time_intervals:
+  - name: 'business-hours'
+    time_intervals:
+      - times:
+          - start_time: '09:00'
+            end_time: '17:00'
+        weekdays: ['monday:friday']
+
+  - name: 'after-hours'
+    time_intervals:
+      - times:
+          - start_time: '17:01'
+            end_time: '08:59'
+        weekdays: ['monday:friday']
+        weekdays: ['saturday', 'sunday']
