@@ -338,16 +338,18 @@ python -m pipeline_v3.main \
 
 ### After Successful Setup
 
-1. **[Configuration Guide](./configuration-guide.md)** - Advanced configuration options
-2. **[Performance Optimization](./performance-optimization.md)** - Speed up your pipeline
-3. **[Production Deployment](./production-deployment.md)** - Deploy to production
-4. **[Monitoring & Maintenance](./monitoring-guide.md)** - Keep your pipeline healthy
+1. **[Configuration Guide](../config/README.md)** - Advanced configuration options
+2. **[Implementation Guide](../implementation/elt-pipeline-implementation.md)** - Technical implementation details
+3. **[API Documentation](../api/README.md)** - External API integrations
+4. **[Component Documentation](../components/README.md)** - Pipeline components overview
 
 ### Integration with Existing Systems
 
-- **[RedditHarbor Live Testing](../../docs/live-test/)** - Real data validation
-- **[Business Opportunity Scoring](../components/opportunity-scoring.md)** - Business logic integration
-- **[API Documentation](../api/)** - External API usage
+- **[Migration Guide](../architecture/v2-to-v3-migration.md)** - Upgrading from v2
+- **[Technical Debt Register](../technical-debt-register.md)** - Development tracking
+- **[Documentation Analysis](../documentation-debt-analysis.md)** - Documentation status
+
+*Note: Additional guides (Performance Optimization, Production Deployment, Monitoring) are planned but not yet implemented*
 
 ---
 

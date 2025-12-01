@@ -2,13 +2,11 @@
 
 <div align="center">
 
-![RedditHarbor Logo](../assets/images/logo.png)
-
 **Clean ELT Architecture for Reddit Data Collection and Research**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-green.svg)](../requirements.txt)
-[![Documentation](https://img.shields.io/badge/docs-complete-brightgreen.svg)](#)
+[![Documentation](https://img.shields.io/badge/docs-wip-yellow.svg)](./documentation-debt-analysis.md)
 
 ---
 
@@ -34,7 +32,7 @@ New to RedditHarbor Pipeline v3? Start here:
 
 - **[Getting Started Guide](./guides/elt-pipeline-setup.md)** - Complete ELT pipeline setup and configuration
 - **[ELT Architecture Overview](./architecture/elt-architecture-design.md)** - Clean Extract → Transform → Load pattern
-- **[Configuration Guide](./config/)** - Environment setup and API configuration
+- **[Implementation Guide](./implementation/elt-pipeline-implementation.md)** - Technical implementation details
 
 ---
 
@@ -46,14 +44,27 @@ This documentation is organized into logical sections to help you find informati
 
 ```
 docs/
-├── README.md                    # This file - navigation hub
-├── api/                         # API documentation and endpoints
-├── architecture/                # System design and architecture decisions
-├── components/                  # Component documentation and specifications
-├── contributing/                # Contribution guidelines and standards
-├── guides/                      # User guides and tutorials
-├── implementation/              # Implementation details and technical guides
-└── assets/                      # Images, diagrams, and visual resources
+├── README.md                           # This file - navigation hub
+├── api/                                # External API integrations
+│   └── README.md                       # API documentation and interfaces
+├── architecture/                       # System design and architecture decisions
+│   ├── elt-architecture-design.md     # Clean ELT architecture overview
+│   ├── v2-to-v3-migration.md          # Migration guide from v2
+│   └── adr/                           # Architecture Decision Records
+├── components/                         # Pipeline components documentation
+│   └── README.md                       # Extract, Transform, Load layers
+├── config/                             # Configuration management
+│   └── README.md                       # Environment setup and API config
+├── contributing/                       # Development contribution guidelines
+│   └── README.md                       # Code standards and workflows
+├── guides/                             # User guides and tutorials
+│   └── elt-pipeline-setup.md          # Complete setup guide
+├── implementation/                     # Implementation details and technical guides
+│   └── elt-pipeline-implementation.md # Full implementation guide
+├── assets/                             # Visual resources and documentation assets
+│   └── README.md                       # Images, diagrams, and examples
+├── technical-debt-register.md          # Technical debt tracking
+└── documentation-debt-analysis.md      # Documentation gap analysis
 ```
 
 ---
@@ -66,11 +77,12 @@ docs/
   - Complete Extract → Transform → Load pipeline
   - Pydantic model integration and type safety
   - Real API integration setup
+  - Testing strategies and performance optimization
 
-- **[Real API Integration Guide](./implementation/real-api-integration.md)**
-  - Reddit API integration with PRAW
-  - OpenRouter LLM integration
-  - Supabase database connectivity
+**API and Configuration:**
+
+- **[API Documentation](./api/README.md)** - External service integrations
+- **[Configuration Guide](./config/README.md)** - Environment setup and management
 
 ---
 
@@ -83,10 +95,10 @@ docs/
   - Type safety with Pydantic throughout
   - Performance optimization strategies
 
-- **[Migration from Pipeline v2](./architecture/v2-to-v3-migration.md)**
-  - Architecture evolution and benefits
-  - Technical debt elimination
-  - Performance improvements achieved
+- **[Architecture Decision Records](./architecture/adr/README.md)**
+  - Repository pattern implementation (ADR-001)
+  - Quality validation system design (ADR-002)
+  - Vector embedding strategy (ADR-003)
 
 ### 📊 ELT Architecture Diagrams
 
@@ -129,19 +141,22 @@ graph LR
 
 ---
 
-## 🧩 Components & Systems
+## 🧩 Pipeline Components
 
-**Component Documentation and Specifications:**
+**Core Pipeline Components and Systems:**
 
-### ELT Pipeline Components
-- **[Extract Layer](./components/extract-layer.md)** - Reddit API and LLM data extraction
-- **[Transform Layer](./components/transform-layer.md)** - Pydantic validation and data transformation
-- **[Load Layer](./components/load-layer.md)** - Database storage with SQLAlchemy
+### ELT Pipeline Layers
+- **[Component Documentation](./components/README.md)** - Complete overview of all pipeline components
+  - Extract Layer - Reddit API and LLM data extraction
+  - Transform Layer - Pydantic validation and data transformation
+  - Load Layer - Database storage with SQLAlchemy
 
 ### Core Systems
-- **[Pydantic Models](./components/pydantic-models.md)** - Type-safe data validation throughout pipeline
-- **[Configuration Management](./components/configuration-system.md)** - Environment-based configuration
-- **[Error Handling & Logging](./components/error-handling.md)** - Comprehensive error management
+- **Pydantic Models** - Type-safe data validation throughout pipeline (see `models/` directory)
+- **Configuration Management** - Environment-based configuration (see setup guide)
+- **Error Handling & Logging** - Comprehensive error management (see implementation guide)
+
+*Detailed component architecture and implementation available in the [Component Documentation](./components/README.md)*
 
 ---
 
@@ -153,26 +168,22 @@ graph LR
   - Complete pipeline initialization
   - API credential configuration
   - Database setup and migration
+  - Troubleshooting and diagnostics
 
-- **[Type Safety Development Guide](./guides/type-safety-development.md)**
-  - Pydantic model development
-  - Type annotation best practices
-  - Validation pattern implementation
-
-- **[Performance Optimization Guide](./guides/performance-optimization.md)**
-  - Batch processing optimization
-  - Memory management strategies
-  - Throughput improvement techniques
+*Note: Additional guides (Type Safety, Performance Optimization) are planned but not yet implemented*
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions to RedditHarbor Pipeline v3! Please see our contribution guidelines:
+We welcome contributions to RedditHarbor Pipeline v3!
 
-- **[Contribution Guidelines](./contributing/)** - Standards and procedures for contributing
-- **Code Quality Standards** - Ruff linting, formatting, and testing requirements
-- **Documentation Standards** - Writing and maintaining documentation
+### Code Quality Standards
+
+- **Ruff Linting**: Run `ruff check . && ruff format .` before commits
+- **Testing**: Add comprehensive tests for new features (pytest)
+- **Type Safety**: Use type hints and Pydantic models throughout
+- **Documentation**: Update relevant documentation for new features
 
 ### Quick Contribution Checklist
 
@@ -182,6 +193,8 @@ We welcome contributions to RedditHarbor Pipeline v3! Please see our contributio
 - [ ] Ensure all CI checks pass
 - [ ] Submit pull request with clear description
 
+*Note: Detailed contributing guidelines are planned but not yet implemented*
+
 ---
 
 ## 🔍 Additional Resources
@@ -189,8 +202,8 @@ We welcome contributions to RedditHarbor Pipeline v3! Please see our contributio
 ### Related Documentation
 
 - **[Main Project README](../README.md)** - Overall project information
-- **[API Documentation](./api/)** - Detailed API references
-- **[Configuration Guide](../config/)** - Configuration options and settings
+- **[Technical Debt Register](./technical-debt-register.md)** - Active development tracking
+- **[Documentation Debt Analysis](./documentation-debt-analysis.md)** - Documentation gap analysis
 
 ### External Resources
 

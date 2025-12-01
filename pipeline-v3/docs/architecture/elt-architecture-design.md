@@ -256,8 +256,8 @@ class ProcessedOpportunity(BaseModel):
 ## 🔗 Related Documentation
 
 - **[ELT Pipeline Implementation Guide](../implementation/elt-pipeline-implementation.md)** - Step-by-step implementation details
-- **[Real API Integration Guide](../implementation/real-api-integration.md)** - API configuration and setup
-- **[Type Safety Development Guide](../guides/type-safety-development.md)** - Pydantic best practices
+- **[API Documentation](../api/README.md)** - External API integrations and configuration
+- **[Configuration Guide](../config/README.md)** - Environment setup and API configuration
 - **[Migration from Pipeline v2](./v2-to-v3-migration.md)** - Complete migration guide
 
 ---
