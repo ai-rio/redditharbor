@@ -160,7 +160,7 @@ class OnlyMapsDatabaseLoader:
 
     def store_analyses(self, analyses, reddit_submissions=None):
         """
-        Store analyses using OnlyMaps with schema flexibility
+        Store analyses using OnlyMaps with actual database inserts
 
         Args:
             analyses: List of AnalysisResult objects to store
@@ -169,18 +169,121 @@ class OnlyMapsDatabaseLoader:
         Returns:
             Dictionary with storage statistics
         """
-        logger.info(f"Storing {len(analyses) if analyses else 0} analyses with OnlyMaps schema flexibility")
+        from load.data_mappers import AnalysisToOpportunityMapper
+        import json
+
+        logger.info(f"Storing {len(analyses) if analyses else 0} analyses with OnlyMaps")
 
         if not analyses:
             return {"stored": 0, "skipped": 0, "errors": 0}
 
-        # For now, return mock storage stats since we're focused on get_statistics()
-        # This could be extended to use OnlyMaps for actual storage
-        return {
-            "stored": len(analyses),
-            "skipped": 0,
-            "errors": 0
-        }
+        # Use data mapper to convert AnalysisResults to Opportunities
+        mapper = AnalysisToOpportunityMapper(preserve_reddit_metadata=True)
+        opportunities = mapper.map_batch(analyses, reddit_submissions)
+
+        stored = 0
+        skipped = 0
+        errors = 0
+
+        # Use psycopg2 for actual database operations
+        import psycopg2
+        import psycopg2.extras
+
+        try:
+            # Connect to database using stored database_url
+            conn = psycopg2.connect(self.database_url)
+            cursor = conn.cursor()
+
+            for opp in opportunities:
+                try:
+                    # Use savepoint for each insert to allow rollback without aborting transaction
+                    cursor.execute("SAVEPOINT insert_savepoint")
+
+                    # Execute INSERT with ON CONFLICT DO NOTHING for duplicates
+                    # Map to existing database schema (OLD format)
+                    # Use _dlt_id (unique constraint exists) instead of submission_id
+                    import hashlib
+                    dlt_id = hashlib.sha256(f"pipeline_v3_{opp.submission_id}".encode()).hexdigest()[:16]
+
+                    insert_query = """
+                        INSERT INTO app_opportunities (
+                            submission_id, title, url, subreddit,
+                            author, score, num_comments, created_utc,
+                            opportunity_category, opportunity_reasoning,
+                            monetization_score, monetization_confidence,
+                            trust_score, trust_badge,
+                            quality_score, ai_confidence_score,
+                            processed_at, _dlt_load_id, _dlt_id
+                        ) VALUES (
+                            %(submission_id)s, %(title)s, %(url)s, %(subreddit)s,
+                            %(author)s, %(score)s, %(num_comments)s, %(created_utc)s,
+                            %(opportunity_category)s, %(opportunity_reasoning)s,
+                            %(monetization_score)s, %(monetization_confidence)s,
+                            %(trust_score)s, %(trust_badge)s,
+                            %(quality_score)s, %(ai_confidence_score)s,
+                            %(processed_at)s, %(dlt_load_id)s, %(dlt_id)s
+                        )
+                        ON CONFLICT (_dlt_id) DO NOTHING
+                    """
+
+                    # Prepare data for insertion - map to OLD schema
+                    data = {
+                        'submission_id': opp.submission_id,
+                        'title': opp.reddit_title,
+                        'url': opp.reddit_url,
+                        'subreddit': opp.subreddit,
+                        'author': opp.reddit_author,
+                        'score': opp.reddit_upvotes,
+                        'num_comments': opp.reddit_comments_count,
+                        'created_utc': opp.reddit_created_at,
+                        'opportunity_category': opp.app_title,
+                        'opportunity_reasoning': f"{opp.app_concept}\\n\\nProblem: {opp.problem_statement}\\n\\nTarget: {opp.target_audience}",
+                        'monetization_score': opp.monetization_potential,
+                        'monetization_confidence': opp.confidence_score,
+                        'trust_score': opp.final_score,
+                        'trust_badge': opp.trust_level,
+                        'quality_score': opp.content_quality_score,
+                        'ai_confidence_score': opp.confidence_score,
+                        'processed_at': opp.analyzed_at,
+                        'dlt_load_id': f'pipeline_v3_{opp.submission_id}',
+                        'dlt_id': dlt_id
+                    }
+
+                    # Execute the insert
+                    cursor.execute(insert_query, data)
+
+                    # Release savepoint if successful
+                    cursor.execute("RELEASE SAVEPOINT insert_savepoint")
+                    stored += 1
+
+                except Exception as e:
+                    # Rollback to savepoint to recover transaction
+                    try:
+                        cursor.execute("ROLLBACK TO SAVEPOINT insert_savepoint")
+                    except:
+                        pass  # Savepoint may not exist if error was before creation
+
+                    if "duplicate key" in str(e).lower() or "conflict" in str(e).lower():
+                        logger.debug(f"Skipping duplicate submission: {opp.submission_id}")
+                        skipped += 1
+                    else:
+                        logger.error(f"Failed to store opportunity {opp.submission_id}: {e}")
+                        errors += 1
+
+            # Commit the transaction
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            logger.info(f"✓ Stored {stored} opportunities (skipped {skipped} duplicates, {errors} errors)")
+            return {"stored": stored, "skipped": skipped, "errors": errors}
+
+        except Exception as e:
+            logger.error(f"Failed to store analyses: {e}")
+            if 'conn' in locals():
+                conn.rollback()
+                conn.close()
+            return {"stored": stored, "skipped": skipped, "errors": errors + len(analyses) - stored - skipped}
 
     def get_opportunities(self, limit=100, min_score=0.0, trust_levels=None, subreddits=None):
         """
@@ -229,6 +332,16 @@ class OnlyMapsDatabaseLoader:
         except Exception as e:
             logger.error(f"OnlyMaps database connection test failed: {e}")
             return False
+
+    def create_tables(self) -> None:
+        """
+        No-op for OnlyMaps - tables are assumed to exist
+
+        OnlyMaps expects the database schema to already be in place.
+        This method exists for compatibility with the orchestration layer.
+        """
+        logger.debug("OnlyMaps: Skipping table creation (tables expected to exist)")
+        pass
 
     def get_statistics(self):
         """

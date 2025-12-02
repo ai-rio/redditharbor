@@ -298,8 +298,11 @@ class OpportunityAnalyzer(SimpleOpportunityAnalyzer):
         openai_config = self.settings.get_openai_client_config()
         openai_client = OpenAI(**openai_config)
 
-        # Initialize Instructor with OpenRouter client
-        self.client = instructor.from_openai(openai_client)
+        # Initialize Instructor with OpenRouter client using JSON mode for compatibility
+        self.client = instructor.from_openai(
+            openai_client,
+            mode=instructor.Mode.JSON
+        )
 
         # System prompt for consistent analysis
         self.system_prompt = """
@@ -520,10 +523,10 @@ Remember: SIMPLER IS BETTER. Focus on focused, single-purpose apps.
         try:
             logger.info(f"Testing OpenRouter connection with model: {self.settings.model_name}")
 
-            # Simple test request
+            # Simple test request with sufficient tokens for JSON response
             response = self.client.chat.completions.create(
                 model=self.settings.model_name,
-                max_tokens=10,
+                max_tokens=500,  # Increased to allow full JSON response
                 temperature=0,
                 response_model=AppIdea,
                 messages=[
