@@ -71,6 +71,11 @@ class Opportunity(Base):
     confidence_score = Column(Float, nullable=False)
     trust_level = Column(String(10), nullable=False, index=True)
 
+    # AI Quality Assessment (Phase 2+)
+    content_quality_score = Column(Float, nullable=False, index=True)  # AI quality score (0-100)
+    is_spam = Column(Boolean, nullable=False, default=False, index=True)  # AI spam flag
+    spam_indicators = Column(JSON, nullable=True)  # List of spam reasons
+
     # Semantic search - stored as JSON for compatibility
     embedding: Optional[List[float]] = Column(JSON, nullable=True)
 
@@ -93,6 +98,10 @@ class Opportunity(Base):
         Index('idx_opportunities_subreddit_created', 'subreddit', 'reddit_created_at'),
         Index('idx_opportunities_analyzed_created', 'analyzed_at', 'created_at'),
         Index('idx_opportunities_core_functions', 'core_functions', postgresql_using='gin'),
+        # Quality filtering indexes (Phase 2+)
+        Index('idx_opportunities_is_spam', 'is_spam'),
+        Index('idx_opportunities_quality_score', 'content_quality_score'),
+        Index('idx_opportunities_quality_spam', 'content_quality_score', 'is_spam'),
         # Basic index for embedding (will be enhanced with pgvector later)
     )
 
