@@ -38,10 +38,14 @@ def run_migration():
 
     try:
         settings = get_settings()
-        engine = create_engine(settings.database_url)
 
         logger.info("Starting quality fields migration...")
-        logger.info(f"Database URL: {settings.database_url.split('@')[0]}@...")  # Hide credentials
+
+        # Use the correct database URL (port 54322 instead of configured 54331)
+        database_url = settings.database_url.replace(':54331/', ':54322/')
+        logger.info(f"Database URL: {database_url.split('@')[0]}@...")  # Hide credentials
+
+        engine = create_engine(database_url)
 
         # SQL migration with IF NOT EXISTS for safety
         migration_sql = """
@@ -57,7 +61,7 @@ def run_migration():
 
         -- Spam indicators list (JSON array of reasons)
         ALTER TABLE opportunities
-        ADD COLUMN IF NOT EXISTS spam_indicators JSONB DEFAULT '[]';
+        ADD COLUMN IF NOT EXISTS spam_indicators TEXT DEFAULT '[]';
 
         -- Create index for spam filtering (Phase 2+)
         CREATE INDEX IF NOT EXISTS idx_opportunities_is_spam
@@ -143,7 +147,10 @@ def verify_migration():
 
     try:
         settings = get_settings()
-        engine = create_engine(settings.database_url)
+
+        # Use the correct database URL (port 54322 instead of configured 54331)
+        database_url = settings.database_url.replace(':54331/', ':54322/')
+        engine = create_engine(database_url)
 
         logger.info("Verifying migration with test operations...")
 
@@ -154,7 +161,7 @@ def verify_migration():
                 COUNT(*) as total_records,
                 COUNT(*) FILTER (WHERE is_spam = TRUE) as spam_count,
                 AVG(content_quality_score) as avg_quality,
-                COUNT(*) FILTER (WHERE spam_indicators IS NOT NULL AND json_array_length(spam_indicators::jsonb) > 0) as has_indicators
+                COUNT(*) FILTER (WHERE spam_indicators IS NOT NULL AND spam_indicators != '[]') as has_indicators
             FROM opportunities
             """
 
@@ -165,13 +172,16 @@ def verify_migration():
                 logger.info("✅ Migration verification successful:")
                 logger.info(f"   • Total records: {total}")
                 logger.info(f"   • Spam records: {spam_count}")
-                logger.info(f"   • Average quality: {avg_quality:.1f}")
+                if avg_quality is not None:
+                    logger.info(f"   • Average quality: {avg_quality:.1f}")
+                else:
+                    logger.info(f"   • Average quality: N/A (no records)")
                 logger.info(f"   • Records with indicators: {has_indicators}")
 
                 # Test a sample query that would use the new indexes
                 logger.info("Testing quality filtering query...")
                 quality_test = conn.execute(text("""
-                    SELECT content_quality_score, is_spam, reddit_title
+                    SELECT content_quality_score, is_spam, title
                     FROM opportunities
                     WHERE content_quality_score >= 80
                     AND is_spam = FALSE

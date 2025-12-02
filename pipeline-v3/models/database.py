@@ -144,6 +144,12 @@ class OpportunityCreate(BaseModel):
     final_score: float = Field(..., ge=0, le=100, description="Final opportunity score")
     confidence_score: float = Field(..., ge=0, le=100, description="Confidence score")
     trust_level: str = Field(..., pattern="^(HIGH|MEDIUM|LOW)$", description="Trust level")
+
+    # AI Quality Assessment fields (Phase 2+)
+    content_quality_score: float = Field(default=50.0, ge=0.0, le=100.0, description="AI-generated content quality score")
+    is_spam: bool = Field(default=False, description="AI-identified spam flag")
+    spam_indicators: List[str] = Field(default=[], description="List of spam detection reasons")
+
     embedding: Optional[List[float]] = Field(None, description="Vector embedding")
 
     # Validation service injection for production database validation
@@ -265,5 +271,8 @@ class OpportunityCreate(BaseModel):
             final_score=self.final_score,
             confidence_score=self.confidence_score,
             trust_level=self.trust_level,
+            content_quality_score=self.content_quality_score,
+            is_spam=self.is_spam,
+            spam_indicators=self.spam_indicators,
             embedding=self.embedding,
         )
