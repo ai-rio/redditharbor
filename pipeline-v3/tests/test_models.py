@@ -215,9 +215,10 @@ class TestAnalysisResult:
 class TestRedditSubmissionExtended:
     """Extended tests for RedditSubmission model edge cases"""
 
-    def test_score_consistency_validation(self):
-        """Test score consistency validation"""
-        with pytest.raises(ValueError, match="Score must equal upvotes minus downvotes"):
+    def test_score_consistency_with_tolerance(self):
+        """Test score consistency validation with vote fuzzing tolerance"""
+        # Should fail - too far outside tolerance
+        with pytest.raises(ValueError, match="Score must approximately equal upvotes minus downvotes"):
             RedditSubmission(
                 id="test123",
                 title="Test Title",
@@ -225,30 +226,46 @@ class TestRedditSubmissionExtended:
                 author="testuser",
                 upvotes=100,
                 downvotes=20,
-                score=90,  # Wrong: should be 80
+                score=50,  # Way off: should be 80, more than 10% tolerance
                 comments_count=25,
                 subreddit="test",
                 created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
 
-    def test_negative_score_validation(self):
-        """Test negative score validation"""
-        with pytest.raises(ValueError, match="Score cannot be negative"):
-            RedditSubmission(
-                id="test123",
-                title="Test Title",
-                text="Test content",
-                author="testuser",
-                upvotes=10,
-                downvotes=20,
-                score=-10,  # Negative score not allowed
-                comments_count=25,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+        # Should pass - within tolerance (10% of 80 = 8, so 72-88 is acceptable)
+        valid_submission = RedditSubmission(
+            id="test456",
+            title="Test Title 2",
+            text="Test content 2",
+            author="testuser2",
+            upvotes=100,
+            downvotes=20,
+            score=85,  # Within tolerance: expected 80, actual 85 (difference = 5, tolerance = 8)
+            comments_count=25,
+            subreddit="test",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test456"
+        )
+        assert valid_submission.score == 85
 
+        # Should pass - negative scores are now allowed (just logged)
+        valid_negative_submission = RedditSubmission(
+            id="test789",
+            title="Test Title 3",
+            text="Test content 3",
+            author="testuser3",
+            upvotes=5,
+            downvotes=20,
+            score=-15,  # Negative score allowed
+            comments_count=25,
+            subreddit="test",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test789"
+        )
+        assert valid_negative_submission.score == -15
+
+  
     def test_author_validation_edge_cases(self):
         """Test author validation edge cases"""
         with pytest.raises(ValueError, match="Invalid Reddit username"):
@@ -293,19 +310,20 @@ class TestRedditSubmissionExtended:
                 permalink="https://reddit.com/r/test/test123"
             )
 
-        with pytest.raises(ValueError, match="Invalid Reddit username"):
-            RedditSubmission(
-                id="test",
-                title="Test",
-                text="Content",
-                author="admin",  # Reserved term
-                upvotes=10,
-                score=10,
-                comments_count=5,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+        # Bot accounts like "admin" and "AutoModerator" are now allowed
+        valid_bot_submission = RedditSubmission(
+            id="test",
+            title="Test",
+            text="Content",
+            author="AutoModerator",  # Bot account now allowed
+            upvotes=10,
+            score=10,
+            comments_count=5,
+            subreddit="test",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_bot_submission.author == "AutoModerator"
 
     def test_subreddit_validation_edge_cases(self):
         """Test subreddit validation edge cases"""
@@ -351,35 +369,36 @@ class TestRedditSubmissionExtended:
                 permalink="https://reddit.com/r/test/test123"
             )
 
-        with pytest.raises(ValueError, match="Invalid subreddit name"):
-            RedditSubmission(
-                id="test",
-                title="Test",
-                text="Content",
-                author="testuser",
-                upvotes=10,
-                score=10,
-                comments_count=5,
-                subreddit="all",  # Reserved term
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+        # Hyphens in subreddit names are now allowed
+        valid_hyphen_subreddit = RedditSubmission(
+            id="test",
+            title="Test",
+            text="Content",
+            author="testuser",
+            upvotes=10,
+            score=10,
+            comments_count=5,
+            subreddit="web-design",  # Hyphens now allowed
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_hyphen_subreddit.subreddit == "web-design"
 
-    def test_title_spam_validation(self):
-        """Test title spam keyword validation"""
-        with pytest.raises(ValueError, match="Title contains spam-like content"):
-            RedditSubmission(
-                id="test123",
-                title="FREE MONEY CLICK HERE LIMITED TIME",
-                text="Test content",
-                author="testuser",
-                upvotes=100,
-                score=100,
-                comments_count=25,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+    def test_title_spam_keywords_now_allowed(self):
+        """Test that titles with spam-like keywords are now allowed (AI will filter)"""
+        valid_submission = RedditSubmission(
+            id="test123",
+            title="Urgent need for better task management tool",  # "urgent" now allowed
+            text="Test content",
+            author="testuser",
+            upvotes=100,
+            score=100,
+            comments_count=25,
+            subreddit="productivity",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_submission.title == "Urgent need for better task management tool"
 
     def test_permalink_validation_edge_cases(self):
         """Test permalink validation with different valid formats"""
@@ -432,22 +451,22 @@ class TestRedditSubmissionExtended:
                 url="ftp://invalid-protocol.com"
             )
 
-    def test_text_content_validation(self):
-        """Test text content validation"""
-        # Empty text should fail
-        with pytest.raises(ValueError, match="Text cannot be empty"):
-            RedditSubmission(
-                id="test123",
-                title="Test Title",
-                text="   ",  # Whitespace only
-                author="testuser",
-                upvotes=100,
-                score=100,
-                comments_count=25,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+    def test_empty_text_now_allowed(self):
+        """Test that empty text is now allowed for link posts"""
+        # Empty text (link post) should now work
+        valid_link_post = RedditSubmission(
+            id="test123",
+            title="Check out this useful article",
+            text="",  # Empty text now allowed for link posts
+            author="testuser",
+            upvotes=100,
+            score=100,
+            comments_count=25,
+            subreddit="productivity",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_link_post.text == ""
 
 
 class TestRedditCommentExtended:

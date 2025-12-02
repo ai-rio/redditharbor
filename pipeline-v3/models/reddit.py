@@ -14,7 +14,7 @@ class RedditSubmission(BaseModel):
     # Core Reddit data
     id: str = Field(..., min_length=3, description="Reddit submission ID")
     title: str = Field(..., min_length=1, max_length=300, description="Submission title")
-    text: str = Field(..., description="Submission text content")
+    text: str = Field(default="", description="Submission text content")
     author: str = Field(..., description="Author username")
 
     # Engagement metrics
@@ -62,18 +62,24 @@ class RedditSubmission(BaseModel):
     @model_validator(mode='after')
     @classmethod
     def validate_score_consistency(cls, v):
-        """Validate score consistency with upvotes and downvotes"""
+        """Validate score consistency with upvotes and downvotes allowing for Reddit vote fuzzing"""
         expected_score = v.upvotes - v.downvotes
-        if v.score != expected_score:
-            raise ValueError(f"Score must equal upvotes minus downvotes ({v.upvotes} - {v.downvotes} = {expected_score})")
+
+        # Allow small variance due to Reddit vote fuzzing (±10%)
+        tolerance = max(1, int(expected_score * 0.1))
+
+        if abs(v.score - expected_score) > tolerance:
+            raise ValueError(f"Score must approximately equal upvotes minus downvotes within {tolerance} tolerance")
         return v
 
     @model_validator(mode='after')
     @classmethod
     def validate_negative_score(cls, v):
-        """Reject impossible negative score scenarios"""
+        """Allow negative scores but warn about them"""
+        # Negative scores are possible on Reddit, just log for monitoring
         if v.score < 0:
-            raise ValueError("Score cannot be negative")
+            import logging
+            logging.debug(f"Submission {v.id} has negative score: {v.score}")
         return v
 
     @model_validator(mode='after')
@@ -81,7 +87,6 @@ class RedditSubmission(BaseModel):
     def validate_author_format(cls, v):
         """Validate Reddit username format"""
         author = v.author
-        reserved_terms = ['bot', 'mod', 'admin', 'reddit', 'auto']
 
         # Check for empty string
         if not author or author.strip() == '':
@@ -95,10 +100,7 @@ class RedditSubmission(BaseModel):
         if ' ' in author:
             raise ValueError("Invalid Reddit username")
 
-        # Check for reserved terms
-        if author.lower() in reserved_terms:
-            raise ValueError("Invalid Reddit username")
-
+        # Reserved terms check removed to allow bot accounts like AutoModerator
         return v
 
     @model_validator(mode='after')
@@ -116,8 +118,8 @@ class RedditSubmission(BaseModel):
         if len(subreddit) > 21:
             raise ValueError("Invalid subreddit name")
 
-        # Check for spaces and hyphens
-        if ' ' in subreddit or '-' in subreddit:
+        # Check for spaces only (allow hyphens for real subreddits)
+        if ' ' in subreddit:
             raise ValueError("Invalid subreddit name")
 
         # Check for reserved terms
@@ -126,35 +128,8 @@ class RedditSubmission(BaseModel):
 
         return v
 
-    @model_validator(mode='after')
-    @classmethod
-    def validate_title_spam_keywords(cls, v):
-        """Validate title doesn't contain spam keywords"""
-        title = v.title.lower()
-        spam_keywords = ["free money", "click here", "limited time", "urgent", "act now"]
-
-        for keyword in spam_keywords:
-            if keyword in title:
-                raise ValueError("Title contains spam-like content")
-
-        return v
-
-    @model_validator(mode='after')
-    @classmethod
-    def validate_text_content(cls, v):
-        """Validate text content has minimum reasonable content"""
-        text = v.text.strip()
-
-        # Check for empty or whitespace-only text
-        if not text:
-            raise ValueError("Text cannot be empty")
-
-        # Check for minimum length (relaxed)
-        if len(text) < 1:
-            raise ValueError("Text must have at least 1 character")
-
-        return v
-
+  
+  
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -198,7 +173,6 @@ class RedditComment(BaseModel):
     def validate_author_format(cls, v):
         """Validate Reddit username format (reuse from RedditSubmission)"""
         author = v.author
-        reserved_terms = ['bot', 'mod', 'admin', 'reddit', 'auto']
 
         # Check for empty string
         if not author or author.strip() == '':
@@ -212,10 +186,7 @@ class RedditComment(BaseModel):
         if ' ' in author:
             raise ValueError("Invalid Reddit username")
 
-        # Check for reserved terms
-        if author.lower() in reserved_terms:
-            raise ValueError("Invalid Reddit username")
-
+        # Reserved terms check removed to allow bot accounts like AutoModerator
         return v
 
     @model_validator(mode='after')
