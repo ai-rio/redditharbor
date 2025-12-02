@@ -41,7 +41,8 @@ def test_missing_cross_model_validation():
             market_metrics=inconsistent_metrics,
             final_score=90.0,        # Too high compared to metrics average of 33.75
             confidence_score=80.0,
-            trust_level="HIGH"
+            trust_level="HIGH",
+            content_quality_score=75.0  # Add missing required field
         )
 
     # This should work - final score is consistent with component metrics
@@ -51,7 +52,8 @@ def test_missing_cross_model_validation():
         market_metrics=inconsistent_metrics,
         final_score=35.0,        # Consistent with metrics average ~33.75
         confidence_score=80.0,
-        trust_level="HIGH"
+        trust_level="HIGH",
+        content_quality_score=60.0  # Add missing required field
     )
 
 def test_missing_embedding_validation():
@@ -75,6 +77,7 @@ def test_missing_embedding_validation():
         final_score=75.0,
         confidence_score=80.0,
         trust_level="HIGH",
+        content_quality_score=85.0,
         embedding=valid_embedding
     )
     assert len(analysis.embedding) == 384
@@ -98,6 +101,7 @@ def test_missing_embedding_validation():
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
+                content_quality_score=85.0,
                 embedding=embedding
             )
 
@@ -116,6 +120,7 @@ def test_missing_embedding_validation():
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
+                content_quality_score=85.0,
                 embedding=embedding
             )
 
@@ -140,6 +145,7 @@ def test_missing_timestamp_validation():
         final_score=75.0,
         confidence_score=80.0,
         trust_level="HIGH",
+        content_quality_score=85.0,
         analyzed_at=recent_timestamp
     )
     assert analysis.analyzed_at == recent_timestamp
@@ -155,6 +161,7 @@ def test_missing_timestamp_validation():
             final_score=75.0,
             confidence_score=80.0,
             trust_level="HIGH",
+            content_quality_score=85.0,
             analyzed_at=old_timestamp
         )
 
