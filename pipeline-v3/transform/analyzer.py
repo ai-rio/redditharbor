@@ -110,6 +110,9 @@ class SimpleOpportunityAnalyzer:
             embedding_metadata
         )
 
+        # Generate quality scoring based on content analysis
+        content_quality_score, is_spam, spam_indicators = self._analyze_content_quality(submission)
+
         return AnalysisResult(
             submission_id=submission.id,
             analyzed_at=datetime.now(),
@@ -118,6 +121,9 @@ class SimpleOpportunityAnalyzer:
             final_score=75.0,
             confidence_score=80.0,
             trust_level="HIGH",
+            content_quality_score=content_quality_score,
+            is_spam=is_spam,
+            spam_indicators=spam_indicators,
             embedding=embedding,
             embedding_metadata=embedding_metadata
         )
@@ -156,6 +162,111 @@ class SimpleOpportunityAnalyzer:
         else:
             logger.warning("Fake analyzer connection test failed")
         return strategy_test
+
+    def _analyze_content_quality(self, submission: RedditSubmission) -> tuple[float, bool, List[str]]:
+        """
+        Analyze content quality and detect spam indicators
+
+        Args:
+            submission: Reddit submission to analyze
+
+        Returns:
+            Tuple of (content_quality_score, is_spam, spam_indicators)
+        """
+        spam_indicators = []
+        quality_score = 85.0  # Start with high quality score
+
+        text = f"{submission.title} {submission.text}".lower()
+
+        # Check for spam indicators
+        if self._has_excessive_caps(submission.title):
+            spam_indicators.append("excessive_caps")
+            quality_score -= 15
+
+        if self._has_repetitive_content(text):
+            spam_indicators.append("repetitive_content")
+            quality_score -= 20
+
+        if self._has_suspicious_links(submission):
+            spam_indicators.append("suspicious_links")
+            quality_score -= 25
+
+        if self._has_spam_keywords(text):
+            spam_indicators.append("spam_keywords")
+            quality_score -= 20
+
+        # Check content length and substance
+        if len(submission.text.strip()) < 50:
+            spam_indicators.append("too_short")
+            quality_score -= 10
+        elif len(submission.text.strip()) > 5000:
+            # Very long content might be spam
+            spam_indicators.append("excessively_long")
+            quality_score -= 15
+
+        # Check for basic grammatical quality (simplified)
+        if self._has_poor_grammar(submission.title):
+            spam_indicators.append("poor_grammar")
+            quality_score -= 10
+
+        # Ensure score stays within bounds
+        quality_score = max(0.0, min(100.0, quality_score))
+
+        # Determine if this is spam
+        is_spam = quality_score <= 40.0 or len(spam_indicators) >= 3
+
+        return quality_score, is_spam, spam_indicators
+
+    def _has_excessive_caps(self, title: str) -> bool:
+        """Check if title has excessive capitalization"""
+        if len(title) < 5:
+            return False
+        caps_count = sum(1 for c in title if c.isupper())
+        caps_ratio = caps_count / len(title)
+        return caps_ratio > 0.4  # More than 40% caps is excessive
+
+    def _has_repetitive_content(self, text: str) -> bool:
+        """Check for repetitive phrases or content"""
+        words = text.split()
+        if len(words) < 10:
+            return False
+
+        # Check for repeated words
+        word_count = {}
+        for word in words:
+            if len(word) > 3:  # Ignore short words
+                word_count[word] = word_count.get(word, 0) + 1
+
+        # If any meaningful word appears more than 3 times, it's repetitive
+        return any(count > 3 for count in word_count.values())
+
+    def _has_suspicious_links(self, submission: RedditSubmission) -> bool:
+        """Check for suspicious link patterns"""
+        # This is a simplified check - in production, you'd use more sophisticated analysis
+        text = f"{submission.title} {submission.text}".lower()
+        suspicious_patterns = ['bit.ly', 'tinyurl.com', 'short.link', 't.co']
+        return any(pattern in text for pattern in suspicious_patterns)
+
+    def _has_spam_keywords(self, text: str) -> bool:
+        """Check for common spam keywords"""
+        spam_keywords = [
+            'click here', 'buy now', 'free money', 'make money fast',
+            'limited time', 'act now', 'urgent', 'winner', 'congratulations',
+            'claim your', 'guaranteed', 'risk free', 'no cost'
+        ]
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in spam_keywords)
+
+    def _has_poor_grammar(self, title: str) -> bool:
+        """Simplified grammar check"""
+        # Check for basic punctuation issues
+        if title.count('!') > 1:
+            return True
+        if title.count('?') > 1:
+            return True
+        if not title[0].isupper() and not title[0].isdigit():
+            return True
+        return False
 
     def get_model_info(self) -> dict:
         """Get model info using embedding strategy"""
@@ -202,6 +313,24 @@ CRITICAL RULES:
 4. Look for recurring pain points, workaround discussions, and "I wish" statements.
 5. Validate market demand through the number of upvotes, comments, and engagement.
 6. Score monetization potential based on willingness to pay indicators.
+
+CONTENT QUALITY SCORING REQUIREMENTS:
+7. Assign a content_quality_score (0-100) where:
+   - 80-100: High quality, original content with clear value
+   - 60-79: Good quality content with minor issues
+   - 40-59: Moderate quality with several concerns
+   - 0-39: Low quality, likely spam or irrelevant
+
+8. Set is_spam = True and content_quality_score ≤ 40 for:
+   - Excessive capitalization or punctuation
+   - Repetitive phrases or content
+   - Suspicious links or URL shorteners
+   - Common spam keywords (click here, buy now, free money, etc.)
+   - Very short content (< 50 chars) with no substance
+   - Poor grammar or formatting
+
+9. List specific spam_indicators when is_spam=True, such as:
+   - ["excessive_caps", "repetitive_content", "suspicious_links", "spam_keywords", "too_short", "poor_grammar"]
 
 Return your analysis as structured JSON following the exact schema provided.
 """

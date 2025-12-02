@@ -703,6 +703,385 @@ class TestAppIdeaExtended:
             )
 
 
+class TestAnalysisResultQuality:
+    """Test AI content quality scoring functionality"""
+
+    def test_content_quality_score_validation_missing_field(self):
+        """Test that content_quality_score field is required"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should fail - content_quality_score is required
+        with pytest.raises(ValueError, match="content_quality_score"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH"
+                # content_quality_score missing - should fail
+            )
+
+    def test_content_quality_score_validation_range(self):
+        """Test content_quality_score validation (0-100 range)"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should fail - score too low
+        with pytest.raises(ValueError, match="content_quality_score"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=-10.0  # Invalid: < 0
+            )
+
+        # Should fail - score too high
+        with pytest.raises(ValueError, match="content_quality_score"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=150.0  # Invalid: > 100
+            )
+
+    def test_is_spam_field_default_value(self):
+        """Test that is_spam defaults to False"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Create analysis without specifying is_spam - should default to False
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=80.0
+        )
+        assert analysis.is_spam == False
+
+    def test_is_spam_field_explicit_values(self):
+        """Test is_spam field with explicit True/False values"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Test explicit False
+        analysis_false = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=80.0,
+            is_spam=False
+        )
+        assert analysis_false.is_spam == False
+
+        # Test explicit True
+        analysis_true = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=30.0,
+            is_spam=True
+        )
+        assert analysis_true.is_spam == True
+
+    def test_spam_indicators_field_default_value(self):
+        """Test that spam_indicators defaults to empty list"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Create analysis without specifying spam_indicators - should default to []
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=80.0
+        )
+        assert analysis.spam_indicators == []
+
+    def test_spam_indicators_field_validation(self):
+        """Test spam_indicators field validation"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Test valid spam indicators
+        valid_indicators = ["excessive_caps", "repetitive_content", "suspicious_links"]
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=30.0,
+            is_spam=True,
+            spam_indicators=valid_indicators
+        )
+        assert analysis.spam_indicators == valid_indicators
+
+        # Test invalid spam indicators (non-string elements)
+        with pytest.raises(ValueError):  # Should fail due to type validation
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=30.0,
+                is_spam=True,
+                spam_indicators=["valid_indicator", 123, "another_valid"]  # Invalid: 123 is not a string
+            )
+
+    def test_quality_thresholds_validator_spam_low_score(self):
+        """Test that spam posts must have content_quality_score ≤ 40"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should fail - spam with high quality score (> 40)
+        with pytest.raises(ValueError, match="spam.*content_quality_score.*40"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=85.0,  # Too high for spam
+                is_spam=True
+            )
+
+    def test_quality_thresholds_validator_spam_acceptable_score(self):
+        """Test that spam posts with content_quality_score ≤ 40 are valid"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should pass - spam with acceptable quality score (≤ 40)
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=40.0,  # Acceptable for spam
+            is_spam=True,
+            spam_indicators=["low_quality", "poor_grammar"]
+        )
+        assert analysis.content_quality_score == 40.0
+        assert analysis.is_spam == True
+
+        # Should pass - spam with very low quality score
+        analysis_low = AnalysisResult(
+            submission_id="test456",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=15.0,  # Very low, acceptable for spam
+            is_spam=True,
+            spam_indicators=["spam", "irrelevant"]
+        )
+        assert analysis_low.content_quality_score == 15.0
+        assert analysis_low.is_spam == True
+
+    def test_quality_thresholds_validator_non_spam_high_score(self):
+        """Test that non-spam posts should have reasonable quality scores"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should pass - non-spam with high quality score
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=85.0,  # High quality for non-spam
+            is_spam=False
+        )
+        assert analysis.content_quality_score == 85.0
+        assert analysis.is_spam == False
+
+    def test_quality_scoring_complete_workflow(self):
+        """Test complete workflow with quality scoring"""
+        idea = AppIdea(
+            title="Quality Productivity App",
+            app_concept="A comprehensive productivity tool for task management",
+            problem_statement="Users struggle with organizing their daily tasks efficiently",
+            target_audience="Professionals and students",
+            core_functions=["task tracking", "deadline management", "productivity analytics"]
+        )
+        metrics = MarketMetrics(
+            market_demand=75.0,
+            pain_intensity=80.0,
+            monetization_potential=70.0,
+            competition_level=60.0,
+            technical_feasibility=85.0
+        )
+
+        # High-quality non-spam content
+        high_quality_analysis = AnalysisResult(
+            submission_id="hq_123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=80.0,
+            confidence_score=85.0,
+            trust_level="HIGH",
+            content_quality_score=90.5,  # High quality
+            is_spam=False,
+            spam_indicators=[]
+        )
+        assert high_quality_analysis.content_quality_score == 90.5
+        assert high_quality_analysis.is_spam == False
+        assert high_quality_analysis.spam_indicators == []
+
+        # Low-quality spam content
+        spam_indicators_list = ["excessive_caps", "repetitive_phrases", "suspicious_links"]
+        spam_analysis = AnalysisResult(
+            submission_id="spam_456",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=25.0,  # Low final score
+            confidence_score=40.0,  # Low confidence
+            trust_level="LOW",
+            content_quality_score=20.0,  # Low quality for spam
+            is_spam=True,
+            spam_indicators=spam_indicators_list
+        )
+        assert spam_analysis.content_quality_score == 20.0
+        assert spam_analysis.is_spam == True
+        assert spam_analysis.spam_indicators == spam_indicators_list
+
+
 class TestAnalysisResultExtended:
     """Extended tests for AnalysisResult model validation"""
 

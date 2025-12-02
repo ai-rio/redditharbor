@@ -304,6 +304,22 @@ class AnalysisResult(BaseModel):
         description="Final opportunity score (0-100)"
     )
 
+    # AI content quality scoring
+    content_quality_score: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="AI-generated content quality score (0-100)"
+    )
+    is_spam: bool = Field(
+        default=False,
+        description="Whether the content is identified as spam"
+    )
+    spam_indicators: List[str] = Field(
+        default_factory=list,
+        description="List of spam indicators detected in the content"
+    )
+
     # Trust and confidence
     confidence_score: float = Field(
         ...,
@@ -397,6 +413,16 @@ class AnalysisResult(BaseModel):
                 f"Maximum allowed deviation: {max_deviation}"
             )
 
+        return self
+
+    @model_validator(mode='after')
+    def validate_quality_thresholds(self) -> 'AnalysisResult':
+        """Validate quality thresholds: spam posts should have content_quality_score ≤ 40"""
+        if self.is_spam and self.content_quality_score > 40.0:
+            raise ValueError(
+                f"Spam content must have content_quality_score ≤ 40. "
+                f"Current: content_quality_score={self.content_quality_score}, is_spam={self.is_spam}"
+            )
         return self
 
     @model_validator(mode='after')
