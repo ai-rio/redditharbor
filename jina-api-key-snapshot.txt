@@ -1,0 +1,563 @@
+uid=8_0 RootWebArea "Jina AI - Your Search Foundation, Supercharged." url="https://jina.ai/?newKey"
+  uid=8_1 generic
+    uid=8_2 banner
+      uid=8_3 link url="https://jina.ai/"
+      uid=8_4 button
+    uid=8_5 main
+      uid=8_6 heading "Your Search Foundation Supercharged." level="1"
+      uid=8_7 button "API"
+      uid=8_8 link "Models" url="https://jina.ai/models"
+        uid=8_9 StaticText "Models"
+      uid=8_10 link "Contact" url="https://jina.ai/contact-sales"
+        uid=8_11 StaticText "Contact"
+      uid=8_12 StaticText "Our Customers"
+      uid=8_13 link "News" url="https://jina.ai/?newKey#newsroom"
+        uid=8_14 StaticText "News"
+      uid=8_15 listitem level="1"
+        uid=8_16 generic
+        uid=8_17 image "Light blue background with stylized text in the center, composed of small dots or squares, evoking a modern and minimalistic "
+        uid=8_18 StaticText "Featured"
+        uid=8_19 StaticText "Press release"
+        uid=8_20 StaticText "Jina Reranker v3: 0.6B Listwise Reranker for SOTA Multilingual Retrieval"
+        uid=8_21 StaticText "October 03, 2025"
+        uid=8_22 StaticText " • 7 minutes read"
+      uid=8_23 listitem level="1"
+        uid=8_24 generic
+        uid=8_25 image "jina-reranker-v3: Last but Not Late Interaction for Document Reranking"
+        uid=8_26 StaticText "Academic"
+        uid=8_27 StaticText "jina-reranker-v3: Last but Not Late Interaction for Document Reranking"
+        uid=8_28 StaticText "October 01, 2025"
+      uid=8_29 listitem level="1"
+        uid=8_30 generic
+        uid=8_31 image "Humorous office cartoon depicting a team gathered around robots; signs labeled "embeddings", "tools", "reasoning", and "lol" "
+        uid=8_32 StaticText "Opinion"
+        uid=8_33 StaticText "Embeddings Are AI’s Red-Headed Stepchild"
+        uid=8_34 StaticText "September 30, 2025"
+        uid=8_35 StaticText " • 8 minutes read"
+      uid=8_36 link "Read more" url="https://jina.ai/news"
+        uid=8_37 StaticText "Read more"
+      uid=8_38 link "RSS" url="https://jina.ai/feed.rss"
+        uid=8_39 StaticText "RSS"
+      uid=8_40 link url="https://x.com/jinaAI_"
+      uid=8_41 link "For Better Search" url="https://jina.ai/?newKey#enterprises"
+        uid=8_42 StaticText "For Better Search"
+      uid=8_43 StaticText "Our frontier models form the search foundation for high-quality enterprise search and RAG systems."
+      uid=8_44 listitem level="1"
+        uid=8_45 generic
+        uid=8_46 heading "Reader" level="3"
+        uid=8_47 StaticText "Convert a URL to LLM-friendly input, by simply adding "
+        uid=8_48 StaticText "r.jina.ai"
+        uid=8_49 StaticText " in front."
+      uid=8_50 listitem level="1"
+        uid=8_51 generic
+        uid=8_52 heading "Embeddings" level="3"
+        uid=8_53 StaticText "World-class multimodal multilingual embeddings."
+      uid=8_54 listitem level="1"
+        uid=8_55 generic
+        uid=8_56 heading "Reranker" level="3"
+        uid=8_57 StaticText "World-class reranker for maximizing search relevancy."
+      uid=8_58 listitem level="1"
+        uid=8_59 generic
+        uid=8_60 heading "DeepSearch" level="3"
+        uid=8_61 StaticText "Search, read and reason until best answer found."
+      uid=8_62 listitem level="1"
+        uid=8_63 generic
+        uid=8_64 heading "Classifier" level="3"
+        uid=8_65 StaticText "Zero-shot and few-shot classification for image and text."
+      uid=8_66 listitem level="1"
+        uid=8_67 generic
+        uid=8_68 heading "Segmenter" level="3"
+        uid=8_69 StaticText "Cut long text into chunks and do tokenization."
+      uid=8_70 StaticText "Start instantly—no credit card or registration needed!"
+      uid=8_71 StaticText "We are SOC 2 Type 1 & 2 compliant with the American Institute of Certified Public Accountants (AICPA)."
+      uid=8_72 link url="https://jina.ai/legal#security-as-company-value"
+      uid=8_73 button "How to get my API key?"
+      uid=8_74 button
+      uid=8_75 tab "API KEY & BILLING"
+        uid=8_76 generic
+      uid=8_77 tab "READER" selectable selected
+        uid=8_78 generic
+      uid=8_79 tab "EMBEDDINGS"
+        uid=8_80 generic
+      uid=8_81 tab "RERANKER"
+        uid=8_82 generic
+      uid=8_83 tab "DEEPSEARCH"
+        uid=8_84 generic
+      uid=8_85 tab "CLASSIFIER"
+        uid=8_86 generic
+      uid=8_87 tab "SEGMENTER"
+        uid=8_88 generic
+      uid=8_89 tab "home"
+        uid=8_90 generic
+        uid=8_91 link "home" url="https://jina.ai/reader"
+      uid=8_92 tab "Rate Limit"
+        uid=8_93 generic
+        uid=8_94 link "Rate Limit" url="https://jina.ai/api-dashboard/rate-limit"
+      uid=8_95 tab "Raise issue"
+        uid=8_96 generic
+        uid=8_97 link "Raise issue" url="https://github.com/jina-ai/reader/issues"
+      uid=8_98 tab "FAQ"
+        uid=8_99 generic
+        uid=8_100 link "FAQ" url="https://jina.ai/reader#faq"
+      uid=8_101 tab "home"
+        uid=8_102 generic
+        uid=8_103 link "home" url="https://github.com/jina-ai/MCP"
+      uid=8_104 tab "Expand"
+        uid=8_105 generic
+        uid=8_106 button "Expand" haspopup="menu"
+      uid=8_107 tab " Status"
+        uid=8_108 generic
+        uid=8_109 link " Status" url="https://status.jina.ai/"
+      uid=8_110 StaticText "Use "
+      uid=8_111 StaticText "r.jina.ai"
+      uid=8_112 StaticText " to read a URL and fetch its content"
+      uid=8_113 StaticText "Use "
+      uid=8_114 StaticText "s.jina.ai"
+      uid=8_115 StaticText " to search the web and get SERP"
+      uid=8_116 StaticText "Add "
+      uid=8_117 StaticText "mcp.jina.ai"
+      uid=8_118 StaticText " as your MCP server to access our API in LLMs"
+      uid=8_119 generic
+        uid=8_120 textbox
+      uid=8_121 generic
+        uid=8_122 combobox "Parameters" haspopup="listbox" value="Common, Specific"
+        uid=8_123 StaticText "Parameters"
+      uid=8_124 generic
+        uid=8_125 textbox "The target URL to fetch content from" value="https://www.example.com"
+        uid=8_126 StaticText "The target URL to fetch content from"
+      uid=8_127 listitem level="1"
+        uid=8_128 generic
+        uid=8_129 StaticText "Add API Key for Higher Rate Limit"
+        uid=8_130 StaticText "Enter your Jina API key to access a higher rate limit. For latest rate limit information, please refer to the table below."
+        uid=8_131 link "LEARN MORE" url="https://jina.ai/reader#rate-limit"
+          uid=8_132 StaticText "LEARN MORE"
+        uid=8_133 switch disableable disabled
+      uid=8_134 listitem level="1"
+        uid=8_135 generic
+        uid=8_136 StaticText "Browser Engine (Quality/Speed)"
+        uid=8_137 StaticText "Choose the browser engine for fetching the webpage content. This affects the quality, speed, completeness, accessibility of the content."
+        uid=8_138 generic
+          uid=8_139 StaticText "Default"
+          uid=8_140 combobox "Browser Engine (Quality/Speed) Choose the browser engine for fetching the webpage content. This affects the quality, speed, completeness, accessibility of the content. Default" haspopup="listbox" value="Default"
+      uid=8_141 listitem level="1"
+        uid=8_142 generic
+        uid=8_143 StaticText "Content Format"
+        uid=8_144 StaticText "You can control the level of detail in the response to prevent over-filtering. The default pipeline is optimized for most websites and LLM input."
+        uid=8_145 generic
+          uid=8_146 StaticText "Default"
+          uid=8_147 combobox "Content Format You can control the level of detail in the response to prevent over-filtering. The default pipeline is optimized for most websites and LLM input. Default" haspopup="listbox" value="Default"
+      uid=8_148 listitem level="1"
+        uid=8_149 generic
+        uid=8_150 StaticText "JSON Response"
+        uid=8_151 StaticText "The response will be in JSON format, containing the URL, title, content, and timestamp (if available). In Search mode, it returns a list of five entries, each following the described JSON structure."
+        uid=8_152 switch
+          uid=8_153 generic
+      uid=8_154 listitem level="1"
+        uid=8_155 generic
+        uid=8_156 StaticText "Timeout"
+        uid=8_157 StaticText "Maximum page load wait time, use this if you find default browser engine is too slow on simple webpage."
+        uid=8_158 switch
+          uid=8_159 generic
+        uid=8_160 generic disableable disabled
+          uid=8_161 spinbutton disableable disabled value="10" valuemax="0" valuemin="0" valuetext="10"
+      uid=8_162 listitem level="1"
+        uid=8_163 generic
+        uid=8_164 StaticText "Token Budget"
+        uid=8_165 StaticText "Limits the maximum number of tokens used for this request. Exceeding this limit will cause the request to fail."
+        uid=8_166 switch
+          uid=8_167 generic
+        uid=8_168 generic disableable disabled
+          uid=8_169 spinbutton disableable disabled value="200000" valuemax="0" valuemin="0" valuetext="200000"
+      uid=8_170 listitem level="1"
+        uid=8_171 generic
+        uid=8_172 StaticText "Use ReaderLM-v2 "
+        uid=8_173 StaticText "Experimental"
+        uid=8_174 StaticText "Uses ReaderLM-v2 for HTML to Markdown conversion, to deliver high-quality results for websites with complex structures and contents. Costs 3x tokens!"
+        uid=8_175 link "LEARN MORE" url="https://jina.ai/news/readerlm-v2-frontier-small-language-model-for-html-to-markdown-and-json"
+          uid=8_176 StaticText "LEARN MORE"
+        uid=8_177 switch
+          uid=8_178 generic
+      uid=8_179 listitem level="1"
+        uid=8_180 generic
+        uid=8_181 StaticText "CSS Selector: Only"
+        uid=8_182 StaticText "List of CSS selectors to target specific page elements."
+        uid=8_183 switch
+          uid=8_184 generic
+      uid=8_185 listitem level="1"
+        uid=8_186 generic
+        uid=8_187 StaticText "CSS Selector: Wait-For"
+        uid=8_188 StaticText "CSS selectors to wait for before returning results."
+        uid=8_189 switch
+          uid=8_190 generic
+      uid=8_191 listitem level="1"
+        uid=8_192 generic
+        uid=8_193 StaticText "CSS Selector: Excluding"
+        uid=8_194 StaticText "CSS selectors for elements to remove (headers, footers, etc.)."
+        uid=8_195 switch
+          uid=8_196 generic
+      uid=8_197 listitem level="1"
+        uid=8_198 generic
+        uid=8_199 StaticText "Remove All Images"
+        uid=8_200 StaticText "Remove all images from the response."
+        uid=8_201 switch
+          uid=8_202 generic
+      uid=8_203 listitem level="1"
+        uid=8_204 generic
+        uid=8_205 StaticText "Target Gpt-Oss Series Model"
+        uid=8_206 StaticText "Use gpt-oss internal browser citation format for links."
+        uid=8_207 link "LEARN MORE" url="https://cookbook.openai.com/articles/openai-harmony#browser-tool"
+          uid=8_208 StaticText "LEARN MORE"
+        uid=8_209 switch
+          uid=8_210 generic
+      uid=8_211 listitem level="1"
+        uid=8_212 generic
+        uid=8_213 StaticText "Gather All Links At the End"
+        uid=8_214 StaticText "A "Buttons & Links" section will be created at the end. This helps the downstream LLMs or web agents navigating the page or take further actions."
+        uid=8_215 generic
+          uid=8_216 StaticText "None"
+          uid=8_217 combobox "Gather All Links At the End A "Buttons & Links" section will be created at the end. This helps the downstream LLMs or web agents navigating the page or take further actions. None" haspopup="listbox" value="None"
+      uid=8_218 listitem level="1"
+        uid=8_219 generic
+        uid=8_220 StaticText "Gather All Images At the End"
+        uid=8_221 StaticText "An "Images" section will be created at the end. This gives the downstream LLMs an overview of all visuals on the page, which may improve reasoning."
+        uid=8_222 generic
+          uid=8_223 StaticText "None"
+          uid=8_224 combobox "Gather All Images At the End An "Images" section will be created at the end. This gives the downstream LLMs an overview of all visuals on the page, which may improve reasoning. None" haspopup="listbox" value="None"
+      uid=8_225 listitem level="1"
+        uid=8_226 generic
+        uid=8_227 StaticText "Viewport Config "
+        uid=8_228 StaticText "POST"
+        uid=8_229 StaticText "Sets browser viewport dimensions for responsive rendering."
+        uid=8_230 link "LEARN MORE" url="https://pptr.dev/api/puppeteer.viewport"
+          uid=8_231 StaticText "LEARN MORE"
+        uid=8_232 switch
+          uid=8_233 generic
+      uid=8_234 listitem level="1"
+        uid=8_235 generic
+        uid=8_236 StaticText "Forward Cookie"
+        uid=8_237 StaticText "Our API server can forward your custom cookie settings when accessing the URL, which is useful for pages requiring extra authentication. Note that requests with cookies will not be cached."
+        uid=8_238 link "LEARN MORE" url="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie"
+          uid=8_239 StaticText "LEARN MORE"
+        uid=8_240 switch
+          uid=8_241 generic
+      uid=8_242 listitem level="1"
+        uid=8_243 generic
+        uid=8_244 StaticText "Image Caption"
+        uid=8_245 StaticText "Captions all images at the specified URL, adding 'Image [idx]: [caption]' as an alt tag for those without one. This allows downstream LLMs to interact with the images in activities such as reasoning and summarizing."
+        uid=8_246 switch
+          uid=8_247 generic
+      uid=8_248 listitem level="1"
+        uid=8_249 generic
+        uid=8_250 StaticText "Use a Proxy Server"
+        uid=8_251 StaticText "Our API server can utilize your proxy to access URLs, which is helpful for pages accessible only through specific proxies."
+        uid=8_252 link "LEARN MORE" url="https://en.wikipedia.org/wiki/Proxy_server"
+          uid=8_253 StaticText "LEARN MORE"
+        uid=8_254 switch
+          uid=8_255 generic
+      uid=8_256 listitem level="1"
+        uid=8_257 generic
+        uid=8_258 StaticText "Use a Country-Specific Proxy Server"
+        uid=8_259 StaticText "Set country code for location-based proxy server. Use 'auto' for optimal selection or 'none' to disable."
+        uid=8_260 switch
+          uid=8_261 generic
+        uid=8_262 generic disableable disabled
+          uid=8_263 textbox disableable disabled value="auto"
+      uid=8_264 listitem level="1"
+        uid=8_265 generic
+        uid=8_266 StaticText "Bypass Cached Content"
+        uid=8_267 StaticText "Our API caches URL contents for a certain amount of time. Set it to true to ignore the cached result and fetch the content from the URL directly."
+        uid=8_268 switch
+          uid=8_269 generic
+      uid=8_270 listitem level="1"
+        uid=8_271 generic
+        uid=8_272 StaticText "Do Not Cache & Track!"
+        uid=8_273 StaticText "When enabled, the requested URL won't be cached and tracked on our server."
+        uid=8_274 switch
+          uid=8_275 generic
+      uid=8_276 listitem level="1"
+        uid=8_277 generic
+        uid=8_278 StaticText "Github Flavored Markdown"
+        uid=8_279 StaticText "Opt in/out features from GFM (Github Flavored Markdown)."
+        uid=8_280 generic
+          uid=8_281 StaticText "Enabled"
+          uid=8_282 combobox "Github Flavored Markdown Opt in/out features from GFM (Github Flavored Markdown). Enabled" haspopup="listbox" value="Enabled"
+      uid=8_283 listitem level="1"
+        uid=8_284 generic
+        uid=8_285 StaticText "Stream Mode"
+        uid=8_286 StaticText "Stream mode is beneficial for large target pages, allowing more time for the page to fully render. If standard mode results in incomplete content, consider using Stream mode."
+        uid=8_287 link "LEARN MORE" url="https://github.com/jina-ai/reader?tab=readme-ov-file#streaming-mode"
+          uid=8_288 StaticText "LEARN MORE"
+        uid=8_289 switch
+          uid=8_290 generic
+      uid=8_291 listitem level="1"
+        uid=8_292 generic
+        uid=8_293 StaticText "Customize Browser Locale"
+        uid=8_294 StaticText "Control the browser locale to render the page. Lots of websites serve different content based on the locale."
+        uid=8_295 link "LEARN MORE" url="https://developer.mozilla.org/en-US/docs/Web/API/Navigator/language"
+          uid=8_296 StaticText "LEARN MORE"
+        uid=8_297 switch
+          uid=8_298 generic
+      uid=8_299 listitem level="1"
+        uid=8_300 generic
+        uid=8_301 StaticText "Strictly comply robots policy"
+        uid=8_302 StaticText "Define bot User-Agent to check against robots.txt before fetching content."
+        uid=8_303 switch
+          uid=8_304 generic
+      uid=8_305 listitem level="1"
+        uid=8_306 generic
+        uid=8_307 StaticText "iframe Extraction"
+        uid=8_308 StaticText "Processes content from all embedded iframes in the DOM tree."
+        uid=8_309 switch
+          uid=8_310 generic
+      uid=8_311 listitem level="1"
+        uid=8_312 generic
+        uid=8_313 StaticText "Shadow DOM Extraction"
+        uid=8_314 StaticText "Extracts content from all Shadow DOM roots in the document."
+        uid=8_315 switch
+          uid=8_316 generic
+      uid=8_317 listitem level="1"
+        uid=8_318 generic
+        uid=8_319 StaticText "Follow Redirect"
+        uid=8_320 StaticText "Choose whether to resolve to the final destination URL after following all redirects. Enable to follow the full redirect chain."
+        uid=8_321 switch
+          uid=8_322 generic
+      uid=8_323 listitem level="1"
+        uid=8_324 generic
+        uid=8_325 StaticText "Local PDF/HTML file "
+        uid=8_326 StaticText "POST"
+        uid=8_327 StaticText "Use Reader on your local PDF and HTML file by uploading them. Only support pdf and html files. For HTML, please also specify a reference URL for better parsing related CSS/JS scripts."
+        uid=8_328 generic
+          uid=8_329 generic
+            uid=8_330 button "Local PDF/HTML file POST Use Reader on your local PDF and HTML file by uploading them. Only support pdf and html files. For HTML, please also specify a reference URL for better parsing related CSS/JS scripts." value="No file chosen"
+      uid=8_331 listitem level="1"
+        uid=8_332 generic
+        uid=8_333 StaticText "Pre-run JavaScript "
+        uid=8_334 StaticText "POST"
+        uid=8_335 StaticText "Executes preprocessing JS code (inline string or remote URL)."
+        uid=8_336 link "LEARN MORE" url="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
+          uid=8_337 StaticText "LEARN MORE"
+        uid=8_338 switch
+          uid=8_339 generic
+      uid=8_340 listitem level="1"
+        uid=8_341 generic
+        uid=8_342 StaticText "Heading Style"
+        uid=8_343 StaticText "Sets markdown heading format (passed to Turndown)."
+        uid=8_344 generic
+          uid=8_345 StaticText "Alternative Heading Syntax"
+          uid=8_346 combobox "Heading Style Sets markdown heading format (passed to Turndown). Alternative Heading Syntax" haspopup="listbox" value="Alternative Heading Syntax"
+      uid=8_347 listitem level="1"
+        uid=8_348 generic
+        uid=8_349 StaticText "Horizontal Rule Style"
+        uid=8_350 StaticText "Defines markdown horizontal rule format (passed to Turndown)."
+        uid=8_351 switch
+          uid=8_352 generic
+      uid=8_353 listitem level="1"
+        uid=8_354 generic
+        uid=8_355 StaticText "Bullet Point Style"
+        uid=8_356 StaticText "Sets bullet list marker character (passed to Turndown)."
+        uid=8_357 generic
+          uid=8_358 StaticText "*"
+          uid=8_359 combobox "Bullet Point Style Sets bullet list marker character (passed to Turndown). *" haspopup="listbox" value="*"
+      uid=8_360 listitem level="1"
+        uid=8_361 generic
+        uid=8_362 StaticText "Emphasis Style"
+        uid=8_363 StaticText "Defines markdown emphasis delimiter (passed to Turndown)."
+        uid=8_364 generic
+          uid=8_365 StaticText "_"
+          uid=8_366 combobox "Emphasis Style Defines markdown emphasis delimiter (passed to Turndown). _" haspopup="listbox" value="_"
+      uid=8_367 listitem level="1"
+        uid=8_368 generic
+        uid=8_369 StaticText "Strong Emphasis Style"
+        uid=8_370 StaticText "Sets markdown strong emphasis delimiter (passed to Turndown)."
+        uid=8_371 generic
+          uid=8_372 StaticText "**"
+          uid=8_373 combobox "Strong Emphasis Style Sets markdown strong emphasis delimiter (passed to Turndown). **" haspopup="listbox" value="**"
+      uid=8_374 listitem level="1"
+        uid=8_375 generic
+        uid=8_376 StaticText "Link Style"
+        uid=8_377 StaticText "Determines markdown link format (passed to Turndown)."
+        uid=8_378 generic
+          uid=8_379 StaticText "Inline"
+          uid=8_380 combobox "Link Style Determines markdown link format (passed to Turndown). Inline" haspopup="listbox" value="Inline"
+      uid=8_381 listitem level="1"
+        uid=8_382 generic
+        uid=8_383 StaticText "EU Compliance "
+        uid=8_384 StaticText "Experimental"
+        uid=8_385 StaticText "All infrastructure and data processing operations reside entirely within EU jurisdiction."
+        uid=8_386 switch
+          uid=8_387 generic
+      uid=8_388 StaticText "Request"
+      uid=8_389 switch "GET"
+        uid=8_390 generic
+      uid=8_391 generic
+        uid=8_392 StaticText "Bash"
+        uid=8_393 combobox "Language" haspopup="listbox" value="Bash"
+        uid=8_394 StaticText "Language"
+      uid=8_395 button
+      uid=8_396 StaticText "curl"
+      uid=8_397 StaticText " "
+      uid=8_398 StaticText ""https://r.jina.ai/https://www.example.com""
+      uid=8_399 StaticText "
+"
+      uid=8_400 button
+      uid=8_401 button "GET RESPONSE"
+      uid=8_402 generic
+        uid=8_403 textbox "API key" readonly
+        uid=8_404 StaticText "API key"
+        uid=8_405 button
+        uid=8_406 StaticText "Available tokens"
+        uid=8_407 StaticText "0 "
+        uid=8_408 button
+      uid=8_409 StaticText "This is your unique key. Store it securely!"
+      uid=8_410 StaticText "Our Publications"
+      uid=8_411 StaticText "Understand how our frontier search models were trained from scratch, check out our latest publications. Meet our team at EMNLP, SIGIR, ICLR, NeurIPS, and ICML!"
+      uid=8_412 link "Read more" url="https://jina.ai/news#academic_research"
+        uid=8_413 StaticText "Read more"
+      uid=8_414 listitem level="1"
+        uid=8_415 generic
+        uid=8_416 StaticText "arXiv"
+        uid=8_417 StaticText "October 01, 2025"
+        uid=8_418 StaticText "jina-reranker-v3: Last but Not Late Interaction for Document Reranking"
+      uid=8_419 listitem level="1"
+        uid=8_420 generic
+        uid=8_421 StaticText "NeurIPS 2025"
+        uid=8_422 StaticText "August 31, 2025"
+        uid=8_423 StaticText "Efficient Code Embeddings from Code Generation Models"
+      uid=8_424 listitem level="1"
+        uid=8_425 generic
+        uid=8_426 StaticText "EMNLP 2025"
+        uid=8_427 StaticText "June 24, 2025"
+        uid=8_428 StaticText "jina-embeddings-v4: Universal Embeddings for Multimodal Multilingual Retrieval"
+      uid=8_429 listitem level="1"
+        uid=8_430 generic
+        uid=8_431 StaticText "ICLR 2025"
+        uid=8_432 StaticText "March 04, 2025"
+        uid=8_433 StaticText "ReaderLM-v2: Small Language Model for HTML to Markdown and JSON"
+      uid=8_434 listitem level="1"
+        uid=8_435 generic
+        uid=8_436 StaticText "ACL 2025"
+        uid=8_437 StaticText "December 17, 2024"
+        uid=8_438 StaticText "AIR-Bench: Automated Heterogeneous Information Retrieval Benchmark"
+      uid=8_439 listitem level="1"
+        uid=8_440 generic
+        uid=8_441 StaticText "ICLR 2025"
+        uid=8_442 StaticText "December 12, 2024"
+        uid=8_443 StaticText "jina-clip-v2: Multilingual Multimodal Embeddings for Text and Images"
+      uid=8_444 listitem level="1"
+        uid=8_445 generic
+        uid=8_446 StaticText "ECIR 2025"
+        uid=8_447 StaticText "September 18, 2024"
+        uid=8_448 StaticText "jina-embeddings-v3: Multilingual Embeddings With Task LoRA"
+      uid=8_449 listitem level="1"
+        uid=8_450 generic
+        uid=8_451 StaticText "SIGIR 2025"
+        uid=8_452 StaticText "September 07, 2024"
+        uid=8_453 StaticText "Late Chunking: Contextual Chunk Embeddings Using Long-Context Embedding Models"
+      uid=8_454 listitem level="1"
+        uid=8_455 generic
+        uid=8_456 StaticText "EMNLP 2024"
+        uid=8_457 StaticText "August 30, 2024"
+        uid=8_458 StaticText "Jina-ColBERT-v2: A General-Purpose Multilingual Late Interaction Retriever"
+      uid=8_459 listitem level="1"
+        uid=8_460 generic
+        uid=8_461 StaticText "WWW 2025"
+        uid=8_462 StaticText "June 21, 2024"
+        uid=8_463 StaticText "Leveraging Passage Embeddings for Efficient Listwise Reranking with Large Language Models"
+      uid=8_464 listitem level="1"
+        uid=8_465 generic
+        uid=8_466 StaticText "ICML 2024"
+        uid=8_467 StaticText "May 30, 2024"
+        uid=8_468 StaticText "Jina CLIP: Your CLIP Model Is Also Your Text Retriever"
+      uid=8_469 listitem level="1"
+        uid=8_470 generic
+        uid=8_471 StaticText "arXiv"
+        uid=8_472 StaticText "February 26, 2024"
+        uid=8_473 StaticText "Multi-Task Contrastive Learning for 8192-Token Bilingual Text Embeddings"
+      uid=8_474 listitem level="1"
+        uid=8_475 generic
+        uid=8_476 StaticText "arXiv"
+        uid=8_477 StaticText "October 30, 2023"
+        uid=8_478 StaticText "Jina Embeddings 2: 8192-Token General-Purpose Text Embeddings for Long Documents"
+      uid=8_479 listitem level="1"
+        uid=8_480 generic
+        uid=8_481 StaticText "EMNLP 2023"
+        uid=8_482 StaticText "July 20, 2023"
+        uid=8_483 StaticText "Jina Embeddings: A Novel Set of High-Performance Sentence Embedding Models"
+      uid=8_484 StaticText "14 publications in total."
+    uid=8_485 StaticText "OFFICES"
+    uid=8_486 StaticText "Sunnyvale, CA"
+    uid=8_487 StaticText "710 Lakeway Dr, Ste 200, Sunnyvale, CA 94085, USA"
+    uid=8_488 StaticText "Berlin, Germany (HQ)"
+    uid=8_489 StaticText "Prinzessinnenstraße 19-20, 10969 Berlin, Germany"
+    uid=8_490 StaticText "SEARCH FOUNDATION"
+    uid=8_491 listitem level="1"
+      uid=8_492 generic
+      uid=8_493 StaticText "Reader"
+    uid=8_494 listitem level="1"
+      uid=8_495 generic
+      uid=8_496 StaticText "Embeddings"
+    uid=8_497 listitem level="1"
+      uid=8_498 generic
+      uid=8_499 StaticText "Reranker"
+    uid=8_500 listitem level="1"
+      uid=8_501 generic
+      uid=8_502 StaticText "DeepSearch"
+    uid=8_503 listitem level="1"
+      uid=8_504 generic
+      uid=8_505 StaticText "Classifier"
+    uid=8_506 listitem level="1"
+      uid=8_507 generic
+      uid=8_508 StaticText "Segmenter"
+    uid=8_509 listitem level="1"
+      uid=8_510 generic
+      uid=8_511 StaticText "Get Jina API key"
+    uid=8_512 listitem level="1"
+      uid=8_513 generic
+      uid=8_514 StaticText "Rate Limit"
+    uid=8_515 listitem level="1"
+      uid=8_516 generic
+      uid=8_517 StaticText "API Status"
+    uid=8_518 StaticText "COMPANY"
+    uid=8_519 listitem level="1"
+      uid=8_520 generic
+      uid=8_521 StaticText "About us"
+    uid=8_522 listitem level="1"
+      uid=8_523 generic
+      uid=8_524 StaticText "Contact sales"
+    uid=8_525 listitem level="1"
+      uid=8_526 generic
+      uid=8_527 StaticText "News"
+    uid=8_528 listitem level="1"
+      uid=8_529 generic
+      uid=8_530 StaticText "Intern program"
+    uid=8_531 listitem level="1"
+      uid=8_532 generic
+      uid=8_533 StaticText "Download logo"
+    uid=8_534 StaticText "TERMS"
+    uid=8_535 listitem level="1"
+      uid=8_536 generic
+      uid=8_537 StaticText "Security"
+    uid=8_538 listitem level="1"
+      uid=8_539 generic
+      uid=8_540 StaticText "Terms & Conditions"
+    uid=8_541 listitem level="1"
+      uid=8_542 generic
+      uid=8_543 StaticText "Privacy"
+    uid=8_544 listitem level="1"
+      uid=8_545 generic
+      uid=8_546 StaticText "Manage Cookies"
+    uid=8_547 listitem level="1"
+      uid=8_548 generic
+    uid=8_549 link url="https://x.com/jinaAI_"
+    uid=8_550 link url="https://www.linkedin.com/company/jinaai/"
+    uid=8_551 link url="https://github.com/jina-ai"
+    uid=8_552 link url="https://huggingface.co/jinaai"
+    uid=8_553 link url="https://discord.jina.ai/"
+    uid=8_554 button
+    uid=8_555 link url="mailto:support@jina.ai"
+    uid=8_556 StaticText "Jina AI © 2020-2025."
+  uid=8_557 generic "Turn up the volume How to get my API key?" focusable focused
+    uid=8_558 Video
+    uid=8_559 StaticText "Turn up the volume"
+    uid=8_560 StaticText "How to get my API key?"
+    uid=8_561 button

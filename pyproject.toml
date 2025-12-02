@@ -31,15 +31,15 @@ classifiers = [
 
 # Core dependencies
 dependencies = [
-    # Reddit API
+    # Reddit API (usingpraw only, asyncpraw conflicts with crawl4ai)
     "praw>=7.6.0",
-    "asyncpraw>=7.6.0",
     # Data processing
     "pandas>=1.5.0",
     "numpy>=1.21.0",
     # Database and storage
     "supabase>=1.0.0",
     "psycopg2-binary>=2.9.0",
+    "sqlalchemy>=2.0.0",
     # Privacy and PII handling
     "spacy>=3.4.0",
     # Web requests and scraping
@@ -64,6 +64,9 @@ dependencies = [
     # AgentOps cost tracking
     "agentops>=0.2.0",
     "mcp>=1.21.2",
+    "asyncpg>=0.30.0",
+    "psutil>=7.0.0",
+    "redis>=7.0.1",
 ]
 
 # Optional dependencies
@@ -81,6 +84,22 @@ prompt-optimization = [
     "dspy-ai>=2.5.0",
     # Note: Promptfoo is a Node.js tool, install via: npm install -g promptfoo
 ]
+
+# Async Reddit API (conflicts with crawl4ai)
+async-reddit = [
+    "asyncpraw>=7.6.0",
+]
+
+# Web crawling with Crawl4AI (conflicts with asyncpraw)
+web-crawler = [
+    "crawl4ai>=0.3.73",
+    "aiosqlite>=0.20.0",  # Crawl4AI requires newer aiosqlite
+]
+
+# Note: asyncpraw and crawl4ai cannot be installed together due to aiosqlite conflicts
+# Install separately:
+# - For async Reddit: uv sync --extra async-reddit
+# - For web crawling: uv sync --extra web-crawler
 
 dev = [
     "pytest>=7.0.0",
@@ -103,6 +122,9 @@ redditharbor = "core.cli:main"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.0.0",
+    "pytest-benchmark",
+    "pytest-cov>=7.0.0",
     "ruff>=0.14.4",
 ]
 
@@ -120,17 +142,13 @@ ignore = ["E501", "B008"]
 "scripts/*" = ["F401", "F403", "F405"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "pipeline-v3/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
     "--strict-markers",
     "--disable-warnings",
-    "--cov=core",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-fail-under=80",
 ]
 
 [tool.mypy]

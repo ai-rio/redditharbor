@@ -1,0 +1,481 @@
+# Docker Compose Template
+# RedditHarbor API - Production Deployment Configuration
+# Based on real-world production boilerplate with RedditHarbor-specific customizations
+
+version: '3.8'
+
+services:
+  # ===== FastAPI Application =====
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+      target: production
+    image: redditapi:${VERSION:-latest}
+    container_name: redditapi-api
+    restart: unless-stopped
+
+    # Production Gunicorn configuration
+    command: >
+      gunicorn api.main:app
+      -w 4
+      -k uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8000
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+      --timeout 300
+      --keep-alive 2
+      --max-requests 1000
+      --max-requests-jitter 50
+      --worker-connections 1000
+
+    env_file:
+      - .env
+      - .env.production
+
+    environment:
+      # Redis connection
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+      # Production settings
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    volumes:
+      - api-logs:/app/logs
+      - api-tmp:/app/tmp
+      # Mount RedditHarbor core code
+      - ./core:/app/core
+      - ./config:/app/config
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0.3
+
+    networks:
+      - redditapi-network
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===== Redis Cache & Rate Limiting =====
+  redis:
+    image: redis:7-alpine
+    container_name: redditapi-redis
+    restart: unless-stopped
+
+    command: >
+      redis-server
+      /usr/local/etc/redis/redis.conf
+      --requirepass ${REDIS_PASSWORD:-}
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis-data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.75'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+    networks:
+      - redditapi-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ===== Nginx Reverse Proxy =====
+  nginx:
+    image: nginx:alpine
+    container_name: redditapi-nginx
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./config/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+      # Static files (if needed)
+      - ./static:/var/www/static:ro
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+    networks:
+      - redditapi-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ===== Monitoring Stack (Optional) =====
+
+  # Prometheus metrics collection
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: redditapi-prometheus
+    restart: unless-stopped
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus-rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+
+    profiles:
+      - monitoring
+
+    networks:
+      - redditapi-network
+
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Grafana visualization
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: redditapi-grafana
+    restart: unless-stopped
+
+    ports:
+      - "3001:3000"
+
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_SERVER_DOMAIN=localhost
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+    depends_on:
+      - prometheus
+
+    profiles:
+      - monitoring
+
+    networks:
+      - redditapi-network
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ===== Development Tools (Optional) =====
+
+  # Redis Commander - Redis GUI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redditapi-redis-commander
+    restart: unless-stopped
+
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - HTTP_USER=${REDIS_COMMANDER_USER:-admin}
+      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-admin}
+
+    ports:
+      - "8081:8081"
+
+    depends_on:
+      - redis
+
+    profiles:
+      - development
+      - tools
+
+    networks:
+      - redditapi-network
+
+  # ===== Backup Services (Optional) =====
+
+  # Redis backup
+  redis-backup:
+    image: redis:7-alpine
+    container_name: redditapi-redis-backup
+    restart: unless-stopped
+
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - BACKUP_SCHEDULE=0 2 * * *
+      - BACKUP_RETENTION_DAYS=7
+
+    volumes:
+      - redis-backups:/backups
+      - ./scripts/redis-backup.sh:/backup.sh:ro
+
+    command: >
+      sh -c "
+        echo '0 2 * * * /backup.sh' | crontab -
+        && crond -f
+      "
+
+    depends_on:
+      - redis
+
+    profiles:
+      - backup
+
+    networks:
+      - redditapi-network
+
+  # API backup (database snapshots)
+  api-backup:
+    build:
+      context: .
+      dockerfile: backup/Dockerfile
+    container_name: redditapi-api-backup
+    restart: unless-stopped
+
+    environment:
+      - BACKUP_SCHEDULE=0 3 * * *
+      - BACKUP_RETENTION_DAYS=30
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+
+    volumes:
+      - api-backups:/backups
+
+    command: >
+      sh -c "
+        echo '0 3 * * * /backup.sh' | crontab -
+        && crond -f
+      "
+
+    profiles:
+      - backup
+
+    networks:
+      - redditapi-network
+
+# ===== Volumes =====
+volumes:
+  # Redis data persistence
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+
+  # API logs and temporary data
+  api-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/api
+
+  api-tmp:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./tmp/api
+
+  # Nginx logs
+  nginx-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/nginx
+
+  # Monitoring data
+  prometheus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+
+  grafana-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+
+  # Backup storage
+  redis-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backups/redis
+
+  api-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backups/api
+
+# ===== Networks =====
+networks:
+  redditapi-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: redditapi-br
+
+# ===== Production Overrides =====
+# Use this file with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+# Additional production-specific configurations would go here
+
+# ===== Development Overrides =====
+# Use this file with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Development-specific configurations would override the above
+
+# ===== Environment Variables Required ===
+# Copy .env.example to .env and configure:
+# REDDIT_HARBOR_API_KEY=your-production-api-key
+# SUPABASE_URL=your-supabase-url
+# SUPABASE_KEY=your-supabase-key
+# REDIS_PASSWORD=your-redis-password
+# GRAFANA_PASSWORD=your-grafana-password
+# VERSION=v1.0.0
+
+# ===== Usage Examples =====
+#
+# Development:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Production:
+#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# With monitoring:
+#   docker-compose --profile monitoring up -d
+#
+# With development tools:
+#   docker-compose --profile development --profile tools up
+#
+# With backup services:
+#   docker-compose --profile backup up -d
+#
+# Scale API service:
+#   docker-compose up -d --scale api=3

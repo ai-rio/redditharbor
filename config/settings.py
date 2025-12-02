@@ -177,3 +177,140 @@ MARKET_VALIDATION_ENABLED = os.getenv("MARKET_VALIDATION_ENABLED", "true").lower
 MARKET_VALIDATION_CACHE_TTL = int(os.getenv("MARKET_VALIDATION_CACHE_TTL", "86400"))  # 24 hours default
 MARKET_VALIDATION_MIN_COMPETITORS = int(os.getenv("MARKET_VALIDATION_MIN_COMPETITORS", "3"))
 MARKET_VALIDATION_MAX_SEARCHES = int(os.getenv("MARKET_VALIDATION_MAX_SEARCHES", "10"))
+
+# =============================================================================
+# HYBRID WEB CRAWLER CONFIGURATION (Crawl4AI + Jina AI)
+# =============================================================================
+# Smart crawler that combines Crawl4AI (primary) with Jina AI (fallback)
+# - Crawl4AI: No token limits, full browser control, better for complex sites
+# - Jina AI: Simple API integration, good for basic content extraction
+# - Automatic switching based on performance and success rates
+# =============================================================================
+
+# Enable/disable hybrid crawler functionality
+HYBRID_CRAWLER_ENABLED = os.getenv("HYBRID_CRAWLER_ENABLED", "true").lower() == "true"
+
+# Crawler preferences
+HYBRID_CRAWLER_ENABLE_CRAWL4AI = os.getenv("HYBRID_CRAWLER_ENABLE_CRAWL4AI", "true").lower() == "true"
+HYBRID_CRAWLER_ENABLE_JINA_FALLBACK = os.getenv("HYBRID_CRAWLER_ENABLE_JINA_FALLBACK", "true").lower() == "true"
+
+# Performance thresholds
+HYBRID_CRAWLER_PERFORMANCE_THRESHOLD = float(os.getenv("HYBRID_CRAWLER_PERFORMANCE_THRESHOLD", "80.0"))  # Switch if success rate below this
+HYBRID_CRAWLER_ENABLE_QUALITY_COMPARISON = os.getenv("HYBRID_CRAWLER_ENABLE_QUALITY_COMPARISON", "false").lower() == "true"
+
+# Crawl4AI specific settings
+HYBRID_CRAWLER_CRAWL4AI_TIMEOUT = int(os.getenv("HYBRID_CRAWLER_CRAWL4AI_TIMEOUT", "30"))  # seconds
+HYBRID_CRAWLER_CRAWL4AI_HEADLESS = os.getenv("HYBRID_CRAWLER_CRAWL4AI_HEADLESS", "true").lower() == "true"
+HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_WIDTH = int(os.getenv("HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_WIDTH", "1920"))
+HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_HEIGHT = int(os.getenv("HYBRID_CRAWLER_CRAWL4AI_VIEWPORT_HEIGHT", "1080"))
+
+# Fallback behavior
+HYBRID_CRAWLER_USE_FALLBACK = os.getenv("HYBRID_CRAWLER_USE_FALLBACK", "true").lower() == "true"
+HYBRID_CRAWLER_FALLBACK_TIMEOUT = int(os.getenv("HYBRID_CRAWLER_FALLBACK_TIMEOUT", "30"))  # seconds
+
+# Token usage monitoring for Jina AI
+HYBRID_CRAWLER_JINA_TOKEN_THRESHOLD = int(os.getenv("HYBRID_CRAWLER_JINA_TOKEN_THRESHOLD", "1000000"))  # Switch to Crawl4AI near token limits
+HYBRID_CRAWLER_MONITOR_TOKEN_USAGE = os.getenv("HYBRID_CRAWLER_MONITOR_TOKEN_USAGE", "true").lower() == "true"
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# Database configuration - supports both URL and individual parameters
+# Priority: DATABASE_URL > Individual DB_* variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Individual database parameters (used if DATABASE_URL not set)
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT = int(os.getenv("DB_PORT", "54331"))
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
+DB_NAME = os.getenv("DB_NAME", "postgres")
+
+# =============================================================================
+# DATABASE CONFIGURATION FUNCTION
+# =============================================================================
+
+def get_database_config():
+    """
+    Get database configuration for PostgreSQL connection.
+
+    Returns:
+        dict: Database connection parameters for asyncpg
+    """
+    # Use DATABASE_URL if available (most secure)
+    if DATABASE_URL:
+        # For asyncpg, we need to parse the URL or pass it directly
+        return {
+            'dsn': DATABASE_URL,
+            'min_size': 2,
+            'max_size': 10
+        }
+
+    # Parse Supabase URL to extract connection details
+    supabase_url = SUPABASE_URL
+    if supabase_url.endswith('/'):
+        supabase_url = supabase_url[:-1]
+
+    # Extract host and port from Supabase URL
+    if 'localhost' in supabase_url or '127.0.0.1' in supabase_url:
+        # Local development setup
+        host = DB_HOST
+        port = DB_PORT
+    else:
+        # Production setup - parse from URL
+        # Expected format: https://<project>.supabase.co
+        host = supabase_url.replace('https://', '').replace('http://', '')
+        port = 5432  # Default PostgreSQL port
+
+    return {
+        'host': host,
+        'port': port,
+        'user': DB_USER,
+        'password': DB_PASSWORD,
+        'database': DB_NAME,
+        'min_size': 2,
+        'max_size': 10
+    }
+
+def get_psycopg2_config():
+    """
+    Get database configuration for psycopg2 connections.
+
+    Returns:
+        dict: Database connection parameters for psycopg2 or connection string
+    """
+    # Use DATABASE_URL if available (most secure)
+    if DATABASE_URL:
+        return DATABASE_URL
+
+    # Use individual environment variables
+    return {
+        'host': DB_HOST,
+        'port': DB_PORT,
+        'user': DB_USER,
+        'password': DB_PASSWORD,
+        'database': DB_NAME
+    }
+
+
+def get_redis_config():
+    """
+    Get Redis configuration for caching.
+
+    Returns:
+        dict: Redis connection parameters
+    """
+    # Redis configuration with local development defaults
+    host = os.getenv('REDIS_HOST', 'localhost')
+    port = int(os.getenv('REDIS_PORT', 6379))
+    db = int(os.getenv('REDIS_DB', 0))
+    password = os.getenv('REDIS_PASSWORD', None)
+
+    return {
+        'host': host,
+        'port': port,
+        'db': db,
+        'password': password,
+        'url': f"redis://{host}:{port}/{db}"
+    }

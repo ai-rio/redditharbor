@@ -1,0 +1,229 @@
+"""
+FIXED Pytest configuration without aggressive autouse mocking
+"""
+
+import sys
+import time
+from pathlib import Path
+from typing import Any
+from unittest.mock import Mock, patch
+
+import pytest
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+
+# ============================================================================
+# OPTIONAL FIXTURES (not autouse)
+# ============================================================================
+
+@pytest.fixture
+def mock_agentops():
+    """Optional AgentOps mock - only used when explicitly requested"""
+    with patch('agentops.agent', create=True) as mock_agent_decorator:
+        with patch('agentops.tool', create=True) as mock_tool_decorator:
+            with patch('agentops.trace', create=True) as mock_trace_decorator:
+                with patch('agentops.init', create=True) as mock_init:
+                    with patch('agentops.start_trace', create=True) as mock_start_trace:
+                        with patch('agentops.end_trace', create=True) as mock_end_trace:
+                            with patch('agentops.Event', create=True) as mock_event:
+                                # Configure mocks
+                                mock_init.return_value = None
+                                mock_start_trace.return_value = "test_trace_id"
+                                mock_end_trace.return_value = None
+
+                                # Mock decorator functions to return the original function/class
+                                def mock_decorator_func(*args, **kwargs):
+                                    def decorator(original_func_or_class):
+                                        return original_func_or_class
+                                    return decorator
+
+                                mock_agent_decorator.side_effect = mock_decorator_func
+                                mock_tool_decorator.side_effect = mock_decorator_func
+                                mock_trace_decorator.side_effect = mock_decorator_func
+
+                                # Create mock Event class
+                                mock_event_instance = Mock()
+                                mock_event.return_value = mock_event_instance
+
+                                yield {
+                                    'agent': mock_agent_decorator,
+                                    'tool': mock_tool_decorator,
+                                    'trace': mock_trace_decorator,
+                                    'init': mock_init,
+                                    'start_trace': mock_start_trace,
+                                    'end_trace': mock_end_trace,
+                                    'Event': mock_event
+                                }
+
+
+# ============================================================================
+# SHARED FIXTURES (non-mocking)
+# ============================================================================
+
+@pytest.fixture
+def sample_post():
+    """Basic sample post for simple tests"""
+    return {
+        "upvotes": 25,
+        "num_comments": 10,
+        "title": "Problem with expensive tool",
+        "text": "Frustrated with current solution. Looking for better alternative.",
+        "created_utc": time.time(),
+    }
+
+
+@pytest.fixture
+def high_quality_posts():
+    """Generate high-quality posts that should PASS filters"""
+
+    def _generate(count: int = 10) -> list[dict[str, Any]]:
+        current_time = time.time()
+        return [
+            {
+                "upvotes": 30 + (i * 5),
+                "num_comments": 15 + i,
+                "title": f"Struggling with expensive inefficient tool #{i}",
+                "text": "Frustrated with current solution. The problem is it's time consuming "
+                "and manual. I've tried workarounds but they're complicated.",
+                "created_utc": current_time - (i * 1800),
+            }
+            for i in range(count)
+        ]
+
+    return _generate
+
+
+@pytest.fixture
+def low_quality_posts():
+    """Generate low-quality posts that should FAIL filters"""
+
+    def _generate(count: int = 10) -> list[dict[str, Any]]:
+        current_time = time.time()
+        return [
+            {
+                "upvotes": i % 3,
+                "num_comments": 0,
+                "title": f"help {i}",
+                "text": "random text",
+                "created_utc": current_time - (i * 900),
+            }
+            for i in range(count)
+        ]
+
+    return _generate
+
+
+@pytest.fixture
+def mixed_quality_posts():
+    """Generate mixed quality posts for realistic testing"""
+
+    def _generate(count: int = 100) -> list[dict[str, Any]]:
+        current_time = time.time()
+        posts = []
+
+        # 20% high quality
+        for i in range(int(count * 0.20)):
+            posts.append({
+                "upvotes": 30 + (i * 3),
+                "num_comments": 12 + i,
+                "title": f"Problem with expensive tool #{i}",
+                "text": "Frustrated with current solution, manual workaround is tedious",
+                "created_utc": current_time - (i * 3600),
+            })
+
+        # 30% medium quality
+        for i in range(int(count * 0.30)):
+            posts.append({
+                "upvotes": 6 + (i % 10),
+                "num_comments": 1 + (i % 4),
+                "title": f"Issue with workflow #{i}",
+                "text": "Problem with current approach",
+                "created_utc": current_time - (i * 5400),
+            })
+
+        # 50% low quality
+        remaining = count - len(posts)
+        for i in range(remaining):
+            posts.append({
+                "upvotes": i % 4,
+                "num_comments": i % 2,
+                "title": f"question {i}",
+                "text": "looking for help",
+                "created_utc": current_time - (i * 1800),
+            })
+
+        return posts
+
+    return _generate
+
+
+# ============================================================================
+# PYTEST CONFIGURATION
+# ============================================================================
+
+def pytest_configure(config):
+    """Configure pytest with custom markers"""
+    config.addinivalue_line(
+        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+    )
+    config.addinivalue_line(
+        "markers", "integration: marks tests as integration tests"
+    )
+    config.addinivalue_line(
+        "markers", "baseline: marks tests for old system baseline"
+    )
+    config.addinivalue_line(
+        "markers", "migration: marks tests for migration validation"
+    )
+    config.addinivalue_line(
+        "markers", "cost_savings: marks tests for cost savings validation"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Automatically mark tests based on their module"""
+    for item in items:
+        # Mark baseline tests
+        if "test_old_system_baseline" in item.nodeid:
+            item.add_marker(pytest.mark.baseline)
+
+        # Mark migration tests
+        if "test_quality_filter_migration" in item.nodeid:
+            item.add_marker(pytest.mark.migration)
+
+        # Mark cost savings tests
+        if "test_cost_savings_validation" in item.nodeid:
+            item.add_marker(pytest.mark.cost_savings)
+
+        # Mark slow tests (>1000 posts)
+        if "10k" in item.name.lower() or "large" in item.name.lower():
+            item.add_marker(pytest.mark.slow)
+
+
+# ============================================================================
+# ASSERTION HELPERS
+# ============================================================================
+
+def assert_score_in_range(score: float, min_val: float = 0, max_val: float = 100):
+    """Assert quality score is in valid range"""
+    assert isinstance(score, float), f"Score should be float, got {type(score)}"
+    assert min_val <= score <= max_val, (
+        f"Score {score} outside range [{min_val}, {max_val}]"
+    )
+
+
+def assert_filter_rate_in_range(
+    passed: int, filtered: int, min_rate: float = 0.55, max_rate: float = 0.65
+):
+    """Assert filter rate is in target range"""
+    total = passed + filtered
+    filter_rate = filtered / total if total > 0 else 0
+
+    assert min_rate <= filter_rate <= max_rate, (
+        f"Filter rate {filter_rate:.1%} outside target range "
+        f"{min_rate:.0%}-{max_rate:.0%}\n"
+        f"Passed: {passed}, Filtered: {filtered}"
+    )

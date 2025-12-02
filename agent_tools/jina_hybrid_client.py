@@ -16,18 +16,14 @@ Features:
 - Ready for future MCP server integration when available
 """
 
-import json
 import logging
-import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
 
 from agent_tools.jina_reader_client import (
     JinaResponse,
     RateLimiter,
     SearchResult,
-    get_jina_client,
 )
 from config import settings
 
@@ -106,8 +102,8 @@ class JinaHybridClient:
     def _check_mcp_capabilities(self) -> None:
         """Check if Jina MCP tools are available and their capabilities"""
         try:
-            import subprocess
             import json
+            import subprocess
 
             logger.info("Checking Jina MCP server capabilities...")
 
@@ -214,12 +210,12 @@ class JinaHybridClient:
             return None
 
         if "jina_reader" not in self.mcp_capability.available_tools:
-            logger.debug(f"jina_reader tool not available in MCP capabilities")
+            logger.debug("jina_reader tool not available in MCP capabilities")
             return None
 
         try:
-            import subprocess
             import json
+            import subprocess
 
             logger.debug(f"Attempting MCP read via jina_reader for {url}")
 
@@ -319,12 +315,12 @@ class JinaHybridClient:
             return None
 
         if "jina_search" not in self.mcp_capability.available_tools:
-            logger.debug(f"jina_search tool not available in MCP capabilities")
+            logger.debug("jina_search tool not available in MCP capabilities")
             return None
 
         try:
-            import subprocess
             import json
+            import subprocess
 
             logger.debug(f"Attempting MCP search via jina_search for '{query}'")
 
@@ -750,7 +746,7 @@ if __name__ == "__main__":
 
     # Test connection status
     status = client.get_rate_limit_status()
-    print(f"Client Status:")
+    print("Client Status:")
     for key, value in status.items():
         print(f"   {key}: {value}")
 

@@ -1,0 +1,167 @@
+{
+  "test_name": "Phase 8 Full Pipeline Integration Testing",
+  "description": "Service configuration for unified OpportunityPipeline testing with AI enrichment services and observability",
+
+  "services": {
+    "profiler": {
+      "enabled": true,
+      "description": "AI profiling using EnhancedLLMProfiler (Claude Haiku via OpenRouter)",
+      "config": {
+        "model": "anthropic/claude-3-haiku",
+        "provider": "openrouter",
+        "temperature": 0.7,
+        "max_tokens": 1000,
+        "api_key_env": "OPENROUTER_API_KEY"
+      },
+      "thresholds": {
+        "min_opportunity_score": 0.0
+      },
+      "cost": {
+        "avg_per_call": 0.005,
+        "description": "Claude Haiku via OpenRouter"
+      },
+      "observability": {
+        "agentops_enabled": true,
+        "litellm_enabled": true,
+        "track_metrics": ["cost", "latency", "tokens", "errors"]
+      }
+    },
+
+    "opportunity": {
+      "enabled": true,
+      "description": "5-dimensional opportunity scoring using OpportunityAnalyzerAgent",
+      "config": {
+        "scoring_method": "five_dimensional",
+        "dimensions": ["market_demand", "monetization_potential", "technical_feasibility", "competitive_advantage", "user_pain_level"]
+      },
+      "thresholds": {
+        "min_score": 0.0
+      },
+      "cost": {
+        "avg_per_call": 0.0,
+        "description": "Rule-based scoring, no AI cost"
+      },
+      "observability": {
+        "agentops_enabled": false,
+        "litellm_enabled": false,
+        "track_metrics": ["processing_time", "score_distribution"]
+      }
+    },
+
+    "monetization": {
+      "enabled": false,
+      "description": "Multi-agent monetization analysis using Agno framework (DISABLED: insufficient OpenRouter credits)",
+      "config": {
+        "use_agno": true,
+        "model": "openai/gpt-4o-mini",
+        "agents": ["WillingnessToPayAgent", "PriceSensitivityAgent", "RevenueOpportunityAgent", "CustomerSegmentAgent"],
+        "deduplication_enabled": true,
+        "deduplication_threshold": 0.8,
+        "api_key_env": "OPENROUTER_API_KEY"
+      },
+      "thresholds": {
+        "min_opportunity_score": 40.0
+      },
+      "cost": {
+        "avg_per_call": 0.10,
+        "avg_per_call_with_dedup": 0.03,
+        "description": "Agno multi-agent team, 70% savings with deduplication"
+      },
+      "observability": {
+        "agentops_enabled": true,
+        "litellm_enabled": true,
+        "agno_tracing_enabled": true,
+        "track_metrics": ["cost", "latency", "agent_contributions", "deduplication_rate"]
+      }
+    },
+
+    "trust": {
+      "enabled": true,
+      "description": "6-dimensional trust validation using TrustLayerValidator",
+      "config": {
+        "validation_method": "six_dimensional",
+        "dimensions": ["activity_validation", "problem_authenticity", "solution_readiness", "community_engagement", "author_credibility", "temporal_relevance"],
+        "min_activity_score": 25.0
+      },
+      "thresholds": {
+        "min_score": 0.0
+      },
+      "cost": {
+        "avg_per_call": 0.0,
+        "description": "Rule-based validation, no AI cost"
+      },
+      "observability": {
+        "agentops_enabled": false,
+        "litellm_enabled": false,
+        "track_metrics": ["processing_time", "trust_level_distribution"]
+      }
+    },
+
+    "market_validation": {
+      "enabled": true,
+      "description": "Real market data validation using MarketDataValidator with Jina AI",
+      "config": {
+        "jina_api_key_env": "JINA_API_KEY",
+        "max_searches": 3,
+        "enable_web_scraping": true,
+        "timeout_seconds": 30
+      },
+      "thresholds": {
+        "min_opportunity_score": 50.0
+      },
+      "cost": {
+        "avg_per_call": 0.05,
+        "description": "Jina AI + web scraping"
+      },
+      "observability": {
+        "agentops_enabled": true,
+        "litellm_enabled": true,
+        "track_metrics": ["cost", "latency", "searches_performed", "data_quality"]
+      }
+    }
+  },
+
+  "storage": {
+    "dlt_enabled": true,
+    "merge_disposition": true,
+    "table_name": "app_opportunities",
+    "description": "DLT pipeline with merge disposition (upserts on duplicate submission_id)"
+  },
+
+  "observability": {
+    "agentops": {
+      "enabled": true,
+      "api_key_env": "AGENTOPS_API_KEY",
+      "export_traces": true,
+      "export_path": "scripts/testing/integration/observability/agentops_traces",
+      "session_tags": ["integration-testing", "phase-8"],
+      "description": "Track all AI agent executions with cost/latency metrics"
+    },
+
+    "litellm": {
+      "enabled": true,
+      "log_level": "INFO",
+      "export_logs": true,
+      "export_path": "scripts/testing/integration/observability/litellm_logs",
+      "track_cost": true,
+      "track_latency": true,
+      "description": "Unified LLM interface with automatic cost tracking"
+    },
+
+    "agno": {
+      "enabled": true,
+      "export_traces": true,
+      "export_path": "scripts/testing/integration/observability/agno_traces",
+      "track_agent_contributions": true,
+      "track_deduplication": true,
+      "description": "Multi-agent monetization analysis tracing"
+    }
+  },
+
+  "test_config": {
+    "verbose_logging": true,
+    "save_intermediate_results": true,
+    "fail_fast": false,
+    "description": "Test execution configuration"
+  }
+}

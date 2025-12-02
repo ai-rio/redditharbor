@@ -297,3 +297,16 @@ Cost tracking implementation cleanup files moved during project organization.
 
 These were utility scripts used during the cost tracking feature implementation and are no longer needed in the active codebase.
 
+### recent_cleanup/ (8 files)
+Files organized during project documentation cleanup in November 2025. Non-essential test scripts and utilities moved to maintain clean root directory structure.
+
+**Test Scripts (7 files)**:
+- enrichment_field_analysis.py - Field analysis for enrichment testing
+- manual_agno_persistence_test.py - Manual Agno persistence testing
+- test_agno_persistence.py - Agno persistence validation tests
+- test_enrichment_fixes.py - Enrichment fixes validation
+- test_fix_validation.py - Fix validation testing
+- test_jsonb_integration.py - JSONB integration tests
+- test_submission_id_mapping.py - Submission ID mapping tests
+
+

@@ -11,6 +11,9 @@ from typing import Any
 
 import dlt
 
+# Import core functions serialization utilities for format compatibility
+from core.utils.core_functions_serialization import deserialize_core_functions
+
 
 def _validate_function_consistency(opportunity: dict[str, Any]) -> dict[str, Any]:
     """
@@ -143,8 +146,9 @@ def _extract_core_functions(opportunity: dict[str, Any]) -> list[str]:
 
     Priority order:
     1. function_list field (already a list)
-    2. core_functions field (count, generate placeholders)
-    3. app_description (parse from text using NLP)
+    2. core_functions field (JSON string - standardized format)
+    3. core_functions field (integer count, legacy format)
+    4. app_description (parse from text using NLP)
 
     Args:
         opportunity: App opportunity dictionary
@@ -152,11 +156,20 @@ def _extract_core_functions(opportunity: dict[str, Any]) -> list[str]:
     Returns:
         List of core function names
     """
+    # Priority 1: function_list field (already a list)
     if "function_list" in opportunity and isinstance(opportunity["function_list"], list):
         return opportunity["function_list"]
+
+    # Priority 2: core_functions field (JSON string - standardized format)
+    elif "core_functions" in opportunity and isinstance(opportunity["core_functions"], str):
+        # Standardized JSON format
+        return deserialize_core_functions(opportunity["core_functions"])
+
+    # Priority 3: core_functions field (integer count - legacy format)
     elif "core_functions" in opportunity and isinstance(opportunity["core_functions"], int):
-        # Already a count, generate placeholder functions
+        # Legacy integer count, generate placeholder functions
         return [f"function_{i+1}" for i in range(opportunity["core_functions"])]
+
     else:
         # Fallback: extract from description
         text = opportunity.get("app_description", "")

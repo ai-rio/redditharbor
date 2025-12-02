@@ -33,6 +33,8 @@ sys.path.insert(0, str(project_root))
 # Import DLT
 
 from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
+from core.dlt import PK_SUBMISSION_ID, submission_resource_config
+from core.utils.core_functions_serialization import standardize_core_functions
 
 # Configuration
 PIPELINE_NAME = "reddit_harbor_opportunity_pipeline"
@@ -167,7 +169,7 @@ def load_insights_to_supabase(analyzed_posts: list[dict[str, Any]], write_mode: 
             "priority": post.get("priority", "Medium"),
             # scored_at will be set by the database default or we'll exclude it
             "app_concept": post.get("ai_insights", {}).get("solution_concept", "Productivity tool"),
-            "core_functions": "Task management, automation, analytics",
+            "core_functions": standardize_core_functions(["Task management", "automation", "analytics"]),
             "growth_justification": "Growing remote work and productivity needs"
         }
         opportunities.append(opportunity)
@@ -182,7 +184,7 @@ def load_insights_to_supabase(analyzed_posts: list[dict[str, Any]], write_mode: 
             opportunities,
             table_name="opportunity_analysis",
             write_disposition=write_mode,
-            primary_key="submission_id"
+            primary_key=PK_SUBMISSION_ID
         )
         load_time = time.time() - start_time
 

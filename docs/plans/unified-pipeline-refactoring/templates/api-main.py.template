@@ -1,0 +1,305 @@
+"""
+FastAPI Main Application Template
+RedditHarbor API - Production Ready FastAPI Backend
+
+This template provides a complete, production-ready FastAPI application
+with all the boilerplate extracted from real-world implementations.
+"""
+
+import asyncio
+import logging
+import time
+import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
+from typing import AsyncGenerator, Dict, Any
+
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+
+# RedditHarbor imports
+from api.core.config import settings
+from api.core.auth import api_key_manager, security_metrics
+from api.core.rate_limit import rate_limiter, RateLimitResult
+from api.core.redis_connection import redis_manager
+from api.core.setup import lifespan_factory, create_application
+
+# Import routers
+from api.routers import pipeline, enrichment, monitoring
+
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL.upper()),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# Global application start time
+start_time = time.time()
+
+# === Application Factory ===
+def create_redditharbor_app() -> FastAPI:
+    """
+    Create and configure the RedditHarbor FastAPI application.
+
+    This factory function creates a complete FastAPI app with:
+    - Proper CORS configuration
+    - Security middleware
+    - Rate limiting
+    - Error handling
+    - Health checks
+    - API documentation
+    """
+
+    # Create lifespan manager
+    lifespan = lifespan_factory(settings)
+
+    # Create FastAPI app
+    app = FastAPI(
+        title=settings.APP_NAME,
+        description=settings.APP_DESCRIPTION,
+        version=settings.APP_VERSION,
+        lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json"
+    )
+
+    # === Middleware Setup ===
+
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=settings.CORS_CREDENTIALS,
+        allow_methods=settings.CORS_METHODS,
+        allow_headers=settings.CORS_HEADERS,
+    )
+
+    # Trusted hosts middleware (production)
+    if settings.IS_PRODUCTION:
+        app.add_middleware(
+            TrustedHostMiddleware,
+            allowed_hosts=["api.redditharbor.com", "*.redditharbor.com"]
+        )
+
+    # Security middleware (custom)
+    @app.middleware("http")
+    async def security_middleware(request: Request, call_next):
+        """Add security headers and track security metrics."""
+        # Process request
+        response = await call_next(request)
+
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+
+        if settings.IS_PRODUCTION:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+        return response
+
+    # Rate limiting middleware
+    @app.middleware("http")
+    async def rate_limit_middleware(request: Request, call_next):
+        """Apply rate limiting to all requests."""
+        # Skip rate limiting for health checks and docs
+        if request.url.path in ["/api/v1/health", "/docs", "/redoc", "/openapi.json"]:
+            return await call_next(request)
+
+        # Extract client info
+        client_ip = request.client.host
+        api_key = request.headers.get(settings.API_KEY_HEADER_NAME)
+
+        # Apply hierarchical rate limiting
+        if api_key and api_key_manager.is_valid_key(api_key):
+            key_info = api_key_manager.get_api_key_info(api_key)
+            endpoint_type = _get_endpoint_type(request.url.path)
+
+            from api.core.hierarchical_rate_limiter import hierarchical_rate_limiter
+
+            try:
+                result = await hierarchical_rate_limiter.check_rate_limits(
+                    request=request,
+                    api_key=api_key,
+                    key_info=key_info
+                )
+
+                if not result.is_allowed:
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "error": "Rate limit exceeded",
+                            "message": "Too many requests",
+                            "retry_after": result.retry_after,
+                            "limit": result.limit,
+                            "remaining": result.remaining_requests,
+                            "reset_time": result.reset_time
+                        },
+                        headers={
+                            "X-RateLimit-Limit": str(result.limit),
+                            "X-RateLimit-Remaining": str(result.remaining_requests),
+                            "X-RateLimit-Reset": str(result.reset_time),
+                            "Retry-After": str(result.retry_after) if result.retry_after else None
+                        }
+                    )
+
+                # Add rate limit headers to successful responses
+                response = await call_next(request)
+                response.headers["X-RateLimit-Limit"] = str(result.limit)
+                response.headers["X-RateLimit-Remaining"] = str(result.remaining_requests)
+                response.headers["X-RateLimit-Reset"] = str(result.reset_time)
+
+                return response
+
+            except Exception as e:
+                logger.error(f"Rate limiting error: {e}")
+                # Fail open: allow request if rate limiting fails
+                return await call_next(request)
+
+        # No rate limiting for unauthenticated requests (they'll be rejected by auth)
+        return await call_next(request)
+
+    # === Exception Handlers ===
+
+    @app.exception_handler(401)
+    async def unauthorized_exception_handler(request: Request, exc):
+        """Handle 401 Unauthorized errors."""
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "Unauthorized",
+                "message": "API key is required or invalid",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+    @app.exception_handler(403)
+    async def forbidden_exception_handler(request: Request, exc):
+        """Handle 403 Forbidden errors."""
+        return JSONResponse(
+            status_code=403,
+            content={
+                "error": "Forbidden",
+                "message": "Access denied to this resource",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+    @app.exception_handler(404)
+    async def not_found_exception_handler(request: Request, exc):
+        """Handle 404 Not Found errors."""
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "Not Found",
+                "message": f"Endpoint {request.url.path} not found",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+    @app.exception_handler(422)
+    async def validation_exception_handler(request: Request, exc):
+        """Handle 422 Validation errors."""
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "Validation Error",
+                "message": "Invalid request data",
+                "details": exc.errors() if hasattr(exc, 'errors') else str(exc),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+    @app.exception_handler(429)
+    async def rate_limit_exception_handler(request: Request, exc):
+        """Handle 429 Rate Limit errors."""
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "Rate Limit Exceeded",
+                "message": "Too many requests. Please try again later.",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+    @app.exception_handler(500)
+    async def internal_error_exception_handler(request: Request, exc):
+        """Handle 500 Internal Server errors."""
+        logger.error(f"Internal server error: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "message": "An unexpected error occurred",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+    # === Router Registration ===
+
+    # Include API routers
+    app.include_router(
+        pipeline.router,
+        prefix="/api/v1",
+        tags=["pipeline"]
+    )
+
+    app.include_router(
+        enrichment.router,
+        prefix="/api/v1",
+        tags=["enrichment"]
+    )
+
+    app.include_router(
+        monitoring.router,
+        prefix="/api/v1",
+        tags=["monitoring"]
+    )
+
+    # === Root Endpoint ===
+
+    @app.get("/", tags=["root"])
+    async def root():
+        """Root endpoint - redirects to documentation."""
+        return {
+            "message": "RedditHarbor API",
+            "version": settings.APP_VERSION,
+            "documentation": "/docs",
+            "health": "/api/v1/health"
+        }
+
+    return app
+
+def _get_endpoint_type(path: str) -> str:
+    """Determine endpoint type from URL path."""
+    path = path.lower()
+
+    if '/pipeline' in path:
+        return 'pipeline'
+    elif any(word in path for word in ['/profiler', '/analyze', '/enrich']):
+        return 'analysis'
+    elif any(word in path for word in ['/opportunities', '/data', '/search']):
+        return 'data'
+    elif any(word in path for word in ['/health', '/metrics', '/status']):
+        return 'monitoring'
+    else:
+        return 'default'
+
+# === Application Instance ===
+app = create_redditharbor_app()
+
+# === Development Server Entry Point ===
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.IS_DEVELOPMENT,
+        log_level=settings.LOG_LEVEL.lower()
+    )

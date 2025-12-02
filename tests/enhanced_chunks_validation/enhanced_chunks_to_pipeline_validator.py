@@ -31,23 +31,17 @@ import json
 import logging
 import sys
 import time
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
 from datetime import datetime
-from decimal import Decimal
+from pathlib import Path
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import RedditHarbor components
-import dlt
-from agent_tools.llm_profiler import LLMProfiler
-from config.settings import DEFAULT_SUBREDDITS, DLT_MIN_ACTIVITY_SCORE
-from core.dlt_collection import collect_problem_posts, create_dlt_pipeline
-from core.trust_layer import TrustLayerValidator
+from config.settings import DLT_MIN_ACTIVITY_SCORE, SUPABASE_KEY, SUPABASE_URL
+from core.dlt_collection import collect_problem_posts
 from supabase import create_client
-from config.settings import SUPABASE_URL, SUPABASE_KEY
 
 # Configure logging with detailed evidence tracking
 logging.basicConfig(
@@ -108,7 +102,7 @@ class PipelineEvidenceValidator:
         metric_str = f" (Value: {metric_value})" if metric_value is not None else ""
         logger.info(f"{status} - {category}: {finding}{metric_str}")
 
-    def validate_activity_constraint_enforcement(self) -> Tuple[bool, Dict]:
+    def validate_activity_constraint_enforcement(self) -> tuple[bool, dict]:
         """
         CRITICAL VALIDATION: Activity constraints must be properly enforced
         Evidence from enhanced chunks shows this was bypassed causing 20-100x yield inflation
@@ -176,7 +170,7 @@ class PipelineEvidenceValidator:
             self.validation_results['critical_failures'].append(f"Activity constraint validation error: {e}")
             return False, {'error': str(e)}
 
-    def validate_realistic_score_distribution(self) -> Tuple[bool, Dict]:
+    def validate_realistic_score_distribution(self) -> tuple[bool, dict]:
         """
         CRITICAL VALIDATION: Score distribution must match documented expectations
         Enhanced chunks shows 70+ scores should be rare (1-3%), but we were getting 20-100x more
@@ -263,7 +257,7 @@ class PipelineEvidenceValidator:
             self.validation_results['critical_failures'].append(f"Score distribution error: {e}")
             return False, {'error': str(e)}
 
-    def validate_cost_optimization(self) -> Tuple[bool, Dict]:
+    def validate_cost_optimization(self) -> tuple[bool, dict]:
         """
         CRITICAL VALIDATION: Pre-AI filtering must achieve significant cost savings
         Enhanced chunks evidence shows pre-filtering was bypassed causing massive costs
@@ -272,7 +266,12 @@ class PipelineEvidenceValidator:
 
         try:
             # Import and test the actual DLT trust pipeline
-            from scripts.dlt.dlt_trust_pipeline import should_analyze_with_ai, MIN_ENGAGEMENT_SCORE, MIN_COMMENT_COUNT, MIN_PROBLEM_KEYWORDS
+            from scripts.dlt.dlt_trust_pipeline import (
+                MIN_COMMENT_COUNT,
+                MIN_ENGAGEMENT_SCORE,
+                MIN_PROBLEM_KEYWORDS,
+                should_analyze_with_ai,
+            )
 
             self.log_evidence("Cost Configuration",
                             f"Pre-filter thresholds: Engagement≥{MIN_ENGAGEMENT_SCORE}, Comments≥{MIN_COMMENT_COUNT}, Keywords≥{MIN_PROBLEM_KEYWORDS}",
@@ -360,7 +359,7 @@ class PipelineEvidenceValidator:
             self.validation_results['critical_failures'].append(f"Cost optimization error: {e}")
             return False, {'error': str(e)}
 
-    def validate_trust_layer_separation(self) -> Tuple[bool, Dict]:
+    def validate_trust_layer_separation(self) -> tuple[bool, dict]:
         """
         CRITICAL VALIDATION: Trust layer must be customer-facing ONLY, not filtering criteria
         Enhanced chunks clarification: trust layer provides social proof, not acceptance decisions
@@ -447,13 +446,16 @@ class PipelineEvidenceValidator:
             self.validation_results['critical_failures'].append(f"Trust layer separation error: {e}")
             return False, {'error': str(e)}
 
-    def validate_pipeline_performance(self) -> Tuple[bool, Dict]:
+    def validate_pipeline_performance(self) -> tuple[bool, dict]:
         """Validate pipeline meets performance targets"""
         logger.info("🔍 VALIDATION: Pipeline Performance")
 
         try:
             # Test actual DLT trust pipeline performance
-            from scripts.dlt.dlt_trust_pipeline import collect_posts_with_activity_validation, analyze_opportunities_with_ai
+            from scripts.dlt.dlt_trust_pipeline import (
+                analyze_opportunities_with_ai,
+                collect_posts_with_activity_validation,
+            )
 
             # Small performance test
             test_start = time.time()
@@ -539,7 +541,7 @@ class PipelineEvidenceValidator:
 
         return compliance_score
 
-    def run_comprehensive_validation(self) -> Dict:
+    def run_comprehensive_validation(self) -> dict:
         """
         Run complete evidence-based validation of DLT trust pipeline
         against enhanced chunks documentation requirements

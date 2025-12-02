@@ -1,0 +1,236 @@
+# Pipeline v3 Alert Rules
+# Alert rules for monitoring pipeline health and performance
+
+groups:
+  - name: pipeline-health
+    interval: 30s
+    rules:
+      - alert: PipelineHighFailureRate
+        expr: |
+          (
+            sum(rate(pipeline_runs_total{status="failure"}[5m])) /
+            sum(rate(pipeline_runs_total[5m]))
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: pipeline-v3
+        annotations:
+          summary: "High pipeline failure rate detected"
+          description: "Pipeline failure rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/pipeline-failures.md"
+
+      - alert: PipelineSlowExecution
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(pipeline_execution_duration_seconds_bucket[5m])) by (le)
+          ) > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: pipeline-v3
+        annotations:
+          summary: "Pipeline execution is slow"
+          description: "95th percentile pipeline duration is {{ $value }}s"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/slow-execution.md"
+
+      - alert: PipelineNotRunning
+        expr: |
+          sum(rate(pipeline_runs_total[10m])) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: pipeline-v3
+        annotations:
+          summary: "No pipeline runs detected"
+          description: "No pipeline executions in the last 10 minutes"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/no-runs.md"
+
+  - name: data-source-issues
+    interval: 30s
+    rules:
+      - alert: RedditAPIHighErrorRate
+        expr: |
+          (
+            sum(rate(reddit_api_requests_total{status!="success"}[5m])) /
+            sum(rate(reddit_api_requests_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: reddit-api
+        annotations:
+          summary: "Reddit API high error rate"
+          description: "Reddit API error rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/reddit-api-errors.md"
+
+      - alert: RedditAPISlowResponse
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(reddit_api_request_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: reddit-api
+        annotations:
+          summary: "Reddit API responses are slow"
+          description: "95th percentile Reddit API response time is {{ $value }}s"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/reddit-api-slow.md"
+
+      - alert: LLMHighErrorRate
+        expr: |
+          (
+            sum(rate(llm_requests_total{status!="success"}[5m])) /
+            sum(rate(llm_requests_total[5m]))
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: llm
+        annotations:
+          summary: "LLM processing high error rate"
+          description: "LLM error rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/llm-errors.md"
+
+      - alert: LLMSlowProcessing
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(llm_request_duration_seconds_bucket[5m])) by (le)
+          ) > 60
+        for: 5m
+        labels:
+          severity: warning
+          service: llm
+        annotations:
+          summary: "LLM processing is slow"
+          description: "95th percentile LLM processing time is {{ $value }}s"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/llm-slow.md"
+
+      - alert: DatabaseHighErrorRate
+        expr: |
+          (
+            sum(rate(database_operations_total{status!="success"}[5m])) /
+            sum(rate(database_operations_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database operations high error rate"
+          description: "Database error rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/database-errors.md"
+
+      - alert: DatabaseSlowOperations
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(database_operation_duration_seconds_bucket[5m])) by (le)
+          ) > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database operations are slow"
+          description: "95th percentile database operation time is {{ $value }}s"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/database-slow.md"
+
+  - name: quality-metrics
+    interval: 60s
+    rules:
+      - alert: LowValidationRate
+        expr: |
+          analysis_validation_rate < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: pipeline-v3
+        annotations:
+          summary: "Low analysis validation rate"
+          description: "Analysis validation rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/low-validation.md"
+
+      - alert: HighDeduplicationRate
+        expr: |
+          deduplication_rate > 0.5
+        for: 10m
+        labels:
+          severity: info
+          service: pipeline-v3
+        annotations:
+          summary: "High deduplication rate"
+          description: "Deduplication rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/high-deduplication.md"
+
+  - name: resource-usage
+    interval: 30s
+    rules:
+      - alert: HighActiveOperations
+        expr: |
+          sum(active_operations) > 15
+        for: 3m
+        labels:
+          severity: warning
+          service: pipeline-v3
+        annotations:
+          summary: "High number of active operations"
+          description: "Current active operations: {{ $value }}"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/high-load.md"
+
+      - alert: ZeroSubmissionsExtracted
+        expr: |
+          sum(rate(reddit_submissions_extracted_total[10m])) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: reddit-api
+        annotations:
+          summary: "No submissions being extracted"
+          description: "No Reddit submissions extracted in the last 10 minutes"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/no-submissions.md"
+
+      - alert: ZeroAnalysesGenerated
+        expr: |
+          sum(rate(llm_analyses_generated_total[10m])) == 0
+        for: 20m
+        labels:
+          severity: warning
+          service: llm
+        annotations:
+          summary: "No analyses being generated"
+          description: "No LLM analyses generated in the last 10 minutes"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/no-analyses.md"
+
+  - name: business-metrics
+    interval: 300s
+    rules:
+      - alert: LowHighQualityAnalyses
+        expr: |
+          (
+            sum(rate(llm_analyses_generated_total{quality_level="high"}[1h])) /
+            sum(rate(llm_analyses_generated_total[1h]))
+          ) < 0.1
+        for: 1h
+        labels:
+          severity: warning
+          service: pipeline-v3
+        annotations:
+          summary: "Low rate of high-quality analyses"
+          description: "Only {{ $value | humanizePercentage }} of analyses are high quality"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/low-quality.md"
+
+      - alert: LowAverageAnalysisScore
+        expr: |
+          (
+            sum(rate(analysis_score_sum[1h])) /
+            sum(rate(analysis_score_count[1h]))
+          ) < 50
+        for: 2h
+        labels:
+          severity: info
+          service: pipeline-v3
+        annotations:
+          summary: "Low average analysis score"
+          description: "Average analysis score is {{ $value }}"
+          runbook_url: "https://github.com/redditharbor/pipeline-v3/docs/runbooks/low-scores.md"

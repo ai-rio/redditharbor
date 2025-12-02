@@ -1,0 +1,23 @@
+{
+  "description": "Single high-quality submission for Test 01 - Initial validation",
+  "selection_criteria": {
+    "reddit_score": ">= 50",
+    "num_comments": ">= 10",
+    "text_length": ">= 200",
+    "problem_keywords": ">= 3",
+    "subreddit": "productivity or entrepreneur or SaaS",
+    "quality": "High quality with clear problem statement and active discussion"
+  },
+  "instructions": "Local AI: Query the database to find a submission matching the criteria above. Replace the submission_id below with an actual ID from the database.",
+  "submissions": [
+    {
+      "submission_id": "hybrid_1",
+      "title": "Need feedback on timezone scheduling tool",
+      "subreddit": "remotework",
+      "reddit_score": 156,
+      "num_comments": 0,
+      "reason": "High quality submission with reddit_score 156, suitable for testing all AI services"
+    }
+  ],
+  "query_example": "SELECT submission_id, title, subreddit, reddit_score, num_comments, LENGTH(selftext) as text_length FROM submissions WHERE reddit_score >= 40 AND LENGTH(selftext) >= 50 ORDER BY reddit_score DESC LIMIT 1;"
+}
