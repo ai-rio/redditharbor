@@ -840,6 +840,9 @@ class TestAnalysisResultEdgeCases:
                     app_idea=idea,
                     market_metrics=metrics,
                     final_score=75.0,
+                    content_quality_score=78.0,
+                    is_spam=False,
+                    spam_indicators=[],
                     confidence_score=80.0,
                     trust_level="HIGH",
                     embedding=case["embedding"]
@@ -885,6 +888,9 @@ class TestAnalysisResultEdgeCases:
                 app_idea=idea,
                 market_metrics=metrics,
                 final_score=75.0,
+                content_quality_score=78.0,
+                is_spam=False,
+                spam_indicators=[],
                 confidence_score=80.0,
                 trust_level="HIGH",
                 analyzed_at=case["time"]
@@ -920,6 +926,9 @@ class TestAnalysisResultEdgeCases:
             app_idea=original_idea,
             market_metrics=original_metrics,
             final_score=75.0,
+            content_quality_score=78.0,
+            is_spam=False,
+            spam_indicators=[],
             confidence_score=80.0,
             trust_level="HIGH"
         )

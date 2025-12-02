@@ -172,7 +172,7 @@ def sample_reddit_submissions():
             id="abc123",
             title="AI-Powered Task Management App Needed",
             text="I'm struggling to find a good task management app that uses AI to prioritize tasks automatically. Current apps are too manual and don't understand my work patterns well.",
-            author="productivity_enthusiast",
+            author="productivity_pro",
             upvotes=150,
             downvotes=5,
             score=145,
@@ -232,6 +232,9 @@ def sample_analysis_results(sample_reddit_submissions):
                 technical_feasibility=80.0
             ),
             final_score=78.5,
+            content_quality_score=82.5,
+            is_spam=False,
+            spam_indicators=[],
             confidence_score=85.0,
             trust_level="HIGH"
         ),
@@ -253,6 +256,9 @@ def sample_analysis_results(sample_reddit_submissions):
                 technical_feasibility=65.0
             ),
             final_score=73.2,
+            content_quality_score=76.0,
+            is_spam=False,
+            spam_indicators=[],
             confidence_score=78.0,
             trust_level="HIGH"
         ),
@@ -274,6 +280,9 @@ def sample_analysis_results(sample_reddit_submissions):
                 technical_feasibility=75.0
             ),
             final_score=84.4,
+            content_quality_score=87.5,
+            is_spam=False,
+            spam_indicators=[],
             confidence_score=88.0,
             trust_level="HIGH"
         )
@@ -290,7 +299,7 @@ def sample_opportunities(sample_analysis_results):
             reddit_title=result.app_idea.title,
             reddit_url=f"https://reddit.com/r/productivity/{result.submission_id}",
             subreddit="productivity",
-            reddit_author="productivity_enthusiast",
+            reddit_author="productivity_pro",
             reddit_upvotes=150,
             reddit_comments_count=42,
             reddit_created_at=datetime.now(UTC).replace(year=2024, month=1, day=15),

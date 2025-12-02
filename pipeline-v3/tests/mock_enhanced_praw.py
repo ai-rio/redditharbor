@@ -169,7 +169,22 @@ def create_mock_config():
     """Create mock config module"""
     mock_config = ModuleType('config')
     settings = MockSettings()
+
+    # Create mock get_settings function that returns our mock settings
     mock_config.get_settings = Mock(return_value=settings)
+
+    # Also add Settings class to the module for completeness
+    mock_config.Settings = Mock
+
+    # Add performance config imports that might be expected
+    mock_performance = ModuleType('config.performance')
+    mock_performance.PerformanceConfig = Mock
+    mock_performance.PerformanceConfigManager = Mock
+    mock_performance.get_performance_config = Mock(return_value=Mock())
+
+    # Add submodules
+    mock_config.performance = mock_performance
+
     return mock_config
 
 
@@ -229,7 +244,7 @@ def cleanup_extract_test_environment(original_modules=None):
         # Force reload of critical modules by removing them from cache
         modules_to_clean = [
             'pydantic', 'pydantic_settings', 'config', 'models',
-            'config.settings', 'praw', 'prawcore'
+            'config.settings', 'config.performance', 'praw', 'prawcore'
         ]
         for module_name in modules_to_clean:
             if module_name in sys.modules:
@@ -245,6 +260,7 @@ def setup_extract_test_environment():
         'pydantic_settings': sys.modules.get('pydantic_settings'),
         'config': sys.modules.get('config'),
         'models': sys.modules.get('models'),
+        'config.performance': sys.modules.get('config.performance'),
         'praw': sys.modules.get('praw'),
         'prawcore': sys.modules.get('prawcore')
     }
@@ -271,6 +287,7 @@ def setup_extract_test_environment():
     # Install config and models
     sys.modules['config'] = mock_config
     sys.modules['models'] = mock_models
+    sys.modules['config.performance'] = mock_config.performance
 
     return {
         'praw': praw_mocks['praw'],
@@ -279,6 +296,7 @@ def setup_extract_test_environment():
         'models': mock_models,
         'pydantic': mock_pydantic,
         'pydantic_settings': mock_pydantic_settings,
+        'config.performance': mock_config.performance,
         'original_modules': original_modules
     }
 

@@ -490,6 +490,198 @@ def generate_analysis_results(count, quality_distribution=None):
     return results
 
 
+# Database testing fixtures and utilities
+
+@pytest.fixture
+def mock_database_loader():
+    """Create a mock database loader for testing without database dependencies"""
+    class MockDatabaseLoader:
+        def __init__(self):
+            self.opportunities_stored = []
+            self.data_mapper = Mock()
+            self.data_mapper.map_batch = self._mock_map_batch
+
+        def _mock_map_batch(self, analyses, reddit_submissions=None):
+            """Mock map_batch method that creates basic Opportunity objects"""
+            from datetime import datetime, timezone
+
+            opportunities = []
+            for analysis in analyses:
+                # Create submission lookup
+                submission_lookup = {}
+                if reddit_submissions:
+                    for submission in reddit_submissions:
+                        submission_lookup[submission.id] = submission
+
+                reddit_submission = submission_lookup.get(analysis.submission_id)
+
+                # Create mock opportunity with proper attributes
+                opportunity = Mock()
+                opportunity.submission_id = analysis.submission_id
+
+                if reddit_submission:
+                    # Preserve original Reddit data when available
+                    opportunity.reddit_title = reddit_submission.title
+                    opportunity.reddit_url = f"https://reddit.com/r/{reddit_submission.subreddit}/{reddit_submission.id}"
+                    opportunity.subreddit = reddit_submission.subreddit
+                    opportunity.reddit_author = reddit_submission.author
+                    opportunity.reddit_upvotes = reddit_submission.upvotes
+                    opportunity.reddit_comments_count = reddit_submission.comments_count
+                    opportunity.reddit_created_at = reddit_submission.created_utc
+                else:
+                    # Use placeholder data when no Reddit submission available
+                    opportunity.reddit_title = "Reddit Submission"
+                    opportunity.reddit_url = f"https://reddit.com/r/test/{analysis.submission_id}"
+                    opportunity.subreddit = "test"
+                    opportunity.reddit_author = None
+                    opportunity.reddit_upvotes = 0
+                    opportunity.reddit_comments_count = 0
+                    opportunity.reddit_created_at = datetime.now(timezone.utc)
+
+                # Add analysis data
+                opportunity.app_title = analysis.app_idea.title
+                opportunity.app_concept = analysis.app_idea.app_concept
+                opportunity.problem_statement = analysis.app_idea.problem_statement
+                opportunity.target_audience = analysis.app_idea.target_audience
+                opportunity.core_functions = analysis.app_idea.core_functions
+
+                # Add market metrics
+                opportunity.market_demand = analysis.market_metrics.market_demand
+                opportunity.pain_intensity = analysis.market_metrics.pain_intensity
+                opportunity.monetization_potential = analysis.market_metrics.monetization_potential
+                opportunity.competition_level = analysis.market_metrics.competition_level
+                opportunity.technical_feasibility = analysis.market_metrics.technical_feasibility
+
+                # Add scores
+                opportunity.final_score = analysis.final_score
+                opportunity.confidence_score = analysis.confidence_score
+                opportunity.trust_level = analysis.trust_level
+                opportunity.analyzed_at = analysis.analyzed_at
+
+                opportunities.append(opportunity)
+
+            return opportunities
+
+        def store_analyses(self, analyses, reddit_submissions=None):
+            """Mock store_analyses method"""
+            stats = {"stored": 0, "skipped": 0, "errors": 0}
+
+            try:
+                opportunities = self.data_mapper.map_batch(analyses, reddit_submissions)
+                for opportunity in opportunities:
+                    self.opportunities_stored.append(opportunity)
+                    stats["stored"] += 1
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Mock store_analyses failed: {e}")
+                stats["errors"] += len(analyses)
+
+            return stats
+
+    return MockDatabaseLoader()
+
+
+@pytest.fixture
+def mock_session():
+    """Create a mock database session"""
+    session = Mock()
+    session.add = Mock()
+    session.commit = Mock()
+    session.rollback = Mock()
+    session.close = Mock()
+    session.query = Mock(return_value=Mock())
+    return session
+
+
+@pytest.fixture
+def mock_engine():
+    """Create a mock database engine"""
+    engine = Mock()
+    engine.connect = Mock(return_value=Mock())
+    engine.execute = Mock(return_value=Mock())
+    return engine
+
+
+@pytest.fixture
+def mock_repository():
+    """Create a mock opportunity repository"""
+    repository = Mock()
+    repository.save_batch = Mock(return_value={"stored": 1, "skipped": 0, "errors": 0})
+    repository.find_all = Mock(return_value=[])
+    repository.find_similar = Mock(return_value=[])
+    repository.get_statistics = Mock(return_value={"total": 0, "avg_score": 0.0})
+    return repository
+
+
+# Database testing utilities
+class DatabaseTestHelper:
+    """Helper class for database testing"""
+
+    @staticmethod
+    def create_mock_opportunity(analysis_result=None, reddit_submission=None):
+        """Create a mock opportunity for testing"""
+        opportunity = Mock()
+
+        if analysis_result:
+            opportunity.submission_id = analysis_result.submission_id
+            opportunity.app_title = analysis_result.app_idea.title
+            opportunity.app_concept = analysis_result.app_idea.app_concept
+            opportunity.problem_statement = analysis_result.app_idea.problem_statement
+            opportunity.target_audience = analysis_result.app_idea.target_audience
+            opportunity.core_functions = analysis_result.app_idea.core_functions
+            opportunity.market_demand = analysis_result.market_metrics.market_demand
+            opportunity.pain_intensity = analysis_result.market_metrics.pain_intensity
+            opportunity.monetization_potential = analysis_result.market_metrics.monetization_potential
+            opportunity.competition_level = analysis_result.market_metrics.competition_level
+            opportunity.technical_feasibility = analysis_result.market_metrics.technical_feasibility
+            opportunity.final_score = analysis_result.final_score
+            opportunity.confidence_score = analysis_result.confidence_score
+            opportunity.trust_level = analysis_result.trust_level
+            opportunity.analyzed_at = analysis_result.analyzed_at
+        else:
+            # Default values
+            opportunity.submission_id = "test_123"
+            opportunity.app_title = "Test App"
+            opportunity.app_concept = "Test concept"
+            opportunity.problem_statement = "Test problem"
+            opportunity.target_audience = "Test users"
+            opportunity.core_functions = ["Function 1", "Function 2"]
+            opportunity.market_demand = 75.0
+            opportunity.pain_intensity = 80.0
+            opportunity.monetization_potential = 70.0
+            opportunity.competition_level = 60.0
+            opportunity.technical_feasibility = 85.0
+            opportunity.final_score = 75.0
+            opportunity.confidence_score = 80.0
+            opportunity.trust_level = "MEDIUM"
+            opportunity.analyzed_at = datetime.now(timezone.utc)
+
+        if reddit_submission:
+            opportunity.reddit_title = reddit_submission.title
+            opportunity.reddit_url = f"https://reddit.com/r/{reddit_submission.subreddit}/{reddit_submission.id}"
+            opportunity.subreddit = reddit_submission.subreddit
+            opportunity.reddit_author = reddit_submission.author
+            opportunity.reddit_upvotes = reddit_submission.upvotes
+            opportunity.reddit_comments_count = reddit_submission.comments_count
+            opportunity.reddit_created_at = reddit_submission.created_utc
+        else:
+            # Placeholder Reddit data
+            opportunity.reddit_title = "Reddit Submission"
+            opportunity.reddit_url = "https://reddit.com/r/test/test_123"
+            opportunity.subreddit = "test"
+            opportunity.reddit_author = None
+            opportunity.reddit_upvotes = 0
+            opportunity.reddit_comments_count = 0
+            opportunity.reddit_created_at = datetime.now(timezone.utc)
+
+        return opportunity
+
+
+@pytest.fixture
+def database_test_helper():
+    """Create a database test helper instance"""
+    return DatabaseTestHelper()
+
+
 # Import required modules
 import time
 import random
