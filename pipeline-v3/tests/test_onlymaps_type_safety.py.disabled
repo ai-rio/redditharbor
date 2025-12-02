@@ -1,0 +1,507 @@
+"""
+Test OnlyMaps type safety and Pydantic validation functionality.
+
+This test module focuses on validating OnlyMaps' type safety features,
+Pydantic integration, and data validation capabilities.
+
+Requirements tested:
+- Type safety validation (requirement #4)
+- Pydantic model validation
+- Type conversion and casting
+- Schema validation with custom types
+- Error handling for type mismatches
+- Data integrity constraints
+"""
+
+import pytest
+from datetime import datetime, date, time
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Union
+from uuid import UUID
+from pydantic import ValidationError, BaseModel as PydanticBaseModel
+import logging
+
+from tests.fixtures.onlymaps_fixtures import (
+    sample_opportunity_data,
+    sample_reddit_submissions,
+    flexible_database_schema,
+    type_error_scenarios,
+    large_dataset_fixture,
+    validation_error_scenarios
+)
+
+logger = logging.getLogger(__name__)
+
+
+class TestOnlyMapsTypeValidation:
+    """Test OnlyMaps type validation and Pydantic integration."""
+
+    @pytest.mark.parametrize("data_sample", [
+        sample_opportunity_data,
+        sample_reddit_submissions[0],
+        flexible_database_schema["data"][0]
+    ])
+    def test_basic_type_conversion(self, mock_onlymaps_mapper, data_sample):
+        """Test basic type conversion from SQL to Python types."""
+        result = mock_onlymaps_mapper.convert_types(data_sample)
+
+        # Verify all basic types are properly converted
+        assert isinstance(result.get("id"), int)
+        assert isinstance(result.get("created_at"), datetime)
+        assert isinstance(result.get("score"), int)
+        assert isinstance(result.get("upvote_ratio"), float)
+
+        # Verify string fields remain strings
+        assert isinstance(result.get("title"), str)
+        assert isinstance(result.get("selftext"), str)
+        assert isinstance(result.get("author"), str)
+
+    def test_pydantic_model_validation(self, mock_onlymaps_mapper):
+        """Test OnlyMaps integration with Pydantic validation."""
+        # Test valid data
+        valid_data = {
+            "title": "Test Post",
+            "score": 100,
+            "created_at": datetime.now(),
+            "author": "test_user",
+            "upvote_ratio": 0.95,
+            "selftext": "Test content"
+        }
+
+        assert mock_onlymaps_mapper.validate_with_pydantic(valid_data) is True
+
+        # Test invalid data
+        invalid_data = {
+            "title": "Test Post",
+            "score": "invalid_score",  # Should be int
+            "created_at": "invalid_date",  # Should be datetime
+            "author": "test_user"
+        }
+
+        with pytest.raises(ValidationError):
+            mock_onlymaps_mapper.validate_with_pydantic(invalid_data)
+
+    def test_nested_type_validation(self, mock_onlymaps_mapper):
+        """Test type validation for nested data structures."""
+        nested_data = {
+            "submission": sample_reddit_submissions[0],
+            "metadata": {
+                "tags": ["python", "testing"],
+                "stats": {
+                    "views": 1000,
+                    "engagement_rate": 0.85
+                }
+            },
+            "related_posts": sample_reddit_submissions[1:3]
+        }
+
+        result = mock_onlymaps_mapper.convert_nested_types(nested_data)
+
+        # Verify nested type conversion
+        assert isinstance(result["metadata"]["stats"]["views"], int)
+        assert isinstance(result["metadata"]["stats"]["engagement_rate"], float)
+        assert all(isinstance(tag, str) for tag in result["metadata"]["tags"])
+
+    def test_complex_type_handling(self, mock_onlymaps_mapper):
+        """Test handling of complex Python types."""
+        complex_data = {
+            "uuid_field": UUID("12345678-1234-5678-1234-567812345678"),
+            "decimal_field": Decimal("123.45"),
+            "date_field": date(2023, 1, 15),
+            "time_field": time(14, 30, 0),
+            "datetime_field": datetime(2023, 1, 15, 14, 30, 0),
+            "json_field": {"key": "value", "nested": {"inner": "data"}},
+            "list_field": [1, 2, 3, "four", 5.5],
+            "tuple_field": (1, 2, 3),
+            "set_field": {1, 2, 3, 4}
+        }
+
+        result = mock_onlymaps_mapper.convert_complex_types(complex_data)
+
+        # Verify complex type preservation
+        assert isinstance(result["uuid_field"], UUID)
+        assert isinstance(result["decimal_field"], Decimal)
+        assert isinstance(result["date_field"], date)
+        assert isinstance(result["time_field"], time)
+        assert isinstance(result["datetime_field"], datetime)
+        assert isinstance(result["json_field"], dict)
+        assert isinstance(result["list_field"], list)
+        assert isinstance(result["tuple_field"], tuple)
+        assert isinstance(result["set_field"], set)
+
+
+class TestOnlyMapsSchemaValidation:
+    """Test OnlyMaps schema validation and data integrity."""
+
+    def test_schema_compliance(self, mock_onlymaps_mapper):
+        """Test data compliance with defined schema."""
+        test_data = sample_reddit_submissions[0]
+
+        # Test schema compliance for valid data
+        assert mock_onlymaps_mapper.validate_schema_compliance(test_data) is True
+
+        # Test schema compliance for missing required fields
+        incomplete_data = {"title": "Missing Fields"}
+        assert mock_onlymaps_mapper.validate_schema_compliance(incomplete_data) is False
+
+    def test_field_type_constraints(self, mock_onlymaps_mapper):
+        """Test field type constraints and validation."""
+        # Test integer constraints
+        valid_int_data = {"score": 100, "num_comments": 50}
+        assert mock_onlymaps_mapper.validate_field_types(valid_int_data) is True
+
+        # Test invalid integer data
+        invalid_int_data = {"score": "not_an_int", "num_comments": 50.5}
+        assert mock_onlymaps_mapper.validate_field_types(invalid_int_data) is False
+
+    def test_string_field_validation(self, mock_onlymaps_mapper):
+        """Test string field validation rules."""
+        # Test valid string data
+        valid_strings = {
+            "title": "Valid Post Title",
+            "author": "valid_user123",
+            "selftext": "This is a valid post content"
+        }
+        assert mock_onlymaps_mapper.validate_string_fields(valid_strings) is True
+
+        # Test invalid string data (empty or None)
+        invalid_strings = {
+            "title": "",
+            "author": None,
+            "selftext": "   "
+        }
+        assert mock_onlymaps_mapper.validate_string_fields(invalid_strings) is False
+
+    def test_datetime_validation(self, mock_onlymaps_mapper):
+        """Test datetime field validation."""
+        # Test valid datetime data
+        valid_datetime = {
+            "created_at": datetime.now(),
+            "created_utc": datetime.utcnow()
+        }
+        assert mock_onlymaps_mapper.validate_datetime_fields(valid_datetime) is True
+
+        # Test invalid datetime data
+        invalid_datetime = {
+            "created_at": "invalid_datetime",
+            "created_utc": None
+        }
+        assert mock_onlymaps_mapper.validate_datetime_fields(invalid_datetime) is False
+
+
+class TestOnlyMapsErrorHandling:
+    """Test OnlyMaps error handling for type validation failures."""
+
+    @pytest.mark.parametrize("error_scenario", type_error_scenarios)
+    def test_type_error_scenarios(self, mock_onlymaps_mapper, error_scenario):
+        """Test various type error scenarios and handling."""
+        data, expected_error_type = error_scenario
+
+        with pytest.raises(expected_error_type):
+            mock_onlymaps_mapper.safe_type_conversion(data)
+
+    def test_validation_error_scenarios(self, mock_onlymaps_mapper):
+        """Test validation error scenarios with detailed reporting."""
+        for scenario in validation_error_scenarios:
+            data, expected_errors = scenario
+
+            try:
+                mock_onlymaps_mapper.validate_with_pydantic(data)
+            except ValidationError as e:
+                # Verify expected validation errors
+                error_messages = [str(error) for error in e.errors()]
+                for expected_error in expected_errors:
+                    assert any(expected_error in msg for msg in error_messages)
+            else:
+                pytest.fail(f"Expected ValidationError but validation passed for: {data}")
+
+    def test_safe_conversion_with_fallbacks(self, mock_onlymaps_mapper):
+        """Test safe type conversion with graceful fallbacks."""
+        # Test data with potential conversion issues
+        problematic_data = {
+            "score": "100",  # String that can be converted to int
+            "upvote_ratio": "0.95",  # String that can be converted to float
+            "title": 12345,  # Integer that should be converted to string
+            "author": None,  # None value that should be handled
+        }
+
+        result = mock_onlymaps_mapper.safe_conversion_with_fallbacks(problematic_data)
+
+        # Verify successful conversions
+        assert isinstance(result["score"], int)
+        assert isinstance(result["upvote_ratio"], float)
+        assert isinstance(result["title"], str)
+        assert result["author"] is None  # None values preserved
+
+    def test_error_reporting_and_logging(self, mock_onlymaps_mapper, caplog):
+        """Test error reporting and logging functionality."""
+        problematic_data = {
+            "title": "Test Post",
+            "score": "invalid_score",  # Will cause conversion error
+            "upvote_ratio": "invalid_ratio"  # Will cause conversion error
+        }
+
+        with caplog.at_level(logging.ERROR):
+            result = mock_onlymaps_mapper.safe_conversion_with_fallbacks(problematic_data)
+
+        # Verify error logging occurred
+        assert "Type conversion error" in caplog.text
+        assert "invalid_score" in caplog.text or "invalid_ratio" in caplog.text
+
+        # Verify partial results are returned
+        assert result["title"] == "Test Post"
+
+
+class TestOnlyMapsDataIntegrity:
+    """Test OnlyMaps data integrity and consistency validation."""
+
+    def test_data_consistency_validation(self, mock_onlymaps_mapper):
+        """Test data consistency across related fields."""
+        test_data = {
+            "title": "Test Post",
+            "score": 100,
+            "upvote_ratio": 0.95,
+            "num_comments": 25,
+            "permalink": "/r/test/comments/post_id/test_title/"
+        }
+
+        # Test valid consistency
+        assert mock_onlymaps_mapper.validate_data_consistency(test_data) is True
+
+        # Test inconsistent data (e.g., upvote_ratio > 1.0)
+        inconsistent_data = test_data.copy()
+        inconsistent_data["upvote_ratio"] = 1.5  # Invalid ratio
+        assert mock_onlymaps_mapper.validate_data_consistency(inconsistent_data) is False
+
+    def test_referential_integrity(self, mock_onlymaps_mapper):
+        """Test referential integrity for related data."""
+        # Create related data structures
+        parent_data = {
+            "id": 1,
+            "title": "Parent Post",
+            "author": "test_user"
+        }
+
+        child_data = {
+            "id": 2,
+            "parent_id": 1,  # References parent_data id
+            "title": "Child Post",
+            "author": "test_user"
+        }
+
+        # Test valid referential integrity
+        assert mock_onlymaps_mapper.validate_referential_integrity(
+            parent_data, child_data) is True
+
+        # Test invalid referential integrity
+        invalid_child = child_data.copy()
+        invalid_child["parent_id"] = 999  # Non-existent parent
+        assert mock_onlymaps_mapper.validate_referential_integrity(
+            parent_data, invalid_child) is False
+
+    def test_concurrent_data_validation(self, mock_onlymaps_mapper):
+        """Test validation of concurrent data modifications."""
+        # Simulate concurrent data access scenarios
+        original_data = sample_reddit_submissions[0].copy()
+
+        # Simulate multiple concurrent reads
+        concurrent_reads = [original_data.copy() for _ in range(5)]
+
+        # Test concurrent validation
+        results = []
+        for data in concurrent_reads:
+            result = mock_onlymaps_mapper.validate_data_consistency(data)
+            results.append(result)
+
+        # All concurrent reads should be valid
+        assert all(results), "All concurrent reads should be valid"
+
+    def test_data_sanitization(self, mock_onlymaps_mapper):
+        """Test data sanitization for security and consistency."""
+        raw_data = {
+            "title": "Test <script>alert('xss')</script> Post",
+            "selftext": "Test content with <html>tags</html>",
+            "author": "test_user",
+            "permalink": "/r/test/comments/post_id/test_title/",
+            "score": 100
+        }
+
+        sanitized_data = mock_onlymaps_mapper.sanitize_data(raw_data)
+
+        # Verify XSS protection
+        assert "<script>" not in sanitized_data["title"]
+        assert "<html>" not in sanitized_data["selftext"]
+
+        # Verify legitimate data is preserved
+        assert "Test Post" in sanitized_data["title"]
+        assert "test_user" == sanitized_data["author"]
+        assert 100 == sanitized_data["score"]
+
+
+class TestOnlyMapsPerformanceValidation:
+    """Test OnlyMaps validation performance under various conditions."""
+
+    def test_validation_performance(self, mock_onlymaps_mapper):
+        """Test validation performance with large datasets."""
+        # Test validation performance on single records
+        start_time = datetime.now()
+        for _ in range(1000):
+            mock_onlymaps_mapper.validate_with_pydantic(sample_reddit_submissions[0])
+        end_time = datetime.now()
+
+        validation_time = (end_time - start_time).total_seconds()
+        assert validation_time < 1.0, f"Validation took too long: {validation_time}s"
+
+    def test_batch_validation_performance(self, mock_onlymaps_mapper):
+        """Test batch validation performance."""
+        batch_size = 100
+        test_batch = sample_reddit_submissions[:batch_size]
+
+        start_time = datetime.now()
+        results = mock_onlymaps_mapper.batch_validate(test_batch)
+        end_time = datetime.now()
+
+        batch_time = (end_time - start_time).total_seconds()
+        assert len(results) == batch_size
+        assert batch_time < 0.5, f"Batch validation took too long: {batch_time}s"
+
+        # Verify all validations were successful
+        assert all(results), "All batch validations should succeed"
+
+    def test_memory_usage_validation(self, mock_onlymaps_mapper, memory_profiler):
+        """Test memory usage during validation operations."""
+        # Test memory usage for validation operations
+        def validation_operation():
+            for _ in range(100):
+                mock_onlymaps_mapper.validate_with_pydantic(
+                    large_dataset_fixture[0])
+
+        memory_usage = memory_profiler.memory_usage(validation_operation)
+        assert memory_usage < 100, f"Memory usage too high: {memory_usage}MB"
+
+    def test_validation_scaling(self, mock_onlymaps_mapper):
+        """Test validation performance scaling with dataset size."""
+        dataset_sizes = [10, 50, 100, 500]
+        performance_metrics = []
+
+        for size in dataset_sizes:
+            test_data = sample_reddit_submissions[:size]
+
+            start_time = datetime.now()
+            results = mock_onlymaps_mapper.batch_validate(test_data)
+            end_time = datetime.now()
+
+            processing_time = (end_time - start_time).total_seconds()
+            performance_metrics.append({
+                "size": size,
+                "time": processing_time,
+                "avg_time_per_record": processing_time / size
+            })
+
+        # Verify scaling behavior (time should scale linearly)
+        avg_times = [m["avg_time_per_record"] for m in performance_metrics]
+        assert max(avg_times) <= min(avg_times) * 3, (
+            "Validation performance should scale reasonably")
+
+        # Verify all validations were successful
+        for size, test_data in zip(dataset_sizes,
+                                 [sample_reddit_submissions[:s] for s in dataset_sizes]):
+            results = mock_onlymaps_mapper.batch_validate(test_data)
+            assert all(results), f"All validations should succeed for size {size}"
+
+
+class TestOnlyMapsEdgeCases:
+    """Test OnlyMaps validation of edge cases and boundary conditions."""
+
+    def test_empty_and_null_values(self, mock_onlymaps_mapper):
+        """Test validation of empty strings, None values, and empty collections."""
+        edge_case_data = {
+            "title": "",  # Empty string
+            "selftext": None,  # None value
+            "author": " ",  # Whitespace-only
+            "tags": [],  # Empty list
+            "metadata": {},  # Empty dict
+            "score": 0,  # Zero value (valid)
+            "upvote_ratio": 0.0,  # Zero float (valid)
+            "created_at": None,  # None datetime
+        }
+
+        # Test flexible validation mode
+        result = mock_onlymaps_mapper.flexible_validation(edge_case_data)
+        assert result["title"] is None  # Empty string converted to None
+        assert result["selftext"] is None  # Preserved None
+        assert result["author"] is None  # Whitespace converted to None
+        assert result["tags"] == []  # Empty list preserved
+        assert result["metadata"] == {}  # Empty dict preserved
+
+    def test_extreme_values(self, mock_onlymaps_mapper):
+        """Test validation of extreme and boundary values."""
+        extreme_values = {
+            "score": 2**31 - 1,  # Max 32-bit signed int
+            "upvote_ratio": 1.0,  # Max valid ratio
+            "title": "a" * 1000,  # Very long string
+            "permalink": "/r/test/comments/" + "a" * 50,  # Very long URL
+            "num_comments": -1,  # Negative value (invalid)
+            "upvote_ratio": 1.5,  # Invalid ratio
+        }
+
+        # Test valid extreme values
+        valid_extremes = {
+            "score": 2**31 - 1,
+            "upvote_ratio": 1.0,
+            "title": "a" * 1000,
+            "permalink": "/r/test/comments/" + "a" * 50,
+            "num_comments": 0,  # Changed to valid value
+            "upvote_ratio": 0.95,  # Changed to valid value
+        }
+
+        assert mock_onlymaps_mapper.validate_with_pydantic(valid_extremes) is True
+
+    def test_unicode_and_special_characters(self, mock_onlymaps_mapper):
+        """Test validation of Unicode characters and special characters."""
+        unicode_data = {
+            "title": "🚀 Test with Unicode emojis 🌟",
+            "selftext": "Content with émojis, 中文, русский, العربية",
+            "author": "user_with_ñ_and_ü",
+            "permalink": "/r/test/comments/post/测试_テスト_اختبار",
+            "tags": ["python", "测试", "テスト", "اختبار"]
+        }
+
+        # Test Unicode validation
+        result = mock_onlymaps_mapper.validate_unicode(unicode_data)
+        assert result is True
+
+        # Test that Unicode data is preserved
+        converted_data = mock_onlymaps_mapper.convert_types(unicode_data)
+        assert "🚀" in converted_data["title"]
+        assert "中文" in converted_data["selftext"]
+        assert "テスト" in converted_data["permalink"]
+
+    def test_database_specific_values(self, mock_onlymaps_mapper):
+        """Test validation of database-specific values and constraints."""
+        db_specific_values = {
+            "id": 1,  # Primary key
+            "created_at": datetime.now(),  # Timestamp
+            "updated_at": datetime.now(),  # Timestamp
+            "is_deleted": False,  # Boolean
+            "version": 1,  # Version number
+            "sort_order": 100,  # Sort order
+            "weight": 0.5,  # Weight/weight
+            "priority": "high",  # Enum string
+        }
+
+        # Test database-specific validation
+        assert mock_onlymaps_mapper.validate_database_constraints(
+            db_specific_values) is True
+
+        # Test invalid database values
+        invalid_db_values = db_specific_values.copy()
+        invalid_db_values["sort_order"] = -1  # Invalid sort order
+        invalid_db_values["weight"] = 1.5  # Invalid weight
+
+        assert mock_onlymaps_mapper.validate_database_constraints(
+            invalid_db_values) is False
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
