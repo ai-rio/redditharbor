@@ -190,7 +190,18 @@ def run_pipeline(args: argparse.Namespace) -> int:
         # Initialize components with dependency injection
         reddit_client = RedditClient()
         validator = AnalysisValidator()
-        db_loader = None if args.dry_run else DatabaseLoader()
+        # Use OnlyMaps integration to fix database schema issues
+        if args.dry_run:
+            db_loader = None
+        else:
+            try:
+                from load.onlymaps_database import OnlyMapsDatabaseLoader
+                db_loader = OnlyMapsDatabaseLoader()
+                print("✓ Using OnlyMaps DatabaseLoader with schema flexibility")
+            except ImportError:
+                # Fallback to original DatabaseLoader if OnlyMaps not available
+                db_loader = DatabaseLoader()
+                print("⚠️ Falling back to SQLAlchemy DatabaseLoader")
 
         # Create orchestrator with injected dependencies
         orchestrator = PipelineOrchestrator(
