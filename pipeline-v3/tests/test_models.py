@@ -179,7 +179,8 @@ class TestAnalysisResult:
             market_metrics=metrics,
             final_score=75.0,
             confidence_score=80.0,
-            trust_level="HIGH"
+            trust_level="HIGH",
+            content_quality_score=80.0  # Add required field
         )
         assert analysis.final_score == 75.0
         assert analysis.trust_level == "HIGH"
@@ -208,7 +209,8 @@ class TestAnalysisResult:
                 market_metrics=metrics,
                 final_score=75.0,
                 confidence_score=80.0,
-                trust_level="INVALID"
+                trust_level="INVALID",
+                content_quality_score=80.0  # Add required field
             )
 
 
@@ -941,7 +943,7 @@ class TestAnalysisResultQuality:
         )
 
         # Should fail - spam with high quality score (> 40)
-        with pytest.raises(ValueError, match="spam.*content_quality_score.*40"):
+        with pytest.raises(ValueError, match="Spam content must have content_quality_score ≤ 40"):
             AnalysisResult(
                 submission_id="test123",
                 app_idea=idea,
@@ -1070,7 +1072,7 @@ class TestAnalysisResultQuality:
             submission_id="spam_456",
             app_idea=idea,
             market_metrics=metrics,
-            final_score=25.0,  # Low final score
+            final_score=60.0,  # Score within reasonable range of market metrics average (77.5)
             confidence_score=40.0,  # Low confidence
             trust_level="LOW",
             content_quality_score=20.0,  # Low quality for spam
@@ -1110,6 +1112,7 @@ class TestAnalysisResultExtended:
             final_score=75.0,
             confidence_score=80.0,
             trust_level="HIGH",
+            content_quality_score=80.0,  # Add required field
             embedding=None  # Should be allowed
         )
         assert analysis.embedding is None
@@ -1140,7 +1143,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding="not_a_list"  # Should be a list
+                content_quality_score=80.0,  # Add required field
+            embedding="not_a_list"  # Should be a list
             )
 
         # Empty embedding should fail
@@ -1152,7 +1156,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[]  # Empty list
+                content_quality_score=80.0,  # Add required field
+            embedding=[]  # Empty list
             )
 
     def test_embedding_validation_length_constraints(self):
@@ -1181,7 +1186,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[1.0, 2.0, 3.0]  # Too short (< 10 dimensions)
+                content_quality_score=80.0,  # Add required field
+            embedding=[1.0, 2.0, 3.0]  # Too short (< 10 dimensions)
             )
 
         # Too long embedding
@@ -1193,7 +1199,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=list(range(10001))  # Too long (> 10000 dimensions)
+                content_quality_score=80.0,  # Add required field
+            embedding=list(range(10001))  # Too long (> 10000 dimensions)
             )
 
     def test_embedding_validation_invalid_elements(self):
@@ -1222,7 +1229,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=["not_a_number", 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                content_quality_score=80.0,  # Add required field
+            embedding=["not_a_number", 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             )
 
         # Infinite values
@@ -1234,7 +1242,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[float('inf'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                content_quality_score=80.0,  # Add required field
+            embedding=[float('inf'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             )
 
         # NaN values
@@ -1246,7 +1255,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[float('nan'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                content_quality_score=80.0,  # Add required field
+            embedding=[float('nan'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             )
 
     def test_cross_model_consistency_validation(self):
@@ -1272,7 +1282,8 @@ class TestAnalysisResultExtended:
                 submission_id="test123",
                 app_idea=idea,
                 market_metrics=metrics,
-                final_score=25.0,  # Way too low compared to metrics average of ~72.5
+                content_quality_score=80.0,  # Add required field
+            final_score=25.0,  # Way too low compared to metrics average of ~72.5
                 confidence_score=80.0,
                 trust_level="HIGH"
             )
@@ -1304,7 +1315,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                analyzed_at=old_timestamp
+                content_quality_score=80.0,  # Add required field
+            analyzed_at=old_timestamp
             )
 
     def test_valid_embedding_scenarios(self):
@@ -1333,6 +1345,7 @@ class TestAnalysisResultExtended:
             final_score=75.0,
             confidence_score=80.0,
             trust_level="HIGH",
+            content_quality_score=80.0,  # Add required field
             embedding=valid_embedding
         )
         assert len(analysis.embedding) == 12
