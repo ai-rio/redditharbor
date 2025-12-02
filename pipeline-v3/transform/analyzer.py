@@ -43,6 +43,7 @@ from config import get_settings
 from models.reddit import RedditSubmission
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from .embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider, OpenAIEmbeddingProvider
+from .simplicity_processor import SimplicityProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -304,33 +305,28 @@ class OpportunityAnalyzer(SimpleOpportunityAnalyzer):
             mode=instructor.Mode.JSON
         )
 
+        # Initialize simplicity processor for score-driven function adjustment
+        self.simplicity_processor = SimplicityProcessor()
+
         # System prompt for consistent analysis
         self.system_prompt = """
 You are an expert product analyst and startup opportunity scout. Your task is to analyze Reddit discussions
 and extract potential app opportunities that solve real user problems.
 
 CRITICAL RULES:
-1. PREFER 1-2 functions. Maximum 3 core functions per app - this is non-negotiable. Apps with 4+ functions fail.
-2. Focus on SIMPLE solutions. Users prefer focused tools over complex platforms.
+1. Maximum 3 core functions per app - this is non-negotiable. Apps with 4+ functions fail.
+2. Identify the core functions that solve the problem based ONLY on the problem domain.
 3. Each function must be independently valuable and clearly described.
 4. Look for recurring pain points, workaround discussions, and "I wish" statements.
 5. Validate market demand through the number of upvotes, comments, and engagement.
 6. Score monetization potential based on willingness to pay indicators.
 
-SIMPLICITY SCORING - DIRECTLY AFFECTS YOUR FINAL SCORE:
-You MUST choose the minimum number of functions. The scoring penalty is severe:
-- 1 function apps: Base score + 30 points (TARGET - most successful apps are single-purpose)
-- 2 function apps: Base score + 15 points (GOOD - only if functions are truly complementary)
-- 3 function apps: Base score + 0 points (PENALTY - use only when absolutely necessary)
-
-EXAMPLES:
-✓ GOOD: "Pomodoro timer" = 1 function (Timer) → Gets +30 bonus
-✓ GOOD: "Task tracker with reminders" = 2 functions (Track tasks, Send reminders) → Gets +15 bonus
-✗ AVOID: "Task tracker with reminders and time blocking" = 3 functions → No bonus
-
-Start by identifying the ONE core function that solves the main problem.
-Only add a second function if it's essential to the solution.
-Rarely add a third function - only when the problem genuinely requires that complexity.
+FUNCTION GENERATION:
+Generate core functions based on the problem domain, not simplicity preferences:
+- If the problem requires 1 core function, provide 1
+- If the problem requires 2 complementary functions, provide 2
+- If the problem requires 3 related functions, provide 3
+- Do NOT artificially limit or expand functions to reach a target count
 
 CONTENT QUALITY SCORING REQUIREMENTS:
 7. Assign a content_quality_score (0-100) where:
@@ -386,6 +382,9 @@ Return your analysis as structured JSON following the exact schema provided.
 
             # Add source metadata
             analysis.submission_id = submission.id
+
+            # Apply simplicity processor to adjust scoring and functions
+            analysis = self.simplicity_processor.process_analysis(analysis)
 
             logger.info(f"✓ Analysis complete: {analysis.app_idea.title} (score: {analysis.final_score:.1f})")
             return analysis
