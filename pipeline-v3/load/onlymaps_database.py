@@ -160,7 +160,8 @@ class OnlyMapsDatabaseLoader:
 
     def store_analyses(self, analyses, reddit_submissions=None):
         """
-        Store analyses using OnlyMaps with actual database inserts
+        Store analyses directly to clean opportunities table
+        NO MAPPING - Direct insert from LLM output to database
 
         Args:
             analyses: List of AnalysisResult objects to store
@@ -172,7 +173,7 @@ class OnlyMapsDatabaseLoader:
         from load.data_mappers import AnalysisToOpportunityMapper
         import json
 
-        logger.info(f"Storing {len(analyses) if analyses else 0} analyses with OnlyMaps")
+        logger.info(f"Storing {len(analyses) if analyses else 0} analyses with OnlyMaps (clean schema)")
 
         if not analyses:
             return {"stored": 0, "skipped": 0, "errors": 0}
@@ -199,54 +200,58 @@ class OnlyMapsDatabaseLoader:
                     # Use savepoint for each insert to allow rollback without aborting transaction
                     cursor.execute("SAVEPOINT insert_savepoint")
 
-                    # Execute INSERT with ON CONFLICT DO NOTHING for duplicates
-                    # Map to existing database schema (OLD format)
-                    # Use _dlt_id (unique constraint exists) instead of submission_id
-                    import hashlib
-                    dlt_id = hashlib.sha256(f"pipeline_v3_{opp.submission_id}".encode()).hexdigest()[:16]
-
+                    # Direct insert to CLEAN opportunities schema
                     insert_query = """
-                        INSERT INTO app_opportunities (
-                            submission_id, title, url, subreddit,
-                            author, score, num_comments, created_utc,
-                            opportunity_category, opportunity_reasoning,
-                            monetization_score, monetization_confidence,
-                            trust_score, trust_badge,
-                            quality_score, ai_confidence_score,
-                            processed_at, _dlt_load_id, _dlt_id
+                        INSERT INTO opportunities (
+                            submission_id, reddit_title, reddit_url, subreddit,
+                            reddit_author, reddit_upvotes, reddit_comments_count, reddit_created_at,
+                            app_title, app_concept, problem_statement, target_audience, core_functions,
+                            market_demand, pain_intensity, monetization_potential,
+                            competition_level, technical_feasibility,
+                            final_score, confidence_score, trust_level,
+                            content_quality_score, is_spam, spam_indicators,
+                            embedding, analyzed_at
                         ) VALUES (
-                            %(submission_id)s, %(title)s, %(url)s, %(subreddit)s,
-                            %(author)s, %(score)s, %(num_comments)s, %(created_utc)s,
-                            %(opportunity_category)s, %(opportunity_reasoning)s,
-                            %(monetization_score)s, %(monetization_confidence)s,
-                            %(trust_score)s, %(trust_badge)s,
-                            %(quality_score)s, %(ai_confidence_score)s,
-                            %(processed_at)s, %(dlt_load_id)s, %(dlt_id)s
+                            %(submission_id)s, %(reddit_title)s, %(reddit_url)s, %(subreddit)s,
+                            %(reddit_author)s, %(reddit_upvotes)s, %(reddit_comments_count)s, %(reddit_created_at)s,
+                            %(app_title)s, %(app_concept)s, %(problem_statement)s, %(target_audience)s, %(core_functions)s,
+                            %(market_demand)s, %(pain_intensity)s, %(monetization_potential)s,
+                            %(competition_level)s, %(technical_feasibility)s,
+                            %(final_score)s, %(confidence_score)s, %(trust_level)s,
+                            %(content_quality_score)s, %(is_spam)s, %(spam_indicators)s,
+                            %(embedding)s, %(analyzed_at)s
                         )
-                        ON CONFLICT (_dlt_id) DO NOTHING
+                        ON CONFLICT (submission_id) DO NOTHING
                     """
 
-                    # Prepare data for insertion - map to OLD schema
+                    # Direct data mapping - NO TRANSFORMATION
                     data = {
                         'submission_id': opp.submission_id,
-                        'title': opp.reddit_title,
-                        'url': opp.reddit_url,
+                        'reddit_title': opp.reddit_title,
+                        'reddit_url': opp.reddit_url,
                         'subreddit': opp.subreddit,
-                        'author': opp.reddit_author,
-                        'score': opp.reddit_upvotes,
-                        'num_comments': opp.reddit_comments_count,
-                        'created_utc': opp.reddit_created_at,
-                        'opportunity_category': opp.app_title,
-                        'opportunity_reasoning': f"{opp.app_concept}\\n\\nProblem: {opp.problem_statement}\\n\\nTarget: {opp.target_audience}",
-                        'monetization_score': opp.monetization_potential,
-                        'monetization_confidence': opp.confidence_score,
-                        'trust_score': opp.final_score,
-                        'trust_badge': opp.trust_level,
-                        'quality_score': opp.content_quality_score,
-                        'ai_confidence_score': opp.confidence_score,
-                        'processed_at': opp.analyzed_at,
-                        'dlt_load_id': f'pipeline_v3_{opp.submission_id}',
-                        'dlt_id': dlt_id
+                        'reddit_author': opp.reddit_author,
+                        'reddit_upvotes': opp.reddit_upvotes,
+                        'reddit_comments_count': opp.reddit_comments_count,
+                        'reddit_created_at': opp.reddit_created_at,
+                        'app_title': opp.app_title,
+                        'app_concept': opp.app_concept,
+                        'problem_statement': opp.problem_statement,
+                        'target_audience': opp.target_audience,
+                        'core_functions': json.dumps(opp.core_functions),
+                        'market_demand': opp.market_demand,
+                        'pain_intensity': opp.pain_intensity,
+                        'monetization_potential': opp.monetization_potential,
+                        'competition_level': opp.competition_level,
+                        'technical_feasibility': opp.technical_feasibility,
+                        'final_score': opp.final_score,
+                        'confidence_score': opp.confidence_score,
+                        'trust_level': opp.trust_level,
+                        'content_quality_score': opp.content_quality_score,
+                        'is_spam': opp.is_spam,
+                        'spam_indicators': json.dumps(opp.spam_indicators) if opp.spam_indicators else '[]',
+                        'embedding': json.dumps(opp.embedding) if opp.embedding else None,
+                        'analyzed_at': opp.analyzed_at
                     }
 
                     # Execute the insert

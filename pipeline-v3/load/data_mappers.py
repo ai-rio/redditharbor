@@ -123,6 +123,11 @@ class AnalysisToOpportunityMapper:
             confidence_score=analysis.confidence_score,
             trust_level=analysis.trust_level,
 
+            # AI Quality Assessment
+            content_quality_score=analysis.content_quality_score,
+            is_spam=analysis.is_spam,
+            spam_indicators=analysis.spam_indicators,
+
             # Semantic search
             embedding=analysis.embedding,
 
@@ -171,6 +176,11 @@ class AnalysisToOpportunityMapper:
             final_score=analysis.final_score,
             confidence_score=analysis.confidence_score,
             trust_level=analysis.trust_level,
+
+            # AI Quality Assessment
+            content_quality_score=analysis.content_quality_score,
+            is_spam=analysis.is_spam,
+            spam_indicators=analysis.spam_indicators,
 
             # Semantic search
             embedding=analysis.embedding,
