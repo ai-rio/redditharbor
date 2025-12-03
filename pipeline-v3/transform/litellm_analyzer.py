@@ -71,30 +71,177 @@ except ImportError:
             def process_analysis(self, analysis):
                 return analysis
 
+# AgentOps integration
+try:
+    from monitoring import (
+        AgentOpsTracker,
+        AgentOpsConfig,
+        trace,
+        tool,
+        llm_call,
+        get_tracker
+    )
+    AGENTOPS_AVAILABLE = True
+except ImportError:
+    AGENTOPS_AVAILABLE = False
+    # Mock AgentOps for backward compatibility
+    class MockAgentOpsTracker:
+        def __init__(self, *args, **kwargs):
+            pass
+        def start_session(self, *args, **kwargs):
+            return None
+        def end_session(self, *args, **kwargs):
+            return None
+        def track_llm_call(self, *args, **kwargs):
+            return False
+        def track_cost_summary(self, *args, **kwargs):
+            return False
+        def track_operation_result(self, *args, **kwargs):
+            return False
+        def track_error(self, *args, **kwargs):
+            return False
+        def get_session_summary(self):
+            return None
+
+    def trace(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+    def tool(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+    def llm_call(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+    def get_tracker():
+        return MockAgentOpsTracker()
+
+    AgentOpsTracker = MockAgentOpsTracker
+    AgentOpsConfig = None
+
 logger = logging.getLogger(__name__)
 
 
 class LiteLLMAnalyzer:
     """
-    LiteLLM-powered analyzer with comprehensive cost tracking and unified API access
+    LiteLLM-powered analyzer with comprehensive cost tracking, AgentOps integration, and unified API access
     """
 
-    def __init__(self, model_name: str = "anthropic/claude-haiku-4.5", enable_cost_tracking: bool = True):
+    def __init__(self,
+                 model_name: str = "anthropic/claude-haiku-4.5",
+                 enable_cost_tracking: bool = True,
+                 enable_agentops_tracking: bool = True,
+                 agentops_config: Optional[AgentOpsConfig] = None):
         """
-        Initialize LiteLLM analyzer with cost tracking
+        Initialize LiteLLM analyzer with cost tracking and AgentOps integration
 
         Args:
             model_name: Model identifier (e.g., "anthropic/claude-haiku-4.5")
-            enable_cost_tracking: Whether to enable cost tracking
+            enable_cost_tracking: Whether to enable internal cost tracking
+            enable_agentops_tracking: Whether to enable AgentOps monitoring
+            agentops_config: Custom AgentOps configuration (defaults to environment)
         """
         self.settings = get_settings() if SETTINGS_AVAILABLE else MockSettings()
         self.model_name = model_name or self.settings.model_name
         self.enable_cost_tracking = enable_cost_tracking
+        self.enable_agentops_tracking = enable_agentops_tracking and AGENTOPS_AVAILABLE
         self.simplicity_processor = SimplicityProcessor()
+
+        # Initialize AgentOps tracker if enabled
+        if self.enable_agentops_tracking:
+            try:
+                if agentops_config:
+                    self.agentops_tracker = AgentOpsTracker(agentops_config)
+                else:
+                    self.agentops_tracker = get_tracker()
+
+                logger.info(f"AgentOps tracking enabled for model: {self.model_name}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize AgentOps tracker: {e}")
+                self.enable_agentops_tracking = False
+                self.agentops_tracker = None
+        else:
+            self.agentops_tracker = None
+
+        # Session tracking
+        self._session_id = None
+        self._analysis_count = 0
 
         # Configure LiteLLM for OpenRouter
         litellm.api_base = "https://openrouter.ai/api/v1"
         litellm.set_verbose = False
+
+    def start_analysis_session(self, session_name: Optional[str] = None,
+                              tags: Optional[List[str]] = None) -> Optional[str]:
+        """
+        Start a new analysis session with AgentOps tracking
+
+        Args:
+            session_name: Name for the analysis session
+            tags: Additional tags for the session
+
+        Returns:
+            Session ID if successful, None otherwise
+        """
+        if not self.enable_agentops_tracking:
+            logger.debug("AgentOps tracking disabled, skipping session start")
+            return None
+
+        session_name = session_name or f"litellm_analysis_{self.model_name}"
+        tags = tags or [self.model_name, "pipeline-v3", "analysis"]
+
+        try:
+            self._session_id = self.agentops_tracker.start_session(session_name, tags)
+            self._analysis_count = 0
+            logger.info(f"Started AgentOps analysis session: {self._session_id}")
+            return self._session_id
+        except Exception as e:
+            logger.error(f"Failed to start AgentOps session: {e}")
+            return None
+
+    def end_analysis_session(self, status: str = "success") -> Optional[Dict[str, Any]]:
+        """
+        End current analysis session and return summary
+
+        Args:
+            status: Session completion status
+
+        Returns:
+            Session summary if available, None otherwise
+        """
+        if not self.enable_agentops_tracking or not self._session_id:
+            return None
+
+        try:
+            metadata = {
+                "model": self.model_name,
+                "analysis_count": self._analysis_count,
+                "analyzer_type": "LiteLLMAnalyzer"
+            }
+
+            summary = self.agentops_tracker.end_session(status, metadata)
+            self._session_id = None
+            logger.info(f"Ended AgentOps analysis session with status: {status}")
+            return summary
+        except Exception as e:
+            logger.error(f"Failed to end AgentOps session: {e}")
+            return None
+
+    def get_session_summary(self) -> Optional[Dict[str, Any]]:
+        """Get current session summary"""
+        if not self.enable_agentops_tracking:
+            return None
+
+        try:
+            return self.agentops_tracker.get_session_summary()
+        except Exception as e:
+            logger.error(f"Failed to get session summary: {e}")
+            return None
 
         # Model cost configurations (per 1M tokens)
         self.model_costs = {
@@ -215,9 +362,11 @@ Return your analysis as structured JSON following the exact schema provided.
         analysis, _ = self.analyze_submission_with_costs(submission)
         return analysis
 
+    @trace(name="analyze_submission", track_args=False, track_result=True)
+    @llm_call(model_name="auto", track_cost=True, track_tokens=True)
     def analyze_submission_with_costs(self, submission: RedditSubmission) -> Tuple[AnalysisResult, CostTracking]:
         """
-        Analyze a single Reddit submission with detailed cost tracking
+        Analyze a single Reddit submission with detailed cost tracking and AgentOps monitoring
 
         Args:
             submission: Reddit submission to analyze
@@ -227,8 +376,22 @@ Return your analysis as structured JSON following the exact schema provided.
         """
         logger.info(f"Analyzing submission with LiteLLM: {submission.id} - {submission.title[:50]}...")
 
+        self._analysis_count += 1
         start_time = time.time()
         user_prompt = self._create_analysis_prompt(submission)
+
+        # Track analysis start if AgentOps is available
+        if self.enable_agentops_tracking and self.agentops_tracker:
+            self.agentops_tracker.track_operation_result(
+                "submission_analysis_start",
+                success=True,
+                metadata={
+                    "submission_id": submission.id,
+                    "model": self.model_name,
+                    "prompt_length": len(user_prompt),
+                    "subreddit": submission.subreddit
+                }
+            )
 
         try:
             if self.client:
@@ -291,11 +454,62 @@ Return your analysis as structured JSON following the exact schema provided.
             else:
                 cost_data = self._create_zero_cost_tracking(latency)
 
+            # Track successful analysis with AgentOps
+            if self.enable_agentops_tracking and self.agentops_tracker:
+                try:
+                    # Track the LLM call specifically
+                    self.agentops_tracker.track_llm_call(
+                        model=self.model_name,
+                        tokens=cost_data.total_tokens,
+                        cost=cost_data.total_cost_usd,
+                        latency=cost_data.latency_seconds,
+                        success=True,
+                        metadata={
+                            "submission_id": submission.id,
+                            "analysis_type": "reddit_opportunity",
+                            "final_score": analysis.final_score,
+                            "app_title": analysis.app_idea.title
+                        }
+                    )
+
+                    # Track analysis completion
+                    self.agentops_tracker.track_operation_result(
+                        "submission_analysis_complete",
+                        success=True,
+                        metadata={
+                            "submission_id": submission.id,
+                            "model": self.model_name,
+                            "cost_usd": cost_data.total_cost_usd,
+                            "final_score": analysis.final_score,
+                            "content_quality_score": analysis.content_quality_score,
+                            "is_spam": analysis.is_spam
+                        }
+                    )
+                except Exception as track_error:
+                    logger.warning(f"Failed to track with AgentOps: {track_error}")
+
             logger.info(f"✓ LiteLLM analysis complete: {analysis.app_idea.title} (score: {analysis.final_score:.1f})")
             return analysis, cost_data
 
         except Exception as e:
             logger.error(f"LiteLLM analysis failed for submission {submission.id}: {e}")
+
+            # Track error with AgentOps
+            if self.enable_agentops_tracking and self.agentops_tracker:
+                try:
+                    self.agentops_tracker.track_error(
+                        error_type=type(e).__name__,
+                        error_message=str(e),
+                        metadata={
+                            "submission_id": submission.id,
+                            "model": self.model_name,
+                            "analysis_type": "reddit_opportunity",
+                            "prompt_length": len(user_prompt),
+                            "latency": time.time() - start_time
+                        }
+                    )
+                except Exception as track_error:
+                    logger.warning(f"Failed to track error with AgentOps: {track_error}")
 
             # Return error analysis with cost tracking
             error_analysis = self._create_error_analysis(submission, str(e))
@@ -317,6 +531,7 @@ Return your analysis as structured JSON following the exact schema provided.
         results, _ = self.analyze_batch_with_costs(submissions, batch_size)
         return results
 
+    @trace(name="analyze_batch", track_args=False, track_result=True)
     def analyze_batch_with_costs(
         self,
         submissions: List[RedditSubmission],
@@ -418,7 +633,7 @@ Return your analysis as structured JSON following the exact schema provided.
             if model_data["count"] > 0:
                 model_data["avg_cost"] = model_data["cost"] / model_data["count"]
 
-        return CostSummary(
+        cost_summary = CostSummary(
             total_cost_usd=round(total_cost, 6),
             total_tokens=total_tokens,
             analysis_count=analysis_count,
@@ -426,6 +641,15 @@ Return your analysis as structured JSON following the exact schema provided.
             model_breakdown=model_breakdown,
             timestamp=datetime.utcnow()
         )
+
+        # Track cost summary with AgentOps
+        if self.enable_agentops_tracking and self.agentops_tracker:
+            try:
+                self.agentops_tracker.track_cost_summary(cost_summary)
+            except Exception as track_error:
+                logger.warning(f"Failed to track cost summary with AgentOps: {track_error}")
+
+        return cost_summary
 
     def test_connection(self) -> bool:
         """
