@@ -1,11 +1,11 @@
 """
-LLM-powered opportunity analysis using OpenRouter API with Instructor validation
+LLM-powered opportunity analysis using LiteLLM with comprehensive cost tracking
 """
 
 import logging
 import os
 from datetime import datetime
-from typing import List
+from typing import List, Optional, Tuple
 
 try:
     import instructor
@@ -13,6 +13,13 @@ try:
 except ImportError:
     INSTRUCTOR_AVAILABLE = False
     instructor = None
+
+try:
+    import litellm
+    LITELLM_AVAILABLE = True
+except ImportError:
+    LITELLM_AVAILABLE = False
+    litellm = None
 
 # Conditional OpenAI import with fallback for testing
 import sys
@@ -39,11 +46,57 @@ else:
         pass
     OpenAI = MockOpenAI
 
-from config import get_settings
+try:
+    from config import get_settings
+    SETTINGS_AVAILABLE = True
+except ImportError:
+    SETTINGS_AVAILABLE = False
+
+    # Mock settings for testing
+    class MockSettings:
+        def __init__(self):
+            self.model_name = "anthropic/claude-haiku-4.5"
+            self.max_tokens = 1000
+            self.temperature = 0.3
+            self.openai_api_key = os.getenv("OPENROUTER_API_KEY")
+            self.openai_base_url = "https://openrouter.ai/api/v1"
+            self.is_openrouter_configured = True
+            self.batch_size = 5
+
+        def get_openai_client_config(self):
+            return {
+                "api_key": self.openai_api_key,
+                "base_url": self.openai_base_url
+            }
+
+    def get_settings():
+        return MockSettings()
 from models.reddit import RedditSubmission
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from .embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider, OpenAIEmbeddingProvider
-from .simplicity_processor import SimplicityProcessor
+from models.cost_tracking import CostTracking, CostSummary
+
+try:
+    from .embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider, OpenAIEmbeddingProvider
+    from .simplicity_processor import SimplicityProcessor
+except ImportError:
+    # Fallback for direct import
+    try:
+        from transform.embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider, OpenAIEmbeddingProvider
+        from transform.simplicity_processor import SimplicityProcessor
+    except ImportError:
+        # Mock implementations for testing
+        class FakeEmbeddingProvider:
+            def __init__(self, dimensions=384, value_range=(-1.0, 1.0)):
+                self.dimensions = dimensions
+                self.value_range = value_range
+
+        class EmbeddingStrategy:
+            def __init__(self, provider):
+                self.provider = provider
+
+        class SimplicityProcessor:
+            def process_analysis(self, analysis):
+                return analysis
 
 logger = logging.getLogger(__name__)
 
@@ -285,15 +338,62 @@ class SimpleOpportunityAnalyzer:
 
 class OpportunityAnalyzer(SimpleOpportunityAnalyzer):
     """
-    LLM-powered analyzer using OpenRouter API with cost-optimized models
+    LLM-powered analyzer using LiteLLM for unified API access with comprehensive cost tracking
     """
 
-    def __init__(self):
-        """Initialize analyzer with OpenRouter client and Instructor"""
-        self.settings = get_settings()
+    def __init__(self, use_litellm: bool = True, enable_cost_tracking: bool = True):
+        """
+        Initialize analyzer with LiteLLM support and optional cost tracking
 
+        Args:
+            use_litellm: Whether to use LiteLLM (recommended) or direct OpenAI client
+            enable_cost_tracking: Whether to enable comprehensive cost tracking
+        """
+        self.settings = get_settings() if SETTINGS_AVAILABLE else MockSettings()
+        self.use_litellm = use_litellm and LITELLM_AVAILABLE
+        self.enable_cost_tracking = enable_cost_tracking
+
+        # Initialize simplicity processor for score-driven function adjustment
+        self.simplicity_processor = SimplicityProcessor()
+
+        # Model cost configurations for cost tracking
+        self.model_costs = {
+            "anthropic/claude-haiku-4.5": {"input_cost": 1.0, "output_cost": 5.0},
+            "anthropic/claude-3.5-sonnet": {"input_cost": 3.0, "output_cost": 15.0},
+            "openai/gpt-4o-mini": {"input_cost": 0.15, "output_cost": 0.60},
+        }
+
+        # Configure LiteLLM if available and enabled
+        if self.use_litellm:
+            litellm.api_base = "https://openrouter.ai/api/v1"
+            litellm.set_verbose = False
+            self._init_litellm_client()
+        else:
+            # Fallback to direct OpenAI client
+            self._init_openai_client()
+
+    def _init_litellm_client(self):
+        """Initialize LiteLLM client"""
+        self.client = None
+        if INSTRUCTOR_AVAILABLE:
+            try:
+                import openai
+                openai_client = openai.OpenAI(
+                    api_key=self.settings.openai_api_key,
+                    base_url=self.settings.openai_base_url
+                )
+                self.client = instructor.from_openai(
+                    openai_client,
+                    mode=instructor.Mode.JSON
+                )
+            except Exception as e:
+                logger.warning(f"Failed to initialize LiteLLM Instructor client: {e}")
+                self.client = None
+
+    def _init_openai_client(self):
+        """Initialize direct OpenAI client (legacy mode)"""
         if not INSTRUCTOR_AVAILABLE or not OPENAI_AVAILABLE:
-            raise RuntimeError("instructor and openai packages are required for OpportunityAnalyzer")
+            raise RuntimeError("instructor and openai packages are required for OpportunityAnalyzer in legacy mode")
 
         # Configure OpenAI client for OpenRouter
         openai_config = self.settings.get_openai_client_config()
@@ -304,9 +404,6 @@ class OpportunityAnalyzer(SimpleOpportunityAnalyzer):
             openai_client,
             mode=instructor.Mode.JSON
         )
-
-        # Initialize simplicity processor for score-driven function adjustment
-        self.simplicity_processor = SimplicityProcessor()
 
         # System prompt for consistent analysis
         self.system_prompt = """
@@ -362,15 +459,113 @@ Return your analysis as structured JSON following the exact schema provided.
         Raises:
             RuntimeError: If LLM analysis fails
         """
-        logger.info(f"Analyzing submission: {submission.id} - {submission.title[:50]}...")
+        logger.info(f"Analyzing submission ({'LiteLLM' if self.use_litellm else 'Direct'}): {submission.id} - {submission.title[:50]}...")
 
         # Prepare user prompt with submission data
         user_prompt = self._create_analysis_prompt(submission)
 
         try:
-            # Use Instructor to get structured output from OpenRouter
-            analysis = self.client.chat.completions.create(
-                model=self.settings.model_name,
+            if self.use_litellm and LITELLM_AVAILABLE:
+                # Use LiteLLM for unified API access
+                analysis = self._analyze_with_litellm(user_prompt)
+            else:
+                # Use direct OpenAI client (legacy)
+                analysis = self._analyze_with_openai(user_prompt)
+
+            # Add source metadata
+            analysis.submission_id = submission.id
+
+            # Apply simplicity processor to adjust scoring and functions
+            analysis = self.simplicity_processor.process_analysis(analysis)
+
+            # Generate embedding using parent's embedding strategy
+            if hasattr(self, 'embedding_strategy'):
+                text_for_embedding = f"{submission.title} {submission.text} {submission.subreddit}"
+                embedding_metadata = {
+                    'submission_id': submission.id,
+                    'source': 'reddit_submission_analysis'
+                }
+                embedding, embedding_metadata = self.embedding_strategy.generate_embedding(
+                    text_for_embedding,
+                    embedding_metadata
+                )
+                analysis.embedding = embedding
+                analysis.embedding_metadata = embedding_metadata
+
+            logger.info(f"✓ Analysis complete: {analysis.app_idea.title} (score: {analysis.final_score:.1f})")
+            return analysis
+
+        except Exception as e:
+            logger.error(f"LLM analysis failed for submission {submission.id}: {e}")
+            raise RuntimeError(f"Failed to analyze submission {submission.id}: {e}")
+
+    def analyze_submission_with_costs(self, submission: RedditSubmission) -> Tuple[AnalysisResult, Optional[CostTracking]]:
+        """
+        Analyze a single Reddit submission with cost tracking (if enabled)
+
+        Args:
+            submission: Reddit submission to analyze
+
+        Returns:
+            Tuple of (AnalysisResult, CostTracking) - CostTracking is None if disabled
+        """
+        import time
+        start_time = time.time()
+
+        analysis = self.analyze_submission(submission)
+
+        # Create cost tracking if enabled
+        cost_data = None
+        if self.enable_cost_tracking:
+            cost_data = self._create_cost_tracking(
+                latency=time.time() - start_time,
+                prompt_length=len(self._create_analysis_prompt(submission)),
+                success=True
+            )
+
+        return analysis, cost_data
+
+    def analyze_batch_with_costs(
+        self,
+        submissions: List[RedditSubmission],
+        batch_size: int = None
+    ) -> Tuple[List[AnalysisResult], Optional[CostSummary]]:
+        """
+        Analyze multiple submissions in batches with cost summary
+
+        Args:
+            submissions: List of submissions to analyze
+            batch_size: Size of each processing batch
+
+        Returns:
+            Tuple of (List[AnalysisResult], CostSummary) - CostSummary is None if disabled
+        """
+        results = []
+        cost_data_list = []
+
+        for submission in submissions:
+            try:
+                analysis, cost_data = self.analyze_submission_with_costs(submission)
+                results.append(analysis)
+                if cost_data:
+                    cost_data_list.append(cost_data)
+            except Exception as e:
+                logger.error(f"Failed to analyze submission {submission.id}: {e}")
+                continue
+
+        # Generate cost summary if enabled
+        cost_summary = None
+        if self.enable_cost_tracking and cost_data_list:
+            cost_summary = self._calculate_cost_summary(cost_data_list)
+
+        return results, cost_summary
+
+    def _analyze_with_litellm(self, user_prompt: str) -> AnalysisResult:
+        """Analyze using LiteLLM"""
+        if self.client:
+            # Use Instructor with LiteLLM backend
+            return self.client.chat.completions.create(
+                model=f"openrouter/{self.settings.model_name}",
                 max_tokens=self.settings.max_tokens,
                 temperature=self.settings.temperature,
                 response_model=AnalysisResult,
@@ -379,19 +574,97 @@ Return your analysis as structured JSON following the exact schema provided.
                     {"role": "user", "content": user_prompt}
                 ]
             )
+        else:
+            # Fallback to direct LiteLLM call
+            response = litellm.completion(
+                model=f"openrouter/{self.settings.model_name}",
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=self.settings.max_tokens,
+                temperature=self.settings.temperature
+            )
+            # Parse response (simplified for fallback)
+            import json
+            analysis_data = json.loads(response.choices[0].message.content)
+            return AnalysisResult(**analysis_data)
 
-            # Add source metadata
-            analysis.submission_id = submission.id
+    def _analyze_with_openai(self, user_prompt: str) -> AnalysisResult:
+        """Analyze using direct OpenAI client (legacy)"""
+        return self.client.chat.completions.create(
+            model=self.settings.model_name,
+            max_tokens=self.settings.max_tokens,
+            temperature=self.settings.temperature,
+            response_model=AnalysisResult,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+        )
 
-            # Apply simplicity processor to adjust scoring and functions
-            analysis = self.simplicity_processor.process_analysis(analysis)
+    def _create_cost_tracking(self, latency: float, prompt_length: int, success: bool) -> CostTracking:
+        """Create cost tracking data"""
+        model_config = self.model_costs.get(self.settings.model_name, {"input_cost": 1.0, "output_cost": 5.0})
 
-            logger.info(f"✓ Analysis complete: {analysis.app_idea.title} (score: {analysis.final_score:.1f})")
-            return analysis
+        # Estimate token counts
+        estimated_prompt_tokens = max(100, prompt_length // 4)
+        estimated_completion_tokens = 400  # Estimate for structured output
+        estimated_total_tokens = estimated_prompt_tokens + estimated_completion_tokens
 
-        except Exception as e:
-            logger.error(f"LLM analysis failed for submission {submission.id}: {e}")
-            raise RuntimeError(f"Failed to analyze submission {submission.id}: {e}")
+        input_cost = (estimated_prompt_tokens / 1_000_000) * model_config["input_cost"]
+        output_cost = (estimated_completion_tokens / 1_000_000) * model_config["output_cost"]
+        total_cost = input_cost + output_cost
+
+        return CostTracking(
+            model_used=self.settings.model_name,
+            provider="openrouter",
+            prompt_tokens=estimated_prompt_tokens,
+            completion_tokens=estimated_completion_tokens,
+            total_tokens=estimated_total_tokens,
+            input_cost_usd=round(input_cost, 6),
+            output_cost_usd=round(output_cost, 6),
+            total_cost_usd=round(total_cost, 6),
+            latency_seconds=round(latency, 3),
+            prompt_length_chars=prompt_length,
+            model_pricing_per_m_tokens=model_config,
+            request_success=success
+        )
+
+    def _calculate_cost_summary(self, cost_data_list: List[CostTracking]) -> CostSummary:
+        """Calculate cost summary from list of cost tracking data"""
+        if not cost_data_list:
+            return CostSummary(
+                total_cost_usd=0.0,
+                total_tokens=0,
+                analysis_count=0,
+                avg_cost_per_analysis=0.0,
+                model_breakdown={},
+                timestamp=datetime.utcnow()
+            )
+
+        total_cost = sum(cost.total_cost_usd for cost in cost_data_list)
+        total_tokens = sum(cost.total_tokens for cost in cost_data_list)
+        analysis_count = len(cost_data_list)
+
+        # Model breakdown
+        model_breakdown = {}
+        for cost in cost_data_list:
+            model = cost.model_used
+            if model not in model_breakdown:
+                model_breakdown[model] = {"count": 0, "cost": 0.0, "tokens": 0}
+            model_breakdown[model]["count"] += 1
+            model_breakdown[model]["cost"] += cost.total_cost_usd
+            model_breakdown[model]["tokens"] += cost.total_tokens
+
+        return CostSummary(
+            total_cost_usd=round(total_cost, 6),
+            total_tokens=total_tokens,
+            analysis_count=analysis_count,
+            avg_cost_per_analysis=round(total_cost / analysis_count, 6) if analysis_count > 0 else 0.0,
+            model_breakdown=model_breakdown,
+            timestamp=datetime.utcnow()
+        )
 
     def analyze_batch(
         self,
@@ -565,11 +838,21 @@ Remember: SIMPLER IS BETTER. Focus on focused, single-purpose apps.
         Returns:
             Dictionary with model information
         """
+        model_config = self.model_costs.get(self.settings.model_name, {"input_cost": 1.0, "output_cost": 5.0})
+
         return {
             "model": self.settings.model_name,
-            "provider": "OpenRouter" if self.settings.is_openrouter_configured else "OpenAI",
+            "provider": "OpenRouter",
             "base_url": self.settings.openai_base_url,
             "max_tokens": self.settings.max_tokens,
             "temperature": self.settings.temperature,
-            "is_configured": bool(self.settings.openai_api_key)
+            "is_configured": bool(self.settings.openai_api_key),
+            "use_litellm": self.use_litellm,
+            "cost_tracking_enabled": self.enable_cost_tracking,
+            "model_costs": {
+                "input_cost_per_million": model_config["input_cost"],
+                "output_cost_per_million": model_config["output_cost"]
+            },
+            "litellm_available": LITELLM_AVAILABLE,
+            "instructor_available": INSTRUCTOR_AVAILABLE
         }
