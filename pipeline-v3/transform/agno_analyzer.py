@@ -22,6 +22,7 @@ from transform.agno_agents import (
     PricePointAgent,
     PaymentBehaviorAgent
 )
+from transform.market_research_agent import MarketResearchAgent
 from transform.simplicity_processor import SimplicityProcessor
 
 # Configure logger
@@ -77,6 +78,11 @@ class AnalysisThresholds:
     DEFAULT_COMPETITION_LEVEL: float = 70.0
     DEFAULT_TECHNICAL_FEASIBILITY: float = 80.0
 
+    # Market research configuration
+    DEFAULT_VALIDATION_THRESHOLD: float = 70.0
+    DEFAULT_MAX_COMPETITORS: int = 5
+    DEFAULT_MAX_LAUNCHES: int = 3
+
 
 class SubredditCategory:
     """Categorization of subreddits for market demand adjustment"""
@@ -123,12 +129,17 @@ class MockTeam:
             agents: List of agent instances
         """
         self.agents = agents
+        # Handle both 4-agent (legacy) and 5-agent (with market research) configurations
         self.agent_map = {
             "WTP Analyst": agents[0],
             "Market Segment": agents[1],
             "Price Point": agents[2],
             "Payment Behavior": agents[3]
         }
+
+        # Add MarketResearchAgent if present (5th agent)
+        if len(agents) >= 5:
+            self.agent_map["Market Research"] = agents[4]
 
     def has_agent(self, agent_name: str) -> bool:
         """
@@ -157,6 +168,7 @@ class MockTeam:
 
             def __init__(self, agent_results: Dict[str, Dict[str, Any]]):
                 self._agent_results = agent_results
+                self._market_research_results = None
 
             def get_agent_result(self, agent_name: str) -> Dict[str, Any]:
                 """
@@ -168,11 +180,19 @@ class MockTeam:
                 Returns:
                     Agent result dictionary
                 """
+                # Return market research results if requested and available
+                if agent_name == "Market Research" and self._market_research_results:
+                    return self._market_research_results
+
                 return self._agent_results.get(agent_name, {})
 
         agent_results = {}
 
         for name, agent in self.agent_map.items():
+            # Skip Market Research agent - it's handled conditionally
+            if name == "Market Research":
+                continue
+
             try:
                 response = agent.run(input_data)
 
@@ -197,7 +217,9 @@ class MockTeam:
                     "error_type": type(e).__name__
                 }
 
-        return MockResult(agent_results)
+        mock_result = MockResult(agent_results)
+
+        return mock_result
 
 
 class MockCostTracker:
@@ -423,7 +445,11 @@ class AgnoOpportunityAnalyzer:
         base_url: str = "https://openrouter.ai/api/v1",
         enable_agentops: bool = False,
         weights: Optional[ScoringWeights] = None,
-        thresholds: Optional[AnalysisThresholds] = None
+        thresholds: Optional[AnalysisThresholds] = None,
+        validation_threshold: float = None,
+        max_competitors: int = None,
+        max_launches: int = None,
+        enable_market_cost_tracking: bool = True
     ):
         """
         Initialize the analyzer with specialized agents
@@ -434,12 +460,22 @@ class AgnoOpportunityAnalyzer:
             enable_agentops: Whether to enable AgentOps tracking
             weights: Custom scoring weights, uses default if None
             thresholds: Custom analysis thresholds, uses default if None
+            validation_threshold: Threshold for market validation trigger
+            max_competitors: Maximum competitors to analyze
+            max_launches: Maximum product launches to benchmark
+            enable_market_cost_tracking: Whether to track market research costs
         """
         self.model = model
         self.base_url = base_url
         self.enable_agentops = enable_agentops
         self.weights = weights or ScoringWeights()
         self.thresholds = thresholds or AnalysisThresholds()
+
+        # Market research configuration
+        self.validation_threshold = validation_threshold or self.thresholds.DEFAULT_VALIDATION_THRESHOLD
+        self.max_competitors = max_competitors or self.thresholds.DEFAULT_MAX_COMPETITORS
+        self.max_launches = max_launches or self.thresholds.DEFAULT_MAX_LAUNCHES
+        self.enable_market_cost_tracking = enable_market_cost_tracking
 
         # Initialize components
         self._initialize_tracking()
@@ -468,12 +504,25 @@ class AgnoOpportunityAnalyzer:
         self.price_agent = PricePointAgent(self.model, api_key, self.base_url)
         self.behavior_agent = PaymentBehaviorAgent(self.model, api_key, self.base_url)
 
-        # Create agent team
+        # Initialize MarketResearchAgent with configuration
+        self.market_research_agent = MarketResearchAgent(
+            model=self.model,
+            api_key=api_key,
+            base_url=self.base_url,
+            validation_threshold=self.validation_threshold,
+            max_competitors=self.max_competitors,
+            max_launches=self.max_launches,
+            enable_cost_tracking=self.enable_market_cost_tracking,
+            use_real_jina=False  # Use mock implementation for testing
+        )
+
+        # Create agent team with MarketResearchAgent
         self.team = MockTeam([
             self.wtp_agent,
             self.segment_agent,
             self.price_agent,
-            self.behavior_agent
+            self.behavior_agent,
+            self.market_research_agent
         ])
 
     def _initialize_processors(self) -> None:
@@ -501,10 +550,32 @@ class AgnoOpportunityAnalyzer:
             agno_input = self._prepare_agno_input(submission)
             input_json = json.dumps(agno_input)
 
-            # Run multi-agent analysis
+            # Run core agent analysis first
             agno_result = self.team.run(input_json)
 
-            # Synthesize agent outputs
+            # Check if we should run market validation based on initial scores
+            market_research_input = None
+            if self.team.has_agent("Market Research"):
+                # Calculate preliminary score from core agents
+                preliminary_score = self._calculate_preliminary_score(agno_result)
+
+                # Run market validation if score exceeds threshold
+                if preliminary_score >= self.validation_threshold:
+                    logger.info(f"Running market validation for score {preliminary_score:.1f} >= {self.validation_threshold}")
+                    market_research_input = self._prepare_market_research_input(submission, agno_result)
+
+                    try:
+                        import asyncio
+                        market_research_json = json.dumps(market_research_input)
+                        market_result = asyncio.run(self.market_research_agent.run(market_research_input))
+
+                        # Inject market research results into agno_result
+                        self._inject_market_research_results(agno_result, market_result)
+
+                    except Exception as e:
+                        logger.warning(f"Market validation failed: {str(e)}. Continuing with core analysis only.")
+
+            # Synthesize agent outputs (including market research if available)
             synthesis = self._synthesize_agent_outputs(agno_result)
 
             # Apply subreddit multiplier
@@ -625,6 +696,18 @@ class AgnoOpportunityAnalyzer:
             "behavior": agent_results["behavior"]
         }
 
+        # Add market research results if available
+        market_research_results = agent_results.get("market_research", {})
+        if market_research_results and not market_research_results.get("error"):
+            agent_details["market_research"] = market_research_results
+
+            # Track market research costs
+            if self.enable_market_cost_tracking:
+                jina_cost = market_research_results.get("jina_cost", 0.0)
+                if jina_cost > 0:
+                    self.cost_tracker.add_analysis_cost(jina_cost)
+                    logger.info(f"Added market research cost: ${jina_cost:.6f}")
+
         return AgnoSynthesis(
             market_demand=market_demand,
             pain_intensity=pain_intensity,
@@ -643,12 +726,18 @@ class AgnoOpportunityAnalyzer:
         Returns:
             Dictionary of agent results
         """
-        return {
+        results = {
             "wtp": agno_result.get_agent_result("WTP Analyst"),
             "segment": agno_result.get_agent_result("Market Segment"),
             "price": agno_result.get_agent_result("Price Point"),
             "behavior": agno_result.get_agent_result("Payment Behavior")
         }
+
+        # Add market research results if available
+        if self.team.has_agent("Market Research"):
+            results["market_research"] = agno_result.get_agent_result("Market Research")
+
+        return results
 
     def _calculate_market_demand_consensus(self, agent_results: Dict[str, Dict[str, Any]]) -> float:
         """Calculate market demand consensus from agent results"""
@@ -980,3 +1069,77 @@ class AgnoOpportunityAnalyzer:
             confidence_score=0.0,
             trust_level=TrustLevel.LOW.value
         )
+
+    def _calculate_preliminary_score(self, agno_result: Any) -> float:
+        """
+        Calculate preliminary opportunity score from core agents to determine if market validation should run
+
+        Args:
+            agno_result: Result from core agent analysis
+
+        Returns:
+            Preliminary opportunity score (0-100)
+        """
+        # Extract scores from core agents
+        wtp_score = self._safe_get_score(
+            agno_result.get_agent_result("WTP Analyst"),
+            "wtp_score"
+        )
+        market_demand_score = self._safe_get_score(
+            agno_result.get_agent_result("Market Segment"),
+            "market_demand_score"
+        )
+        monetization_score = self._safe_get_score(
+            agno_result.get_agent_result("Price Point"),
+            "monetization_score"
+        )
+        pain_intensity_score = self._safe_get_score(
+            agno_result.get_agent_result("Payment Behavior"),
+            "pain_intensity_score"
+        )
+
+        # Calculate simple average for preliminary score
+        scores = [wtp_score, market_demand_score, monetization_score, pain_intensity_score]
+        return sum(scores) / len(scores)
+
+    def _prepare_market_research_input(self, submission: RedditSubmission, agno_result: Any) -> Dict[str, Any]:
+        """
+        Prepare input data for MarketResearchAgent
+
+        Args:
+            submission: Original Reddit submission
+            agno_result: Results from core agent analysis
+
+        Returns:
+            Dictionary with market research input data
+        """
+        # Extract app concept and target market from agent results
+        segment_result = agno_result.get_agent_result("Market Segment")
+        target_audience = segment_result.get("target_audience", "General market")
+        segment_type = segment_result.get("segment_type", "B2C")
+
+        # Create app concept description
+        title = getattr(submission, 'title', '')
+        content = getattr(submission, 'text', '')
+        app_concept = f"{title}: {content[:200]}" if content else title
+
+        return {
+            "app_concept": app_concept,
+            "target_market": f"{target_audience} ({segment_type})",
+            "problem_description": content[:500] if content else title,
+            "validation_threshold": self.validation_threshold
+        }
+
+    def _inject_market_research_results(self, agno_result: Any, market_result: Dict[str, Any]) -> None:
+        """
+        Inject market research results into the agno_result
+
+        This method modifies the agno_result in place to include market validation data.
+
+        Args:
+            agno_result: Result from core agent analysis
+            market_result: Results from MarketResearchAgent
+        """
+        # Store market research results in the MockResult
+        if hasattr(agno_result, '_market_research_results'):
+            agno_result._market_research_results = market_result
