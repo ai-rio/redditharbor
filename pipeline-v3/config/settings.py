@@ -139,6 +139,88 @@ class Settings(BaseSettings):
         description="Enable AgentOps tracking for Agno agents"
     )
 
+    # Jina API Configuration for Phase 3 Market Research
+    jina_api_key: str = Field(
+        default="",
+        alias="JINA_API_KEY",
+        description="Jina API key for web search and content extraction"
+    )
+    jina_redis_url: str = Field(
+        default="redis://localhost:6379/0",
+        alias="JINA_REDIS_URL",
+        description="Redis URL for Jina response caching"
+    )
+    jina_redis_db: int = Field(
+        default=1,
+        alias="JINA_REDIS_DB",
+        description="Redis database number for Jina cache"
+    )
+    jina_enable_cache: bool = Field(
+        default=True,
+        alias="JINA_ENABLE_CACHE",
+        description="Enable Jina response caching"
+    )
+    jina_cache_ttl_competitor: int = Field(
+        default=7 * 24 * 60 * 60,  # 7 days
+        alias="JINA_CACHE_TTL_COMPETITOR",
+        description="Cache TTL for competitor pricing data (seconds)"
+    )
+    jina_cache_ttl_market: int = Field(
+        default=30 * 24 * 60 * 60,  # 30 days
+        alias="JINA_CACHE_TTL_MARKET",
+        description="Cache TTL for market size data (seconds)"
+    )
+    jina_cache_ttl_launch: int = Field(
+        default=7 * 24 * 60 * 60,  # 7 days
+        alias="JINA_CACHE_TTL_LAUNCH",
+        description="Cache TTL for product launch data (seconds)"
+    )
+    jina_rate_limit: int = Field(
+        default=10,
+        alias="JINA_RATE_LIMIT",
+        description="Jina API rate limit (requests per second)"
+    )
+    jina_timeout: float = Field(
+        default=30.0,
+        alias="JINA_TIMEOUT",
+        description="Jina API request timeout (seconds)"
+    )
+    jina_max_retries: int = Field(
+        default=3,
+        alias="JINA_MAX_RETRIES",
+        description="Maximum Jina API retry attempts"
+    )
+    jina_enable_cost_tracking: bool = Field(
+        default=True,
+        alias="JINA_ENABLE_COST_TRACKING",
+        description="Enable Jina API cost tracking"
+    )
+    jina_search_cost_per_query: float = Field(
+        default=0.0001,
+        alias="JINA_SEARCH_COST_PER_QUERY",
+        description="Cost per Jina search query (USD)"
+    )
+    jina_extraction_cost_per_url: float = Field(
+        default=0.0002,
+        alias="JINA_EXTRACTION_COST_PER_URL",
+        description="Cost per Jina content extraction (USD)"
+    )
+    jina_llm_model: str = Field(
+        default="anthropic/claude-haiku-4.5",
+        alias="JINA_LLM_MODEL",
+        description="LLM model for Jina data extraction"
+    )
+    jina_llm_api_key: str = Field(
+        default="",
+        alias="JINA_LLM_API_KEY",
+        description="API key for LLM used in Jina extraction"
+    )
+    jina_llm_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        alias="JINA_LLM_BASE_URL",
+        description="Base URL for LLM API used in Jina extraction"
+    )
+
     # Logging Configuration
     log_level: str = Field(
         default="INFO",

@@ -685,3 +685,207 @@ def database_test_helper():
 # Import required modules
 import time
 import random
+import asyncio
+from pathlib import Path
+
+# VCR.py configuration
+try:
+    import vcr
+    from vcr.stubs import VCRGraphQLStub
+
+    VCR_CASSETTE_DIR = Path(__file__).parent / "fixtures" / "vcr_cassettes"
+    VCR_CASSETTE_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Create custom VCR filter for sensitive data
+    def filter_sensitive_data(response):
+        """Filter sensitive data from VCR recordings"""
+        # Filter headers
+        if 'authorization' in response['headers']:
+            response['headers']['authorization'] = ['[FILTERED]']
+        if 'x-api-key' in response['headers']:
+            response['headers']['x-api-key'] = ['[FILTERED]']
+
+        # Filter JSON body if present
+        try:
+            import json
+            if response['body']['string']:
+                body = json.loads(response['body']['string'])
+                if isinstance(body, dict):
+                    # Filter common sensitive keys
+                    for key in ['api_key', 'token', 'password', 'secret']:
+                        if key in body:
+                            body[key] = '[FILTERED]'
+                    response['body']['string'] = json.dumps(body)
+        except:
+            pass  # If it's not JSON, leave as-is
+
+        return response
+
+    # Configure VCR
+    vcr_config = vcr.VCR(
+        cassette_library_dir=str(VCR_CASSETTE_DIR),
+        record_mode="once",
+        match_on=["uri", "method", "body"],
+        filter_headers=["authorization", "x-api-key", "cookie"],
+        filter_post_data_parameters=["api_key", "token"],
+        decode_compressed_response=True,
+        record_on_exception=True,
+        before_record_response=filter_sensitive_data,
+        # Custom serializers for complex types
+        custom_patches=((vcr.stubs.VCRHTTPConnection, 'send', VCRGraphQLStub),),
+    )
+
+    # VCR fixture
+    @pytest.fixture
+    def vcr_cassette():
+        """Provide a VCR cassette for recording API interactions"""
+        with vcr_config.use_cassette("test_cassette.yml") as cassette:
+            yield cassette
+
+    VCR_AVAILABLE = True
+except ImportError:
+    VCR_AVAILABLE = False
+    vcr_config = None
+
+    @pytest.fixture
+    def vcr_cassette():
+        """No-op fixture when VCR is not available"""
+        pytest.skip("VCR.py not installed")
+
+# Additional fixtures for MarketResearchAgent testing
+@pytest.fixture
+def sample_market_validation_data():
+    """Sample market validation data for tests"""
+    return {
+        "competitor_pricing": [
+            {
+                "company_name": "Zapier",
+                "pricing_model": "freemium",
+                "pricing_tiers": [
+                    {"name": "Free", "price": "$0", "tasks": "100/mo"},
+                    {"name": "Professional", "price": "$19.99/mo", "tasks": "750/mo"},
+                    {"name": "Team", "price": "$69/mo", "tasks": "2000/mo"}
+                ],
+                "target_market": "SMB",
+                "source_url": "https://zapier.com/pricing",
+                "confidence": 95.0
+            },
+            {
+                "company_name": "Make.com",
+                "pricing_model": "tiered",
+                "pricing_tiers": [
+                    {"name": "Core", "price": "$9/mo", "operations": "1000/mo"},
+                    {"name": "Pro", "price": "$16/mo", "operations": "10k/mo"}
+                ],
+                "target_market": "SMB",
+                "source_url": "https://make.com/pricing",
+                "confidence": 90.0
+            }
+        ],
+        "market_size": {
+            "tam_value": "$60B",
+            "sam_value": "$6B",
+            "growth_rate": "20% CAGR",
+            "source_name": "MarketsandMarkets 2024",
+            "source_url": "https://marketsandmarkets.com/report",
+            "year": 2024
+        },
+        "similar_launches": [
+            {
+                "product_name": "AutomationFlow",
+                "launch_platform": "Product Hunt",
+                "launch_date": "2024-02-15",
+                "upvotes": 2500,
+                "comments": 480,
+                "source_url": "https://producthunt.com/posts/automationflow"
+            },
+            {
+                "product_name": "WorkflowAI",
+                "launch_platform": "Product Hunt",
+                "launch_date": "2024-01-20",
+                "upvotes": 1800,
+                "comments": 320,
+                "source_url": "https://producthunt.com/posts/workflowai"
+            }
+        ],
+        "validation_score": 85.0,
+        "data_quality_score": 88.0,
+        "reasoning": "Strong market validation with established competitors, large TAM, and successful similar launches",
+        "evidence_urls": [
+            "https://zapier.com/pricing",
+            "https://make.com/pricing",
+            "https://marketsandmarkets.com/report",
+            "https://producthunt.com/posts/automationflow"
+        ],
+        "search_queries": [
+            "workflow automation pricing competitors",
+            "automation market size SMB",
+            "automation tool product launches Product Hunt"
+        ],
+        "jina_cost": 0.0085
+    }
+
+
+@pytest.fixture
+def mock_redis_connection():
+    """Create a mock Redis connection for testing"""
+    try:
+        import redis.asyncio as redis
+
+        # Try to connect to real Redis first
+        client = redis.Redis.from_url("redis://localhost:6379/0")
+        # Test connection
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(client.ping())
+        yield client
+        loop.run_until_complete(client.close())
+    except:
+        # Fall back to fakeredis if available
+        try:
+            import fakeredis
+            yield fakeredis.FakeRedis(decode_responses=True)
+        except ImportError:
+            pytest.skip("Redis not available and fakeredis not installed")
+
+
+@pytest.fixture
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+# Update pytest markers to include VCR
+def pytest_configure(config):
+    """Configure pytest with custom markers and logging"""
+    config.addinivalue_line(
+        "markers", "performance: marks tests as performance tests (may be slow)"
+    )
+    config.addinivalue_line(
+        "markers", "integration: marks tests as integration tests"
+    )
+    config.addinivalue_line(
+        "markers", "quality_filtering: marks tests as quality filtering specific"
+    )
+    config.addinivalue_line(
+        "markers", "slow: marks tests as slow (run with --run-slow)"
+    )
+    config.addinivalue_line(
+        "markers", "unit: marks tests as unit tests"
+    )
+    config.addinivalue_line(
+        "markers", "api: marks tests that make external API calls"
+    )
+    config.addinivalue_line(
+        "markers", "redis: marks tests that require Redis"
+    )
+    config.addinivalue_line(
+        "markers", "tdd: marks test-driven development tests"
+    )
+    config.addinivalue_line(
+        "markers", "vcr: marks tests that use VCR.py for API recording"
+    )
+    config.addinivalue_line(
+        "markers", "benchmark: marks tests that use pytest-benchmark"
+    )

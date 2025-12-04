@@ -40,6 +40,7 @@ dependencies = [
     # Web requests and scraping
     "requests>=2.28.0",
     "beautifulsoup4>=4.11.0",
+    "httpx>=0.24.0",
     # JSON repair for LLM responses
     "json-repair>=0.24.0",
     # LLM unified API and cost tracking
@@ -62,11 +63,14 @@ dependencies = [
     "pytest-benchmark",
     "pydantic-settings>=2.12.0",
     "praw>=7.8.1",
+    # API recording and testing
+    "vcrpy>=6.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9.0.0",
+    "pytest-asyncio>=0.21.0",
     "pytest-benchmark",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.4",
@@ -90,6 +94,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_mode = "auto"
 addopts = [
     # General options
     "-ra",
