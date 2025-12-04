@@ -912,7 +912,26 @@ class AgnoOpportunityAnalyzer:
 
     def _generate_concept(self, synthesis: AgnoSynthesis) -> str:
         """Generate app concept from synthesis insights"""
-        return "An intelligent tool that addresses market needs with automated features"
+        # Base concept
+        base_concept = "An intelligent tool that addresses market needs with automated features"
+
+        # Check if we have market validation evidence
+        market_research = synthesis.agent_details.get("market_research", {})
+        if market_research and not market_research.get("error"):
+            # Incorporate market validation evidence
+            competitor_pricing = market_research.get("competitor_pricing", [])
+            market_size = market_research.get("market_size", {})
+            validation_score = market_research.get("validation_score", 0)
+
+            # Enhance concept based on market validation
+            if validation_score >= 80 and competitor_pricing:
+                base_concept += " with competitive pricing advantages"
+            elif market_size and "B" in market_size.get("tam", ""):
+                base_concept += " targeting a large market opportunity"
+            elif competitor_pricing:
+                base_concept += " with validated market demand"
+
+        return base_concept
 
     def _extract_core_functions(self, synthesis: AgnoSynthesis) -> List[str]:
         """Extract core functions from agent details"""
