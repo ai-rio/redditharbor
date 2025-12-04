@@ -105,6 +105,40 @@ class Settings(BaseSettings):
         description="Similarity threshold for duplicate detection"
     )
 
+    # Agno Multi-Agent Configuration
+    agno_analyzer_enabled: bool = Field(
+        default=True,
+        alias="AGNO_ANALYZER_ENABLED",
+        description="Enable Agno multi-agent analyzer"
+    )
+    agno_orchestration_mode: str = Field(
+        default="sequential",
+        alias="AGNO_ORCHESTRATION_MODE",
+        description="Agent orchestration mode (sequential or parallel)"
+    )
+    agno_consensus_threshold: float = Field(
+        default=60.0,
+        alias="AGNO_CONSENSUS_THRESHOLD",
+        ge=0.0,
+        le=100.0,
+        description="Minimum confidence threshold for multi-agent consensus"
+    )
+    agno_model: str = Field(
+        default="anthropic/claude-haiku-4.5",
+        alias="AGNO_MODEL",
+        description="Default model for Agno agents"
+    )
+    agno_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        alias="AGNO_BASE_URL",
+        description="API base URL for Agno agents"
+    )
+    agno_enable_agentops: bool = Field(
+        default=False,
+        alias="AGNO_ENABLE_AGENTOPS",
+        description="Enable AgentOps tracking for Agno agents"
+    )
+
     # Logging Configuration
     log_level: str = Field(
         default="INFO",
