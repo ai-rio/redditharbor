@@ -203,9 +203,16 @@ class TestMarketResearchAgentIntegrationRED:
             mock_market.return_value = market_validation_results
 
             # Mock core agents to return high scores
+            high_score_results = {
+                "WTP Analyst": {"wtp_score": 80, "market_demand_score": 75},
+                "Market Segment": {"segment_type": "SMB", "market_demand_score": 85},
+                "Price Point": {"monetization_score": 70},
+                "Payment Behavior": {"pain_intensity_score": 75}
+            }
+
             with patch.object(analyzer.team, 'run') as mock_team_run:
                 mock_result = Mock()
-                mock_result.get_agent_result.return_value = {"wtp_score": 80}  # High score to trigger validation
+                mock_result.get_agent_result.side_effect = lambda name: high_score_results.get(name, {})
                 mock_team_run.return_value = mock_result
 
                 # Analyze submission
@@ -237,9 +244,16 @@ class TestMarketResearchAgentIntegrationRED:
             mock_market.return_value = market_validation_results
 
             # Mock core agents to return high scores
+            high_score_results = {
+                "WTP Analyst": {"wtp_score": 80, "market_demand_score": 75},
+                "Market Segment": {"segment_type": "SMB", "market_demand_score": 85},
+                "Price Point": {"monetization_score": 70},
+                "Payment Behavior": {"pain_intensity_score": 75}
+            }
+
             with patch.object(analyzer.team, 'run') as mock_team_run:
                 mock_result = Mock()
-                mock_result.get_agent_result.return_value = {"wtp_score": 80}
+                mock_result.get_agent_result.side_effect = lambda name: high_score_results.get(name, {})
                 mock_team_run.return_value = mock_result
 
                 # Track initial cost
@@ -327,9 +341,16 @@ class TestMarketResearchAgentIntegrationRED:
             mock_market.return_value = market_validation_results
 
             # Mock core agents to return high scores
+            high_score_results = {
+                "WTP Analyst": {"wtp_score": 85, "market_demand_score": 80},
+                "Market Segment": {"segment_type": "Enterprise", "market_demand_score": 85},
+                "Price Point": {"monetization_score": 75},
+                "Payment Behavior": {"pain_intensity_score": 80}
+            }
+
             with patch.object(analyzer.team, 'run') as mock_team_run:
                 mock_result = Mock()
-                mock_result.get_agent_result.return_value = {"wtp_score": 85}
+                mock_result.get_agent_result.side_effect = lambda name: high_score_results.get(name, {})
                 mock_team_run.return_value = mock_result
 
                 # Analyze submission
