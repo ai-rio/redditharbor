@@ -1,307 +1,354 @@
-# Comprehensive Test Suite for Pipeline Quality Filtering
+# AgnoOpportunityAnalyzer Test Suite
 
-This directory contains comprehensive test coverage for the pipeline orchestrator's quality filtering functionality, including unit tests, integration tests, and performance tests.
+This directory contains the comprehensive test suite for the AgnoOpportunityAnalyzer implementation.
 
-## Test Structure
+## Test Architecture
 
-### Core Test Files
+The test suite is organized into several categories:
 
-#### `test_pipeline_orchestrator_quality_filtering.py`
-**Primary test file for quality filtering functionality**
-- Tests the `_filter_by_quality` method with various scenarios
-- Spam filtering validation
-- Low-quality content filtering (content_quality_score < 40)
-- Min score and min confidence threshold filtering
-- Edge cases (empty lists, all spam, all high quality)
-- Integration tests for complete pipeline execution
-- Statistics accuracy and logging behavior
-
-#### `test_analysis_quality_scoring.py`
-**Tests for analysis result quality scoring models**
-- `AnalysisResult` model validation and quality constraints
-- `AppIdea` quality validation (title case, concept specificity)
-- `MarketMetrics` consistency validation
-- Spam vs quality score boundary validation
-- Embedding vector validation
-- Cross-model score consistency checks
-
-#### `test_pipeline_performance.py`
-**Performance and load testing**
-- Large dataset filtering performance (1000-5000 analyses)
-- Memory usage monitoring
-- Concurrent processing simulation
-- End-to-end pipeline performance
-- Database storage performance
-- Memory leak detection
-
-#### `conftest.py`
-**Pytest configuration and shared fixtures**
-- Common test fixtures for analyses, submissions, and configurations
-- Performance tracking utilities
-- Custom pytest markers
-- Test data generation helpers
+```
+tests/
+├── unit/                    # Unit tests for individual components
+│   ├── __init__.py
+│   └── test_*              # Individual component tests
+├── integration/             # Integration tests for system components
+│   ├── __init__.py
+│   ├── conftest.py         # Integration test fixtures
+│   └── test_*             # Integration test cases
+├── performance/            # Performance and load testing
+│   ├── __init__.py
+│   ├── conftest.py         # Performance test fixtures
+│   ├── test_agno_analyzer_performance.py
+│   └── test_edge_cases.py  # Edge case tests
+├── helpers/               # Test utilities and fixtures
+│   ├── __init__.py
+│   ├── base_test.py       # Base test classes
+│   ├── mock_agno_agents.py # Mock implementations
+│   ├── test_data_factory.py # Test data generation
+│   └── assertion_helpers.py # Custom assertions
+└── README.md             # This file
+```
 
 ## Test Categories
 
-### Quality Filtering Tests (`@pytest.mark.quality_filtering`)
-Focus on the core quality filtering logic:
+### Unit Tests (`tests/unit/`)
+- **Purpose**: Test individual components in isolation
+- **Focus**:
+  - Individual agent behavior (WTP, Market Segment, Price Point, Payment Behavior)
+  - Response parsing logic
+  - Consensus calculation
+  - Field normalization
+- **Markers**: `@pytest.mark.unit`
 
-- **Spam Detection**: Tests that spam content is properly identified and filtered
-- **Content Quality**: Validates filtering based on content_quality_score threshold
-- **Score Thresholds**: Tests min_score and min_confidence filtering
-- **Boundary Values**: Edge cases around threshold values
-- **Statistics Accuracy**: Ensures filtering statistics are correct
+### Integration Tests (`tests/integration/`)
+- **Purpose**: Test interactions between components
+- **Focus**:
+  - Complete batch processing workflow
+  - Database interactions with Supabase
+  - AgentOps integration
+  - Duplicate handling and analysis copying
+  - Error handling scenarios
+- **Markers**: `@pytest.mark.integration`
 
-### Integration Tests (`@pytest.mark.integration`)
-End-to-end pipeline testing:
+### Performance Tests (`tests/performance/`)
+- **Purpose**: Test performance characteristics and scalability
+- **Focus**:
+  - Throughput under different loads
+  - Memory usage scaling
+  - Concurrent processing performance
+  - Load testing scenarios
+- **Markers**: `@pytest.mark.performance`
 
-- **Complete Pipeline Flow**: Full pipeline execution with quality filtering
-- **Database Integration**: Storage with quality fields
-- **Staging Layer**: Submission staging and deduplication
-- **Error Handling**: Pipeline behavior under error conditions
-- **Configuration Testing**: Different pipeline configurations
-
-### Performance Tests (`@pytest.mark.performance`)
-Performance and scalability testing:
-
-- **Large Dataset Processing**: Filtering performance with 1000+ analyses
-- **Memory Usage**: Memory consumption during processing
-- **Concurrent Processing**: Multi-threading simulation
-- **Load Testing**: Stress testing with varied conditions
-- **Benchmarking**: Performance metrics and thresholds
+### Edge Case Tests (`tests/performance/test_edge_cases.py`)
+- **Purpose**: Test robustness and error handling
+- **Focus**:
+  - Malformed responses
+  - Network timeouts
+  - Invalid input data
+  - Rate limiting scenarios
+  - Resource exhaustion
+- **Markers**: `@pytest.mark.edge_case`
 
 ## Running Tests
 
-### Quick Start
+### Using the Test Runner Script
 
 ```bash
-# Run all tests
-uv run pytest tests/ -v
+# IMPORTANT: Always activate .venv first to prevent dependency conflicts!
+source .venv/bin/activate
 
-# Run only quality filtering tests
-uv run pytest tests/ -m "quality_filtering" -v
+# Run all tests
+python run_tests.py
+
+# Run specific test type
+python run_tests.py unit
+python run_tests.py integration
+python run_tests.py performance
+python run_tests.py edge_case
 
 # Run with coverage
-uv run pytest tests/ --cov=orchestration --cov=models --cov-report=html
+python run_tests.py --coverage
+
+# Run with verbose output
+python run_tests.py --verbose
 ```
 
-### Using the Test Runner
+### Using pytest directly
 
 ```bash
-# Run all tests with detailed reporting
-python tests/run_tests.py
+# IMPORTANT: Always activate .venv first to prevent dependency conflicts!
+source .venv/bin/activate
 
-# Run only quality filtering tests
-python tests/run_tests.py --quality-filtering
+# Run all tests
+pytest
 
-# Run only performance tests
-python tests/run_tests.py --performance
+# Run specific category
+pytest tests/unit/
+pytest tests/integration/
+pytest tests/performance/
 
-# Run fast tests only (skip performance/slow tests)
-python tests/run_tests.py --fast
+# Run with coverage
+pytest --cov=core/agents --cov=scripts/core --cov-report=html
 
-# Run with coverage report
-python tests/run_tests.py --coverage
+# Run with markers
+pytest -m unit
+pytest -m integration
+pytest -m performance
+pytest -m edge_case
 
-# Run specific test file
-python tests/run_tests.py --file tests/test_pipeline_orchestrator_quality_filtering.py
-
-# Run tests matching pattern
-python tests/run_tests.py --pattern "test_filter_by_quality"
-
-# Run with parallel execution
-python tests/run_tests.py --parallel 4
+# Run in parallel
+pytest -n auto  # Uses all available CPUs
+pytest -n 4     # Use 4 CPUs
 ```
 
-### Detailed Test Suites
+### Performance Benchmarking
 
 ```bash
-# Run all test suites with detailed reporting
-python tests/run_tests.py --suites
+# IMPORTANT: Always activate .venv first to prevent dependency conflicts!
+source .venv/bin/activate
+
+# Run performance benchmarks
+pytest tests/performance/ --benchmark-only
+
+# Run with specific benchmark options
+pytest tests/performance/ --benchmark-only --benchmark-sort=mean
+pytest tests/performance/ --benchmark-only --benchmark-group-by=name
+
+# Save benchmark results
+pytest tests/performance/ --benchmark-only --benchmark-json=benchmark_results.json
 ```
 
-## Test Configuration
+## Test Data Management
 
-### Environment Variables
+### Test Data Factory
 
-- `TEST_NO_OPENAI=1`: Disable OpenAI API calls during testing
-- `PYTEST_CURRENT_TEST`: Set automatically by pytest
+The `test_data_factory.py` provides utilities for generating test data:
 
-### Customizing Test Parameters
+```python
+from tests.helpers.test_data_factory import RedditSubmissionFactory, AgentResponseFactory
 
-Edit the fixtures in `conftest.py` to modify:
+# Create batch submissions
+submissions = RedditSubmissionFactory.create_batch_submissions(10)
 
-- **Dataset Sizes**: Adjust number of generated test items
-- **Quality Distributions**: Modify spam/low/medium/high quality ratios
-- **Threshold Values**: Change default filtering thresholds
-- **Performance Benchmarks**: Adjust performance assertion thresholds
+# Create submissions with specific characteristics
+submissions = RedditSubmissionFactory.create_batch_submissions(20, {
+    'high_wtp_b2b': 10,
+    'low_wtp_b2c': 5,
+    'mixed_segment': 5
+})
 
-## Test Coverage Areas
+# Create single submission
+submission = RedditSubmissionFactory.create_single_submission('high_wtp_b2b')
 
-### 1. Quality Filtering Logic
-
-✅ **Spam Filtering**
-- High-scoring content marked as spam is filtered first
-- Spam indicators are properly tracked
-- Spam content has low quality score constraint
-
-✅ **Content Quality Filtering**
-- Content below quality threshold (40) is filtered
-- Boundary value testing (exactly 40, just below 40)
-- Quality score consistency with spam flag
-
-✅ **Score Threshold Filtering**
-- Minimum score threshold enforcement
-- Minimum confidence threshold enforcement
-- Configurable thresholds via PipelineConfiguration
-
-✅ **Filtering Statistics**
-- Accurate counting of filtered items by category
-- Percentage calculations
-- Detailed filtering reasons for debugging
-
-### 2. Model Validation
-
-✅ **AnalysisResult Model**
-- Quality score constraints (spam must have score ≤ 40)
-- Trust level validation (LOW, MEDIUM, HIGH)
-- Embedding vector validation (type, length, values)
-- Cross-model consistency (final score vs market metrics)
-
-✅ **AppIdea Model**
-- Title case enforcement
-- Content length and quality requirements
-- Core function limits (1-3 functions, no duplicates)
-- Business feasibility validation
-
-✅ **MarketMetrics Model**
-- Value range validation (0-100)
-- Precision limits (max 2 decimal places)
-- Logical consistency between metrics
-- Extreme value combination validation
-
-### 3. Performance & Scalability
-
-✅ **Large Dataset Processing**
-- 1000+ analyses filtering performance
-- Memory usage monitoring
-- Processing rate benchmarks (>200 analyses/sec)
-
-✅ **Concurrent Processing**
-- Multi-threading simulation
-- Shared resource handling
-- Performance under concurrent load
-
-✅ **Memory Management**
-- Memory leak detection
-- Garbage collection efficiency
-- Memory usage patterns
-
-### 4. Integration Testing
-
-✅ **End-to-End Pipeline**
-- Complete pipeline execution with quality filtering
-- Database storage of quality-filtered results
-- Pipeline configuration options
-
-✅ **Component Integration**
-- Reddit client → Analyzer → Quality Filter → Database
-- Staging layer integration
-- Error handling and recovery
-
-## Test Data Generation
-
-### Quality Levels
-
-The test suite generates analyses with four quality levels:
-
-1. **High Quality** (20%): content_quality_score > 80, trust_level="HIGH"
-2. **Medium Quality** (50%): content_quality_score 60-80, trust_level="MEDIUM"
-3. **Low Quality** (20%): content_quality_score < 40, trust_level="LOW"
-4. **Spam** (10%): is_spam=True, content_quality_score ≤ 40
-
-### Dynamic Test Data
-
-Tests use dynamic data generation to:
-- Test with realistic dataset sizes
-- Vary content quality and characteristics
-- Simulate real-world data patterns
-- Ensure test reproducibility
-
-## Performance Benchmarks
-
-### Filtering Performance
-- **Target**: >200 analyses/second
-- **Large Dataset**: <10 seconds for 2000 analyses
-- **Memory Usage**: <500MB for 2000 analyses
-
-### End-to-End Pipeline
-- **Target**: >30 submissions/second
-- **Large Pipeline**: <30 seconds for 1000 submissions
-- **Quality Filter Pass Rate**: Varies by data quality (typically 20-80%)
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Import Errors**: Ensure you're running from the project root
-2. **Missing Dependencies**: Run `uv sync` to install dependencies
-3. **Performance Test Failures**: May be due to system load, try running with fewer parallel workers
-4. **Memory Issues**: Some performance tests require significant RAM
-
-### Debug Mode
-
-```bash
-# Run with detailed output
-uv run pytest tests/ -v -s
-
-# Stop on first failure
-uv run pytest tests/ -x
-
-# Run specific test with debugging
-uv run pytest tests/test_pipeline_orchestrator_quality_filtering.py::TestPipelineOrchestratorQualityFiltering::test_filter_by_quality_comprehensive_functionality -v -s
+# Create mock agent responses
+wtp_response = AgentResponseFactory.create_wtp_response()
+segment_response = AgentResponseFactory.create_segment_response()
 ```
+
+### Test Fixtures
+
+The test suite provides comprehensive fixtures:
+
+- `mock_supabase`: Mock Supabase client
+- `mock_analyzer`: Mock Agno analyzer
+- `test_batch_data`: Sample batch data
+- `performance_monitor`: Performance monitoring utilities
+- `edge_case_submissions`: Edge case test scenarios
+
+## Configuration
+
+### pytest.ini
+Configures pytest with:
+- Coverage settings (80% minimum required)
+- Custom markers
+- Test discovery rules
+- Warning filters
+
+### .coveragerc
+Coverage configuration:
+- Source paths for coverage measurement
+- Exclusion rules
+- Report formats (HTML, XML)
+- Coverage thresholds
+
+### pyproject.toml
+Additional tooling configuration:
+- pytest options
+- coverage settings
+- mypy type checking
+- ruff linting rules
+
+## CI/CD Integration
+
+The test suite is configured for GitHub Actions:
+
+- **Test Matrix**: Runs tests on multiple Python versions and test types
+- **Performance Benchmarking**: Tracks performance over time
+- **Security Scanning**: Runs safety and bandit checks
+- **Linting**: Enforces code quality with ruff, black, and mypy
+- **Integration Tests**: Full end-to-end testing
+
+## Test Coverage Requirements
+
+- **Minimum Coverage**: 80%
+- **Coverage Targets**:
+  - `core/agents/`: All agent implementations
+  - `scripts/core/`: Core processing logic
+- **Exclusions**: Test files, dependencies, and build artifacts
+
+## Mock Strategies
+
+### External Dependencies
+- **Supabase**: Mocked for all unit tests
+- **OpenRouter API**: Mocked with controlled responses
+- **AgentOps**: Mocked for cost tracking verification
+
+### Agent Mocks
+- **Individual Agents**: MockWTPAgent, MockSegmentAgent, etc.
+- **Team Coordination**: MockAgnoTeam simulates agent coordination
+- **Response Generation**: Controlled mock responses for testing
+
+## Custom Assertions
+
+The `assertion_helpers.py` provides specialized assertions:
+
+```python
+from tests.helpers.assertion_helpers import AgnoAnalysisAssertions
+
+# Validate analysis completeness
+AgnoAnalysisAssertions.assert_analysis_completeness(analysis)
+
+# Check score ranges
+AgnoAnalysisAssertions.assert_score_ranges(analysis)
+
+# Validate consensus calculation
+AgnoAnalysisAssertions.assert_consensus_calculation(consensus_data, responses)
+
+# Test field normalization
+AgnoAnalysisAssertions.assert_field_normalization(data)
+```
+
+## Performance Testing
+
+### Performance Metrics
+- **Throughput**: Submissions processed per second
+- **Latency**: Time per submission
+- **Memory Usage**: Peak memory consumption
+- **CPU Usage**: Average CPU utilization
+- **Concurrency**: Scaling with multiple workers
+
+### Load Testing Scenarios
+- **Light Load**: 10 submissions
+- **Medium Load**: 50 submissions
+- **Heavy Load**: 100+ submissions
+- **Rate Limiting**: Simulated API delays
+- **Concurrent Access**: Multiple threads processing
+
+## Error Handling Tests
+
+### Network Scenarios
+- Timeouts
+- Connection errors
+- Rate limiting
+- Network partitions
+
+### Data Scenarios
+- Malformed JSON responses
+- Missing required fields
+- Invalid data types
+- Unicode encoding issues
+
+### System Scenarios
+- Memory exhaustion
+- Database connection failures
+- API key validation
+- Configuration errors
 
 ## Contributing
 
 ### Adding New Tests
 
-1. **Follow Naming Conventions**: Use descriptive test names
-2. **Use Fixtures**: Leverage existing fixtures for consistency
-3. **Add Markers**: Use appropriate pytest markers
-4. **Include Performance**: Add performance assertions for relevant tests
-5. **Document**: Add docstrings explaining test purpose
+1. **Place tests in appropriate directory**
+   - Unit tests → `tests/unit/`
+   - Integration tests → `tests/integration/`
+   - Performance tests → `tests/performance/`
 
-### Test Categories
+2. **Use appropriate markers**
+   ```python
+   @pytest.mark.unit
+   def test_new_feature():
+       pass
+   ```
 
-- **Unit Tests**: Fast tests for individual components
-- **Integration Tests**: Tests for component interaction
-- **Performance Tests**: Tests with performance assertions
-- **Edge Case Tests**: Tests for boundary conditions and error cases
+3. **Follow naming conventions**
+   - Test files: `test_*.py`
+   - Test classes: `Test*`
+   - Test functions: `test_*`
 
-## Continuous Integration
+4. **Use existing utilities**
+   - Mock implementations from `mock_agno_agents.py`
+   - Test data from `test_data_factory.py`
+   - Custom assertions from `assertion_helpers.py`
 
-These tests are designed to run in CI/CD environments:
+### Test Best Practices
 
-- **Fast Tests**: <5 minutes for core functionality
-- **Full Suite**: <30 minutes including performance tests
-- **Parallel Execution**: Configurable for faster CI runs
-- **Coverage Reporting**: Generate coverage reports for quality gates
+1. **Arrange-Act-Assert pattern**
+2. **Descriptive test names**
+3. **One assertion per test** (when possible)
+4. **Use fixtures for setup/teardown**
+5. **Mock external dependencies**
+6. **Test both success and failure cases**
+7. **Keep tests fast and isolated**
 
-## Test Reports
+## Troubleshooting
 
-After running tests, you can find:
+### Common Issues
 
-- **Coverage Report**: `htmlcov/index.html` (when using `--coverage`)
-- **Test Output**: Console output with detailed results
-- **Performance Metrics**: Printed by performance tests
-- **Log Files**: `test_output.log` for detailed logging
+1. **Import Errors**: Ensure project root is in Python path
+2. **Mock Failures**: Check mock setup in conftest.py
+3. **Coverage Issues**: Verify .coveragerc configuration
+4. **Performance Tests**: Install additional dependencies with `[performance]`
 
-## Best Practices
+### Debug Tests
 
-1. **Run Tests Before Changes**: Ensure baseline passes
-2. **Test Early, Test Often**: Run relevant tests during development
-3. **Performance Awareness**: Monitor test performance impact
-4. **Isolation**: Tests should be independent and order-agnostic
-5. **Clear Assertions**: Use descriptive assertion messages
-6. **Mock External Dependencies**: Avoid external API calls in tests
+```bash
+# Run with pdb debugger
+pytest --pdb
+
+# Stop on first failure
+pytest --xfail
+
+# Show verbose output
+pytest -vv
+
+# Run specific test with logging
+pytest tests/unit/test_specific.py::test_function -s -v
+```
+
+## Future Enhancements
+
+- **Property-based Testing**: With hypothesis library
+- **Visual Testing**: With pytest-playwright for UI components
+- **Contract Testing**: With pact for API contracts
+- **Chaos Testing**: For resilience validation
+- **Flaky Test Detection**: With flaky plugin

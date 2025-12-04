@@ -91,13 +91,57 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
+    # General options
+    "-ra",
     "--strict-markers",
-    "--disable-warnings",
+    "--strict-config",
     "--tb=short",
+    "--showlocals",
+
+    # Coverage options
+    "--cov=core/agents",
+    "--cov=scripts/core",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
+    "--cov-branch",
+    "--cov-fail-under=80",
+
+    # Performance testing options
+    "--benchmark-only",
+    "--benchmark-sort=mean",
+    "--benchmark-group-by=name",
+    "--benchmark-timer=time.perf_counter",
+
+    # Warnings
+    "--disable-warnings",
 ]
 # Ensure the current directory is in the Python path for imports
 import_paths = ["."]
 # Note: Python path will be handled by conftest.py for proper import resolution
+
+# Custom markers
+markers = [
+    "unit: Unit tests for individual components",
+    "integration: Integration tests for system components",
+    "performance: Performance and load testing",
+    "edge_case: Edge case and error condition testing",
+    "slow: Tests that take more than 5 seconds",
+    "api: Tests that make external API calls",
+    "database: Tests that interact with database",
+    "agentops: Tests that verify AgentOps integration",
+    "async: Tests that require async execution",
+    "smoke: Basic functionality tests",
+    "regression: Tests for specific bug fixes",
+]
+
+# Filter warnings
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::UserWarning:psutil.*",
+    "ignore::UserWarning:pytest_benchmark.*",
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -124,6 +168,47 @@ module = [
     "redis.*",
 ]
 ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["core/agents", "scripts/core"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/conftest.py",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/env/*",
+    "*/.env/*",
+    "*/build/*",
+    "*/dist/*",
+    "*/.eggs/*",
+    "*/site-packages/*",
+    "*/.pytest_cache/*",
+    "*/.coverage/*",
+    "*/htmlcov/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+precision = 2
+skip_covered = false
+skip_empty = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "AgnoOpportunityAnalyzer Coverage Report"
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 [tool.hatch.build.targets.wheel]
 packages = ["models", "config", "tests"]

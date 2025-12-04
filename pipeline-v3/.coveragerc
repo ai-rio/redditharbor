@@ -1,0 +1,91 @@
+[run]
+source = core/agents,scripts/core
+branch = True
+omit =
+    # Test files
+    */tests/*
+    */test_*
+    */conftest.py
+
+    # Virtual environments
+    */venv/*
+    */.venv/*
+    */env/*
+    */.env/*
+
+    # Build artifacts
+    */build/*
+    */dist/*
+    */.eggs/*
+
+    # External libraries
+    */site-packages/*
+
+    # Development tools
+    */.pytest_cache/*
+    */.coverage/*
+    */htmlcov/*
+    */coverage.xml
+
+# Include specific files for coverage
+include =
+    core/agents/*.py
+    scripts/core/*.py
+
+[report]
+# Exclude specific lines from coverage calculation
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+# Show missing lines
+show_missing = True
+
+# Precision for coverage report
+precision = 2
+
+# Output formats
+# XML format for CI integration
+xml_output = coverage.xml
+
+# HTML format for detailed reports
+html_output = htmlcov/index.html
+
+# Summary format
+skip_covered = False
+skip_empty = False
+
+[html]
+# HTML report configuration
+directory = htmlcov
+title = AgnoOpportunityAnalyzer Coverage Report
+
+# Show line numbers
+line_numbers = True
+
+# Highlight missing lines
+show_missing = True
+
+# Group by directory
+group_by = directory
+
+# Show context
+context = 3
+
+[xml]
+# XML report configuration
+output = coverage.xml
+incremental = True
+report_missing_text = True
+
+[paths]
+# Paths mapping for source code
+source =
+    core/agents
+    scripts/core
+    /home/carlos/projects/redditharbor-core-functions-fix/pipeline-v3/core/agents
+    /home/carlos/projects/redditharbor-core-functions-fix/pipeline-v3/scripts/core

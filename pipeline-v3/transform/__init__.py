@@ -2,5 +2,6 @@
 
 from .analyzer import OpportunityAnalyzer, SimpleOpportunityAnalyzer
 from .validator import AnalysisValidator
+from .agno_analyzer import AgnoOpportunityAnalyzer
 
-__all__ = ["OpportunityAnalyzer", "SimpleOpportunityAnalyzer", "AnalysisValidator"]
+__all__ = ["OpportunityAnalyzer", "SimpleOpportunityAnalyzer", "AnalysisValidator", "AgnoOpportunityAnalyzer"]
