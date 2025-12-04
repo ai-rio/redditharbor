@@ -65,6 +65,9 @@ dependencies = [
     "praw>=7.8.1",
     # API recording and testing
     "vcrpy>=6.0.0",
+    "click>=8.0.0",
+    "watchfiles>=0.20.0",
+    "jsonschema>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -74,6 +77,11 @@ dev = [
     "pytest-benchmark",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.4",
+]
+hooks = [
+    "click>=8.0.0",
+    "watchfiles>=0.20.0",
+    "jsonschema>=4.0.0",
 ]
 
 # Tool configurations
