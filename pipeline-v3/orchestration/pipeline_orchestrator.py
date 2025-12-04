@@ -331,27 +331,55 @@ class PipelineOrchestrator:
     def _validate_analyses(
         self, analyses: List[AnalysisResult], config: PipelineConfiguration
     ) -> tuple[List[AnalysisResult], float]:
-        """Validate and filter analysis results"""
+        """Validate and filter analysis results with comprehensive quality filtering"""
         logger.info("STEP 3: Validating analysis quality")
         validate_start = time.time()
 
-        if config.validate_quality:
-            high_quality_analyses = self.validator.filter_high_quality_analyses(
-                analyses,
-                min_score=config.min_score,
-                min_confidence=config.min_confidence
-            )
+        # Apply comprehensive quality filtering
+        filter_result = self._filter_by_quality(analyses, config)
+        filtered_analyses = filter_result['filtered_analyses']
+        filtering_stats = filter_result['statistics']
+
+        # Additional validation if enabled
+        if config.validate_quality and self.validator:
+            # Apply additional validation from AnalysisValidator
+            validated_analyses = []
+            validation_errors = 0
+
+            for analysis in filtered_analyses:
+                try:
+                    if self.validator.validate_analysis(analysis):
+                        validated_analyses.append(analysis)
+                    else:
+                        validation_errors += 1
+                        logger.debug(f"Analysis failed validation: {analysis.submission_id}")
+                except Exception as e:
+                    validation_errors += 1
+                    logger.warning(f"Error validating analysis {analysis.submission_id}: {e}")
+
+            # Log additional validation results
+            if validation_errors > 0:
+                logger.info(f"Additional validation filtered {validation_errors} more analyses")
+                high_quality_analyses = validated_analyses
+            else:
+                high_quality_analyses = filtered_analyses
+                logger.info("All quality-filtered analyses passed additional validation")
         else:
-            # Basic filtering by scores
-            high_quality_analyses = [
-                a for a in analyses
-                if (a.final_score >= config.min_score and
-                    a.confidence_score >= config.min_confidence and
-                    self.validator.validate_analysis(a))
-            ]
+            # No additional validation - use quality filtering results
+            high_quality_analyses = filtered_analyses
+            logger.info("Skipping additional validation (validate_quality=False)")
 
         validation_time = time.time() - validate_start
-        logger.info(f"✓ Filtered to {len(high_quality_analyses)} high-quality analyses in {validation_time:.2f}s")
+
+        # Enhanced completion logging
+        logger.info(f"✓ Quality filtering and validation complete:")
+        logger.info(f"  - Input analyses: {len(analyses)}")
+        logger.info(f"  - After quality filtering: {len(filtered_analyses)}")
+        logger.info(f"  - After additional validation: {len(high_quality_analyses)}")
+        logger.info(f"  - Total filtering time: {validation_time:.2f}s")
+
+        if filtering_stats.get('filtering_percentages'):
+            logger.info(f"  - Quality filter pass rate: {filtering_stats['filtering_percentages']['pass_rate_percentage']}%")
 
         return high_quality_analyses, validation_time
 
@@ -379,6 +407,161 @@ class PipelineOrchestrator:
             logger.info(f"✓ Stored {storage_stats['stored']} analyses in {storage_time:.2f}s")
 
         return storage_stats, storage_time
+
+    def _filter_by_quality(self, analyses: List[AnalysisResult], config: PipelineConfiguration) -> Dict[str, Any]:
+        """
+        Filter analyses by quality criteria with comprehensive logging and statistics
+
+        Args:
+            analyses: List of analysis results to filter
+            config: Pipeline configuration with filtering thresholds
+
+        Returns:
+            Dictionary containing filtered analyses and filtering statistics
+        """
+        logger.info(f"Starting quality filtering for {len(analyses)} analyses")
+        logger.info(f"Filtering criteria: min_score={config.min_score}, min_confidence={config.min_confidence}, quality_threshold=40")
+
+        # Initialize comprehensive statistics
+        stats = {
+            'total_input': len(analyses),
+            'spam_filtered': 0,
+            'low_quality_filtered': 0,
+            'below_min_score_filtered': 0,
+            'below_min_confidence_filtered': 0,
+            'total_filtered': 0,
+            'final_count': 0,
+            'filtering_criteria': {
+                'min_score': config.min_score,
+                'min_confidence': config.min_confidence,
+                'content_quality_threshold': 40,
+                'spam_detection_enabled': True
+            }
+        }
+
+        # Track filtering reasons for detailed analysis
+        filtering_reasons = {
+            'spam': [],
+            'low_quality': [],
+            'below_score': [],
+            'below_confidence': []
+        }
+
+        filtered_analyses = []
+
+        for analysis in analyses:
+            original_score = analysis.final_score
+            original_confidence = analysis.confidence_score
+            original_quality = analysis.content_quality_score
+
+            # Check if spam first (highest priority filter)
+            if analysis.is_spam:
+                stats['spam_filtered'] += 1
+                filtering_reasons['spam'].append({
+                    'submission_id': analysis.submission_id,
+                    'app_title': getattr(analysis.app_idea, 'title', 'Unknown'),
+                    'spam_indicators': analysis.spam_indicators,
+                    'final_score': original_score,
+                    'confidence': original_confidence
+                })
+                logger.debug(f"Filtered spam: {analysis.submission_id} - {analysis.spam_indicators}")
+                continue
+
+            # Check content quality score
+            if analysis.content_quality_score < 40:
+                stats['low_quality_filtered'] += 1
+                filtering_reasons['low_quality'].append({
+                    'submission_id': analysis.submission_id,
+                    'app_title': getattr(analysis.app_idea, 'title', 'Unknown'),
+                    'content_quality_score': original_quality,
+                    'final_score': original_score,
+                    'confidence': original_confidence
+                })
+                logger.debug(f"Filtered low quality: {analysis.submission_id} - quality_score={original_quality}")
+                continue
+
+            # Check min_score threshold
+            if analysis.final_score < config.min_score:
+                stats['below_min_score_filtered'] += 1
+                filtering_reasons['below_score'].append({
+                    'submission_id': analysis.submission_id,
+                    'app_title': getattr(analysis.app_idea, 'title', 'Unknown'),
+                    'final_score': original_score,
+                    'min_score_threshold': config.min_score,
+                    'confidence': original_confidence
+                })
+                logger.debug(f"Filtered low score: {analysis.submission_id} - score={original_score} < {config.min_score}")
+                continue
+
+            # Check min_confidence threshold
+            if analysis.confidence_score < config.min_confidence:
+                stats['below_min_confidence_filtered'] += 1
+                filtering_reasons['below_confidence'].append({
+                    'submission_id': analysis.submission_id,
+                    'app_title': getattr(analysis.app_idea, 'title', 'Unknown'),
+                    'confidence_score': original_confidence,
+                    'min_confidence_threshold': config.min_confidence,
+                    'final_score': original_score
+                })
+                logger.debug(f"Filtered low confidence: {analysis.submission_id} - confidence={original_confidence} < {config.min_confidence}")
+                continue
+
+            # Passed all filters - add to results
+            filtered_analyses.append(analysis)
+            logger.debug(f"Approved analysis: {analysis.submission_id} - score={original_score}, confidence={original_confidence}")
+
+        # Calculate total filtered
+        stats['total_filtered'] = (
+            stats['spam_filtered'] +
+            stats['low_quality_filtered'] +
+            stats['below_min_score_filtered'] +
+            stats['below_min_confidence_filtered']
+        )
+        stats['final_count'] = len(filtered_analyses)
+
+        # Calculate filtering percentages
+        if stats['total_input'] > 0:
+            stats['filtering_percentages'] = {
+                'spam_percentage': round((stats['spam_filtered'] / stats['total_input']) * 100, 1),
+                'low_quality_percentage': round((stats['low_quality_filtered'] / stats['total_input']) * 100, 1),
+                'below_score_percentage': round((stats['below_min_score_filtered'] / stats['total_input']) * 100, 1),
+                'below_confidence_percentage': round((stats['below_min_confidence_filtered'] / stats['total_input']) * 100, 1),
+                'pass_rate_percentage': round((stats['final_count'] / stats['total_input']) * 100, 1)
+            }
+
+        # Add filtering reasons for debugging
+        stats['filtered_items'] = filtering_reasons
+
+        # Comprehensive logging
+        logger.info(f"Quality filtering complete:")
+        logger.info(f"  Input: {stats['total_input']} analyses")
+        logger.info(f"  Output: {stats['final_count']} analyses")
+        logger.info(f"  Pass rate: {stats['filtering_percentages']['pass_rate_percentage'] if 'filtering_percentages' in stats else 0}%")
+        logger.info(f"  Filtered breakdown:")
+        logger.info(f"    - Spam: {stats['spam_filtered']} ({stats['filtering_percentages']['spam_percentage'] if 'filtering_percentages' in stats else 0}%)")
+        logger.info(f"    - Low quality: {stats['low_quality_filtered']} ({stats['filtering_percentages']['low_quality_percentage'] if 'filtering_percentages' in stats else 0}%)")
+        logger.info(f"    - Below min_score ({config.min_score}): {stats['below_min_score_filtered']} ({stats['filtering_percentages']['below_score_percentage'] if 'filtering_percentages' in stats else 0}%)")
+        logger.info(f"    - Below min_confidence ({config.min_confidence}): {stats['below_min_confidence_filtered']} ({stats['filtering_percentages']['below_confidence_percentage'] if 'filtering_percentages' in stats else 0}%)")
+
+        # Log approved analyses summary
+        if filtered_analyses:
+            avg_score = sum(a.final_score for a in filtered_analyses) / len(filtered_analyses)
+            avg_confidence = sum(a.confidence_score for a in filtered_analyses) / len(filtered_analyses)
+
+            # Count trust levels
+            trust_counts = {}
+            for analysis in filtered_analyses:
+                trust_counts[analysis.trust_level] = trust_counts.get(analysis.trust_level, 0) + 1
+
+            logger.info(f"  Approved analyses summary:")
+            logger.info(f"    - Average score: {avg_score:.1f}")
+            logger.info(f"    - Average confidence: {avg_confidence:.1f}")
+            logger.info(f"    - Trust levels: {trust_counts}")
+
+        return {
+            'filtered_analyses': filtered_analyses,
+            'statistics': stats
+        }
 
     def _create_results(
         self,

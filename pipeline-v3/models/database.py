@@ -71,6 +71,11 @@ class Opportunity(Base):
     confidence_score = Column(Float, nullable=False)
     trust_level = Column(String(10), nullable=False, index=True)
 
+    # AI Quality Assessment (Phase 2+)
+    content_quality_score = Column(Float, nullable=False, index=True)  # AI quality score (0-100)
+    is_spam = Column(Boolean, nullable=False, default=False, index=True)  # AI spam flag
+    spam_indicators = Column(JSON, nullable=True)  # List of spam reasons
+
     # Semantic search - stored as JSON for compatibility
     embedding: Optional[List[float]] = Column(JSON, nullable=True)
 
@@ -93,6 +98,10 @@ class Opportunity(Base):
         Index('idx_opportunities_subreddit_created', 'subreddit', 'reddit_created_at'),
         Index('idx_opportunities_analyzed_created', 'analyzed_at', 'created_at'),
         Index('idx_opportunities_core_functions', 'core_functions', postgresql_using='gin'),
+        # Quality filtering indexes (Phase 2+)
+        Index('idx_opportunities_is_spam', 'is_spam'),
+        Index('idx_opportunities_quality_score', 'content_quality_score'),
+        Index('idx_opportunities_quality_spam', 'content_quality_score', 'is_spam'),
         # Basic index for embedding (will be enhanced with pgvector later)
     )
 
@@ -135,6 +144,12 @@ class OpportunityCreate(BaseModel):
     final_score: float = Field(..., ge=0, le=100, description="Final opportunity score")
     confidence_score: float = Field(..., ge=0, le=100, description="Confidence score")
     trust_level: str = Field(..., pattern="^(HIGH|MEDIUM|LOW)$", description="Trust level")
+
+    # AI Quality Assessment fields (Phase 2+)
+    content_quality_score: float = Field(default=50.0, ge=0.0, le=100.0, description="AI-generated content quality score")
+    is_spam: bool = Field(default=False, description="AI-identified spam flag")
+    spam_indicators: List[str] = Field(default=[], description="List of spam detection reasons")
+
     embedding: Optional[List[float]] = Field(None, description="Vector embedding")
 
     # Validation service injection for production database validation
@@ -256,5 +271,8 @@ class OpportunityCreate(BaseModel):
             final_score=self.final_score,
             confidence_score=self.confidence_score,
             trust_level=self.trust_level,
+            content_quality_score=self.content_quality_score,
+            is_spam=self.is_spam,
+            spam_indicators=self.spam_indicators,
             embedding=self.embedding,
         )

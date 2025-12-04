@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     # Database Configuration (using existing DATABASE_URL)
     database_url: str = Field(
-        default="postgresql://postgres:postgres@127.0.0.1:54331/postgres",
+        default="postgresql://postgres:postgres@127.0.0.1:54322/postgres",
         alias="DATABASE_URL",
         description="PostgreSQL database connection string"
     )
@@ -60,12 +60,12 @@ class Settings(BaseSettings):
         description="OpenRouter API base URL"
     )
     model_name: str = Field(
-        default="meta-llama/llama-3.1-8b-instruct:floor",
+        default="openai/gpt-4o-mini",
         alias="OPENROUTER_MODEL",
         description="OpenRouter model to use for analysis"
     )
     max_tokens: int = Field(
-        default=1000,
+        default=2000,
         description="Maximum tokens for LLM responses"
     )
     temperature: float = Field(

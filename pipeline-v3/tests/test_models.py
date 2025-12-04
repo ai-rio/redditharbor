@@ -179,7 +179,8 @@ class TestAnalysisResult:
             market_metrics=metrics,
             final_score=75.0,
             confidence_score=80.0,
-            trust_level="HIGH"
+            trust_level="HIGH",
+            content_quality_score=80.0  # Add required field
         )
         assert analysis.final_score == 75.0
         assert analysis.trust_level == "HIGH"
@@ -208,16 +209,18 @@ class TestAnalysisResult:
                 market_metrics=metrics,
                 final_score=75.0,
                 confidence_score=80.0,
-                trust_level="INVALID"
+                trust_level="INVALID",
+                content_quality_score=80.0  # Add required field
             )
 
 
 class TestRedditSubmissionExtended:
     """Extended tests for RedditSubmission model edge cases"""
 
-    def test_score_consistency_validation(self):
-        """Test score consistency validation"""
-        with pytest.raises(ValueError, match="Score must equal upvotes minus downvotes"):
+    def test_score_consistency_with_tolerance(self):
+        """Test score consistency validation with vote fuzzing tolerance"""
+        # Should fail - too far outside tolerance
+        with pytest.raises(ValueError, match="Score must approximately equal upvotes minus downvotes"):
             RedditSubmission(
                 id="test123",
                 title="Test Title",
@@ -225,30 +228,46 @@ class TestRedditSubmissionExtended:
                 author="testuser",
                 upvotes=100,
                 downvotes=20,
-                score=90,  # Wrong: should be 80
+                score=50,  # Way off: should be 80, more than 10% tolerance
                 comments_count=25,
                 subreddit="test",
                 created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
 
-    def test_negative_score_validation(self):
-        """Test negative score validation"""
-        with pytest.raises(ValueError, match="Score cannot be negative"):
-            RedditSubmission(
-                id="test123",
-                title="Test Title",
-                text="Test content",
-                author="testuser",
-                upvotes=10,
-                downvotes=20,
-                score=-10,  # Negative score not allowed
-                comments_count=25,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+        # Should pass - within tolerance (10% of 80 = 8, so 72-88 is acceptable)
+        valid_submission = RedditSubmission(
+            id="test456",
+            title="Test Title 2",
+            text="Test content 2",
+            author="testuser2",
+            upvotes=100,
+            downvotes=20,
+            score=85,  # Within tolerance: expected 80, actual 85 (difference = 5, tolerance = 8)
+            comments_count=25,
+            subreddit="test",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test456"
+        )
+        assert valid_submission.score == 85
 
+        # Should pass - negative scores are now allowed (just logged)
+        valid_negative_submission = RedditSubmission(
+            id="test789",
+            title="Test Title 3",
+            text="Test content 3",
+            author="testuser3",
+            upvotes=5,
+            downvotes=20,
+            score=-15,  # Negative score allowed
+            comments_count=25,
+            subreddit="test",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test789"
+        )
+        assert valid_negative_submission.score == -15
+
+  
     def test_author_validation_edge_cases(self):
         """Test author validation edge cases"""
         with pytest.raises(ValueError, match="Invalid Reddit username"):
@@ -293,19 +312,20 @@ class TestRedditSubmissionExtended:
                 permalink="https://reddit.com/r/test/test123"
             )
 
-        with pytest.raises(ValueError, match="Invalid Reddit username"):
-            RedditSubmission(
-                id="test",
-                title="Test",
-                text="Content",
-                author="admin",  # Reserved term
-                upvotes=10,
-                score=10,
-                comments_count=5,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+        # Bot accounts like "admin" and "AutoModerator" are now allowed
+        valid_bot_submission = RedditSubmission(
+            id="test",
+            title="Test",
+            text="Content",
+            author="AutoModerator",  # Bot account now allowed
+            upvotes=10,
+            score=10,
+            comments_count=5,
+            subreddit="test",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_bot_submission.author == "AutoModerator"
 
     def test_subreddit_validation_edge_cases(self):
         """Test subreddit validation edge cases"""
@@ -351,35 +371,36 @@ class TestRedditSubmissionExtended:
                 permalink="https://reddit.com/r/test/test123"
             )
 
-        with pytest.raises(ValueError, match="Invalid subreddit name"):
-            RedditSubmission(
-                id="test",
-                title="Test",
-                text="Content",
-                author="testuser",
-                upvotes=10,
-                score=10,
-                comments_count=5,
-                subreddit="all",  # Reserved term
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+        # Hyphens in subreddit names are now allowed
+        valid_hyphen_subreddit = RedditSubmission(
+            id="test",
+            title="Test",
+            text="Content",
+            author="testuser",
+            upvotes=10,
+            score=10,
+            comments_count=5,
+            subreddit="web-design",  # Hyphens now allowed
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_hyphen_subreddit.subreddit == "web-design"
 
-    def test_title_spam_validation(self):
-        """Test title spam keyword validation"""
-        with pytest.raises(ValueError, match="Title contains spam-like content"):
-            RedditSubmission(
-                id="test123",
-                title="FREE MONEY CLICK HERE LIMITED TIME",
-                text="Test content",
-                author="testuser",
-                upvotes=100,
-                score=100,
-                comments_count=25,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+    def test_title_spam_keywords_now_allowed(self):
+        """Test that titles with spam-like keywords are now allowed (AI will filter)"""
+        valid_submission = RedditSubmission(
+            id="test123",
+            title="Urgent need for better task management tool",  # "urgent" now allowed
+            text="Test content",
+            author="testuser",
+            upvotes=100,
+            score=100,
+            comments_count=25,
+            subreddit="productivity",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_submission.title == "Urgent need for better task management tool"
 
     def test_permalink_validation_edge_cases(self):
         """Test permalink validation with different valid formats"""
@@ -432,22 +453,22 @@ class TestRedditSubmissionExtended:
                 url="ftp://invalid-protocol.com"
             )
 
-    def test_text_content_validation(self):
-        """Test text content validation"""
-        # Empty text should fail
-        with pytest.raises(ValueError, match="Text cannot be empty"):
-            RedditSubmission(
-                id="test123",
-                title="Test Title",
-                text="   ",  # Whitespace only
-                author="testuser",
-                upvotes=100,
-                score=100,
-                comments_count=25,
-                subreddit="test",
-                created_utc=datetime.now(UTC),
-                permalink="https://reddit.com/r/test/test123"
-            )
+    def test_empty_text_now_allowed(self):
+        """Test that empty text is now allowed for link posts"""
+        # Empty text (link post) should now work
+        valid_link_post = RedditSubmission(
+            id="test123",
+            title="Check out this useful article",
+            text="",  # Empty text now allowed for link posts
+            author="testuser",
+            upvotes=100,
+            score=100,
+            comments_count=25,
+            subreddit="productivity",
+            created_utc=datetime.now(UTC),
+            permalink="https://reddit.com/r/test/test123"
+        )
+        assert valid_link_post.text == ""
 
 
 class TestRedditCommentExtended:
@@ -684,6 +705,385 @@ class TestAppIdeaExtended:
             )
 
 
+class TestAnalysisResultQuality:
+    """Test AI content quality scoring functionality"""
+
+    def test_content_quality_score_validation_missing_field(self):
+        """Test that content_quality_score field is required"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should fail - content_quality_score is required
+        with pytest.raises(ValueError, match="content_quality_score"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH"
+                # content_quality_score missing - should fail
+            )
+
+    def test_content_quality_score_validation_range(self):
+        """Test content_quality_score validation (0-100 range)"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should fail - score too low
+        with pytest.raises(ValueError, match="content_quality_score"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=-10.0  # Invalid: < 0
+            )
+
+        # Should fail - score too high
+        with pytest.raises(ValueError, match="content_quality_score"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=150.0  # Invalid: > 100
+            )
+
+    def test_is_spam_field_default_value(self):
+        """Test that is_spam defaults to False"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Create analysis without specifying is_spam - should default to False
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=80.0
+        )
+        assert analysis.is_spam == False
+
+    def test_is_spam_field_explicit_values(self):
+        """Test is_spam field with explicit True/False values"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Test explicit False
+        analysis_false = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=80.0,
+            is_spam=False
+        )
+        assert analysis_false.is_spam == False
+
+        # Test explicit True
+        analysis_true = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=30.0,
+            is_spam=True
+        )
+        assert analysis_true.is_spam == True
+
+    def test_spam_indicators_field_default_value(self):
+        """Test that spam_indicators defaults to empty list"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Create analysis without specifying spam_indicators - should default to []
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=80.0
+        )
+        assert analysis.spam_indicators == []
+
+    def test_spam_indicators_field_validation(self):
+        """Test spam_indicators field validation"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Test valid spam indicators
+        valid_indicators = ["excessive_caps", "repetitive_content", "suspicious_links"]
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=30.0,
+            is_spam=True,
+            spam_indicators=valid_indicators
+        )
+        assert analysis.spam_indicators == valid_indicators
+
+        # Test invalid spam indicators (non-string elements)
+        with pytest.raises(ValueError):  # Should fail due to type validation
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=30.0,
+                is_spam=True,
+                spam_indicators=["valid_indicator", 123, "another_valid"]  # Invalid: 123 is not a string
+            )
+
+    def test_quality_thresholds_validator_spam_low_score(self):
+        """Test that spam posts must have content_quality_score ≤ 40"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should fail - spam with high quality score (> 40)
+        with pytest.raises(ValueError, match="Spam content must have content_quality_score ≤ 40"):
+            AnalysisResult(
+                submission_id="test123",
+                app_idea=idea,
+                market_metrics=metrics,
+                final_score=75.0,
+                confidence_score=80.0,
+                trust_level="HIGH",
+                content_quality_score=85.0,  # Too high for spam
+                is_spam=True
+            )
+
+    def test_quality_thresholds_validator_spam_acceptable_score(self):
+        """Test that spam posts with content_quality_score ≤ 40 are valid"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should pass - spam with acceptable quality score (≤ 40)
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=40.0,  # Acceptable for spam
+            is_spam=True,
+            spam_indicators=["low_quality", "poor_grammar"]
+        )
+        assert analysis.content_quality_score == 40.0
+        assert analysis.is_spam == True
+
+        # Should pass - spam with very low quality score
+        analysis_low = AnalysisResult(
+            submission_id="test456",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=15.0,  # Very low, acceptable for spam
+            is_spam=True,
+            spam_indicators=["spam", "irrelevant"]
+        )
+        assert analysis_low.content_quality_score == 15.0
+        assert analysis_low.is_spam == True
+
+    def test_quality_thresholds_validator_non_spam_high_score(self):
+        """Test that non-spam posts should have reasonable quality scores"""
+        idea = AppIdea(
+            title="Test App",
+            app_concept="A test application",
+            problem_statement="A test problem",
+            target_audience="Test users",
+            core_functions=["test function"]
+        )
+        metrics = MarketMetrics(
+            market_demand=70.0,
+            pain_intensity=75.0,
+            monetization_potential=80.0,
+            competition_level=65.0,
+            technical_feasibility=85.0
+        )
+
+        # Should pass - non-spam with high quality score
+        analysis = AnalysisResult(
+            submission_id="test123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=75.0,
+            confidence_score=80.0,
+            trust_level="HIGH",
+            content_quality_score=85.0,  # High quality for non-spam
+            is_spam=False
+        )
+        assert analysis.content_quality_score == 85.0
+        assert analysis.is_spam == False
+
+    def test_quality_scoring_complete_workflow(self):
+        """Test complete workflow with quality scoring"""
+        idea = AppIdea(
+            title="Quality Productivity App",
+            app_concept="A comprehensive productivity tool for task management",
+            problem_statement="Users struggle with organizing their daily tasks efficiently",
+            target_audience="Professionals and students",
+            core_functions=["task tracking", "deadline management", "productivity analytics"]
+        )
+        metrics = MarketMetrics(
+            market_demand=75.0,
+            pain_intensity=80.0,
+            monetization_potential=70.0,
+            competition_level=60.0,
+            technical_feasibility=85.0
+        )
+
+        # High-quality non-spam content
+        high_quality_analysis = AnalysisResult(
+            submission_id="hq_123",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=80.0,
+            confidence_score=85.0,
+            trust_level="HIGH",
+            content_quality_score=90.5,  # High quality
+            is_spam=False,
+            spam_indicators=[]
+        )
+        assert high_quality_analysis.content_quality_score == 90.5
+        assert high_quality_analysis.is_spam == False
+        assert high_quality_analysis.spam_indicators == []
+
+        # Low-quality spam content
+        spam_indicators_list = ["excessive_caps", "repetitive_phrases", "suspicious_links"]
+        spam_analysis = AnalysisResult(
+            submission_id="spam_456",
+            app_idea=idea,
+            market_metrics=metrics,
+            final_score=60.0,  # Score within reasonable range of market metrics average (77.5)
+            confidence_score=40.0,  # Low confidence
+            trust_level="LOW",
+            content_quality_score=20.0,  # Low quality for spam
+            is_spam=True,
+            spam_indicators=spam_indicators_list
+        )
+        assert spam_analysis.content_quality_score == 20.0
+        assert spam_analysis.is_spam == True
+        assert spam_analysis.spam_indicators == spam_indicators_list
+
+
 class TestAnalysisResultExtended:
     """Extended tests for AnalysisResult model validation"""
 
@@ -712,6 +1112,7 @@ class TestAnalysisResultExtended:
             final_score=75.0,
             confidence_score=80.0,
             trust_level="HIGH",
+            content_quality_score=80.0,  # Add required field
             embedding=None  # Should be allowed
         )
         assert analysis.embedding is None
@@ -742,7 +1143,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding="not_a_list"  # Should be a list
+                content_quality_score=80.0,  # Add required field
+            embedding="not_a_list"  # Should be a list
             )
 
         # Empty embedding should fail
@@ -754,7 +1156,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[]  # Empty list
+                content_quality_score=80.0,  # Add required field
+            embedding=[]  # Empty list
             )
 
     def test_embedding_validation_length_constraints(self):
@@ -783,7 +1186,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[1.0, 2.0, 3.0]  # Too short (< 10 dimensions)
+                content_quality_score=80.0,  # Add required field
+            embedding=[1.0, 2.0, 3.0]  # Too short (< 10 dimensions)
             )
 
         # Too long embedding
@@ -795,7 +1199,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=list(range(10001))  # Too long (> 10000 dimensions)
+                content_quality_score=80.0,  # Add required field
+            embedding=list(range(10001))  # Too long (> 10000 dimensions)
             )
 
     def test_embedding_validation_invalid_elements(self):
@@ -824,7 +1229,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=["not_a_number", 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                content_quality_score=80.0,  # Add required field
+            embedding=["not_a_number", 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             )
 
         # Infinite values
@@ -836,7 +1242,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[float('inf'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                content_quality_score=80.0,  # Add required field
+            embedding=[float('inf'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             )
 
         # NaN values
@@ -848,7 +1255,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                embedding=[float('nan'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+                content_quality_score=80.0,  # Add required field
+            embedding=[float('nan'), 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             )
 
     def test_cross_model_consistency_validation(self):
@@ -874,7 +1282,8 @@ class TestAnalysisResultExtended:
                 submission_id="test123",
                 app_idea=idea,
                 market_metrics=metrics,
-                final_score=25.0,  # Way too low compared to metrics average of ~72.5
+                content_quality_score=80.0,  # Add required field
+            final_score=25.0,  # Way too low compared to metrics average of ~72.5
                 confidence_score=80.0,
                 trust_level="HIGH"
             )
@@ -906,7 +1315,8 @@ class TestAnalysisResultExtended:
                 final_score=75.0,
                 confidence_score=80.0,
                 trust_level="HIGH",
-                analyzed_at=old_timestamp
+                content_quality_score=80.0,  # Add required field
+            analyzed_at=old_timestamp
             )
 
     def test_valid_embedding_scenarios(self):
@@ -935,6 +1345,7 @@ class TestAnalysisResultExtended:
             final_score=75.0,
             confidence_score=80.0,
             trust_level="HIGH",
+            content_quality_score=80.0,  # Add required field
             embedding=valid_embedding
         )
         assert len(analysis.embedding) == 12

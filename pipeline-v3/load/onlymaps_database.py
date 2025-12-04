@@ -160,7 +160,8 @@ class OnlyMapsDatabaseLoader:
 
     def store_analyses(self, analyses, reddit_submissions=None):
         """
-        Store analyses using OnlyMaps with schema flexibility
+        Store analyses directly to clean opportunities table
+        NO MAPPING - Direct insert from LLM output to database
 
         Args:
             analyses: List of AnalysisResult objects to store
@@ -169,18 +170,125 @@ class OnlyMapsDatabaseLoader:
         Returns:
             Dictionary with storage statistics
         """
-        logger.info(f"Storing {len(analyses) if analyses else 0} analyses with OnlyMaps schema flexibility")
+        from load.data_mappers import AnalysisToOpportunityMapper
+        import json
+
+        logger.info(f"Storing {len(analyses) if analyses else 0} analyses with OnlyMaps (clean schema)")
 
         if not analyses:
             return {"stored": 0, "skipped": 0, "errors": 0}
 
-        # For now, return mock storage stats since we're focused on get_statistics()
-        # This could be extended to use OnlyMaps for actual storage
-        return {
-            "stored": len(analyses),
-            "skipped": 0,
-            "errors": 0
-        }
+        # Use data mapper to convert AnalysisResults to Opportunities
+        mapper = AnalysisToOpportunityMapper(preserve_reddit_metadata=True)
+        opportunities = mapper.map_batch(analyses, reddit_submissions)
+
+        stored = 0
+        skipped = 0
+        errors = 0
+
+        # Use psycopg2 for actual database operations
+        import psycopg2
+        import psycopg2.extras
+
+        try:
+            # Connect to database using stored database_url
+            conn = psycopg2.connect(self.database_url)
+            cursor = conn.cursor()
+
+            for opp in opportunities:
+                try:
+                    # Use savepoint for each insert to allow rollback without aborting transaction
+                    cursor.execute("SAVEPOINT insert_savepoint")
+
+                    # Direct insert to CLEAN opportunities schema
+                    insert_query = """
+                        INSERT INTO opportunities (
+                            submission_id, reddit_title, reddit_url, subreddit,
+                            reddit_author, reddit_upvotes, reddit_comments_count, reddit_created_at,
+                            app_title, app_concept, problem_statement, target_audience, core_functions,
+                            market_demand, pain_intensity, monetization_potential,
+                            competition_level, technical_feasibility,
+                            final_score, confidence_score, trust_level,
+                            content_quality_score, is_spam, spam_indicators,
+                            embedding, analyzed_at
+                        ) VALUES (
+                            %(submission_id)s, %(reddit_title)s, %(reddit_url)s, %(subreddit)s,
+                            %(reddit_author)s, %(reddit_upvotes)s, %(reddit_comments_count)s, %(reddit_created_at)s,
+                            %(app_title)s, %(app_concept)s, %(problem_statement)s, %(target_audience)s, %(core_functions)s,
+                            %(market_demand)s, %(pain_intensity)s, %(monetization_potential)s,
+                            %(competition_level)s, %(technical_feasibility)s,
+                            %(final_score)s, %(confidence_score)s, %(trust_level)s,
+                            %(content_quality_score)s, %(is_spam)s, %(spam_indicators)s,
+                            %(embedding)s, %(analyzed_at)s
+                        )
+                        ON CONFLICT (submission_id) DO NOTHING
+                    """
+
+                    # Direct data mapping - NO TRANSFORMATION
+                    data = {
+                        'submission_id': opp.submission_id,
+                        'reddit_title': opp.reddit_title,
+                        'reddit_url': opp.reddit_url,
+                        'subreddit': opp.subreddit,
+                        'reddit_author': opp.reddit_author,
+                        'reddit_upvotes': opp.reddit_upvotes,
+                        'reddit_comments_count': opp.reddit_comments_count,
+                        'reddit_created_at': opp.reddit_created_at,
+                        'app_title': opp.app_title,
+                        'app_concept': opp.app_concept,
+                        'problem_statement': opp.problem_statement,
+                        'target_audience': opp.target_audience,
+                        'core_functions': json.dumps(opp.core_functions),
+                        'market_demand': opp.market_demand,
+                        'pain_intensity': opp.pain_intensity,
+                        'monetization_potential': opp.monetization_potential,
+                        'competition_level': opp.competition_level,
+                        'technical_feasibility': opp.technical_feasibility,
+                        'final_score': opp.final_score,
+                        'confidence_score': opp.confidence_score,
+                        'trust_level': opp.trust_level,
+                        'content_quality_score': opp.content_quality_score,
+                        'is_spam': opp.is_spam,
+                        'spam_indicators': json.dumps(opp.spam_indicators) if opp.spam_indicators else '[]',
+                        'embedding': json.dumps(opp.embedding) if opp.embedding else None,
+                        'analyzed_at': opp.analyzed_at
+                    }
+
+                    # Execute the insert
+                    cursor.execute(insert_query, data)
+
+                    # Release savepoint if successful
+                    cursor.execute("RELEASE SAVEPOINT insert_savepoint")
+                    stored += 1
+
+                except Exception as e:
+                    # Rollback to savepoint to recover transaction
+                    try:
+                        cursor.execute("ROLLBACK TO SAVEPOINT insert_savepoint")
+                    except:
+                        pass  # Savepoint may not exist if error was before creation
+
+                    if "duplicate key" in str(e).lower() or "conflict" in str(e).lower():
+                        logger.debug(f"Skipping duplicate submission: {opp.submission_id}")
+                        skipped += 1
+                    else:
+                        logger.error(f"Failed to store opportunity {opp.submission_id}: {e}")
+                        errors += 1
+
+            # Commit the transaction
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            logger.info(f"✓ Stored {stored} opportunities (skipped {skipped} duplicates, {errors} errors)")
+            return {"stored": stored, "skipped": skipped, "errors": errors}
+
+        except Exception as e:
+            logger.error(f"Failed to store analyses: {e}")
+            if 'conn' in locals():
+                conn.rollback()
+                conn.close()
+            return {"stored": stored, "skipped": skipped, "errors": errors + len(analyses) - stored - skipped}
 
     def get_opportunities(self, limit=100, min_score=0.0, trust_levels=None, subreddits=None):
         """
@@ -229,6 +337,16 @@ class OnlyMapsDatabaseLoader:
         except Exception as e:
             logger.error(f"OnlyMaps database connection test failed: {e}")
             return False
+
+    def create_tables(self) -> None:
+        """
+        No-op for OnlyMaps - tables are assumed to exist
+
+        OnlyMaps expects the database schema to already be in place.
+        This method exists for compatibility with the orchestration layer.
+        """
+        logger.debug("OnlyMaps: Skipping table creation (tables expected to exist)")
+        pass
 
     def get_statistics(self):
         """

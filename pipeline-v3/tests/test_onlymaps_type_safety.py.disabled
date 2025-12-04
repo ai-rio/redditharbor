@@ -29,7 +29,6 @@ from tests.fixtures.onlymaps_fixtures import (
     large_dataset_fixture,
     validation_error_scenarios
 )
-from tests.fixtures.database_fixtures import mock_database_loader
 
 logger = logging.getLogger(__name__)
 
