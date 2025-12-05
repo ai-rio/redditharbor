@@ -24,6 +24,7 @@ from transform.agno_agents import (
 )
 from transform.market_research_agent import MarketResearchAgent
 from transform.simplicity_processor import SimplicityProcessor
+from transform.embedding_strategies import FakeEmbeddingProvider, EmbeddingStrategy
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -449,7 +450,9 @@ class AgnoOpportunityAnalyzer:
         validation_threshold: float = None,
         max_competitors: int = None,
         max_launches: int = None,
-        enable_market_cost_tracking: bool = True
+        enable_market_cost_tracking: bool = True,
+        enable_embeddings: bool = True,
+        embedding_provider: Optional[str] = "fake"
     ):
         """
         Initialize the analyzer with specialized agents
@@ -464,6 +467,8 @@ class AgnoOpportunityAnalyzer:
             max_competitors: Maximum competitors to analyze
             max_launches: Maximum product launches to benchmark
             enable_market_cost_tracking: Whether to track market research costs
+            enable_embeddings: Whether to enable embedding generation
+            embedding_provider: Type of embedding provider to use ('fake', 'openai')
         """
         self.model = model
         self.base_url = base_url
@@ -477,11 +482,16 @@ class AgnoOpportunityAnalyzer:
         self.max_launches = max_launches or self.thresholds.DEFAULT_MAX_LAUNCHES
         self.enable_market_cost_tracking = enable_market_cost_tracking
 
+        # Embedding configuration
+        self.enable_embeddings = enable_embeddings
+        self.embedding_provider = embedding_provider
+
         # Initialize components
         self._initialize_tracking()
         self._initialize_agents()
         self._initialize_processors()
         self._initialize_calculators()
+        self._initialize_embeddings()
 
     def _initialize_tracking(self) -> None:
         """Initialize cost and AgentOps tracking"""
@@ -532,6 +542,25 @@ class AgnoOpportunityAnalyzer:
     def _initialize_calculators(self) -> None:
         """Initialize calculation utilities"""
         self.consensus_calculator = ConsensusCalculator(self.weights)
+
+    def _initialize_embeddings(self) -> None:
+        """Initialize embedding generation"""
+        if not self.enable_embeddings:
+            self.embedding_strategy = None
+            return
+
+        try:
+            if self.embedding_provider == "fake":
+                provider = FakeEmbeddingProvider(dimensions=1536)
+                self.embedding_strategy = EmbeddingStrategy(provider)
+                logger.info("✓ Initialized FakeEmbeddingProvider for embedding generation")
+            else:
+                logger.warning(f"Unsupported embedding provider: {self.embedding_provider}")
+                self.embedding_strategy = None
+
+        except Exception as e:
+            logger.error(f"Failed to initialize embeddings: {e}")
+            self.embedding_strategy = None
 
     def analyze_submission(self, submission: RedditSubmission) -> AnalysisResult:
         """
@@ -850,6 +879,9 @@ class AgnoOpportunityAnalyzer:
         trust_level = self._determine_trust_level(synthesis.confidence_score)
         reasoning = self._format_multi_agent_reasoning(synthesis)
 
+        # Generate embedding if enabled
+        embedding = self._generate_embedding(synthesis, submission)
+
         # Create result
         result = AnalysisResult(
             submission_id=getattr(submission, 'id', 'unknown'),
@@ -861,13 +893,88 @@ class AgnoOpportunityAnalyzer:
             spam_indicators=[],
             confidence_score=synthesis.confidence_score,
             trust_level=trust_level.value,
-            embedding=None  # Mock embedding
+            embedding=embedding
         )
 
         # Apply simplicity processing
         result = self.simplicity_processor.process_analysis(result)
 
         return result
+
+    def _generate_embedding(self, synthesis: AgnoSynthesis, submission: RedditSubmission) -> Optional[List[float]]:
+        """
+        Generate embedding vector for the opportunity
+
+        Args:
+            synthesis: Agno synthesis results
+            submission: Original Reddit submission
+
+        Returns:
+            List of float values representing the embedding vector, or None if generation fails
+        """
+        if not self.enable_embeddings or not self.embedding_strategy:
+            logger.debug("Embedding generation disabled or not initialized")
+            return None
+
+        try:
+            # Create comprehensive text for embedding
+            embedding_text = self._prepare_embedding_text(synthesis, submission)
+
+            # Generate embedding with metadata
+            embedding_vector, embedding_metadata = self.embedding_strategy.generate_embedding(
+                embedding_text,
+                metadata={
+                    'submission_id': getattr(submission, 'id', 'unknown'),
+                    'subreddit': getattr(submission, 'subreddit', ''),
+                    'final_score': synthesis.confidence_score,
+                    'market_demand': synthesis.market_demand,
+                    'pain_intensity': synthesis.pain_intensity,
+                    'monetization_potential': synthesis.monetization_potential
+                }
+            )
+
+            logger.debug(f"Generated {len(embedding_vector)}-dimensional embedding for submission {getattr(submission, 'id', 'unknown')}")
+            return embedding_vector
+
+        except Exception as e:
+            logger.error(f"Failed to generate embedding for submission {getattr(submission, 'id', 'unknown')}: {e}")
+            return None
+
+    def _prepare_embedding_text(self, synthesis: AgnoSynthesis, submission: RedditSubmission) -> str:
+        """
+        Prepare comprehensive text for embedding generation
+
+        Args:
+            synthesis: Agno synthesis results
+            submission: Original Reddit submission
+
+        Returns:
+            Combined text string for embedding generation
+        """
+        # Extract key information
+        title = getattr(submission, 'title', '')
+        content = getattr(submission, 'text', '')
+        subreddit = getattr(submission, 'subreddit', '')
+
+        # Build comprehensive embedding text
+        text_parts = [
+            f"Title: {title}",
+            f"Content: {content}",
+            f"Subreddit: {subreddit}",
+            f"Market Demand: {synthesis.market_demand:.1f}",
+            f"Pain Intensity: {synthesis.pain_intensity:.1f}",
+            f"Monetization Potential: {synthesis.monetization_potential:.1f}",
+            f"Confidence: {synthesis.confidence_score:.1f}%"
+        ]
+
+        # Add app concept if available
+        if hasattr(synthesis, 'agent_details'):
+            agent_details = synthesis.agent_details
+            if 'segment' in agent_details and 'target_audience' in agent_details['segment']:
+                target_audience = agent_details['segment']['target_audience']
+                text_parts.append(f"Target Audience: {target_audience}")
+
+        return " | ".join(text_parts)
 
     def _create_market_metrics(self, synthesis: AgnoSynthesis) -> MarketMetrics:
         """
