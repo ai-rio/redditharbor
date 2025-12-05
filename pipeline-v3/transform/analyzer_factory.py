@@ -346,7 +346,8 @@ class AgnoAnalyzerFactory(AnalyzerFactory):
         analyzer = AgnoOpportunityAnalyzer(
             model=resolved_config['model'],
             base_url=resolved_config['base_url'],
-            enable_agentops=resolved_config['enable_agentops']
+            enable_agentops=resolved_config['enable_agentops'],
+            embedding_provider=resolved_config['embedding_provider']
         )
 
         logger.info(f"Created Agno analyzer with model={resolved_config['model']}, agentops={resolved_config['enable_agentops']}")
@@ -381,6 +382,12 @@ class AgnoAnalyzerFactory(AnalyzerFactory):
                 'agno_enable_agentops',
                 'AGNO_ENABLE_AGENTOPS',
                 False
+            ),
+            'embedding_provider': self._resolve_config_value(
+                config.get('embedding_provider'),
+                'embedding_provider',
+                'EMBEDDING_PROVIDER',
+                'cohere'  # Default to Cohere for better performance
             )
         }
 

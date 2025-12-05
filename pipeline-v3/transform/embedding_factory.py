@@ -6,17 +6,11 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from .embedding_providers_new import (
-    CohereEmbeddingProvider,
-    GoogleVertexAIEmbeddingProvider,
-    JinaAIEmbeddingProvider,
-    VoyageAIEmbeddingProvider,
-)
+from .embedding_providers_new import CohereEmbeddingProvider
 from .embedding_strategies import (
     EmbeddingStrategy,
     FakeEmbeddingProvider,
     OpenAIEmbeddingProvider,
-    OpenRouterEmbeddingProvider,
 )
 
 logger = logging.getLogger(__name__)
@@ -114,26 +108,29 @@ class EmbeddingFactory:
                 api_key=api_key
             )
 
-        elif provider_type == "voyage":
-            return VoyageAIEmbeddingProvider(
-                model=model or "voyage-large-2",
-                dimensions=dimensions or 1536,
-                api_key=api_key
-            )
+        # TODO: Implement VoyageAIEmbeddingProvider
+        # elif provider_type == "voyage":
+        #     return VoyageAIEmbeddingProvider(
+        #         model=model or "voyage-large-2",
+        #         dimensions=dimensions or 1536,
+        #         api_key=api_key
+        #     )
 
-        elif provider_type == "jina":
-            return JinaAIEmbeddingProvider(
-                model=model or "jina-embeddings-v3",
-                dimensions=dimensions or 1024,
-                api_key=api_key
-            )
+        # TODO: Implement JinaAIEmbeddingProvider
+        # elif provider_type == "jina":
+        #     return JinaAIEmbeddingProvider(
+        #         model=model or "jina-embeddings-v3",
+        #         dimensions=dimensions or 1024,
+        #         api_key=api_key
+        #     )
 
-        elif provider_type == "vertexai":
-            return GoogleVertexAIEmbeddingProvider(
-                model=model or "textembedding-gecko@003",
-                dimensions=dimensions or 768,
-                project_id=api_key  # Using api_key to pass project_id for simplicity
-            )
+        # TODO: Implement GoogleVertexAIEmbeddingProvider
+        # elif provider_type == "vertexai":
+        #     return GoogleVertexAIEmbeddingProvider(
+        #         model=model or "textembedding-gecko@003",
+        #         dimensions=dimensions or 768,
+        #         project_id=api_key  # Using api_key to pass project_id for simplicity
+        #     )
 
         else:
             raise ValueError(f"Unsupported embedding provider: {provider_type}")

@@ -24,7 +24,8 @@ from transform.agno_agents import (
 )
 from transform.market_research_agent import MarketResearchAgent
 from transform.simplicity_processor import SimplicityProcessor
-from transform.embedding_strategies import FakeEmbeddingProvider, EmbeddingStrategy
+from transform.embedding_strategies import EmbeddingStrategy
+from transform.embedding_factory import EmbeddingFactory
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -550,13 +551,10 @@ class AgnoOpportunityAnalyzer:
             return
 
         try:
-            if self.embedding_provider == "fake":
-                provider = FakeEmbeddingProvider(dimensions=1536)
-                self.embedding_strategy = EmbeddingStrategy(provider)
-                logger.info("✓ Initialized FakeEmbeddingProvider for embedding generation")
-            else:
-                logger.warning(f"Unsupported embedding provider: {self.embedding_provider}")
-                self.embedding_strategy = None
+            # Use EmbeddingFactory to create the configured provider
+            provider = EmbeddingFactory.create_provider(self.embedding_provider)
+            self.embedding_strategy = EmbeddingStrategy(provider)
+            logger.info(f"✓ Initialized {self.embedding_provider} embedding provider via EmbeddingFactory")
 
         except Exception as e:
             logger.error(f"Failed to initialize embeddings: {e}")

@@ -9,12 +9,16 @@ import os
 import sys
 import time
 from typing import Any, Dict
+from dotenv import load_dotenv
+
+# Load environment variables from project root
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env.local'))
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline_v3.transform.embedding_factory import EmbeddingFactory
-from pipeline_v3.transform.embedding_strategies import EmbeddingStrategy
+from transform.embedding_factory import EmbeddingFactory
+from transform.embedding_strategies import EmbeddingStrategy
 
 # Configure logging
 logging.basicConfig(
@@ -244,7 +248,11 @@ def main():
             continue
 
         summary['total_tests'] += 1
-        result = test_provider(**{k: v for k, v in config.items() if k != 'skip_reason'})
+        # Convert 'provider' to 'provider_type' for the function call
+        provider_config = {k: v for k, v in config.items() if k != 'skip_reason'}
+        if 'provider' in provider_config:
+            provider_config['provider_type'] = provider_config.pop('provider')
+        result = test_provider(**provider_config)
         all_results.append(result)
 
         if result['success']:
