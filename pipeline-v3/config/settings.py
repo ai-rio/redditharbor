@@ -95,7 +95,7 @@ class Settings(BaseSettings):
 
     # pgvector Configuration
     embedding_dimension: int = Field(
-        default=384,
+        default=1536,
         description="Dimension for text embeddings (pgvector)"
     )
     similarity_threshold: float = Field(
@@ -103,6 +103,33 @@ class Settings(BaseSettings):
         ge=0.0,
         le=1.0,
         description="Similarity threshold for duplicate detection"
+    )
+
+    # OpenAI Embeddings Configuration
+    enable_openai_embeddings: bool = Field(
+        default=True,
+        alias="ENABLE_OPENAI_EMBEDDINGS",
+        description="Enable OpenAI embeddings for semantic analysis"
+    )
+    openai_embedding_model: str = Field(
+        default="text-embedding-3-small",
+        alias="OPENAI_EMBEDDING_MODEL",
+        description="OpenAI embedding model to use"
+    )
+    openai_embedding_dimensions: int = Field(
+        default=1536,
+        alias="OPENAI_EMBEDDING_DIMENSIONS",
+        description="Dimensions for OpenAI embeddings"
+    )
+    openai_embedding_api_key: str = Field(
+        default="",
+        alias="OPENAI_API_KEY",
+        description="OpenAI API key for embeddings (uses same key as LLM if not specified)"
+    )
+    openai_base_url_for_embeddings: str = Field(
+        default="https://api.openai.com/v1",
+        alias="OPENAI_BASE_URL_EMBEDDINGS",
+        description="Base URL for OpenAI embeddings API (default: direct OpenAI)"
     )
 
     # Agno Multi-Agent Configuration
@@ -286,6 +313,16 @@ class Settings(BaseSettings):
             return {
                 "api_key": self.openai_api_key
             }
+
+    def get_openai_embedding_config(self) -> dict:
+        """Get OpenAI configuration for embeddings API"""
+        # Use the dedicated embedding API key if provided, otherwise fall back to main OpenAI key
+        api_key = self.openai_embedding_api_key or self.openai_api_key
+
+        return {
+            "api_key": api_key,
+            "base_url": self.openai_base_url_for_embeddings
+        }
 
     model_config = {
         "env_file": ".env.local",

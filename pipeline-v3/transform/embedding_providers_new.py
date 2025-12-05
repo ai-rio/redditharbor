@@ -19,12 +19,31 @@ Providers:
 import asyncio
 import aiohttp
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Protocol
 from datetime import datetime
 import numpy as np
 from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
+
+
+class EmbeddingProvider(ABC):
+    """Base class for embedding providers"""
+
+    @abstractmethod
+    def generate_embedding(self, text: str, metadata: Optional[Dict] = None) -> Tuple[List[float], Dict]:
+        """Generate embedding for text"""
+        pass
+
+    @abstractmethod
+    def get_vector_dimensions(self) -> int:
+        """Get embedding dimensions"""
+        pass
+
+    @abstractmethod
+    def test_connection(self) -> bool:
+        """Test provider connection"""
+        pass
 
 
 class CohereEmbeddingProvider(EmbeddingProvider):

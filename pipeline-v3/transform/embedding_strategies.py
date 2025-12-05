@@ -168,8 +168,9 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             from config import get_settings
 
             settings = get_settings()
-            openai_config = settings.get_openai_client_config()
-            self._client = OpenAI(**openai_config)
+            # Use the dedicated embedding configuration
+            embedding_config = settings.get_openai_embedding_config()
+            self._client = OpenAI(**embedding_config)
 
         except ImportError:
             raise RuntimeError("openai package is required for OpenAIEmbeddingProvider")

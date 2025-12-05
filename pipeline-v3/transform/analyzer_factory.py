@@ -17,9 +17,12 @@ except ImportError:
     class MockSettings:
         def __init__(self):
             self.test_mode = False
-            self.enable_openai_embeddings = False
+            # Default to OpenAI embeddings for production if API key is available
+            self.enable_openai_embeddings = bool(os.getenv("OPENAI_API_KEY"))
             self.openai_embedding_model = 'text-embedding-3-small'
             self.openai_embedding_dimensions = 1536
+            self.openai_embedding_api_key = os.getenv("OPENAI_API_KEY", "")
+            self.openai_base_url_for_embeddings = "https://api.openai.com/v1"
             self.agno_model = None
             self.agno_base_url = None
             self.agno_enable_agentops = None
@@ -53,6 +56,28 @@ except ImportError:
             self.dimensions = dimensions
             self.value_range = value_range
 
+    class OpenAIEmbeddingProvider:
+        def __init__(self, model='text-embedding-3-small', dimensions=1536):
+            self.model = model
+            self.dimensions = dimensions
+
+# Import embedding strategies
+try:
+    from .embedding_strategies import (
+        EmbeddingStrategy,
+        FakeEmbeddingProvider,
+        OpenAIEmbeddingProvider,
+    )
+except ImportError as e:
+    logger.error(f"Failed to import embedding strategies: {e}")
+    # Mock implementations
+    class EmbeddingStrategy:
+        def __init__(self, primary, fallback=None):
+            self.primary = primary
+            self.fallback = fallback
+    class FakeEmbeddingProvider:
+        def __init__(self, dimensions=384, value_range=(-1.0, 1.0)):
+            self.dimensions = dimensions
     class OpenAIEmbeddingProvider:
         def __init__(self, model='text-embedding-3-small', dimensions=1536):
             self.model = model
@@ -125,7 +150,7 @@ class TestModeAnalyzerFactory(AnalyzerFactory):
 
     def create_analyzer(self, config: Optional[Dict[str, Any]] = None) -> SimpleOpportunityAnalyzer:
         """
-        Create a test mode analyzer with fake embeddings
+        Create a test mode analyzer with OpenAI embeddings if available, otherwise fake
 
         Args:
             config: Optional configuration overrides
@@ -137,6 +162,33 @@ class TestModeAnalyzerFactory(AnalyzerFactory):
         if config is None:
             config = {}
 
+        # Try to use OpenAI embeddings if API key is available and not forced to use fake
+        if os.getenv("OPENAI_API_KEY") and not config.get('force_fake_embeddings'):
+            try:
+                from .embedding_strategies import OpenAIEmbeddingProvider
+
+                # Create OpenAI provider
+                openai_provider = OpenAIEmbeddingProvider(
+                    model='text-embedding-3-small',
+                    dimensions=1536
+                )
+
+                # Create fake fallback with same dimensions
+                fake_provider = FakeEmbeddingProvider(dimensions=1536, value_range=(-1.0, 1.0))
+
+                # Create embedding strategy with OpenAI primary and fake fallback
+                embedding_strategy = EmbeddingStrategy(openai_provider, fake_provider)
+
+                # Create analyzer with strategy
+                analyzer = SimpleOpportunityAnalyzer(embedding_strategy)
+
+                logger.info("Created test mode analyzer with OpenAI embeddings + fake fallback")
+                return analyzer
+
+            except Exception as e:
+                logger.warning(f"Failed to initialize OpenAI embeddings for test, using fake only: {e}")
+
+        # Fallback to fake embeddings
         dimensions = config.get('embedding_dimensions', self.embedding_dimensions)
         value_range = config.get('value_range', self.value_range)
 
@@ -152,7 +204,7 @@ class TestModeAnalyzerFactory(AnalyzerFactory):
         # Create analyzer with strategy
         analyzer = SimpleOpportunityAnalyzer(embedding_strategy)
 
-        logger.info(f"Created test mode analyzer with {dimensions}-dimensional embeddings")
+        logger.info(f"Created test mode analyzer with {dimensions}-dimensional fake embeddings")
         return analyzer
 
 
@@ -189,8 +241,14 @@ class ProductionAnalyzerFactory(AnalyzerFactory):
             # Create production analyzer
             analyzer = OpportunityAnalyzer()
 
-            # Optionally enhance with OpenAI embeddings if configured
-            if hasattr(self.settings, 'enable_openai_embeddings') and self.settings.enable_openai_embeddings:
+            # Default to OpenAI embeddings for production
+            # Enable unless explicitly disabled or no API key available
+            embeddings_enabled = getattr(self.settings, 'enable_openai_embeddings', None)
+            if embeddings_enabled is None:
+                # Auto-enable if OpenAI API key is available
+                embeddings_enabled = bool(os.getenv("OPENAI_API_KEY"))
+
+            if embeddings_enabled:
                 try:
                     openai_provider = OpenAIEmbeddingProvider(
                         model=getattr(self.settings, 'openai_embedding_model', 'text-embedding-3-small'),
@@ -244,7 +302,7 @@ class HybridAnalyzerFactory(AnalyzerFactory):
 
         # Determine embedding provider from config
         embedding_config = config.get('embedding', {})
-        provider_type = embedding_config.get('provider', 'fake')
+        provider_type = embedding_config.get('provider', 'openai' if os.getenv("OPENAI_API_KEY") else 'fake')
 
         if provider_type == 'openai':
             try:
