@@ -64,6 +64,33 @@ class Settings(BaseSettings):
         alias="OPENROUTER_MODEL",
         description="OpenRouter model to use for analysis"
     )
+
+    # Agno Configuration
+    agno_model: str = Field(
+        default="anthropic/claude-haiku-4.5",
+        alias="AGNO_MODEL",
+        description="Agno model to use for multi-agent analysis"
+    )
+    agno_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        alias="AGNO_BASE_URL",
+        description="Agno API base URL (uses OpenRouter by default)"
+    )
+    agno_timeout: int = Field(
+        default=30,
+        alias="AGNO_TIMEOUT",
+        description="Agno agent timeout in seconds"
+    )
+    agno_max_retries: int = Field(
+        default=3,
+        alias="AGNO_MAX_RETRIES",
+        description="Maximum retries for Agno agents"
+    )
+    agno_enable_agentops: bool = Field(
+        default=False,
+        alias="AGNO_ENABLE_AGENTOPS",
+        description="Enable AgentOps tracking for Agno agents"
+    )
     max_tokens: int = Field(
         default=2000,
         description="Maximum tokens for LLM responses"

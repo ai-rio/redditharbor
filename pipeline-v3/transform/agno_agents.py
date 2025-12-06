@@ -1,163 +1,259 @@
 """
-Specialized agents for Agno multi-agent analysis
+Agno Agents - Real Implementation using Agno 2.2.13
+
+This module implements specialized market analysis agents using the Agno framework.
+Each agent focuses on a specific aspect of market opportunity analysis.
 """
 
-from typing import Dict, Any
-import json
+from typing import Dict, Any, List, Optional, Type
+from pydantic import BaseModel, Field
 import logging
+from enum import Enum
+
+from agno.agent import Agent
+from agno.models.openai import OpenAIChat
 from monitoring.metrics_collector import get_collector
 
+# Configure logger
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# Pydantic Schemas for Structured Outputs
+# =============================================================================
 
-class Agent:
-    """Base class for specialized agents"""
+class WillingnessToPayResult(BaseModel):
+    """Structured output for willingness to pay analysis"""
+    wtp_score: float = Field(..., ge=0, le=100, description="Willingness to pay score (0-100)")
+    price_range: Optional[str] = Field(None, description="Identified price range")
+    budget_mentioned: bool = Field(default=False, description="Whether budget was explicitly mentioned")
+    confidence_score: float = Field(..., ge=0, le=100, description="Confidence in the analysis")
+    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
 
-    def __init__(self, model: str, api_key: str, base_url: str):
+
+class MarketSegmentResult(BaseModel):
+    """Structured output for market segment analysis"""
+    segment_size_score: float = Field(..., ge=0, le=100, description="Market segment size score (0-100)")
+    segment_type: str = Field(..., description="Type of market segment")
+    growth_potential: float = Field(..., ge=0, le=100, description="Growth potential score (0-100)")
+    confidence_score: float = Field(..., ge=0, le=100, description="Confidence in the analysis")
+    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+
+
+class PricePointResult(BaseModel):
+    """Structured output for price point analysis"""
+    price_point: float = Field(..., ge=0, description="Estimated price point in USD")
+    monetization_score: float = Field(..., ge=0, le=100, description="Monetization potential score (0-100)")
+    budget_ceiling: Optional[float] = Field(None, ge=0, description="Customer budget ceiling")
+    pricing_model: str = Field(..., description="Recommended pricing model")
+    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+
+
+class PaymentBehaviorResult(BaseModel):
+    """Structured output for payment behavior analysis"""
+    behavior_score: float = Field(..., ge=0, le=100, description="Payment behavior score (0-100)")
+    pain_intensity_score: float = Field(..., ge=0, le=100, description="Pain intensity score (0-100)")
+    purchase_pattern: str = Field(..., description="Typical purchase pattern")
+    current_spending: str = Field(..., description="Current spending level")
+    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+
+
+class MarketResearchResult(BaseModel):
+    """Structured output for market research analysis"""
+    validation_score: float = Field(..., ge=0, le=100, description="Market validation score (0-100)")
+    competitor_count: int = Field(..., ge=0, description="Number of identified competitors")
+    market_maturity: str = Field(..., description="Market maturity level")
+    barriers_to_entry: str = Field(..., description="Entry barriers assessment")
+    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+
+
+# =============================================================================
+# Base Agent Class
+# =============================================================================
+
+class BaseAgent(Agent):
+    """Base agent class with common functionality - following Agno best practices"""
+
+    def __init__(
+        self,
+        model: str,
+        api_key: str,
+        base_url: str,
+        output_schema: Optional[Type[BaseModel]] = None,
+        debug_mode: bool = False,
+        instructions: Optional[List[str]] = None,
+        name: Optional[str] = None
+    ):
+        """
+        Initialize base agent with OpenRouter configuration
+
+        Args:
+            model: Model name for the agent
+            api_key: OpenRouter API key
+            base_url: API base URL
+            output_schema: Pydantic schema for structured output
+            debug_mode: Enable debug logging
+            instructions: Agent instructions
+            name: Agent name
+        """
+        # Create OpenAI model with OpenRouter configuration
+        self.openai_model = OpenAIChat(
+            id=model,
+            api_key=api_key,
+            base_url=base_url,
+            default_headers={
+                "HTTP-Referer": "https://github.com/redditharbor/redditharbor",
+                "X-Title": "RedditHarbor Pipeline v3"
+            }
+        )
+
+        # Store configuration for agent-specific use
         self.model = model
         self.api_key = api_key
         self.base_url = base_url
-        self.name = self.__class__.__name__
+        self.output_schema = output_schema
+        self.debug_mode = debug_mode
+
+        # Initialize metrics tracking
         self.metrics = get_collector()
+        self.agent_name = self._get_agent_name()
 
-    def run(self, input_data: str) -> str:
-        """Run the agent analysis"""
-        # Extract opportunity_id from input if possible
-        try:
-            input_dict = json.loads(input_data) if isinstance(input_data, str) else input_data
-            opportunity_id = input_dict.get('opportunity_id', 'unknown')
-        except:
-            opportunity_id = 'unknown'
-
-        # Get agent short name for metrics
-        agent_name = self._get_agent_name()
-
-        # Track execution with metrics
-        with self.metrics.track("transform", agent_name=agent_name, opportunity_id=opportunity_id) as context:
-            # Get mock response (for now)
-            result = self._get_mock_response()
-
-            # Add metadata to context
-            context["metadata"] = {
-                "agent_name": self.name,
-                "model": self.model,
-                "input_length": len(str(input_data))
-            }
-
-            return json.dumps(result)
+        # Initialize the Agno Agent without overriding run()
+        super().__init__(
+            model=self.openai_model,
+            output_schema=output_schema,
+            instructions=instructions or [],
+            name=name or self._get_default_name(),
+            debug_mode=debug_mode,
+            # Enable error handling
+            retries=2,
+            delay_between_retries=1,
+            exponential_backoff=True
+        )
 
     def _get_agent_name(self) -> str:
-        """Get short agent name for metrics tracking"""
-        name_map = {
-            "WillingnessToPayAgent": "wtp",
-            "MarketSegmentAgent": "segment",
-            "PricePointAgent": "price",
-            "PaymentBehaviorAgent": "payment",
-            "MarketResearchAgent": "market"
-        }
-        return name_map.get(self.__class__.__name__, self.__class__.__name__.lower())
+        """Get short agent name for metrics"""
+        class_name = self.__class__.__name__.lower().replace('agent', '')
+        return class_name
 
-    def _get_mock_response(self) -> Dict[str, Any]:
-        """Get mock response for testing"""
-        return {}
+    def _get_default_name(self) -> str:
+        """Get default agent name"""
+        return self.__class__.__name__.replace('Agent', '')
 
 
-class WillingnessToPayAgent(Agent):
-    """Analyzes willingness to pay indicators"""
+# =============================================================================
+# Specialized Agent Classes
+# =============================================================================
 
-    def __init__(self, model: str, api_key: str, base_url: str):
-        super().__init__(model, api_key, base_url)
-        self.name = "Willingness to Pay Analyst"
-        self.instructions = "Analyze wtp_score and payment sentiment"
+class WillingnessToPayAgent(BaseAgent):
+    """Agent for analyzing willingness to pay from Reddit submissions"""
 
-    def _get_mock_response(self) -> Dict[str, Any]:
-        return {
-            "wtp_score": 75,
-            "market_demand_score": 80,
-            "sentiment": "Positive",
-            "evidence": ["explicit_price_mention", "budget_discussion"]
-        }
+    def __init__(self, model: str, api_key: str, base_url: str, debug_mode: bool = False):
+        instructions = [
+            "Analyze the Reddit submission to determine willingness to pay for a solution.",
+            "Look for explicit mentions of budget, pricing preferences, and payment capacity.",
+            "Focus on identifying concrete price points and budget constraints.",
+            "Provide a structured assessment with confidence scores.",
+            "Consider both stated and implied willingness to pay based on language used."
+        ]
 
-
-class MarketSegmentAgent(Agent):
-    """Analyzes market segment characteristics"""
-
-    def __init__(self, model: str, api_key: str, base_url: str):
-        super().__init__(model, api_key, base_url)
-        self.name = "Market Segment Analyst"
-        self.instructions = "Analyze segment_type and customer_profile"
-
-    def _get_mock_response(self) -> Dict[str, Any]:
-        return {
-            "segment_type": "B2B",
-            "market_demand_score": 70,
-            "customer_profile": "Small Business",
-            "indicators": ["business_context", "team_mention"]
-        }
+        super().__init__(
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            output_schema=WillingnessToPayResult,
+            debug_mode=debug_mode,
+            instructions=instructions,
+            name="Willingness to Pay Analyst"
+        )
 
 
-class PricePointAgent(Agent):
-    """Analyzes price point sensitivity"""
+class MarketSegmentAgent(BaseAgent):
+    """Agent for analyzing market segments from Reddit submissions"""
 
-    def __init__(self, model: str, api_key: str, base_url: str):
-        super().__init__(model, api_key, base_url)
-        self.name = "Price Point Analyst"
-        self.instructions = "Analyze price_point and budget_ceiling"
+    def __init__(self, model: str, api_key: str, base_url: str, debug_mode: bool = False):
+        instructions = [
+            "Analyze the Reddit submission to identify the target market segment.",
+            "Look for demographic clues, industry context, and user characteristics.",
+            "Assess the size and growth potential of the identified segment.",
+            "Provide a structured assessment with confidence scores.",
+            "Consider both explicit and implicit segment indicators."
+        ]
 
-    def _get_mock_response(self) -> Dict[str, Any]:
-        return {
-            "price_point": 100,
-            "monetization_score": 70,
-            "budget_ceiling": 150,
-            "pricing_model": "Subscription"
-        }
-
-
-class PaymentBehaviorAgent(Agent):
-    """Analyzes payment behavior patterns"""
-
-    def __init__(self, model: str, api_key: str, base_url: str):
-        super().__init__(model, api_key, base_url)
-        self.name = "Payment Behavior Analyst"
-        self.instructions = "Analyze purchase_pattern and spending_behavior"
-
-    def _get_mock_response(self) -> Dict[str, Any]:
-        return {
-            "behavior_score": 90,
-            "pain_intensity_score": 70,
-            "purchase_pattern": "Subscription",
-            "current_spending": "Moderate"
-        }
+        super().__init__(
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            output_schema=MarketSegmentResult,
+            debug_mode=debug_mode,
+            instructions=instructions,
+            name="Market Segment Analyst"
+        )
 
 
-class MarketResearchAgent(Agent):
-    """Performs market research using Jina API for validation"""
+class PricePointAgent(BaseAgent):
+    """Agent for analyzing optimal price points from Reddit submissions"""
 
-    def __init__(self, model: str, api_key: str, base_url: str):
-        super().__init__(model, api_key, base_url)
-        self.name = "Market Research Analyst"
-        self.instructions = "Validate opportunities with real market data"
+    def __init__(self, model: str, api_key: str, base_url: str, debug_mode: bool = False):
+        instructions = [
+            "Analyze the Reddit submission to determine optimal pricing strategies.",
+            "Consider stated budgets, comparison to existing solutions, and value proposition.",
+            "Recommend pricing models (subscription, one-time, freemium, etc.).",
+            "Provide a structured assessment with confidence scores.",
+            "Balance user willingness to pay with market positioning."
+        ]
 
-    def _get_mock_response(self) -> Dict[str, Any]:
-        return {
-            "validation_score": 75,
-            "competitor_pricing": [
-                {
-                    "company": "CompetitorPro",
-                    "pricing_model": "subscription",
-                    "tiers": [{"name": "Basic", "price": "$9/mo"}],
-                    "confidence": 85.0
-                }
-            ],
-            "market_size": {
-                "tam": "$45B",
-                "growth": "18% CAGR"
-            },
-            "similar_launches": [
-                {
-                    "product": "SimilarApp",
-                    "upvotes": 1250,
-                    "platform": "Product Hunt"
-                }
-            ]
-        }
+        super().__init__(
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            output_schema=PricePointResult,
+            debug_mode=debug_mode,
+            instructions=instructions,
+            name="Price Point Analyst"
+        )
+
+
+class PaymentBehaviorAgent(BaseAgent):
+    """Agent for analyzing payment behavior patterns from Reddit submissions"""
+
+    def __init__(self, model: str, api_key: str, base_url: str, debug_mode: bool = False):
+        instructions = [
+            "Analyze the Reddit submission to understand payment behavior patterns.",
+            "Look for indications of current spending on similar solutions.",
+            "Assess pain intensity and urgency of the problem.",
+            "Identify typical purchase patterns and decision processes.",
+            "Provide a structured assessment with confidence scores."
+        ]
+
+        super().__init__(
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            output_schema=PaymentBehaviorResult,
+            debug_mode=debug_mode,
+            instructions=instructions,
+            name="Payment Behavior Analyst"
+        )
+
+
+class MarketResearchAgent(BaseAgent):
+    """Agent for conducting market research based on Reddit submissions"""
+
+    def __init__(self, model: str, api_key: str, base_url: str, debug_mode: bool = False):
+        instructions = [
+            "Conduct market research based on the Reddit submission content.",
+            "Identify key market trends and competitive landscape.",
+            "Assess market validation and barriers to entry.",
+            "Provide insights on market maturity and growth potential.",
+            "Deliver a structured assessment with confidence scores."
+        ]
+
+        super().__init__(
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            output_schema=MarketResearchResult,
+            debug_mode=debug_mode,
+            instructions=instructions,
+            name="Market Research Analyst"
+        )

@@ -1,5 +1,5 @@
 """
-Agno-based multi-agent opportunity analyzer - Refactored Version
+Agno-based multi-agent opportunity analyzer - Real Implementation
 
 This module provides a comprehensive multi-agent analysis system for Reddit submissions,
 identifying market opportunities through specialized agents that analyze different aspects
@@ -13,6 +13,8 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
+from agno.agent import Agent
+from agno.team import Team
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
 from transform.agno_synthesis import AgnoSynthesis
@@ -20,13 +22,14 @@ from transform.agno_agents import (
     WillingnessToPayAgent,
     MarketSegmentAgent,
     PricePointAgent,
-    PaymentBehaviorAgent
+    PaymentBehaviorAgent,
+    MarketResearchAgent
 )
-from transform.market_research_agent import MarketResearchAgent
 from transform.simplicity_processor import SimplicityProcessor
 from transform.embedding_strategies import EmbeddingStrategy
 from transform.embedding_factory import EmbeddingFactory
 from monitoring.metrics_collector import get_collector
+from config.settings import get_settings
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -121,141 +124,29 @@ class SubredditCategory:
             return AnalysisThresholds.DEFAULT_MULTIPLIER
 
 
-class MockTeam:
-    """Mock Agno team for agent coordination with improved error handling"""
+class AgnoTeamResult:
+    """Wrapper for Agno Team results to maintain compatibility"""
 
-    def __init__(self, agents: List[Any]):
+    def __init__(self, agent_results: Dict[str, Any]):
         """
-        Initialize team with agents
+        Initialize with agent results
 
         Args:
-            agents: List of agent instances
+            agent_results: Dictionary of agent results
         """
-        self.agents = agents
-        # Handle both 4-agent (legacy) and 5-agent (with market research) configurations
-        self.agent_map = {
-            "WTP Analyst": agents[0],
-            "Market Segment": agents[1],
-            "Price Point": agents[2],
-            "Payment Behavior": agents[3]
-        }
+        self._agent_results = agent_results
 
-        # Add MarketResearchAgent if present (5th agent)
-        if len(agents) >= 5:
-            self.agent_map["Market Research"] = agents[4]
-
-    def has_agent(self, agent_name: str) -> bool:
+    def get_agent_result(self, agent_name: str) -> Dict[str, Any]:
         """
-        Check if agent exists in team
+        Get result from specific agent
 
         Args:
-            agent_name: Name of the agent to check
+            agent_name: Name of the agent
 
         Returns:
-            True if agent exists, False otherwise
+            Agent result dictionary
         """
-        return agent_name in self.agent_map
-
-    def run(self, input_data: str) -> Any:
-        """
-        Run all agents on input data with improved error handling
-
-        Args:
-            input_data: JSON string input for agents
-
-        Returns:
-            MockResult object containing agent outputs
-        """
-        class MockResult:
-            """Mock result object for agent outputs"""
-
-            def __init__(self, agent_results: Dict[str, Dict[str, Any]]):
-                self._agent_results = agent_results
-                self._market_research_results = None
-
-            def get_agent_result(self, agent_name: str) -> Dict[str, Any]:
-                """
-                Get result from specific agent
-
-                Args:
-                    agent_name: Name of the agent
-
-                Returns:
-                    Agent result dictionary
-                """
-                # Return market research results if requested and available
-                if agent_name == "Market Research" and self._market_research_results:
-                    return self._market_research_results
-
-                return self._agent_results.get(agent_name, {})
-
-        # Extract opportunity_id for tracking
-        try:
-            input_dict = json.loads(input_data) if isinstance(input_data, str) else input_data
-            opportunity_id = input_dict.get('opportunity_id', 'unknown')
-        except:
-            opportunity_id = 'unknown'
-
-        agent_results = {}
-        metrics = get_collector()
-
-        for name, agent in self.agent_map.items():
-            # Skip Market Research agent - it's handled conditionally
-            if name == "Market Research":
-                continue
-
-            # Get agent short name for metrics
-            agent_short_name = agent._get_agent_name() if hasattr(agent, '_get_agent_name') else name.lower()
-
-            # Track individual agent execution
-            with metrics.track("transform", agent_name=agent_short_name, opportunity_id=opportunity_id) as context:
-                try:
-                    response = agent.run(input_data)
-
-                    # Parse JSON response with error handling
-                    if isinstance(response, str):
-                        try:
-                            agent_results[name] = json.loads(response)
-                        except json.JSONDecodeError as e:
-                            logger.warning(f"Invalid JSON from {name}: {e}")
-                            agent_results[name] = {
-                                "error": "Invalid JSON response",
-                                "raw_response": response[:100]  # First 100 chars for debugging
-                            }
-                    else:
-                        # Handle non-string responses
-                        agent_results[name] = response
-
-                    # Add agent-specific metadata to context
-                    context["metadata"] = {
-                        "agent_full_name": name,
-                        "agent_short_name": agent_short_name,
-                        "input_length": len(str(input_data)),
-                        "response_length": len(str(response)),
-                        "opportunity_id": opportunity_id,
-                        "has_error": "error" in str(agent_results[name]).lower()
-                    }
-
-                except Exception as e:
-                    logger.error(f"Error running agent {name}: {e}")
-                    agent_results[name] = {
-                        "error": str(e),
-                        "error_type": type(e).__name__
-                    }
-
-                    # Record error in context
-                    context["metadata"] = {
-                        "agent_full_name": name,
-                        "agent_short_name": agent_short_name,
-                        "opportunity_id": opportunity_id,
-                        "has_error": True,
-                        "error_message": str(e),
-                        "error_type": type(e).__name__
-                    }
-
-        mock_result = MockResult(agent_results)
-
-        return mock_result
+        return self._agent_results.get(agent_name, {})
 
 
 class MockCostTracker:
@@ -477,9 +368,9 @@ class AgnoOpportunityAnalyzer:
 
     def __init__(
         self,
-        model: str = "anthropic/claude-haiku-4.5",
-        base_url: str = "https://openrouter.ai/api/v1",
-        enable_agentops: bool = False,
+        model: str = None,
+        base_url: str = None,
+        enable_agentops: bool = None,
         weights: Optional[ScoringWeights] = None,
         thresholds: Optional[AnalysisThresholds] = None,
         validation_threshold: float = None,
@@ -505,9 +396,11 @@ class AgnoOpportunityAnalyzer:
             enable_embeddings: Whether to enable embedding generation
             embedding_provider: Type of embedding provider to use ('fake', 'openai')
         """
-        self.model = model
-        self.base_url = base_url
-        self.enable_agentops = enable_agentops
+        # Get configuration and apply defaults
+        settings = get_settings()
+        self.model = model or settings.agno_model
+        self.base_url = base_url or settings.agno_base_url
+        self.enable_agentops = enable_agentops if enable_agentops is not None else settings.agno_enable_agentops
         self.weights = weights or ScoringWeights()
         self.thresholds = thresholds or AnalysisThresholds()
 
@@ -541,34 +434,64 @@ class AgnoOpportunityAnalyzer:
 
     def _initialize_agents(self) -> None:
         """Initialize specialized analysis agents"""
-        # Use mock API key for testing
-        api_key = "test_key"
+        # Use settings for real API configuration
+        from config.settings import get_settings
+        settings = get_settings()
 
-        self.wtp_agent = WillingnessToPayAgent(self.model, api_key, self.base_url)
-        self.segment_agent = MarketSegmentAgent(self.model, api_key, self.base_url)
-        self.price_agent = PricePointAgent(self.model, api_key, self.base_url)
-        self.behavior_agent = PaymentBehaviorAgent(self.model, api_key, self.base_url)
+        # Initialize agents with real API configuration
+        self.wtp_agent = WillingnessToPayAgent(
+            model=self.model,
+            api_key=settings.openai_api_key,
+            base_url=self.base_url,
+            debug_mode=self.enable_agentops  # Enable debug if AgentOps is enabled
+        )
+
+        self.segment_agent = MarketSegmentAgent(
+            model=self.model,
+            api_key=settings.openai_api_key,
+            base_url=self.base_url,
+            debug_mode=self.enable_agentops
+        )
+
+        self.price_agent = PricePointAgent(
+            model=self.model,
+            api_key=settings.openai_api_key,
+            base_url=self.base_url,
+            debug_mode=self.enable_agentops
+        )
+
+        self.behavior_agent = PaymentBehaviorAgent(
+            model=self.model,
+            api_key=settings.openai_api_key,
+            base_url=self.base_url,
+            debug_mode=self.enable_agentops
+        )
 
         # Initialize MarketResearchAgent with configuration
         self.market_research_agent = MarketResearchAgent(
             model=self.model,
-            api_key=api_key,
+            api_key=settings.openai_api_key,
             base_url=self.base_url,
-            validation_threshold=self.validation_threshold,
-            max_competitors=self.max_competitors,
-            max_launches=self.max_launches,
-            enable_cost_tracking=self.enable_market_cost_tracking,
-            use_real_jina=False  # Use mock implementation for testing
+            debug_mode=self.enable_agentops
         )
 
-        # Create agent team with MarketResearchAgent
-        self.team = MockTeam([
-            self.wtp_agent,
-            self.segment_agent,
-            self.price_agent,
-            self.behavior_agent,
-            self.market_research_agent
-        ])
+        # Create real Agno Team with role delegation
+        self.team = Team(
+            members=[
+                self.wtp_agent,
+                self.segment_agent,
+                self.price_agent,
+                self.behavior_agent,
+                self.market_research_agent
+            ],
+            instructions=[
+                "Analyze the Reddit submission to identify market opportunities.",
+                "Each agent should focus on their specialized area of analysis.",
+                "Provide structured outputs with scores and evidence.",
+                "Work collaboratively to build a comprehensive market assessment."
+            ],
+            debug_mode=self.enable_agentops
+        )
 
     def _initialize_processors(self) -> None:
         """Initialize data processors"""
@@ -617,12 +540,48 @@ class AgnoOpportunityAnalyzer:
                 agno_input = self._prepare_agno_input(submission)
                 input_json = json.dumps(agno_input)
 
-                # Run core agent analysis first
-                agno_result = self.team.run(input_json)
+                # Run real Agno team analysis
+                # Note: Agno Team returns AgentResponse, not custom result object
+                team_response = self.team.run(input_json)
+
+                # Extract agent results from the team response
+                # Team.run returns a list of agent responses
+                if hasattr(team_response, 'responses') and team_response.responses:
+                    # Convert to our expected format
+                    agent_results = {}
+                    for i, response in enumerate(team_response.responses):
+                        # Map agent order to names
+                        agent_names = ["WTP Analyst", "Market Segment", "Price Point", "Payment Behavior", "Market Research"]
+                        if i < len(agent_names):
+                            agent_name = agent_names[i]
+                            # Convert response content to dict
+                            try:
+                                if hasattr(response, 'content'):
+                                    result_data = response.content
+                                    if isinstance(result_data, str):
+                                        agent_results[agent_name] = json.loads(result_data)
+                                    else:
+                                        agent_results[agent_name] = result_data
+                                else:
+                                    agent_results[agent_name] = {"content": str(response)}
+                            except Exception as e:
+                                logger.warning(f"Error parsing response from {agent_name}: {e}")
+                                agent_results[agent_name] = {"error": str(e)}
+
+                    # Create AgnoTeamResult wrapper
+                    agno_result = AgnoTeamResult(agent_results)
+                else:
+                    # Fallback for unexpected response format
+                    agno_result = AgnoTeamResult({
+                        "error": "Unexpected team response format",
+                        "response_type": str(type(team_response))
+                    })
 
                 # Check if we should run market validation based on initial scores
                 market_research_input = None
-                if self.team.has_agent("Market Research"):
+                market_research_available = any("Market Research" in str(r) for r in agent_results.keys())
+
+                if market_research_available:
                     # Calculate preliminary score from core agents
                     preliminary_score = self._calculate_preliminary_score(agno_result)
 
@@ -636,7 +595,7 @@ class AgnoOpportunityAnalyzer:
                             market_research_json = json.dumps(market_research_input)
                             # Track market research separately
                             with metrics.track("transform", agent_name="market", opportunity_id=opportunity_id) as market_context:
-                                market_result = asyncio.run(self.market_research_agent.run(market_research_input))
+                                market_result = asyncio.run(self.market_research_agent.run(market_research_json))
 
                                 # Add market research metadata
                                 market_context["metadata"] = {
@@ -646,8 +605,9 @@ class AgnoOpportunityAnalyzer:
                                     "opportunity_id": opportunity_id
                                 }
 
-                            # Inject market research results into agno_result
-                            self._inject_market_research_results(agno_result, market_result)
+                            # Update agno_result with market research
+                            if hasattr(agno_result, '_agent_results'):
+                                agno_result._agent_results["Market Research"] = json.loads(market_result) if isinstance(market_result, str) else market_result
 
                         except Exception as e:
                             logger.warning(f"Market validation failed: {str(e)}. Continuing with core analysis only.")
