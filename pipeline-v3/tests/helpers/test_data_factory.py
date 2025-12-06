@@ -13,6 +13,26 @@ class RedditSubmissionFactory:
     """Factory for creating Reddit submission test data"""
 
     @staticmethod
+    def create_submission(submission_type: str = "high_wtp_b2b") -> Dict[str, Any]:
+        """Create a single submission by type"""
+        if submission_type == "high_wtp_b2b":
+            return RedditSubmissionFactory.create_high_wtp_b2b()
+        elif submission_type == "low_wtp_b2c":
+            return RedditSubmissionFactory.create_low_wtp_b2c()
+        elif submission_type == "mixed_segment":
+            return RedditSubmissionFactory.create_mixed_segment()
+        elif submission_type == "urgent_needs":
+            return RedditSubmissionFactory.create_urgent_needs()
+        elif submission_type == "price_sensitive":
+            return RedditSubmissionFactory.create_price_sensitive()
+        elif submission_type == "enterprise_needs":
+            return RedditSubmissionFactory.create_enterprise_needs()
+        elif submission_type == "false_positives":
+            return RedditSubmissionFactory.create_false_positive()
+        else:
+            return RedditSubmissionFactory.create_high_wtp_b2b()  # Default
+
+    @staticmethod
     def create_high_wtp_b2b() -> Dict[str, Any]:
         """Create high willingness-to-pay B2B submission"""
         return {
@@ -109,6 +129,46 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
+    def create_false_positive() -> Dict[str, Any]:
+        """Create submission that should be flagged as false positive"""
+        return {
+            "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
+            "title": "Just wanted to say thanks!",
+            "text": "This community has been amazing. Thanks to everyone for the great discussions and support. Keep up the good work everyone! 🙏",
+            "subreddit": "thanksgiving",
+            "score": random.randint(1, 10),
+            "num_comments": random.randint(1, 5),
+            "author": f"grateful_{uuid.uuid4().hex[:4]}",
+            "created_utc": datetime.now().isoformat(),
+            "trust_score": random.randint(90, 100),
+            "trust_badge": "Verified"
+        }
+
+    @staticmethod
+    def create_ab_test_dataset(size: int = 100) -> List[Dict[str, Any]]:
+        """Create balanced dataset for A/B testing"""
+        # Mix of high WTP B2B and B2C opportunities for testing
+        dataset = []
+
+        # 40% high WTP B2B opportunities
+        for _ in range(int(size * 0.4)):
+            dataset.append(RedditSubmissionFactory.create_high_wtp_b2b())
+
+        # 30% low WTP B2C opportunities (using available method)
+        for _ in range(int(size * 0.3)):
+            dataset.append(RedditSubmissionFactory.create_low_wtp_b2c())
+
+        # 20% mixed segment opportunities (using available method)
+        for _ in range(int(size * 0.2)):
+            dataset.append(RedditSubmissionFactory.create_mixed_segment())
+
+        # 10% low quality/false positives
+        for _ in range(int(size * 0.1)):
+            dataset.append(RedditSubmissionFactory.create_false_positive())
+
+        return dataset[:size]
+
+    @staticmethod
     def create_batch_submissions(count: int, mix: Dict[str, int] = None) -> List[Dict[str, Any]]:
         """Create batch of submissions with specified mix"""
         if mix is None:
@@ -118,7 +178,8 @@ class RedditSubmissionFactory:
                 "mixed_segment": 20,
                 "urgent_needs": 15,
                 "price_sensitive": 15,
-                "enterprise_needs": 10
+                "enterprise_needs": 10,
+                "false_positives": 5
             }
 
         submissions = []
@@ -141,6 +202,8 @@ class RedditSubmissionFactory:
                 submissions.append(RedditSubmissionFactory.create_price_sensitive())
             elif category == "enterprise_needs":
                 submissions.append(RedditSubmissionFactory.create_enterprise_needs())
+            elif category == "false_positives":
+                submissions.append(RedditSubmissionFactory.create_false_positive())
 
         return submissions
 
