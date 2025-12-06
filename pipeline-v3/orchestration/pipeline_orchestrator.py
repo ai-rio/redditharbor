@@ -3,6 +3,7 @@ Pipeline orchestration with dependency injection and clean separation of concern
 """
 
 import logging
+import os
 import time
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
@@ -131,7 +132,13 @@ class PipelineOrchestrator:
             logger.info("✓ Reddit API connection successful")
 
         # Initialize analyzer
-        factory_type = 'test' if config.test_mode else 'production'
+        if config.test_mode:
+            factory_type = 'test'
+        elif os.environ.get('AGNO_ANALYZER_ENABLED', '').lower() == 'true':
+            factory_type = 'agno'
+        else:
+            factory_type = 'production'
+
         analyzer_config = {}
         if not config.test_mode:
             analyzer_config.update({
@@ -144,13 +151,16 @@ class PipelineOrchestrator:
         )
 
         # Test analyzer connection
-        if not self._current_analyzer.test_connection():
-            if config.test_mode:
-                logger.warning("Test mode analyzer connection test failed, continuing anyway")
-            else:
-                raise RuntimeError("Analyzer connection failed")
+        if hasattr(self._current_analyzer, 'test_connection'):
+            if not self._current_analyzer.test_connection():
+                if config.test_mode:
+                    logger.warning("Test mode analyzer connection test failed, continuing anyway")
+                else:
+                    raise RuntimeError("Analyzer connection failed")
         else:
-            logger.info("✓ Analyzer connection successful")
+            logger.info("Analyzer does not have test_connection method, skipping test")
+
+        logger.info("✓ Analyzer connection successful")
 
         # Test database connection if not in dry run
         if not config.dry_run and self.database_loader:
