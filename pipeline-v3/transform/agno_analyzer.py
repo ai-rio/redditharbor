@@ -546,9 +546,9 @@ class AgnoOpportunityAnalyzer:
 
                 # Extract agent results from the team response
                 # Team.run returns a list of agent responses
+                agent_results = {}
                 if hasattr(team_response, 'responses') and team_response.responses:
                     # Convert to our expected format
-                    agent_results = {}
                     for i, response in enumerate(team_response.responses):
                         # Map agent order to names
                         agent_names = ["WTP Analyst", "Market Segment", "Price Point", "Payment Behavior", "Market Research"]
@@ -572,10 +572,11 @@ class AgnoOpportunityAnalyzer:
                     agno_result = AgnoTeamResult(agent_results)
                 else:
                     # Fallback for unexpected response format
-                    agno_result = AgnoTeamResult({
+                    agent_results = {
                         "error": "Unexpected team response format",
                         "response_type": str(type(team_response))
-                    })
+                    }
+                    agno_result = AgnoTeamResult(agent_results)
 
                 # Check if we should run market validation based on initial scores
                 market_research_input = None
