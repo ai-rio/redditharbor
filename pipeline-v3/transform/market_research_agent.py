@@ -41,6 +41,7 @@ except ImportError:
     JINA_AVAILABLE = False
 
 from config.settings import get_settings
+from monitoring.metrics_collector import get_collector
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,9 @@ class MarketResearchAgent:
         self.total_cost = 0.0
         self.validation_count = 0
 
+        # Initialize metrics collector
+        self.metrics = get_collector()
+
     def should_validate_opportunity(self, score: float) -> bool:
         """
         Determine if market validation should be triggered
@@ -155,27 +159,41 @@ class MarketResearchAgent:
         Returns:
             ValidationEvidence data in dictionary format
         """
-        try:
-            app_concept = input_data.get("app_concept", "")
-            target_market = input_data.get("target_market", "")
-            problem_description = input_data.get("problem_description", "")
+        # Extract opportunity_id if present
+        opportunity_id = input_data.get('opportunity_id', 'unknown')
 
-            logger.info(f"Starting market research for: {app_concept[:50]}...")
+        # Track execution with metrics
+        with self.metrics.track("transform", agent_name="market", opportunity_id=opportunity_id) as context:
+            try:
+                app_concept = input_data.get("app_concept", "")
+                target_market = input_data.get("target_market", "")
+                problem_description = input_data.get("problem_description", "")
 
-            # Perform market validation (mocked for now)
-            evidence = await self._perform_market_validation(
-                app_concept, target_market, problem_description
-            )
+                logger.info(f"Starting market research for: {app_concept[:50]}...")
 
-            # Convert to dictionary format for compatibility
-            result = self._convert_evidence_to_dict(evidence)
+                # Perform market validation (mocked for now)
+                evidence = await self._perform_market_validation(
+                    app_concept, target_market, problem_description
+                )
 
-            logger.info(f"Market research completed with validation score: {evidence.validation_score}")
-            return result
+                # Convert to dictionary format for compatibility
+                result = self._convert_evidence_to_dict(evidence)
 
-        except Exception as e:
-            logger.error(f"Error in market research: {str(e)}")
-            return self._create_error_result(str(e))
+                # Add metadata to context
+                context["api_cost_usd"] = self.jina_cost
+                context["metadata"] = {
+                    "app_concept_length": len(app_concept),
+                    "target_market": target_market,
+                    "validation_score": evidence.validation_score,
+                    "jina_cost": self.jina_cost
+                }
+
+                logger.info(f"Market research completed with validation score: {evidence.validation_score}")
+                return result
+
+            except Exception as e:
+                logger.error(f"Error in market research: {str(e)}")
+                return self._create_error_result(str(e))
 
     async def _perform_market_validation(
         self,

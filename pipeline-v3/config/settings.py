@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     # Database Configuration (using existing DATABASE_URL)
     database_url: str = Field(
-        default="postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+        default="postgresql://postgres:postgres@127.0.0.1:54331/postgres",
         alias="DATABASE_URL",
         description="PostgreSQL database connection string"
     )

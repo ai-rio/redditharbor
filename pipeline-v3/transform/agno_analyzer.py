@@ -26,6 +26,7 @@ from transform.market_research_agent import MarketResearchAgent
 from transform.simplicity_processor import SimplicityProcessor
 from transform.embedding_strategies import EmbeddingStrategy
 from transform.embedding_factory import EmbeddingFactory
+from monitoring.metrics_collector import get_collector
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -570,55 +571,72 @@ class AgnoOpportunityAnalyzer:
         Returns:
             AnalysisResult with comprehensive analysis data
         """
+        # Get metrics collector
+        metrics = get_collector()
+        opportunity_id = getattr(submission, 'id', 'unknown')
+
         try:
-            logger.info(f"Analyzing submission {getattr(submission, 'id', 'unknown')}")
+            logger.info(f"Analyzing submission {opportunity_id}")
 
-            # Prepare input for agents
-            agno_input = self._prepare_agno_input(submission)
-            input_json = json.dumps(agno_input)
+            # Track the entire analysis process
+            with metrics.track("transform", agent_name="agno_analyzer", opportunity_id=opportunity_id) as context:
+                # Prepare input for agents
+                agno_input = self._prepare_agno_input(submission)
+                input_json = json.dumps(agno_input)
 
-            # Run core agent analysis first
-            agno_result = self.team.run(input_json)
+                # Run core agent analysis first
+                agno_result = self.team.run(input_json)
 
-            # Check if we should run market validation based on initial scores
-            market_research_input = None
-            if self.team.has_agent("Market Research"):
-                # Calculate preliminary score from core agents
-                preliminary_score = self._calculate_preliminary_score(agno_result)
+                # Check if we should run market validation based on initial scores
+                market_research_input = None
+                if self.team.has_agent("Market Research"):
+                    # Calculate preliminary score from core agents
+                    preliminary_score = self._calculate_preliminary_score(agno_result)
 
-                # Run market validation if score exceeds threshold
-                if preliminary_score >= self.validation_threshold:
-                    logger.info(f"Running market validation for score {preliminary_score:.1f} >= {self.validation_threshold}")
-                    market_research_input = self._prepare_market_research_input(submission, agno_result)
+                    # Run market validation if score exceeds threshold
+                    if preliminary_score >= self.validation_threshold:
+                        logger.info(f"Running market validation for score {preliminary_score:.1f} >= {self.validation_threshold}")
+                        market_research_input = self._prepare_market_research_input(submission, agno_result)
 
-                    try:
-                        import asyncio
-                        market_research_json = json.dumps(market_research_input)
-                        market_result = asyncio.run(self.market_research_agent.run(market_research_input))
+                        try:
+                            import asyncio
+                            market_research_json = json.dumps(market_research_input)
+                            # Track market research separately
+                            with metrics.track("transform", agent_name="market_research", opportunity_id=opportunity_id):
+                                market_result = asyncio.run(self.market_research_agent.run(market_research_input))
 
-                        # Inject market research results into agno_result
-                        self._inject_market_research_results(agno_result, market_result)
+                            # Inject market research results into agno_result
+                            self._inject_market_research_results(agno_result, market_result)
 
-                    except Exception as e:
-                        logger.warning(f"Market validation failed: {str(e)}. Continuing with core analysis only.")
+                        except Exception as e:
+                            logger.warning(f"Market validation failed: {str(e)}. Continuing with core analysis only.")
 
-            # Synthesize agent outputs (including market research if available)
-            synthesis = self._synthesize_agent_outputs(agno_result)
+                # Synthesize agent outputs (including market research if available)
+                synthesis = self._synthesize_agent_outputs(agno_result)
 
-            # Apply subreddit multiplier
-            synthesis = self._apply_subreddit_adjustments(synthesis, submission)
+                # Apply subreddit multiplier
+                synthesis = self._apply_subreddit_adjustments(synthesis, submission)
 
-            # Convert to pipeline format
-            result = self._convert_to_pipeline_format(synthesis, submission)
+                # Convert to pipeline format
+                result = self._convert_to_pipeline_format(synthesis, submission)
 
-            # Track analysis cost
-            self._track_analysis_cost()
+                # Track analysis cost
+                self._track_analysis_cost()
 
-            logger.info(f"Analysis completed successfully with score: {result.final_score:.1f}")
-            return result
+                # Add cost information to metrics context
+                context["api_cost_usd"] = self.thresholds.COST_PER_ANALYSIS
+                context["metadata"] = {
+                    "model": self.model,
+                    "submission_subreddit": getattr(submission, 'subreddit', ''),
+                    "final_score": result.final_score,
+                    "agent_count": len(self.team.agents)
+                }
+
+                logger.info(f"Analysis completed successfully with score: {result.final_score:.1f}")
+                return result
 
         except Exception as e:
-            logger.error(f"Error analyzing submission {getattr(submission, 'id', 'unknown')}: {str(e)}")
+            logger.error(f"Error analyzing submission {opportunity_id}: {str(e)}")
             return self._create_fallback_result(submission)
 
     def analyze_batch_with_costs(

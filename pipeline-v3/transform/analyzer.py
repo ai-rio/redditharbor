@@ -136,12 +136,14 @@ class SimpleOpportunityAnalyzer:
         logger.info(f"Analyzing submission (fake): {submission.id} - {submission.title[:50]}...")
 
         # Generate fake analysis data with more substantial content
+        # Format subreddit name properly for title case
+        subreddit_formatted = submission.subreddit.title() if submission.subreddit else "General"
         app_idea = AppIdea(
-            title=f"AI-Powered Productivity Solution for {submission.subreddit} Community",
+            title=f"AI-Powered Productivity Solution for {subreddit_formatted} Community",
             app_concept=f"A comprehensive application designed to address the specific needs and challenges faced by {submission.subreddit} community members, providing intelligent automation and workflow optimization",
             problem_statement=f"Users in the {submission.subreddit} community frequently struggle with managing their daily tasks and maintaining productivity in an increasingly digital world. The current solutions available in the market are often too generic and fail to address the specific pain points and workflows that are unique to this community's needs and preferences.",
             target_audience=f"Active members of the r/{submission.subreddit} community, including content creators, moderators, and engaged users who are looking for specialized tools to enhance their productivity and streamline their community participation activities.",
-            core_functions=["intelligent task automation", "community workflow optimization", " personalized productivity analytics"]
+            core_functions=["intelligent task automation", "community workflow optimization", "personalized productivity analytics"]
         )
 
         market_metrics = MarketMetrics(

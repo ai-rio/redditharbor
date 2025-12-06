@@ -16,6 +16,7 @@ from load import DatabaseLoader
 from staging import StagingLayer, StagingConfig
 from models.analysis import AnalysisResult
 from models.reddit import RedditSubmission
+from monitoring.metrics_collector import get_collector
 
 logger = logging.getLogger(__name__)
 
@@ -257,20 +258,36 @@ class PipelineOrchestrator:
     def _extract_submissions(self, config: PipelineConfiguration) -> tuple[List[RedditSubmission], float]:
         """Extract Reddit submissions"""
         logger.info("STEP 1: Extracting Reddit submissions")
-        extract_start = time.time()
 
-        subreddits = config.subreddits or self.settings.default_subreddits
-        submissions = self.reddit_client.fetch_submissions(
-            subreddits=subreddits,
-            limit=config.limit,
-            sort_by=config.sort_by,
-            time_filter=config.time_filter
-        )
+        # Get metrics collector
+        metrics = get_collector()
 
-        extraction_time = time.time() - extract_start
-        logger.info(f"✓ Extracted {len(submissions)} submissions in {extraction_time:.2f}s")
+        # Track extraction phase
+        with metrics.track("extract") as context:
+            extract_start = time.time()
 
-        return submissions, extraction_time
+            subreddits = config.subreddits or self.settings.default_subreddits
+            submissions = self.reddit_client.fetch_submissions(
+                subreddits=subreddits,
+                limit=config.limit,
+                sort_by=config.sort_by,
+                time_filter=config.time_filter
+            )
+
+            extraction_time = time.time() - extract_start
+
+            # Add metadata to context
+            context["metadata"] = {
+                "subreddits": subreddits,
+                "limit": config.limit,
+                "extracted_count": len(submissions),
+                "sort_by": config.sort_by,
+                "time_filter": config.time_filter
+            }
+
+            logger.info(f"✓ Extracted {len(submissions)} submissions in {extraction_time:.2f}s")
+
+            return submissions, extraction_time
 
     def _stage_submissions(self, submissions: List[RedditSubmission], config: PipelineConfiguration) -> tuple[List[RedditSubmission], float]:
         """
@@ -318,15 +335,30 @@ class PipelineOrchestrator:
     ) -> tuple[List[AnalysisResult], float]:
         """Analyze submissions with LLM"""
         logger.info("STEP 2: Analyzing submissions with LLM")
-        transform_start = time.time()
 
-        batch_size = config.batch_size or self.settings.batch_size
-        analyses = self._current_analyzer.analyze_batch(submissions, batch_size=batch_size)
+        # Get metrics collector
+        metrics = get_collector()
 
-        transform_time = time.time() - transform_start
-        logger.info(f"✓ Analyzed {len(analyses)} submissions in {transform_time:.2f}s")
+        # Track transform phase
+        with metrics.track("transform") as context:
+            transform_start = time.time()
 
-        return analyses, transform_time
+            batch_size = config.batch_size or self.settings.batch_size
+            analyses = self._current_analyzer.analyze_batch(submissions, batch_size=batch_size)
+
+            transform_time = time.time() - transform_start
+
+            # Add metadata to context
+            context["metadata"] = {
+                "input_count": len(submissions),
+                "output_count": len(analyses),
+                "batch_size": batch_size,
+                "analyzer_type": type(self._current_analyzer).__name__
+            }
+
+            logger.info(f"✓ Analyzed {len(analyses)} submissions in {transform_time:.2f}s")
+
+            return analyses, transform_time
 
     def _validate_analyses(
         self, analyses: List[AnalysisResult], config: PipelineConfiguration
@@ -395,16 +427,32 @@ class PipelineOrchestrator:
 
         if not config.dry_run and analyses and self.database_loader:
             logger.info("STEP 4: Storing analyses to database")
-            load_start = time.time()
 
-            # Create tables if needed
-            self.database_loader.create_tables()
+            # Get metrics collector
+            metrics = get_collector()
 
-            # Store analyses with original Reddit data
-            storage_stats = self.database_loader.store_analyses(analyses, submissions)
+            # Track load phase
+            with metrics.track("load") as context:
+                load_start = time.time()
 
-            storage_time = time.time() - load_start
-            logger.info(f"✓ Stored {storage_stats['stored']} analyses in {storage_time:.2f}s")
+                # Create tables if needed
+                self.database_loader.create_tables()
+
+                # Store analyses with original Reddit data
+                storage_stats = self.database_loader.store_analyses(analyses, submissions)
+
+                storage_time = time.time() - load_start
+
+                # Add metadata to context
+                context["metadata"] = {
+                    "analyses_count": len(analyses),
+                    "stored_count": storage_stats['stored'],
+                    "skipped_count": storage_stats['skipped'],
+                    "error_count": storage_stats['errors'],
+                    "dry_run": config.dry_run
+                }
+
+                logger.info(f"✓ Stored {storage_stats['stored']} analyses in {storage_time:.2f}s")
 
         return storage_stats, storage_time
 
