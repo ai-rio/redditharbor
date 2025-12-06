@@ -189,36 +189,69 @@ class MockTeam:
 
                 return self._agent_results.get(agent_name, {})
 
+        # Extract opportunity_id for tracking
+        try:
+            input_dict = json.loads(input_data) if isinstance(input_data, str) else input_data
+            opportunity_id = input_dict.get('opportunity_id', 'unknown')
+        except:
+            opportunity_id = 'unknown'
+
         agent_results = {}
+        metrics = get_collector()
 
         for name, agent in self.agent_map.items():
             # Skip Market Research agent - it's handled conditionally
             if name == "Market Research":
                 continue
 
-            try:
-                response = agent.run(input_data)
+            # Get agent short name for metrics
+            agent_short_name = agent._get_agent_name() if hasattr(agent, '_get_agent_name') else name.lower()
 
-                # Parse JSON response with error handling
-                if isinstance(response, str):
-                    try:
-                        agent_results[name] = json.loads(response)
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"Invalid JSON from {name}: {e}")
-                        agent_results[name] = {
-                            "error": "Invalid JSON response",
-                            "raw_response": response[:100]  # First 100 chars for debugging
-                        }
-                else:
-                    # Handle non-string responses
-                    agent_results[name] = response
+            # Track individual agent execution
+            with metrics.track("transform", agent_name=agent_short_name, opportunity_id=opportunity_id) as context:
+                try:
+                    response = agent.run(input_data)
 
-            except Exception as e:
-                logger.error(f"Error running agent {name}: {e}")
-                agent_results[name] = {
-                    "error": str(e),
-                    "error_type": type(e).__name__
-                }
+                    # Parse JSON response with error handling
+                    if isinstance(response, str):
+                        try:
+                            agent_results[name] = json.loads(response)
+                        except json.JSONDecodeError as e:
+                            logger.warning(f"Invalid JSON from {name}: {e}")
+                            agent_results[name] = {
+                                "error": "Invalid JSON response",
+                                "raw_response": response[:100]  # First 100 chars for debugging
+                            }
+                    else:
+                        # Handle non-string responses
+                        agent_results[name] = response
+
+                    # Add agent-specific metadata to context
+                    context["metadata"] = {
+                        "agent_full_name": name,
+                        "agent_short_name": agent_short_name,
+                        "input_length": len(str(input_data)),
+                        "response_length": len(str(response)),
+                        "opportunity_id": opportunity_id,
+                        "has_error": "error" in str(agent_results[name]).lower()
+                    }
+
+                except Exception as e:
+                    logger.error(f"Error running agent {name}: {e}")
+                    agent_results[name] = {
+                        "error": str(e),
+                        "error_type": type(e).__name__
+                    }
+
+                    # Record error in context
+                    context["metadata"] = {
+                        "agent_full_name": name,
+                        "agent_short_name": agent_short_name,
+                        "opportunity_id": opportunity_id,
+                        "has_error": True,
+                        "error_message": str(e),
+                        "error_type": type(e).__name__
+                    }
 
         mock_result = MockResult(agent_results)
 
@@ -579,7 +612,7 @@ class AgnoOpportunityAnalyzer:
             logger.info(f"Analyzing submission {opportunity_id}")
 
             # Track the entire analysis process
-            with metrics.track("transform", agent_name="agno_analyzer", opportunity_id=opportunity_id) as context:
+            with metrics.track("transform", opportunity_id=opportunity_id) as context:
                 # Prepare input for agents
                 agno_input = self._prepare_agno_input(submission)
                 input_json = json.dumps(agno_input)
@@ -602,8 +635,16 @@ class AgnoOpportunityAnalyzer:
                             import asyncio
                             market_research_json = json.dumps(market_research_input)
                             # Track market research separately
-                            with metrics.track("transform", agent_name="market_research", opportunity_id=opportunity_id):
+                            with metrics.track("transform", agent_name="market", opportunity_id=opportunity_id) as market_context:
                                 market_result = asyncio.run(self.market_research_agent.run(market_research_input))
+
+                                # Add market research metadata
+                                market_context["metadata"] = {
+                                    "validation_score": market_result.get("validation_score", 0.0) if isinstance(market_result, dict) else 0.0,
+                                    "competitors_analyzed": len(market_result.get("competitor_pricing", [])) if isinstance(market_result, dict) else 0,
+                                    "market_size_retrieved": "market_size" in str(market_result) if isinstance(market_result, dict) else False,
+                                    "opportunity_id": opportunity_id
+                                }
 
                             # Inject market research results into agno_result
                             self._inject_market_research_results(agno_result, market_result)
@@ -677,6 +718,7 @@ class AgnoOpportunityAnalyzer:
             Dictionary with submission data for agents
         """
         return {
+            "opportunity_id": f"opp-{getattr(submission, 'id', 'unknown')}",
             "title": getattr(submission, 'title', ''),
             "content": getattr(submission, 'text', ''),
             "subreddit": getattr(submission, 'subreddit', ''),

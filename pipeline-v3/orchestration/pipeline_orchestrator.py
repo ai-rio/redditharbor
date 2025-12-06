@@ -223,8 +223,8 @@ class PipelineOrchestrator:
                 logger.warning("No submissions found, ending pipeline")
                 return self._create_empty_results(pipeline_start_time)
 
-            # Step 2: Analyze submissions
-            analyses, analysis_time = self._analyze_submissions(submissions, config)
+            # Step 2: Analyze submissions with individual opportunity tracking
+            analyses, analysis_time = self._analyze_submissions_with_tracking(submissions, config)
 
             # Step 3: Validate and filter results
             high_quality_analyses, validation_time = self._validate_analyses(analyses, config)
@@ -330,17 +330,68 @@ class PipelineOrchestrator:
 
         return staged_submissions, staging_time
 
+    def _analyze_submissions_with_tracking(
+        self, submissions: List[RedditSubmission], config: PipelineConfiguration
+    ) -> tuple[List[AnalysisResult], float]:
+        """Analyze submissions with individual opportunity tracking"""
+        logger.info("STEP 2: Analyzing submissions with LLM (with individual tracking)")
+
+        # Get metrics collector
+        metrics = get_collector()
+        transform_start = time.time()
+        analyses = []
+
+        # Process each submission individually to track opportunities
+        for i, submission in enumerate(submissions):
+            opportunity_id = f"opp-{getattr(submission, 'id', f'unknown-{i}')}"
+
+            # Track individual submission analysis
+            with metrics.track("transform", opportunity_id=opportunity_id) as context:
+                try:
+                    # Analyze single submission
+                    result = self._current_analyzer.analyze_submission(submission)
+                    analyses.append(result)
+
+                    # Add opportunity-specific metadata
+                    context["metadata"] = {
+                        "submission_title": getattr(submission, 'title', '')[:100],
+                        "subreddit": getattr(submission, 'subreddit', ''),
+                        "final_score": getattr(result, 'final_score', 0.0),
+                        "trust_level": getattr(result, 'trust_level', 'UNKNOWN'),
+                        "is_spam": getattr(result, 'is_spam', False),
+                        "batch_position": i + 1,
+                        "total_batch_size": len(submissions)
+                    }
+
+                    logger.debug(f"✓ Analyzed opportunity {opportunity_id} with score {getattr(result, 'final_score', 0.0):.1f}")
+
+                except Exception as e:
+                    logger.error(f"Failed to analyze opportunity {opportunity_id}: {e}")
+                    # Continue with next submission
+                    continue
+
+        transform_time = time.time() - transform_start
+
+        # Log completion summary
+        logger.info(f"✓ Analyzed {len(analyses)}/{len(submissions)} submissions in {transform_time:.2f}s")
+
+        # Calculate success rate
+        success_rate = (len(analyses) / len(submissions) * 100) if submissions else 0
+        logger.info(f"  Success rate: {success_rate:.1f}%")
+
+        return analyses, transform_time
+
     def _analyze_submissions(
         self, submissions: List[RedditSubmission], config: PipelineConfiguration
     ) -> tuple[List[AnalysisResult], float]:
-        """Analyze submissions with LLM"""
+        """Analyze submissions with LLM (legacy method for backward compatibility)"""
         logger.info("STEP 2: Analyzing submissions with LLM")
 
         # Get metrics collector
         metrics = get_collector()
 
-        # Track transform phase
-        with metrics.track("transform") as context:
+        # Track transform phase with overall context
+        with metrics.track("transform", agent_name="pipeline_orchestrator") as context:
             transform_start = time.time()
 
             batch_size = config.batch_size or self.settings.batch_size
@@ -353,7 +404,8 @@ class PipelineOrchestrator:
                 "input_count": len(submissions),
                 "output_count": len(analyses),
                 "batch_size": batch_size,
-                "analyzer_type": type(self._current_analyzer).__name__
+                "analyzer_type": type(self._current_analyzer).__name__,
+                "opportunity_ids": [f"opp-{getattr(s, 'id', 'unknown')}" for s in submissions]
             }
 
             logger.info(f"✓ Analyzed {len(analyses)} submissions in {transform_time:.2f}s")
@@ -431,7 +483,7 @@ class PipelineOrchestrator:
             # Get metrics collector
             metrics = get_collector()
 
-            # Track load phase
+            # Track load phase with agent name
             with metrics.track("load") as context:
                 load_start = time.time()
 
@@ -449,7 +501,8 @@ class PipelineOrchestrator:
                     "stored_count": storage_stats['stored'],
                     "skipped_count": storage_stats['skipped'],
                     "error_count": storage_stats['errors'],
-                    "dry_run": config.dry_run
+                    "dry_run": config.dry_run,
+                    "opportunity_ids": [f"opp-{a.submission_id}" for a in analyses]
                 }
 
                 logger.info(f"✓ Stored {storage_stats['stored']} analyses in {storage_time:.2f}s")

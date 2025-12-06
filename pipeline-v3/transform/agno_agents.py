@@ -128,3 +128,36 @@ class PaymentBehaviorAgent(Agent):
             "purchase_pattern": "Subscription",
             "current_spending": "Moderate"
         }
+
+
+class MarketResearchAgent(Agent):
+    """Performs market research using Jina API for validation"""
+
+    def __init__(self, model: str, api_key: str, base_url: str):
+        super().__init__(model, api_key, base_url)
+        self.name = "Market Research Analyst"
+        self.instructions = "Validate opportunities with real market data"
+
+    def _get_mock_response(self) -> Dict[str, Any]:
+        return {
+            "validation_score": 75,
+            "competitor_pricing": [
+                {
+                    "company": "CompetitorPro",
+                    "pricing_model": "subscription",
+                    "tiers": [{"name": "Basic", "price": "$9/mo"}],
+                    "confidence": 85.0
+                }
+            ],
+            "market_size": {
+                "tam": "$45B",
+                "growth": "18% CAGR"
+            },
+            "similar_launches": [
+                {
+                    "product": "SimilarApp",
+                    "upvotes": 1250,
+                    "platform": "Product Hunt"
+                }
+            ]
+        }
