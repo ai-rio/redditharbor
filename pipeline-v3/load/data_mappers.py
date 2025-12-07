@@ -131,6 +131,18 @@ class AnalysisToOpportunityMapper:
             # Semantic search
             embedding=analysis.embedding,
 
+            # Agno multi-agent analysis fields
+            agno_wtp_score=getattr(analysis, 'agno_wtp_score', None),
+            agno_segment_confidence=getattr(analysis, 'agno_segment_confidence', None),
+            agno_price_potential=getattr(analysis, 'agno_price_potential', None),
+            agno_behavior_score=getattr(analysis, 'agno_behavior_score', None),
+            agno_consensus_confidence=getattr(analysis, 'agno_consensus_confidence', None),
+            agno_segment_type=getattr(analysis, 'agno_segment_type', None),
+            agno_agents_count=getattr(analysis, 'agno_agents_count', None),
+            agno_analysis_cost_usd=getattr(analysis, 'agno_analysis_cost_usd', None),
+            agno_agent_metadata=getattr(analysis, 'agno_agent_metadata', None),
+            agno_validation_status=getattr(analysis, 'agno_validation_status', None),
+
             # Metadata
             analyzed_at=analysis.analyzed_at,
         )
@@ -184,6 +196,18 @@ class AnalysisToOpportunityMapper:
 
             # Semantic search
             embedding=analysis.embedding,
+
+            # Agno multi-agent analysis fields
+            agno_wtp_score=getattr(analysis, 'agno_wtp_score', None),
+            agno_segment_confidence=getattr(analysis, 'agno_segment_confidence', None),
+            agno_price_potential=getattr(analysis, 'agno_price_potential', None),
+            agno_behavior_score=getattr(analysis, 'agno_behavior_score', None),
+            agno_consensus_confidence=getattr(analysis, 'agno_consensus_confidence', None),
+            agno_segment_type=getattr(analysis, 'agno_segment_type', None),
+            agno_agents_count=getattr(analysis, 'agno_agents_count', None),
+            agno_analysis_cost_usd=getattr(analysis, 'agno_analysis_cost_usd', None),
+            agno_agent_metadata=getattr(analysis, 'agno_agent_metadata', None),
+            agno_validation_status=getattr(analysis, 'agno_validation_status', None),
 
             # Metadata
             analyzed_at=analysis.analyzed_at,
