@@ -25,7 +25,7 @@ def test_data_persistence():
 
     # Create test submission
     test_submission = RedditSubmission(
-        id="persistence-test-2024",
+        id="persist-test-24",
         title="Need accounting software for our construction business",
         text="We're a small construction company with 15 employees. Currently using QuickBooks (too complex at $600/year) and Excel spreadsheets. Need something simple for job costing, invoicing, and payroll. Budget around $100/month. We need mobile app support for field workers.",
         author="construction_owner",
@@ -80,22 +80,37 @@ def test_data_persistence():
         print("Verifying data persistence...")
         settings = get_settings()
 
-        # Query the database directly
-        from supabase import create_client
+        # Query the database directly using PostgreSQL
+        import psycopg2
 
-        supabase = create_client(
-            settings.supabase_url,
-            settings.supabase_key
+        conn = psycopg2.connect(
+            host="127.0.0.1",
+            port="54322",
+            user="postgres",
+            password="postgres",
+            database="postgres"
         )
 
-        # Query the latest record
-        response = supabase.table('opportunities') \
-            .select('*') \
-            .eq('submission_id', test_submission.id) \
-            .execute()
+        cursor = conn.cursor()
 
-        if response.data:
-            stored = response.data[0]
+        # Query the latest record
+        cursor.execute(
+            "SELECT * FROM opportunities WHERE submission_id = %s",
+            (test_submission.id,)
+        )
+
+        row = cursor.fetchone()
+
+        stored = None
+        if row:
+            # Get column names
+            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'opportunities' ORDER BY ordinal_position")
+            columns = [col[0] for col in cursor.fetchall()]
+
+            # Convert to dictionary
+            stored = dict(zip(columns, row))
+
+        if stored:
             print("✅ DATA SUCCESSFULLY STORED!")
             print(f"   - Record ID: {stored['id']}")
             print(f"   - Submission ID: {stored['submission_id']}")
@@ -130,9 +145,13 @@ def test_data_persistence():
 
             print(f"\n   Agno Fields Populated: {agno_populated}/{len(agno_fields)}")
 
+            cursor.close()
+            conn.close()
             return True
         else:
             print("❌ DATA NOT FOUND in database after storage!")
+            cursor.close()
+            conn.close()
             return False
 
     except Exception as e:
@@ -145,36 +164,44 @@ def check_database_before():
     """Check database state before test"""
     print("Checking database state before test...")
 
-    settings = get_settings()
-    from supabase import create_client
+    import psycopg2
 
-    supabase = create_client(
-        settings.supabase_url,
-        settings.supabase_key
+    conn = psycopg2.connect(
+        host="127.0.0.1",
+        port="54322",
+        user="postgres",
+        password="postgres",
+        database="postgres"
     )
 
+    cursor = conn.cursor()
+
     # Count total opportunities
-    response = supabase.table('opportunities').select('count', count='exact').execute()
-    count = response.count if hasattr(response, 'count') else 0
+    cursor.execute("SELECT COUNT(*) FROM opportunities")
+    count = cursor.fetchone()[0]
     print(f"   Current opportunities count: {count}")
 
     # Check for our test ID
-    response = supabase.table('opportunities') \
-        .select('id, submission_id, created_at') \
-        .eq('submission_id', 'persistence-test-2024') \
-        .execute()
+    cursor.execute(
+        "SELECT id, submission_id, created_at FROM opportunities WHERE submission_id = %s",
+        ('persist-test-24',)
+    )
 
-    if response.data:
-        print(f"   ⚠️  Test record already exists: {response.data[0]['id']}")
+    existing = cursor.fetchone()
+    if existing:
+        print(f"   ⚠️  Test record already exists: {existing[0]}")
         print("   Deleting old test record...")
-        supabase.table('opportunities') \
-            .delete() \
-            .eq('submission_id', 'persistence-test-2024') \
-            .execute()
+        cursor.execute(
+            "DELETE FROM opportunities WHERE submission_id = %s",
+            ('persist-test-24',)
+        )
+        conn.commit()
         print("   ✓ Old test record deleted")
     else:
         print("   ✓ No existing test record found")
 
+    cursor.close()
+    conn.close()
     print()
 
 if __name__ == "__main__":
