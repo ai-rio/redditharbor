@@ -152,6 +152,8 @@ addopts = [
     "--strict-markers",
     "--disable-warnings",
 ]
+# TDD-Guard configuration
+tdd_guard_project_root = "/home/carlos/projects/redditharbor-core-functions-fix"
 
 [tool.mypy]
 python_version = "3.12"
