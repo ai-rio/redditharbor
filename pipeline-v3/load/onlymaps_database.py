@@ -1,24 +1,18 @@
 """
-OnlyMaps-based Database Loader - Minimal Implementation
+PostgreSQL Database Loader - Direct Implementation
 
-This module provides OnlyMapsDatabaseLoader that solves the key issues:
-1. Schema flexibility for missing columns (final_score)
+This module provides OnlyMapsDatabaseLoader that works directly with PostgreSQL:
+1. Direct PostgreSQL connection on port 54322
 2. Type-safe SQL-to-Python mapping
-3. Connection pooling simulation
+3. Agno field support for multi-agent analysis results
 4. Compatible with existing orchestration layer
-
-Focus: Making tests pass, not production features
 """
 
 import logging
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
-
-# Avoid importing from load module to prevent sqlalchemy dependency issues
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from onlymaps import connect, OnlyMapsConnection
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger(__name__)
 
@@ -59,19 +53,23 @@ class OnlyMapsDatabaseLoader:
             data_mapper: Not used in OnlyMaps implementation (compatibility)
             settings: Application settings for database URL
         """
-        # Get database URL from settings (like original DatabaseLoader)
-        if settings:
-            database_url = settings.database_url
-        else:
-            from config import get_settings
-            database_url = get_settings().database_url
+        # Direct PostgreSQL connection settings
+        self.database_url = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+        self.connection = None
 
-        self.database_url = database_url
+        logger.info(f"PostgreSQL Database Loader initialized for Agno field persistence")
 
-        # Initialize OnlyMaps connection with pooling
-        self.db = connect(database_url, pooling=True)
-
-        logger.info(f"OnlyMapsDatabaseLoader initialized with schema flexibility for: {database_url[:50]}...")
+    def _get_connection(self):
+        """Get or create PostgreSQL connection"""
+        if self.connection is None:
+            self.connection = psycopg2.connect(
+                host="127.0.0.1",
+                port="54322",
+                user="postgres",
+                password="postgres",
+                database="postgres"
+            )
+        return self.connection
 
     def _get_statistics_internal(self) -> DatabaseStats:
         """
@@ -83,10 +81,13 @@ class OnlyMapsDatabaseLoader:
         Returns:
             DatabaseStats: Database statistics with schema flexibility
         """
-        logger.debug("Getting database statistics with OnlyMaps schema flexibility")
+        logger.debug("Getting database statistics with PostgreSQL")
 
         try:
-            # Use OnlyMaps to fetch statistics with missing column handling
+            conn = self._get_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Fetch statistics with missing column handling
             sql = """
                 SELECT COUNT(*) as total_opportunities,
                        COALESCE(AVG(final_score), 0) as avg_final_score,
@@ -94,10 +95,11 @@ class OnlyMapsDatabaseLoader:
                 FROM opportunities
             """
 
-            # OnlyMaps connection handles missing columns gracefully
-            stats = self.db.fetch_one_or_none(DatabaseStats, sql)
+            cursor.execute(sql)
+            row = cursor.fetchone()
+            cursor.close()
 
-            if stats is None:
+            if row is None:
                 # Return default statistics if query fails
                 logger.warning("Database statistics query returned None, using defaults")
                 return DatabaseStats(
@@ -106,6 +108,7 @@ class OnlyMapsDatabaseLoader:
                     max_score=None
                 )
 
+            stats = DatabaseStats(**row)
             logger.debug(f"Database statistics retrieved: {stats}")
             return stats
 
@@ -120,10 +123,7 @@ class OnlyMapsDatabaseLoader:
 
     def _get_opportunities_internal(self, limit: int = 100) -> List[OpportunitySummary]:
         """
-        Get opportunities with OnlyMaps type mapping
-
-        Works even if final_score column doesn't exist in database schema.
-        OnlyMaps handles the schema mismatch gracefully.
+        Get opportunities with PostgreSQL type mapping
 
         Args:
             limit: Maximum number of opportunities to return
@@ -131,16 +131,19 @@ class OnlyMapsDatabaseLoader:
         Returns:
             List[OpportunitySummary]: List of opportunity summaries
         """
-        logger.debug(f"Getting {limit} opportunities with OnlyMaps type mapping")
+        logger.debug(f"Getting {limit} opportunities with PostgreSQL")
 
         try:
-            # Use OnlyMaps to fetch opportunities with type safety
-            sql = "SELECT id, app_title FROM opportunities LIMIT :limit"
-            params = {"limit": limit}
+            conn = self._get_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-            # OnlyMaps handles SQL-to-Python mapping with schema flexibility
-            opportunities = self.db.fetch_many(OpportunitySummary, sql, params)
+            # Fetch opportunities with type safety
+            sql = "SELECT id, app_title FROM opportunities LIMIT %s"
+            cursor.execute(sql, (limit,))
+            rows = cursor.fetchall()
+            cursor.close()
 
+            opportunities = [OpportunitySummary(**row) for row in rows]
             logger.debug(f"Retrieved {len(opportunities)} opportunities")
             return opportunities
 
@@ -151,12 +154,14 @@ class OnlyMapsDatabaseLoader:
 
     def __enter__(self):
         """Context manager entry"""
-        self.db.__enter__()
+        self.connection = self._get_connection()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit"""
-        self.db.__exit__(exc_type, exc_val, exc_tb)
+        if self.connection:
+            self.connection.close()
+            self.connection = None
 
     def store_analyses(self, analyses, reddit_submissions=None):
         """
@@ -210,7 +215,11 @@ class OnlyMapsDatabaseLoader:
                             competition_level, technical_feasibility,
                             final_score, confidence_score, trust_level,
                             content_quality_score, is_spam, spam_indicators,
-                            embedding, analyzed_at
+                            embedding, analyzed_at,
+                            agno_wtp_score, agno_segment_confidence, agno_price_potential,
+                            agno_behavior_score, agno_consensus_confidence, agno_segment_type,
+                            agno_agents_count, agno_analysis_cost_usd, agno_agent_metadata,
+                            agno_validation_status
                         ) VALUES (
                             %(submission_id)s, %(reddit_title)s, %(reddit_url)s, %(subreddit)s,
                             %(reddit_author)s, %(reddit_upvotes)s, %(reddit_comments_count)s, %(reddit_created_at)s,
@@ -219,7 +228,11 @@ class OnlyMapsDatabaseLoader:
                             %(competition_level)s, %(technical_feasibility)s,
                             %(final_score)s, %(confidence_score)s, %(trust_level)s,
                             %(content_quality_score)s, %(is_spam)s, %(spam_indicators)s,
-                            %(embedding)s, %(analyzed_at)s
+                            %(embedding)s, %(analyzed_at)s,
+                            %(agno_wtp_score)s, %(agno_segment_confidence)s, %(agno_price_potential)s,
+                            %(agno_behavior_score)s, %(agno_consensus_confidence)s, %(agno_segment_type)s,
+                            %(agno_agents_count)s, %(agno_analysis_cost_usd)s, %(agno_agent_metadata)s,
+                            %(agno_validation_status)s
                         )
                         ON CONFLICT (submission_id) DO NOTHING
                     """
@@ -251,7 +264,18 @@ class OnlyMapsDatabaseLoader:
                         'is_spam': opp.is_spam,
                         'spam_indicators': json.dumps(opp.spam_indicators) if opp.spam_indicators else '[]',
                         'embedding': json.dumps(opp.embedding) if opp.embedding else None,
-                        'analyzed_at': opp.analyzed_at
+                        'analyzed_at': opp.analyzed_at,
+                        # Agno multi-agent analysis fields
+                        'agno_wtp_score': getattr(opp, 'agno_wtp_score', None),
+                        'agno_segment_confidence': getattr(opp, 'agno_segment_confidence', None),
+                        'agno_price_potential': getattr(opp, 'agno_price_potential', None),
+                        'agno_behavior_score': getattr(opp, 'agno_behavior_score', None),
+                        'agno_consensus_confidence': getattr(opp, 'agno_consensus_confidence', None),
+                        'agno_segment_type': getattr(opp, 'agno_segment_type', None),
+                        'agno_agents_count': getattr(opp, 'agno_agents_count', None),
+                        'agno_analysis_cost_usd': getattr(opp, 'agno_analysis_cost_usd', None),
+                        'agno_agent_metadata': json.dumps(getattr(opp, 'agno_agent_metadata', None)) if getattr(opp, 'agno_agent_metadata', None) else None,
+                        'agno_validation_status': getattr(opp, 'agno_validation_status', None)
                     }
 
                     # Execute the insert
@@ -321,21 +345,20 @@ class OnlyMapsDatabaseLoader:
             True if connection successful, False otherwise
         """
         try:
-            logger.debug("Testing OnlyMaps database connection")
+            logger.debug("Testing PostgreSQL database connection")
 
-            # Test a simple query using OnlyMaps
-            with self.db:
-                # Use a simple test query
-                result = self.db.fetch_one_or_none(
-                    DatabaseStats,
-                    "SELECT 1 as total_opportunities"
-                )
+            # Test a simple query using PostgreSQL
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 as total_opportunities")
+            result = cursor.fetchone()
+            cursor.close()
 
-            logger.info("✓ OnlyMaps database connection test successful")
+            logger.info("✓ PostgreSQL database connection test successful")
             return True
 
         except Exception as e:
-            logger.error(f"OnlyMaps database connection test failed: {e}")
+            logger.error(f"PostgreSQL database connection test failed: {e}")
             return False
 
     def create_tables(self) -> None:
