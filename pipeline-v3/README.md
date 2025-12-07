@@ -10,6 +10,9 @@ A minimal, type-safe Reddit data extraction and analysis pipeline following ELT 
 - 🔒 **Type Safety**: Full Pydantic model validation throughout the pipeline
 - ⚡ **Performance**: Batch processing and transaction safety
 - 🧪 **Testing**: Comprehensive test coverage with pytest
+- 📊 **AgentOps Integration**: Production monitoring and observability with comprehensive cost tracking
+- 🔄 **Multi-Agent System**: Agno framework integration with enhanced session management
+- 💰 **Cost Tracking**: Real-time LLM cost monitoring and analytics with category-based tracking
 
 ## Architecture
 
@@ -20,6 +23,9 @@ pipeline-v3/
 ├── transform/        # LLM analysis (Instructor + Pydantic)
 ├── load/            # Database loading (SQLAlchemy + pgvector)
 ├── config/          # Pydantic settings management
+├── monitoring/     # AgentOps integration and cost tracking
+├── workflows/       # Tracked workflow classes
+├── docs/           # Documentation and guides
 └── tests/           # Test suite
 ```
 
@@ -270,11 +276,75 @@ mypy .
 | Error Handling | Complex workarounds | Clean transaction safety |
 | Testing | Limited | Comprehensive |
 | Code Quality | Technical debt | Clean, maintainable |
+| AgentOps | Not integrated | Full production monitoring |
+| Cost Tracking | Basic | Real-time with analytics |
+| Multi-Agent | Single agent | Agno framework integration |
 
 ## Next Steps
 
 1. **Add embedding generation** for semantic similarity search
 2. **Implement deduplication** using pgvector similarity
-3. **Add monitoring** and metrics collection
-4. **Expand LLM providers** (Anthropic, Gemini, etc.)
-5. **Add API endpoints** for external access
+3. **Expand LLM providers** (Anthropic, Gemini, etc.)
+4. **Add API endpoints** for external access
+5. **Implement advanced AgentOps analytics** and custom dashboards
+
+## Advanced Features
+
+### AgentOps Integration
+
+The pipeline now includes comprehensive AgentOps integration for production monitoring and observability:
+
+```bash
+# Configure AgentOps
+export AGENTOPS_API_KEY=your_key_here
+export AGENTOPS_PROJECT_NAME=pipeline-v3-production
+```
+
+```python
+# Create AgentOps-enabled agent
+from transform.agno_agents import BaseAgent
+
+agent = BaseAgent(
+    name="reddit_research_agent",
+    enable_agentops=True  # Enable AgentOps tracking
+)
+
+# Start analysis session
+agent.start_analysis_session(
+    "market_analysis",
+    tags=["reddit", "research", "trends"]
+)
+```
+
+### Cost Tracking
+
+Real-time cost tracking with category-based analytics:
+
+```python
+from monitoring.cost_tracker import CostTracker
+
+tracker = CostTracker()
+
+# Track costs by category
+tracker.track_cost(0.05, "llm_call")
+tracker.track_cost(0.01, "embedding")
+
+# Get total cost
+total = tracker.get_total_cost()
+```
+
+### Tracked Workflows
+
+Combines AgentOps and cost tracking for comprehensive monitoring:
+
+```python
+from workflows.tracked_workflow import TrackedWorkflow
+
+workflow = TrackedWorkflow(
+    name="data_collection",
+    enable_agentops=True,
+    cost_tracker=CostTracker()
+)
+```
+
+For detailed AgentOps integration guide, see [docs/guides/agentops-integration-guide.md](docs/guides/agentops-integration-guide.md).
