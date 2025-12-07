@@ -344,6 +344,59 @@ class AnalysisResult(BaseModel):
         description="Metadata about the embedding generation"
     )
 
+    # Agno multi-agent analysis fields (Phase 2+)
+    agno_wtp_score: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=100.0,
+        description="Agno willingness-to-pay agent score (0-100)"
+    )
+    agno_segment_confidence: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=100.0,
+        description="Agno market segment confidence score (0-100)"
+    )
+    agno_price_potential: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Agno price potential score (0-100)"
+    )
+    agno_behavior_score: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=100.0,
+        description="Agno payment behavior score (0-100)"
+    )
+    agno_consensus_confidence: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=100.0,
+        description="Agno agent consensus confidence (0-100)"
+    )
+    agno_segment_type: Optional[str] = Field(
+        None,
+        description="Agno identified market segment type (e.g., 'SMB', 'Enterprise')"
+    )
+    agno_agents_count: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Number of Agno agents that participated in analysis"
+    )
+    agno_analysis_cost_usd: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Cost of Agno analysis in USD"
+    )
+    agno_agent_metadata: Optional[dict] = Field(
+        None,
+        description="Metadata about Agno agent responses and reasoning"
+    )
+    agno_validation_status: Optional[str] = Field(
+        None,
+        description="Agno market validation status (e.g., 'validated', 'pending', 'failed')"
+    )
+
     @field_validator('trust_level')
     @classmethod
     def validate_trust_level(cls, v):

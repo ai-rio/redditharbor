@@ -79,6 +79,18 @@ class Opportunity(Base):
     # Semantic search - stored as JSON for compatibility
     embedding: Optional[List[float]] = Column(JSON, nullable=True)
 
+    # Agno multi-agent analysis fields (Phase 2+)
+    agno_wtp_score = Column(Float, nullable=True, comment="Agno willingness-to-pay agent score (0-100)")
+    agno_segment_confidence = Column(Float, nullable=True, comment="Agno market segment confidence score (0-100)")
+    agno_price_potential = Column(Float, nullable=True, comment="Agno price potential score (0-100)")
+    agno_behavior_score = Column(Float, nullable=True, comment="Agno payment behavior score (0-100)")
+    agno_consensus_confidence = Column(Float, nullable=True, comment="Agno agent consensus confidence (0-100)")
+    agno_segment_type = Column(String(50), nullable=True, comment="Agno identified market segment type")
+    agno_agents_count = Column(Integer, nullable=True, comment="Number of Agno agents that participated")
+    agno_analysis_cost_usd = Column(Float, nullable=True, comment="Cost of Agno analysis in USD")
+    agno_agent_metadata = Column(JSON, nullable=True, comment="Metadata about Agno agent responses")
+    agno_validation_status = Column(String(50), nullable=True, comment="Agno market validation status")
+
     # Metadata
     analyzed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -151,6 +163,18 @@ class OpportunityCreate(BaseModel):
     spam_indicators: List[str] = Field(default=[], description="List of spam detection reasons")
 
     embedding: Optional[List[float]] = Field(None, description="Vector embedding")
+
+    # Agno multi-agent analysis fields (Phase 2+)
+    agno_wtp_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno willingness-to-pay agent score")
+    agno_segment_confidence: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno market segment confidence score")
+    agno_price_potential: Optional[float] = Field(None, ge=0.0, description="Agno price potential score")
+    agno_behavior_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno payment behavior score")
+    agno_consensus_confidence: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno agent consensus confidence")
+    agno_segment_type: Optional[str] = Field(None, max_length=50, description="Agno identified market segment type")
+    agno_agents_count: Optional[int] = Field(None, ge=0, description="Number of Agno agents that participated")
+    agno_analysis_cost_usd: Optional[float] = Field(None, ge=0.0, description="Cost of Agno analysis in USD")
+    agno_agent_metadata: Optional[dict] = Field(None, description="Metadata about Agno agent responses")
+    agno_validation_status: Optional[str] = Field(None, max_length=50, description="Agno market validation status")
 
     # Validation service injection for production database validation
     _validation_service: Optional['ValidationService'] = None
@@ -275,4 +299,15 @@ class OpportunityCreate(BaseModel):
             is_spam=self.is_spam,
             spam_indicators=self.spam_indicators,
             embedding=self.embedding,
+            # Agno multi-agent analysis fields
+            agno_wtp_score=self.agno_wtp_score,
+            agno_segment_confidence=self.agno_segment_confidence,
+            agno_price_potential=self.agno_price_potential,
+            agno_behavior_score=self.agno_behavior_score,
+            agno_consensus_confidence=self.agno_consensus_confidence,
+            agno_segment_type=self.agno_segment_type,
+            agno_agents_count=self.agno_agents_count,
+            agno_analysis_cost_usd=self.agno_analysis_cost_usd,
+            agno_agent_metadata=self.agno_agent_metadata,
+            agno_validation_status=self.agno_validation_status,
         )
