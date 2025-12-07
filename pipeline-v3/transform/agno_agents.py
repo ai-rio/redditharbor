@@ -13,6 +13,7 @@ from enum import Enum
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from monitoring.metrics_collector import get_collector
+from monitoring.agentops_tracker import get_tracker
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ class BaseAgent(Agent):
         base_url: str,
         output_schema: Optional[Type[BaseModel]] = None,
         debug_mode: bool = False,
+        enable_agentops: bool = False,
         instructions: Optional[List[str]] = None,
         name: Optional[str] = None
     ):
@@ -116,6 +118,14 @@ class BaseAgent(Agent):
         # Initialize metrics tracking
         self.metrics = get_collector()
         self.agent_name = self._get_agent_name()
+
+        # Initialize AgentOps tracking if enabled
+        self.enable_agentops = enable_agentops
+        self.agentops_tracker = None
+        if self.enable_agentops:
+            self.agentops_tracker = get_tracker()
+            self.agentops_tracker.start_session(f"{self.agent_name}_session")
+            logger.info(f"AgentOps tracking enabled for {self.agent_name}")
 
         # Initialize the Agno Agent without overriding run()
         super().__init__(

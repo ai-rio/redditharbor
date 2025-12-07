@@ -371,6 +371,7 @@ class AgnoOpportunityAnalyzer:
         model: str = None,
         base_url: str = None,
         enable_agentops: bool = None,
+        enable_debug: bool = False,
         weights: Optional[ScoringWeights] = None,
         thresholds: Optional[AnalysisThresholds] = None,
         validation_threshold: float = None,
@@ -387,6 +388,7 @@ class AgnoOpportunityAnalyzer:
             model: Model name for LLM agents
             base_url: Base URL for API endpoints
             enable_agentops: Whether to enable AgentOps tracking
+            enable_debug: Whether to enable debug mode for all agents
             weights: Custom scoring weights, uses default if None
             thresholds: Custom analysis thresholds, uses default if None
             validation_threshold: Threshold for market validation trigger
@@ -431,6 +433,13 @@ class AgnoOpportunityAnalyzer:
             logger.info("AgentOps tracking enabled")
         else:
             self.agentops_tracker = None
+
+    def start_analysis_session(self, session_name: str, tags: List[str] = None) -> None:
+        """Start an analysis session with AgentOps tracking"""
+        if self.enable_agentops and hasattr(self, "agentops_tracker") and self.agentops_tracker:
+            # Use tags parameter if provided, otherwise use empty list
+            session_tags = tags or []
+            self.agentops_tracker.start_session(session_name, tags=session_tags)
 
     def _initialize_agents(self) -> None:
         """Initialize specialized analysis agents"""
