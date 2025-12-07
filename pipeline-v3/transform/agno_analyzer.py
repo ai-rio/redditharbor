@@ -631,7 +631,7 @@ class AgnoOpportunityAnalyzer:
                     "model": self.model,
                     "submission_subreddit": getattr(submission, 'subreddit', ''),
                     "final_score": result.final_score,
-                    "agent_count": len(self.team.agent_results)
+                    "agent_count": len(agno_result.agents) if hasattr(agno_result, 'agents') else 4
                 }
 
                 logger.info(f"Analysis completed successfully with score: {result.final_score:.1f}")
@@ -1325,3 +1325,7 @@ class AgnoOpportunityAnalyzer:
         # Store market research results in the MockResult
         if hasattr(agno_result, '_market_research_results'):
             agno_result._market_research_results = market_result
+
+
+class MockTeam:
+    pass
