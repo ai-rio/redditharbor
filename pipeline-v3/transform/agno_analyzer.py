@@ -631,7 +631,7 @@ class AgnoOpportunityAnalyzer:
                     "model": self.model,
                     "submission_subreddit": getattr(submission, 'subreddit', ''),
                     "final_score": result.final_score,
-                    "agent_count": len(self.team.agents)
+                    "agent_count": len(self.team.agent_results)
                 }
 
                 logger.info(f"Analysis completed successfully with score: {result.final_score:.1f}")
@@ -782,8 +782,9 @@ class AgnoOpportunityAnalyzer:
         }
 
         # Add market research results if available
-        if self.team.has_agent("Market Research"):
-            results["market_research"] = agno_result.get_agent_result("Market Research")
+        market_research_result = agno_result.get_agent_result("Market Research")
+        if market_research_result is not None:
+            results["market_research"] = market_research_result
 
         return results
 
@@ -915,8 +916,44 @@ class AgnoOpportunityAnalyzer:
             embedding=embedding
         )
 
+        # Extract Agno agent results into dedicated fields
+        result = self._extract_agno_fields(result, synthesis)
+
         # Apply simplicity processing
         result = self.simplicity_processor.process_analysis(result)
+
+        return result
+
+    def _extract_agno_fields(self, result: AnalysisResult, synthesis: AgnoSynthesis) -> AnalysisResult:
+        """
+        Extract Agno agent results into dedicated fields for persistence
+
+        Args:
+            result: AnalysisResult to populate with Agno fields
+            synthesis: Agno synthesis results containing agent details
+
+        Returns:
+            AnalysisResult with Agno fields populated
+        """
+        # Import utilities here to avoid circular imports
+        from utils.agno_utils import extract_agno_fields_from_agent_results
+
+        # Extract agent details from synthesis
+        agent_details = getattr(synthesis, 'agent_details', {})
+
+        # Prepare analysis configuration
+        analysis_config = {
+            'model': self.model,
+            'subreddit_multiplier': getattr(synthesis, 'subreddit_multiplier', 1.0),
+            'cost_usd': self.cost_tracker.get_last_analysis_cost() or self.thresholds.COST_PER_ANALYSIS
+        }
+
+        # Extract Agno fields using utility function
+        agno_fields = extract_agno_fields_from_agent_results(agent_details, analysis_config)
+
+        # Set Agno fields on result
+        for field, value in agno_fields.items():
+            setattr(result, field, value)
 
         return result
 
