@@ -1339,6 +1339,24 @@ class AgnoOpportunityAnalyzer:
         if hasattr(agno_result, '_market_research_results'):
             agno_result._market_research_results = market_result
 
-
+    def extract_and_track_cost(self, agent_name: str, response: Any) -> Dict[str, Any]:
+        """Extract and track costs from agent response"""
+        # Extract cost using the helper method
+        cost = self._extract_cost_from_response(response)
+        
+        return {"agent": agent_name, "status": "extracted", "cost": cost}
+    
+    def _extract_cost_from_response(self, response: Any) -> float:
+        """Extract cost information from agent response"""
+        # Default stub implementation
+        return 0.0
+        """Extract cost information from agent response"""
+        # Default stub implementation
+        return 0.0
 class MockTeam:
     pass
+
+    def _extract_cost_from_response(self, response: Any) -> float:
+        """Extract cost information from agent response"""
+        # Default stub implementation
+        return 0.0
