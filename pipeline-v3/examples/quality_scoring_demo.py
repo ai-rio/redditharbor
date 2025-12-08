@@ -7,12 +7,13 @@ by analyzing various types of Reddit submissions and showing how the
 system detects spam and assesses content quality.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import datetime, timezone
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+
 
 def create_test_components():
     """Create reusable test components for demo"""
@@ -64,7 +65,7 @@ def demo_high_quality_content():
     print(f"  Is Spam: {high_quality.is_spam}")
     print(f"  Spam Indicators: {high_quality.spam_indicators}")
     print(f"  Trust Level: {high_quality.trust_level}")
-    print(f"  ✓ PASS: High quality content properly identified\n")
+    print("  ✓ PASS: High quality content properly identified\n")
 
 def demo_moderate_quality_content():
     """Demonstrate moderate quality content with minor issues"""
@@ -94,7 +95,7 @@ def demo_moderate_quality_content():
     print(f"  Is Spam: {moderate_quality.is_spam}")
     print(f"  Spam Indicators: {moderate_quality.spam_indicators}")
     print(f"  Trust Level: {moderate_quality.trust_level}")
-    print(f"  ✓ PASS: Moderate quality with grammar issues identified\n")
+    print("  ✓ PASS: Moderate quality with grammar issues identified\n")
 
 def demo_spam_content():
     """Demonstrate spam content detection"""
@@ -125,7 +126,7 @@ def demo_spam_content():
     print(f"  Is Spam: {spam_analysis.is_spam}")
     print(f"  Spam Indicators: {spam_analysis.spam_indicators}")
     print(f"  Trust Level: {spam_analysis.trust_level}")
-    print(f"  ✓ PASS: Spam content properly detected and flagged\n")
+    print("  ✓ PASS: Spam content properly detected and flagged\n")
 
 def demo_validation_errors():
     """Demonstrate validation error handling"""
@@ -153,7 +154,7 @@ def demo_validation_errors():
         print("✗ ERROR: Validation should have failed!")
 
     except ValueError as e:
-        print(f"✓ PASS: Validation correctly failed:")
+        print("✓ PASS: Validation correctly failed:")
         print(f"   {e}")
         print("   The system correctly prevents spam with high quality scores\n")
 

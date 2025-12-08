@@ -16,13 +16,11 @@ Usage:
     python examples/jina_market_research_example.py [--real-api]
 """
 
-import asyncio
 import argparse
-import json
+import asyncio
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, Any, List
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -32,8 +30,8 @@ sys.path.insert(0, str(project_root))
 from config.settings import get_settings
 
 try:
-    from transform.jina_client import JinaClient, SearchResult, JinaResponse
     from transform.caching.jina_cache import get_jina_cache
+    from transform.jina_client import JinaClient, JinaResponse, SearchResult
     from transform.market_research_agent import MarketResearchAgent
     from transform.validation_evidence_pydantic import ValidationEvidence
     JINA_AVAILABLE = True
@@ -238,7 +236,7 @@ async def example_market_research_agent(use_real_api: bool = False):
 
             # Get cost summary
             cost_summary = agent.get_cost_summary()
-            logger.info(f"\nCost Summary:")
+            logger.info("\nCost Summary:")
             logger.info(f"  Total Validations: {cost_summary['validation_count']}")
             logger.info(f"  Total Cost: ${cost_summary['total_cost']:.6f}")
             logger.info(f"  Average Cost per Validation: ${cost_summary['average_cost_per_validation']:.6f}")

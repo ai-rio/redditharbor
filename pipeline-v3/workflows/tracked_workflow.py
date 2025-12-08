@@ -1,4 +1,5 @@
-from typing import Dict, Any, Optional, Union
+from typing import Any
+
 from agno.workflow import Workflow
 
 
@@ -8,7 +9,7 @@ class TrackedWorkflow(Workflow):
     def __init__(
         self,
         name: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         enable_agentops: bool = False,
         cost_tracker=None
     ):
@@ -36,7 +37,7 @@ class TrackedWorkflow(Workflow):
                     tags=["workflow", "tracked_workflow"]
                 )
             return super().run()
-        except Exception as e:
+        except Exception:
             raise
         finally:
             if session_id and self.enable_agentops and hasattr(self, 'agentops_tracker') and self.agentops_tracker:
