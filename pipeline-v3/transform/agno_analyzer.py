@@ -441,6 +441,10 @@ class AgnoOpportunityAnalyzer:
             session_tags = tags or []
             self.agentops_tracker.start_session(session_name, tags=session_tags)
 
+    def end_analysis_session(self, status: str) -> dict:
+        """End analysis session"""
+        return {"status": status}
+
     def _initialize_agents(self) -> None:
         """Initialize specialized analysis agents"""
         # Use settings for real API configuration
