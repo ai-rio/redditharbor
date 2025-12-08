@@ -289,22 +289,29 @@ class PerformanceBenchmark:
 
 async def main():
     """Run benchmark suite"""
-    benchmark = PerformanceBenchmark()
+    import argparse
 
     # Parse command line args
-    count = 10
-    if len(sys.argv) > 1:
-        try:
-            count = int(sys.argv[1])
-            count = max(1, min(50, count))  # Limit to 50 submissions
-        except ValueError:
-            print("Invalid count, using default (10)")
+    parser = argparse.ArgumentParser(description='Benchmark Agno analyzer performance')
+    parser.add_argument('count', nargs='?', type=int, default=10,
+                        help='Number of submissions to test (1-50, default: 10)')
+    parser.add_argument('--with-agentops', action='store_true',
+                        help='Enable AgentOps tracking for performance monitoring')
+    args = parser.parse_args()
+
+    # Validate count
+    count = max(1, min(50, args.count))
+
+    benchmark = PerformanceBenchmark()
 
     print(f"Running benchmark with {count} submissions...")
-    print("Note: Using fake embeddings for consistent performance measurement")
+    if args.with_agentops:
+        print("Note: AgentOps tracking enabled")
+    else:
+        print("Note: Using fake embeddings for consistent performance measurement")
 
     # Run the benchmark
-    results = await benchmark.run_full_benchmark(count)
+    results = await benchmark.run_full_benchmark(count, enable_agentops=args.with_agentops)
 
     # Print summary
     print("\n📊 BENCHMARK SUMMARY:")
@@ -317,6 +324,8 @@ async def main():
     if 'scaling_estimate' in results:
         workers = results['scaling_estimate']['workers_needed']
         print(f"  • Workers needed for 1K/min: {workers:.0f}")
+    if args.with_agentops:
+        print("  • AgentOps tracking: Enabled")
 
 
 if __name__ == "__main__":
