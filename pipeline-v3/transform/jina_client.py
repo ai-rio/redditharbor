@@ -13,10 +13,10 @@ This module provides a comprehensive Jina API client with:
 import asyncio
 import json
 import logging
-from typing import Dict, Any, List, Optional, Union
-from datetime import datetime
-from dataclasses import dataclass, asdict
 import time
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -26,7 +26,7 @@ from .caching.jina_cache import JinaCache, get_jina_cache
 from .validation_evidence_pydantic import (
     CompetitorPricing,
     MarketSizeData,
-    ProductLaunchData
+    ProductLaunchData,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class SearchResult:
     url: str
     title: str
     description: str
-    relevance_score: Optional[float] = None
+    relevance_score: float | None = None
 
 
 @dataclass
@@ -46,9 +46,9 @@ class JinaResponse:
     """Response from Jina Reader API"""
     url: str
     content: str
-    title: Optional[str] = None
+    title: str | None = None
     status_code: int = 200
-    extraction_time: Optional[float] = None
+    extraction_time: float | None = None
 
 
 @dataclass
@@ -104,17 +104,17 @@ class JinaClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        cache: Optional[JinaCache] = None,
+        api_key: str | None = None,
+        cache: JinaCache | None = None,
         llm_model: str = "anthropic/claude-haiku-4.5",
-        llm_api_key: Optional[str] = None,
+        llm_api_key: str | None = None,
         llm_base_url: str = "https://openrouter.ai/api/v1",
         enable_caching: bool = True,
         enable_cost_tracking: bool = True,
-        cache_ttl: Optional[Dict[str, int]] = None,
-        rate_limit: Optional[int] = None,
-        timeout: Optional[float] = None,
-        max_retries: Optional[int] = None,
+        cache_ttl: dict[str, int] | None = None,
+        rate_limit: int | None = None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
         enable_agentops: bool = False
     ):
         """
@@ -166,7 +166,7 @@ class JinaClient:
 
         # Rate limiting
         self.last_request_time = 0.0
-        self.request_times: List[float] = []
+        self.request_times: list[float] = []
 
         # Cost tracking
         self.cost_tracking = CostTracking()
@@ -186,8 +186,8 @@ class JinaClient:
         self,
         query: str,
         num_results: int = 5,
-        use_cache: Optional[bool] = None
-    ) -> List[SearchResult]:
+        use_cache: bool | None = None
+    ) -> list[SearchResult]:
         """
         Search the web using Jina Search API
 
@@ -270,7 +270,7 @@ class JinaClient:
     async def read_url(
         self,
         url: str,
-        use_cache: Optional[bool] = None
+        use_cache: bool | None = None
     ) -> JinaResponse:
         """
         Extract content from URL using Jina Reader API
@@ -361,8 +361,8 @@ class JinaClient:
         self,
         content: str,
         source_url: str,
-        use_cache: Optional[bool] = None
-    ) -> Optional[CompetitorPricing]:
+        use_cache: bool | None = None
+    ) -> CompetitorPricing | None:
         """
         Extract competitor pricing information from web content
 
@@ -447,8 +447,8 @@ class JinaClient:
         self,
         content: str,
         source_url: str,
-        use_cache: Optional[bool] = None
-    ) -> Optional[MarketSizeData]:
+        use_cache: bool | None = None
+    ) -> MarketSizeData | None:
         """
         Extract market size information from web content
 
@@ -532,8 +532,8 @@ class JinaClient:
         self,
         content: str,
         source_url: str,
-        use_cache: Optional[bool] = None
-    ) -> Optional[ProductLaunchData]:
+        use_cache: bool | None = None
+    ) -> ProductLaunchData | None:
         """
         Extract product launch information from web content
 
@@ -630,7 +630,7 @@ class JinaClient:
         # Record this request
         self.request_times.append(current_time)
 
-    def _parse_search_results(self, data: Dict[str, Any], num_results: int) -> List[SearchResult]:
+    def _parse_search_results(self, data: dict[str, Any], num_results: int) -> list[SearchResult]:
         """Parse search results from Jina Search API response"""
         results = []
 
@@ -726,7 +726,7 @@ Respond with JSON in this exact format:
 }}
 """
 
-    def get_cost_summary(self) -> Dict[str, Any]:
+    def get_cost_summary(self) -> dict[str, Any]:
         """
         Get comprehensive cost summary
 

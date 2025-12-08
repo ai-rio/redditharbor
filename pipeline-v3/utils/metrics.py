@@ -2,14 +2,20 @@
 Prometheus metrics collection for Pipeline v3 monitoring
 """
 
-import time
 import logging
-from typing import Dict, Any, Optional
-from functools import wraps
+import time
 from contextlib import contextmanager
+from functools import wraps
 
 try:
-    from prometheus_client import Counter, Histogram, Gauge, Registry, CollectorRegistry, generate_latest
+    from prometheus_client import (
+        CollectorRegistry,
+        Counter,
+        Gauge,
+        Histogram,
+        Registry,
+        generate_latest,
+    )
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -24,7 +30,7 @@ class PipelineMetrics:
     Thread-safe metrics collection with pipeline-specific monitoring
     """
 
-    def __init__(self, registry: Optional[CollectorRegistry] = None):
+    def __init__(self, registry: CollectorRegistry | None = None):
         """
         Initialize pipeline metrics
 
@@ -415,7 +421,7 @@ class PipelineMetrics:
 
 
 # Global metrics instance
-_metrics: Optional[PipelineMetrics] = None
+_metrics: PipelineMetrics | None = None
 
 
 def get_metrics() -> PipelineMetrics:

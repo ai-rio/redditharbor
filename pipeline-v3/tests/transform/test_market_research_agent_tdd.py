@@ -14,11 +14,12 @@ This suite tests MarketResearchAgent functionality in isolation:
 - Data quality assessment
 """
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, Any, List, Optional
 import json
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 # Import the module to test
 from transform.market_research_agent import MarketResearchAgent

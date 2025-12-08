@@ -2,19 +2,20 @@
 Performance test configuration for AgnoOpportunityAnalyzer
 """
 
-import pytest
-import time
 import asyncio
-from unittest.mock import Mock, patch
-from typing import Dict, Any, List
-from dataclasses import dataclass
-import psutil
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from typing import Any, Dict, List
+from unittest.mock import Mock, patch
 
-from tests.helpers.test_data_factory import RedditSubmissionFactory
-from tests.helpers.mock_agno_agents import MockAgnoTeam
+import psutil
+import pytest
+
 from tests.helpers.assertion_helpers import AgnoAnalysisAssertions
+from tests.helpers.mock_agno_agents import MockAgnoTeam
+from tests.helpers.test_data_factory import RedditSubmissionFactory
 
 
 @dataclass

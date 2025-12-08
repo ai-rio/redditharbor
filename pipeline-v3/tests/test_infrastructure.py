@@ -2,10 +2,10 @@
 Test infrastructure for Pipeline v3 tests with comprehensive mocking
 """
 
-import sys
 import os
+import sys
 from types import ModuleType
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 
 def install_all_mocks():

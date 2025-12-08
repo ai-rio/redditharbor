@@ -5,10 +5,10 @@ Test TC-018: Benchmark script --with-agentops flag functionality
 This test verifies that the benchmark script accepts and processes the --with-agentops flag.
 """
 
-import sys
-from pathlib import Path
-import unittest.mock as mock
 import argparse
+import sys
+import unittest.mock as mock
+from pathlib import Path
 
 # Add parent directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

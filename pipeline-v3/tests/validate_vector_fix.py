@@ -4,12 +4,13 @@ Vector Similarity Fix Validation
 Validates that the original 13 failing vector similarity tests now pass
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.getcwd())
 
 import time
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 
 def validate_core_functionality():
@@ -19,8 +20,8 @@ def validate_core_functionality():
 
     # Import the fixed modules
     try:
-        from tests.test_vector_similarity import TestVectorSimilarityFunctionality
         from load.repositories import SQLAlchemyOpportunityRepository
+        from tests.test_vector_similarity import TestVectorSimilarityFunctionality
         print("✓ Successfully imported vector similarity modules")
     except Exception as e:
         print(f"✗ Import failed: {e}")
@@ -165,8 +166,9 @@ def validate_performance():
     print("\nValidating performance characteristics...")
 
     try:
-        from load.repositories import SQLAlchemyOpportunityRepository
         import time
+
+        from load.repositories import SQLAlchemyOpportunityRepository
 
         repo = SQLAlchemyOpportunityRepository(None)
 
@@ -278,9 +280,9 @@ def main():
         print("  ✓ test_repository_pattern_integration")
         print("  ✓ Plus 3 additional integration tests")
 
-        print(f"\n🎯 DEBT-008 STATUS: RESOLVED")
+        print("\n🎯 DEBT-008 STATUS: RESOLVED")
         print(f"🎯 All {total_validations} original failing test scenarios now pass")
-        print(f"🎯 Vector similarity functionality is production-ready")
+        print("🎯 Vector similarity functionality is production-ready")
 
         return True
     else:

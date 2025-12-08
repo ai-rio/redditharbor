@@ -7,8 +7,8 @@ parameter to the run_full_benchmark method.
 """
 
 import sys
-from pathlib import Path
 import unittest.mock as mock
+from pathlib import Path
 
 # Add parent directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

@@ -9,8 +9,9 @@ This tests the refactored Pydantic-enhanced implementation to ensure:
 - Backward compatibility with original interface
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 # Test both Pydantic and fallback implementations

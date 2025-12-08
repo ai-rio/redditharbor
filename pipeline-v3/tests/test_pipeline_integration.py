@@ -15,21 +15,22 @@ has gaps in data preservation and missing embedding generation.
 """
 
 
-import pytest
-from datetime import datetime, UTC
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from typing import List, Optional
 import asyncio
+from datetime import UTC, datetime
+from typing import List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from models.reddit import RedditSubmission
-from models.database import Opportunity
+import pytest
+
+from extract.reddit_client import RedditClient
+from load.data_mappers import AnalysisToOpportunityMapper
+from load.database import DatabaseLoader
 from main import run_pipeline
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from models.database import Opportunity
+from models.reddit import RedditSubmission
 from transform.analyzer import OpportunityAnalyzer, SimpleOpportunityAnalyzer
 from transform.validator import AnalysisValidator
-from load.database import DatabaseLoader
-from load.data_mappers import AnalysisToOpportunityMapper
-from extract.reddit_client import RedditClient
 
 
 class MockPipelineComponents:
@@ -58,7 +59,7 @@ class MockPipelineComponents:
         self.db_loader = MockDatabaseLoaderForIntegration()
         self.db_loader.test_connection()  # Call the real method to initialize it
 
-    def get_reddit_submissions(self, count: int = 3) -> List[RedditSubmission]:
+    def get_reddit_submissions(self, count: int = 3) -> list[RedditSubmission]:
         """Generate mock Reddit submissions for testing"""
         submissions = []
         for i in range(count):
@@ -212,7 +213,7 @@ class MockDatabaseLoaderForIntegration(DatabaseLoader):
         # Mock table creation
         self.tables_created = True
 
-    def store_analyses(self, analyses: List[AnalysisResult], reddit_submissions: List = None) -> dict:
+    def store_analyses(self, analyses: list[AnalysisResult], reddit_submissions: list = None) -> dict:
         """Override to track stored analyses"""
         stats = {"stored": 0, "skipped": 0, "errors": 0}
 

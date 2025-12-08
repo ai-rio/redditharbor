@@ -6,30 +6,30 @@ identifying market opportunities through specialized agents that analyze differe
 of market demand, user willingness to pay, and monetization potential.
 """
 
-from typing import List, Dict, Any, Optional, Tuple, Union, Callable
-from datetime import datetime
 import json
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
-from agno.agent import Agent
 from agno.team import Team
+
+from config.settings import get_settings
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
-from transform.agno_synthesis import AgnoSynthesis
-from transform.agno_agents import (
-    WillingnessToPayAgent,
-    MarketSegmentAgent,
-    PricePointAgent,
-    PaymentBehaviorAgent,
-    MarketResearchAgent
-)
-from transform.simplicity_processor import SimplicityProcessor
-from transform.embedding_strategies import EmbeddingStrategy
-from transform.embedding_factory import EmbeddingFactory
 from monitoring.metrics_collector import get_collector
-from config.settings import get_settings
+from transform.agno_agents import (
+    MarketResearchAgent,
+    MarketSegmentAgent,
+    PaymentBehaviorAgent,
+    PricePointAgent,
+    WillingnessToPayAgent,
+)
+from transform.agno_synthesis import AgnoSynthesis
+from transform.embedding_factory import EmbeddingFactory
+from transform.embedding_strategies import EmbeddingStrategy
+from transform.simplicity_processor import SimplicityProcessor
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ class SubredditCategory:
 class AgnoTeamResult:
     """Wrapper for Agno Team results to maintain compatibility"""
 
-    def __init__(self, agent_results: Dict[str, Any]):
+    def __init__(self, agent_results: dict[str, Any]):
         """
         Initialize with agent results
 
@@ -136,7 +136,7 @@ class AgnoTeamResult:
         """
         self._agent_results = agent_results
 
-    def get_agent_result(self, agent_name: str) -> Dict[str, Any]:
+    def get_agent_result(self, agent_name: str) -> dict[str, Any]:
         """
         Get result from specific agent
 
@@ -157,7 +157,7 @@ class MockCostTracker:
         self.total_cost: float = 0.0
         self.last_cost: float = 0.0
         self.analysis_count: int = 0
-        self.cost_history: List[float] = []
+        self.cost_history: list[float] = []
 
     def get_last_analysis_cost(self) -> float:
         """
@@ -189,7 +189,7 @@ class MockCostTracker:
         """
         return self.total_cost / self.analysis_count if self.analysis_count > 0 else 0.0
 
-    def get_cost_summary(self) -> Dict[str, Any]:
+    def get_cost_summary(self) -> dict[str, Any]:
         """
         Get comprehensive cost summary
 
@@ -233,7 +233,7 @@ def get_tracker() -> Any:
 class ConsensusCalculator:
     """Handles consensus calculation logic with configurable weights"""
 
-    def __init__(self, weights: Optional[ScoringWeights] = None):
+    def __init__(self, weights: ScoringWeights | None = None):
         """
         Initialize calculator with weights
 
@@ -288,7 +288,7 @@ class ConsensusCalculator:
 
     def calculate_monetization_potential(
         self,
-        scores: List[float]
+        scores: list[float]
     ) -> float:
         """
         Calculate monetization potential as average of scores
@@ -331,7 +331,7 @@ class ConsensusCalculator:
 
     def calculate_confidence_variance(
         self,
-        scores: List[float]
+        scores: list[float]
     ) -> float:
         """
         Calculate confidence based on score variance
@@ -372,14 +372,14 @@ class AgnoOpportunityAnalyzer:
         base_url: str = None,
         enable_agentops: bool = None,
         enable_debug: bool = False,
-        weights: Optional[ScoringWeights] = None,
-        thresholds: Optional[AnalysisThresholds] = None,
+        weights: ScoringWeights | None = None,
+        thresholds: AnalysisThresholds | None = None,
         validation_threshold: float = None,
         max_competitors: int = None,
         max_launches: int = None,
         enable_market_cost_tracking: bool = True,
         enable_embeddings: bool = True,
-        embedding_provider: Optional[str] = "fake"
+        embedding_provider: str | None = "fake"
     ):
         """
         Initialize the analyzer with specialized agents
@@ -434,7 +434,7 @@ class AgnoOpportunityAnalyzer:
         else:
             self.agentops_tracker = None
 
-    def start_analysis_session(self, session_name: str, tags: List[str] = None) -> None:
+    def start_analysis_session(self, session_name: str, tags: list[str] = None) -> None:
         """Start an analysis session with AgentOps tracking"""
         if self.enable_agentops and hasattr(self, "agentops_tracker") and self.agentops_tracker:
             # Use tags parameter if provided, otherwise use empty list
@@ -656,8 +656,8 @@ class AgnoOpportunityAnalyzer:
 
     def analyze_batch_with_costs(
         self,
-        submissions: List[RedditSubmission]
-    ) -> Tuple[List[AnalysisResult], Dict[str, Any]]:
+        submissions: list[RedditSubmission]
+    ) -> tuple[list[AnalysisResult], dict[str, Any]]:
         """
         Analyze multiple submissions with cost tracking
 
@@ -681,7 +681,7 @@ class AgnoOpportunityAnalyzer:
 
         return results, cost_summary
 
-    def _prepare_agno_input(self, submission: RedditSubmission) -> Dict[str, Any]:
+    def _prepare_agno_input(self, submission: RedditSubmission) -> dict[str, Any]:
         """
         Convert RedditSubmission to Agno input format
 
@@ -701,7 +701,7 @@ class AgnoOpportunityAnalyzer:
             "num_comments": getattr(submission, 'comments_count', 0)
         }
 
-    def _format_agno_input(self, submission: RedditSubmission) -> Dict[str, Any]:
+    def _format_agno_input(self, submission: RedditSubmission) -> dict[str, Any]:
         """
         Convert RedditSubmission to Agno input format (Backward compatibility)
 
@@ -777,7 +777,7 @@ class AgnoOpportunityAnalyzer:
             agent_details=agent_details
         )
 
-    def _extract_agent_results(self, agno_result: Any) -> Dict[str, Dict[str, Any]]:
+    def _extract_agent_results(self, agno_result: Any) -> dict[str, dict[str, Any]]:
         """
         Extract results from all agents with error handling
 
@@ -801,14 +801,14 @@ class AgnoOpportunityAnalyzer:
 
         return results
 
-    def _calculate_market_demand_consensus(self, agent_results: Dict[str, Dict[str, Any]]) -> float:
+    def _calculate_market_demand_consensus(self, agent_results: dict[str, dict[str, Any]]) -> float:
         """Calculate market demand consensus from agent results"""
         wtp_score = self._safe_get_score(agent_results["wtp"], "market_demand_score")
         segment_score = self._safe_get_score(agent_results["segment"], "market_demand_score")
 
         return self.consensus_calculator.calculate_market_demand(wtp_score, segment_score)
 
-    def _calculate_pain_intensity_consensus(self, agent_results: Dict[str, Dict[str, Any]]) -> float:
+    def _calculate_pain_intensity_consensus(self, agent_results: dict[str, dict[str, Any]]) -> float:
         """Calculate pain intensity consensus from agent results"""
         wtp_score = self._safe_get_score(agent_results["wtp"], "wtp_score")
         behavior_score = self._safe_get_score(agent_results["behavior"], "pain_intensity_score")
@@ -816,7 +816,7 @@ class AgnoOpportunityAnalyzer:
 
         return self.consensus_calculator.calculate_pain_intensity(wtp_score, behavior_score, price_score)
 
-    def _calculate_monetization_consensus(self, agent_results: Dict[str, Dict[str, Any]]) -> float:
+    def _calculate_monetization_consensus(self, agent_results: dict[str, dict[str, Any]]) -> float:
         """Calculate monetization potential consensus from agent results"""
         wtp_score = self._safe_get_score(agent_results["wtp"], "wtp_score")
         segment_score = self._safe_get_score(agent_results["segment"], "market_demand_score")
@@ -824,7 +824,7 @@ class AgnoOpportunityAnalyzer:
 
         return self.consensus_calculator.calculate_monetization_potential([wtp_score, segment_score, price_score])
 
-    def _calculate_consensus_confidence(self, agent_results: Dict[str, Dict[str, Any]]) -> float:
+    def _calculate_consensus_confidence(self, agent_results: dict[str, dict[str, Any]]) -> float:
         """Calculate confidence based on agent agreement"""
         # Extract scores for variance calculation
         scores = [
@@ -836,7 +836,7 @@ class AgnoOpportunityAnalyzer:
 
         return self.consensus_calculator.calculate_confidence_variance(scores)
 
-    def _safe_get_score(self, agent_result: Dict[str, Any], score_key: str) -> float:
+    def _safe_get_score(self, agent_result: dict[str, Any], score_key: str) -> float:
         """
         Safely extract score from agent result with fallback
 
@@ -970,7 +970,7 @@ class AgnoOpportunityAnalyzer:
 
         return result
 
-    def _generate_embedding(self, synthesis: AgnoSynthesis, submission: RedditSubmission) -> Optional[List[float]]:
+    def _generate_embedding(self, synthesis: AgnoSynthesis, submission: RedditSubmission) -> list[float] | None:
         """
         Generate embedding vector for the opportunity
 
@@ -1109,7 +1109,7 @@ class AgnoOpportunityAnalyzer:
 
         return base_concept
 
-    def _extract_core_functions(self, synthesis: AgnoSynthesis) -> List[str]:
+    def _extract_core_functions(self, synthesis: AgnoSynthesis) -> list[str]:
         """Extract core functions from agent details"""
         functions = []
 
@@ -1207,7 +1207,7 @@ class AgnoOpportunityAnalyzer:
         """Track cost of analysis"""
         self.cost_tracker.add_analysis_cost(self.thresholds.COST_PER_ANALYSIS)
 
-    def _create_batch_cost_summary(self, results: List[AnalysisResult], duration: float) -> Dict[str, Any]:
+    def _create_batch_cost_summary(self, results: list[AnalysisResult], duration: float) -> dict[str, Any]:
         """
         Create comprehensive batch cost summary
 
@@ -1297,7 +1297,7 @@ class AgnoOpportunityAnalyzer:
         scores = [wtp_score, market_demand_score, monetization_score, pain_intensity_score]
         return sum(scores) / len(scores)
 
-    def _prepare_market_research_input(self, submission: RedditSubmission, agno_result: Any) -> Dict[str, Any]:
+    def _prepare_market_research_input(self, submission: RedditSubmission, agno_result: Any) -> dict[str, Any]:
         """
         Prepare input data for MarketResearchAgent
 
@@ -1325,7 +1325,7 @@ class AgnoOpportunityAnalyzer:
             "validation_threshold": self.validation_threshold
         }
 
-    def _inject_market_research_results(self, agno_result: Any, market_result: Dict[str, Any]) -> None:
+    def _inject_market_research_results(self, agno_result: Any, market_result: dict[str, Any]) -> None:
         """
         Inject market research results into the agno_result
 
@@ -1339,13 +1339,13 @@ class AgnoOpportunityAnalyzer:
         if hasattr(agno_result, '_market_research_results'):
             agno_result._market_research_results = market_result
 
-    def extract_and_track_cost(self, agent_name: str, response: Any) -> Dict[str, Any]:
+    def extract_and_track_cost(self, agent_name: str, response: Any) -> dict[str, Any]:
         """Extract and track costs from agent response"""
         # Extract cost using the helper method
         cost = self._extract_cost_from_response(response)
-        
+
         return {"agent": agent_name, "status": "extracted", "cost": cost}
-    
+
     def _extract_cost_from_response(self, response: Any) -> float:
         """Extract cost information from agent response"""
         # Default stub implementation

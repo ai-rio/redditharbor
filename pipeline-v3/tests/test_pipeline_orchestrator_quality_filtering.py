@@ -2,21 +2,23 @@
 Comprehensive tests for PipelineOrchestrator quality filtering functionality
 """
 
-import pytest
-from unittest.mock import Mock, MagicMock, patch
-from datetime import datetime, timezone
-from typing import List, Dict, Any
-import time
 import logging
+import time
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from models.reddit import RedditSubmission
 
 # Import the classes we need to test
 from orchestration.pipeline_orchestrator import (
-    PipelineOrchestrator,
     PipelineConfiguration,
-    PipelineResults
+    PipelineOrchestrator,
+    PipelineResults,
 )
-from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from models.reddit import RedditSubmission
 
 
 class TestPipelineOrchestratorQualityFiltering:
@@ -43,14 +45,14 @@ class TestPipelineOrchestratorQualityFiltering:
         return orchestrator
 
     @pytest.fixture
-    def sample_analyses(self) -> List[AnalysisResult]:
+    def sample_analyses(self) -> list[AnalysisResult]:
         """Create comprehensive sample analysis results for testing"""
         results = []
 
         # High quality analysis (should pass all filters)
         high_quality = AnalysisResult.model_construct(
             submission_id="high_quality_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Task Manager Pro",
                 app_concept="A smart task management app that prioritizes work automatically",
@@ -77,7 +79,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Spam analysis (should be filtered out)
         spam_analysis = AnalysisResult.model_construct(
             submission_id="spam_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Get Rich Quick",
                 app_concept="Make money fast with our revolutionary financial system",
@@ -104,7 +106,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Low quality content (should be filtered out)
         low_quality = AnalysisResult.model_construct(
             submission_id="low_quality_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Simple App",
                 app_concept="An app that does stuff",
@@ -131,7 +133,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Below min_score threshold
         low_score = AnalysisResult.model_construct(
             submission_id="low_score_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Average App",
                 app_concept="A mediocre app idea",
@@ -158,7 +160,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Below min_confidence threshold
         low_confidence = AnalysisResult.model_construct(
             submission_id="low_confidence_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Uncertain App",
                 app_concept="An app with unclear value proposition",
@@ -185,7 +187,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Borderline cases
         borderline_quality = AnalysisResult.model_construct(
             submission_id="borderline_quality",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Borderline App",
                 app_concept="An app that barely meets quality standards",
@@ -239,7 +241,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Create spam analysis with high scores
         spam_with_high_scores = AnalysisResult.model_construct(
             submission_id="spam_high_scores",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Amazing App",
                 app_concept="Incredible solution",
@@ -292,7 +294,7 @@ class TestPipelineOrchestratorQualityFiltering:
         for i in range(5):
             spam_analysis = AnalysisResult.model_construct(
                 submission_id=f"spam_{i}",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"Spam App {i}",
                     app_concept="Spam concept",
@@ -329,7 +331,7 @@ class TestPipelineOrchestratorQualityFiltering:
         for i in range(5):
             high_quality = AnalysisResult.model_construct(
                 submission_id=f"high_quality_{i}",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"Quality App {i}",
                     app_concept="High quality concept",
@@ -457,7 +459,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Exactly at content quality threshold (40) - should pass
         at_quality_threshold = AnalysisResult.model_construct(
             submission_id="quality_boundary",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Boundary Quality App",
                 app_concept="Exactly at quality threshold",
@@ -484,7 +486,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Just below content quality threshold (39.9) - should be filtered
         below_quality_threshold = AnalysisResult.model_construct(
             submission_id="below_quality_boundary",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Below Quality App",
                 app_concept="Just below quality threshold",
@@ -545,7 +547,7 @@ class TestPipelineOrchestratorQualityFiltering:
                 # 25% spam
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"spam_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"Spam {i}",
                         app_concept="Spam concept",
@@ -564,7 +566,7 @@ class TestPipelineOrchestratorQualityFiltering:
                 # 25% low quality
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"low_quality_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"Low Quality {i}",
                         app_concept="Low quality concept",
@@ -583,7 +585,7 @@ class TestPipelineOrchestratorQualityFiltering:
                 # 50% high quality
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"high_quality_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"High Quality {i}",
                         app_concept="High quality concept",
@@ -650,7 +652,7 @@ class TestPipelineOrchestratorIntegration:
         return orchestrator, mock_reddit_client, mock_analyzer, mock_database_loader, mock_validator
 
     @pytest.fixture
-    def sample_submissions(self) -> List[RedditSubmission]:
+    def sample_submissions(self) -> list[RedditSubmission]:
         """Create sample Reddit submissions"""
         return [
             RedditSubmission(
@@ -662,7 +664,7 @@ class TestPipelineOrchestratorIntegration:
                 score=50,
                 comments_count=20,
                 subreddit="productivity",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/productivity/test_1"
             ),
             RedditSubmission(
@@ -674,18 +676,18 @@ class TestPipelineOrchestratorIntegration:
                 score=30,
                 comments_count=15,
                 subreddit="productivity",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/productivity/test_2"
             )
         ]
 
     @pytest.fixture
-    def sample_analyses(self) -> List[AnalysisResult]:
+    def sample_analyses(self) -> list[AnalysisResult]:
         """Create sample analysis results"""
         return [
             AnalysisResult.model_construct(
                 submission_id="test_1",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title="Task Manager Pro",
                     app_concept="Smart task management app",
@@ -706,7 +708,7 @@ class TestPipelineOrchestratorIntegration:
             ),
             AnalysisResult.model_construct(
                 submission_id="test_2",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title="Project Tracker",
                     app_concept="Collaborative project management",
@@ -809,7 +811,7 @@ class TestPipelineOrchestratorIntegration:
         low_quality_analyses = [
             AnalysisResult.model_construct(
                 submission_id="spam_1",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title="Bad App",
                     app_concept="Spam concept",
@@ -830,7 +832,7 @@ class TestPipelineOrchestratorIntegration:
             ),
             AnalysisResult.model_construct(
                 submission_id="test_1",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title="Good App",
                     app_concept="Good concept",

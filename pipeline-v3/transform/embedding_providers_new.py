@@ -16,13 +16,10 @@ Providers:
 - AdaptiveEmbeddingProvider: Automatic provider selection
 """
 
-import asyncio
-import aiohttp
 import logging
-from typing import List, Dict, Any, Optional, Tuple, Protocol
-from datetime import datetime
-import numpy as np
 from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +28,7 @@ class EmbeddingProvider(ABC):
     """Base class for embedding providers"""
 
     @abstractmethod
-    def generate_embedding(self, text: str, metadata: Optional[Dict] = None) -> Tuple[List[float], Dict]:
+    def generate_embedding(self, text: str, metadata: dict | None = None) -> tuple[list[float], dict]:
         """Generate embedding for text"""
         pass
 

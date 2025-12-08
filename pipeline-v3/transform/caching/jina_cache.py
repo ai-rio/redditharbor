@@ -6,12 +6,11 @@ configurable TTL values for different data types to optimize costs
 and performance.
 """
 
-import json
 import hashlib
+import json
 import logging
-from typing import Dict, Any, Optional, List, Union
 from datetime import datetime, timedelta
-import asyncio
+from typing import Any
 
 try:
     import redis.asyncio as redis
@@ -20,11 +19,6 @@ except ImportError:
     import redis
     REDIS_AVAILABLE = False
 
-from ..validation_evidence_pydantic import (
-    CompetitorPricing,
-    MarketSizeData,
-    ProductLaunchData
-)
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +57,7 @@ class JinaCache:
         self,
         redis_url: str = "redis://localhost:6379/0",
         redis_db: int = 1,  # Use separate DB for Jina cache
-        default_ttl: Optional[Dict[str, int]] = None,
+        default_ttl: dict[str, int] | None = None,
         enable_in_memory_fallback: bool = True,
         max_memory_items: int = 1000
     ):
@@ -92,8 +86,8 @@ class JinaCache:
         self._redis_available = False
 
         # In-memory fallback cache
-        self._memory_cache: Dict[str, Dict[str, Any]] = {}
-        self._memory_access_order: List[str] = []
+        self._memory_cache: dict[str, dict[str, Any]] = {}
+        self._memory_access_order: list[str] = []
 
         # Cache statistics
         self.stats = {
@@ -137,7 +131,7 @@ class JinaCache:
         data_type: str,
         app_concept: str,
         target_market: str = "",
-        additional_params: Optional[Dict[str, Any]] = None
+        additional_params: dict[str, Any] | None = None
     ) -> str:
         """
         Generate consistent cache key for market research queries
@@ -176,8 +170,8 @@ class JinaCache:
         data_type: str,
         app_concept: str,
         target_market: str = "",
-        additional_params: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+        additional_params: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """
         Get cached data for market research query
 
@@ -226,10 +220,10 @@ class JinaCache:
         self,
         data_type: str,
         app_concept: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         target_market: str = "",
-        additional_params: Optional[Dict[str, Any]] = None,
-        custom_ttl: Optional[int] = None
+        additional_params: dict[str, Any] | None = None,
+        custom_ttl: int | None = None
     ) -> None:
         """
         Cache market research data with appropriate TTL
@@ -266,7 +260,7 @@ class JinaCache:
             self.stats["sets"] += 1  # Count memory cache sets too
             logger.debug(f"Cached to Memory: {cache_key} (TTL: {ttl}s)")
 
-    def _add_to_memory_cache(self, key: str, data: Dict[str, Any], ttl: int) -> None:
+    def _add_to_memory_cache(self, key: str, data: dict[str, Any], ttl: int) -> None:
         """Add item to in-memory cache with LRU eviction"""
         # Remove oldest item if at capacity
         if len(self._memory_cache) >= self.max_memory_items:
@@ -292,15 +286,15 @@ class JinaCache:
         if key in self._memory_access_order:
             self._memory_access_order.remove(key)
 
-    def _is_expired(self, cached_item: Dict[str, Any]) -> bool:
+    def _is_expired(self, cached_item: dict[str, Any]) -> bool:
         """Check if cached item has expired"""
         return datetime.now() > cached_item["expire_time"]
 
     async def invalidate(
         self,
-        data_type: Optional[str] = None,
-        app_concept: Optional[str] = None,
-        target_market: Optional[str] = None
+        data_type: str | None = None,
+        app_concept: str | None = None,
+        target_market: str | None = None
     ) -> int:
         """
         Invalidate cache entries matching criteria
@@ -355,7 +349,7 @@ class JinaCache:
         logger.info(f"Invalidated {invalidated} cache entries")
         return invalidated
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """
         Get comprehensive cache statistics
 
@@ -390,7 +384,7 @@ class JinaCache:
         self,
         search_cost_per_query: float = 0.0001,
         extraction_cost_per_url: float = 0.0002
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Estimate cost savings from cache hits
 
@@ -423,7 +417,7 @@ class JinaCache:
 
 
 # Global cache instance
-_jina_cache: Optional[JinaCache] = None
+_jina_cache: JinaCache | None = None
 
 
 async def get_jina_cache(

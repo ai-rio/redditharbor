@@ -4,20 +4,21 @@ Test suite for Phase 2: AgentOps integration with Pipeline v3
 Following TDD methodology - these tests will fail initially, then drive implementation
 """
 
-import pytest
 import os
 import sys
 import time
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, timezone
-from typing import Dict, Any, List
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from models.reddit import RedditSubmission
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from models.cost_tracking import CostTracking, CostSummary
+from models.cost_tracking import CostSummary, CostTracking
+from models.reddit import RedditSubmission
 from transform.litellm_analyzer import LiteLLMAnalyzer
 
 
@@ -97,27 +98,27 @@ class MockAgentOpsTracker:
         """Mock error tracking implementation for TDD GREEN phase"""
         # Simple implementation that returns True to indicate successful tracking
         return True
-    
+
     def track_agent_coordination(self, primary_agent, coordinating_agent, operation, metadata=None):
         """Mock agent coordination tracking implementation for TDD GREEN phase"""
         # Simple implementation that returns True to indicate successful tracking
         return True
-    
+
     def track_workflow_step(self, agent_name, step_name, step_status, step_duration):
         """Mock workflow step tracking implementation for TDD GREEN phase"""
         # Simple implementation that returns True to indicate successful tracking
         return True
-    
+
     def track_llm_call_with_retry(self, model, tokens, cost, latency, max_retries=3):
         """Mock LLM call tracking with retry implementation for TDD GREEN phase"""
         # Simple implementation that returns True to indicate successful tracking
         return True
-    
+
     def track_with_fallback(self, primary_tracking, fallback_data):
         """Mock tracking with fallback implementation for TDD GREEN phase"""
         # Simple implementation that returns True to indicate successful tracking
         return True
-    
+
     def get_session_summary(self):
         """Mock session summary retrieval implementation for TDD GREEN phase"""
         import time
@@ -126,7 +127,7 @@ class MockAgentOpsTracker:
         return self._session_data.copy()
 
 
-def trace(name: str = None, tags: List[str] = None):
+def trace(name: str = None, tags: list[str] = None):
     """Mock @trace decorator - will fail until implementation"""
     def decorator(func):
         def wrapper(*args, **kwargs):
@@ -156,7 +157,7 @@ def mock_submission():
         subreddit="freelance",
         upvotes=150,
         comments_count=25,
-        created_utc=datetime.now(timezone.utc),
+        created_utc=datetime.now(UTC),
         permalink="https://reddit.com/r/freelance/test123",
         score=150
     )
@@ -432,7 +433,7 @@ class TestMultiAgentCoordinationTracking:
             operation="analysis_validation",
             metadata={"submission_id": "test123"}
         )
-        
+
         # Should return True to indicate successful tracking
         assert result is True, "Failed to track agent coordination"
 

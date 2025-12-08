@@ -5,20 +5,26 @@ Production-grade monitoring, metrics collection, and observability for
 Jina Market Research Integration Phase 3.7
 """
 
-import time
+import asyncio
 import json
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
+import time
 from collections import defaultdict, deque
-import asyncio
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
 from functools import wraps
+from typing import Any
 
 # Prometheus metrics (with fallback)
 try:
-    from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        Counter,
+        Gauge,
+        Histogram,
+        generate_latest,
+    )
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -40,8 +46,8 @@ class MarketResearchMetrics:
     """Metrics data structure for market research operations"""
     timestamp: datetime
     operation_type: str
-    app_concept_id: Optional[str] = None
-    target_market: Optional[str] = None
+    app_concept_id: str | None = None
+    target_market: str | None = None
 
     # Performance metrics
     response_time_ms: float = 0.0
@@ -61,8 +67,8 @@ class MarketResearchMetrics:
     launches_found: int = 0
 
     # Error metrics
-    error_type: Optional[str] = None
-    error_message: Optional[str] = None
+    error_type: str | None = None
+    error_message: str | None = None
     retry_count: int = 0
     circuit_breaker_triggered: bool = False
 
@@ -71,7 +77,7 @@ class MarketResearchMetrics:
     urls_fetched: int = 0
     tokens_used: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization"""
         data = asdict(self)
         data['timestamp'] = self.timestamp.isoformat()
@@ -210,7 +216,7 @@ class PrometheusMetricsCollector:
 class RedisMetricsStore:
     """Redis-based distributed metrics storage"""
 
-    def __init__(self, redis_url: Optional[str] = None):
+    def __init__(self, redis_url: str | None = None):
         self.redis_client = None
         self.enabled = REDIS_AVAILABLE
 
@@ -276,7 +282,7 @@ class RedisMetricsStore:
             logger.error(f"Failed to store metrics in Redis: {e}")
             return False
 
-    async def get_daily_stats(self, date: Optional[datetime] = None) -> Dict[str, Any]:
+    async def get_daily_stats(self, date: datetime | None = None) -> dict[str, Any]:
         """Get daily statistics"""
         if not self.enabled or not self.redis_client:
             return {}
@@ -301,8 +307,8 @@ class RedisMetricsStore:
     async def get_performance_percentiles(
         self,
         operation_type: str,
-        percentiles: List[float] = None
-    ) -> Dict[str, float]:
+        percentiles: list[float] = None
+    ) -> dict[str, float]:
         """Get performance percentiles for an operation type"""
         if not self.enabled or not self.redis_client:
             return {}
@@ -409,7 +415,7 @@ class CircuitBreaker:
                 f"(failures: {self.failure_count}/{self.failure_threshold})"
             )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get circuit breaker statistics"""
         return {
             'state': self.state,
@@ -443,7 +449,7 @@ class MarketResearchMonitor:
         self,
         enable_prometheus: bool = True,
         enable_redis: bool = True,
-        redis_url: Optional[str] = None,
+        redis_url: str | None = None,
         daily_budget_usd: float = 500.0
     ):
         self.enable_prometheus = enable_prometheus and PROMETHEUS_AVAILABLE
@@ -522,7 +528,7 @@ class MarketResearchMonitor:
         func: Callable,
         operation_type: str,
         args: tuple,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         track_cost: bool,
         track_performance: bool
     ):
@@ -598,7 +604,7 @@ class MarketResearchMonitor:
         func: Callable,
         operation_type: str,
         args: tuple,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         track_cost: bool,
         track_performance: bool
     ):
@@ -725,7 +731,7 @@ class MarketResearchMonitor:
         for alert in alerts:
             await self._send_alert(alert)
 
-    async def _send_alert(self, alert: Dict[str, Any]):
+    async def _send_alert(self, alert: dict[str, Any]):
         """Send alert notification"""
         try:
             logger.warning(
@@ -745,7 +751,7 @@ class MarketResearchMonitor:
         """Get circuit breaker for a service"""
         return self.circuit_breakers.get(service_name, CircuitBreaker())
 
-    async def get_health_status(self) -> Dict[str, Any]:
+    async def get_health_status(self) -> dict[str, Any]:
         """Get comprehensive health status"""
         status = {
             'healthy': True,
@@ -800,7 +806,7 @@ class MarketResearchMonitor:
 
         return status
 
-    async def get_daily_report(self) -> Dict[str, Any]:
+    async def get_daily_report(self) -> dict[str, Any]:
         """Generate daily performance report"""
         report = {
             'date': datetime.now().date().isoformat(),
@@ -850,7 +856,7 @@ class MarketResearchMonitor:
 
 
 # Global monitor instance
-_monitor: Optional[MarketResearchMonitor] = None
+_monitor: MarketResearchMonitor | None = None
 
 
 def get_monitor() -> MarketResearchMonitor:

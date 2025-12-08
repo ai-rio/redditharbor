@@ -2,8 +2,8 @@
 Agno synthesis data structure for multi-agent analysis results
 """
 
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -17,8 +17,8 @@ class AgnoSynthesis:
     confidence_score: float
 
     # Detailed agent outputs
-    agent_details: Dict[str, Any]
+    agent_details: dict[str, Any]
 
     # Additional metadata
-    subreddit_multiplier: Optional[float] = 1.0
-    raw_agent_outputs: Optional[Dict[str, Any]] = None
+    subreddit_multiplier: float | None = 1.0
+    raw_agent_outputs: dict[str, Any] | None = None

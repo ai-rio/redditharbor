@@ -2,14 +2,18 @@
 Integration test configuration for pipeline v3
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any, List
-import os
 import json
+import os
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
-from tests.helpers.test_data_factory import RedditSubmissionFactory, AgentResponseFactory
+import pytest
+
+from tests.helpers.test_data_factory import (
+    AgentResponseFactory,
+    RedditSubmissionFactory,
+)
 
 
 @pytest.fixture(scope="session")

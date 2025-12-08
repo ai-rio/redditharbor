@@ -4,28 +4,29 @@ Failure Recovery Tests for Agno Integration
 Phase 5 Production Testing - validates graceful degradation and error handling
 """
 
-import pytest
-import time
 import json
-from typing import Dict, Any, List, Optional
-from unittest.mock import Mock, patch, MagicMock
+import random
+import time
 from dataclasses import dataclass
 from datetime import datetime
-import random
+from typing import Any, Dict, List, Optional
+from unittest.mock import MagicMock, Mock, patch
 
-from models.reddit import RedditSubmission
+import pytest
+
 from models.analysis import AnalysisResult
-from transform.agno_analyzer import AgnoOpportunityAnalyzer
-from transform.agno_agents import (
-    WillingnessToPayAgent,
-    MarketSegmentAgent,
-    PricePointAgent,
-    PaymentBehaviorAgent
-)
+from models.reddit import RedditSubmission
 from tests.helpers.test_data_factory import (
+    ErrorScenarioFactory,
     RedditSubmissionFactory,
-    ErrorScenarioFactory
 )
+from transform.agno_agents import (
+    MarketSegmentAgent,
+    PaymentBehaviorAgent,
+    PricePointAgent,
+    WillingnessToPayAgent,
+)
+from transform.agno_analyzer import AgnoOpportunityAnalyzer
 
 
 @dataclass
@@ -46,7 +47,7 @@ class FailureTestResult:
 
     scenario: FailureScenario
     success: bool
-    error_message: Optional[str]
+    error_message: str | None
     recovery_successful: bool
     fallback_used: bool
     response_time: float
@@ -57,7 +58,7 @@ class TestAgnoFailureRecovery:
     """Comprehensive failure recovery testing for Agno analyzer"""
 
     @pytest.fixture
-    def failure_scenarios(self) -> List[FailureScenario]:
+    def failure_scenarios(self) -> list[FailureScenario]:
         """Define failure scenarios to test"""
         return [
             # Agent failure scenarios
@@ -465,7 +466,7 @@ class TestAgnoFailureRecovery:
                     # Verify tracking was called (if mockable)
                     pass
 
-            except Exception as e:
+            except Exception:
                 # Error should be logged
                 # (In real implementation, check logs or monitoring dashboard)
                 pass
@@ -548,7 +549,7 @@ class TestAgnoFailureRecovery:
         assert report["summary"]["recovery_rate"] >= 0.8, \
             f"Failure recovery rate {report['summary']['recovery_rate']:.2%} below 80%"
 
-        print(f"\nFailure Recovery Summary:")
+        print("\nFailure Recovery Summary:")
         print(f"  Success rate: {report['summary']['success_rate']:.2%}")
         print(f"  Recovery rate: {report['summary']['recovery_rate']:.2%}")
         print(f"  Scenarios tested: {report['summary']['total_scenarios']}")
@@ -612,7 +613,7 @@ class TestAgnoFailureRecovery:
 
         return min(quality_score, 100)
 
-    def _validate_failure_recovery_results(self, test_results: List[FailureTestResult]):
+    def _validate_failure_recovery_results(self, test_results: list[FailureTestResult]):
         """
         Validate that failure recovery meets requirements
         """
@@ -949,7 +950,7 @@ class TestAgnoFailureRecovery:
                     result_quality=0
                 )
 
-    def _save_failure_recovery_report(self, report: Dict[str, Any], filename: str):
+    def _save_failure_recovery_report(self, report: dict[str, Any], filename: str):
         """Save failure recovery report to file"""
         with open(filename, 'w') as f:
             json.dump(report, f, indent=2)

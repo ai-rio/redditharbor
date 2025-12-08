@@ -12,8 +12,9 @@ from pathlib import Path
 # Add parent directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 # Import the actual implementation
 from transform.agno_analyzer import AgnoOpportunityAnalyzer

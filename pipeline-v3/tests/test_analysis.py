@@ -4,10 +4,11 @@ Pipeline Test Analysis Tool
 Analyzes test results by category to determine actual impact on functionality
 """
 
+import json
 import subprocess
 import sys
-import json
 from pathlib import Path
+
 
 def run_test_category(test_pattern: str, category_name: str) -> dict:
     """Run a specific test category and return results"""
@@ -154,7 +155,7 @@ def analyze_pipeline_functionality():
         all_results.append(result)
         print(f"  {result['passed']} passed, {result['failed']} failed, {result['errors']} errors")
 
-    print(f"\n=== Core Pipeline Summary ===")
+    print("\n=== Core Pipeline Summary ===")
     core_passed = sum(r['passed'] for r in all_results[:7])
     core_failed = sum(r['failed'] for r in all_results[:7])
     core_errors = sum(r['errors'] for r in all_results[:7])
@@ -162,7 +163,7 @@ def analyze_pipeline_functionality():
     print(f"Core Pipeline: {core_passed}/{core_total} passed ({(core_passed/core_total)*100:.1f}%)")
 
     # Business Impact Assessment
-    print(f"\n=== Business Impact Assessment ===")
+    print("\n=== Business Impact Assessment ===")
 
     if core_passed / core_total > 0.8:
         print("✅ CORE PIPELINE FUNCTIONALITY: WORKING")
@@ -179,7 +180,7 @@ def analyze_pipeline_functionality():
         "Quality Filtering": all_results[4],
     }
 
-    print(f"\n=== Critical Components Status ===")
+    print("\n=== Critical Components Status ===")
     for name, result in critical_components.items():
         if result['success_rate'] > 80:
             print(f"✅ {name}: WORKING ({result['success_rate']:.1f}%)")
@@ -187,7 +188,7 @@ def analyze_pipeline_functionality():
             print(f"❌ {name}: ISSUES ({result['success_rate']:.1f}%)")
             print(f"   {result['failed']} failed, {result['errors']} errors")
 
-    print(f"\n=== Recommendations ===")
+    print("\n=== Recommendations ===")
 
     if core_passed / core_total > 0.8:
         print("🚀 PRODUCTION READINESS: GOOD")

@@ -20,20 +20,19 @@ Usage:
    pytest test_market_research_agent_vcr.py -k "test_real_jina_integration"
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Dict, Any, List
 import json
 from datetime import datetime
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 import vcr
 from httpx import AsyncClient
 
-from transform.market_research_agent import MarketResearchAgent
-from transform.jina_client import JinaClient, SearchResult, JinaResponse
 from transform.caching.jina_cache import JinaCache
-
+from transform.jina_client import JinaClient, JinaResponse, SearchResult
+from transform.market_research_agent import MarketResearchAgent
 
 # VCR configuration
 VCR_CASSETTE_DIR = "tests/fixtures/vcr_cassettes"

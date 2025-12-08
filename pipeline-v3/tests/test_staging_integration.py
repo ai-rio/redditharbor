@@ -3,15 +3,19 @@ Integration test for staging layer with pipeline orchestrator
 Demonstrates complete TDD implementation working end-to-end
 """
 
-import pytest
 import tempfile
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import List
 
+import pytest
+
 from models.reddit import RedditSubmission
-from staging.staging_layer import StagingLayer, StagingConfig
-from orchestration.pipeline_orchestrator import PipelineOrchestrator, PipelineConfiguration
+from orchestration.pipeline_orchestrator import (
+    PipelineConfiguration,
+    PipelineOrchestrator,
+)
+from staging.staging_layer import StagingConfig, StagingLayer
 
 
 class TestStagingIntegration:

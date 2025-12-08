@@ -12,16 +12,20 @@ ISSUES ADDRESSED:
 4. API compatibility concerns with orchestration layer
 """
 
-import pytest
-from datetime import datetime, timezone
-from typing import List, Dict, Any
-from unittest.mock import Mock, patch
 import asyncio
 import time
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import Mock, patch
 
-from models.database import Opportunity, OpportunityCreate
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from orchestration.pipeline_orchestrator import PipelineOrchestrator, PipelineConfiguration
+from models.database import Opportunity, OpportunityCreate
+from orchestration.pipeline_orchestrator import (
+    PipelineConfiguration,
+    PipelineOrchestrator,
+)
 from services.validation_service import ValidationService
 
 
@@ -66,7 +70,7 @@ class TestOnlyMapsRealSchemaIssues:
                     reddit_author="testuser",
                     reddit_upvotes=100,
                     reddit_comments_count=25,
-                    reddit_created_at=datetime.now(timezone.utc),
+                    reddit_created_at=datetime.now(UTC),
                     app_title="Schema Error Test App",
                     app_concept="App to demonstrate schema evolution issues",
                     problem_statement="Problem with database schema evolution",
@@ -154,7 +158,7 @@ class TestOnlyMapsRealSchemaIssues:
                     "reddit_author": "transformed_user",
                     "reddit_upvotes": int(extracted_data["final_score"]),
                     "reddit_comments_count": int(extracted_data["final_score"] * 0.3),
-                    "reddit_created_at": datetime.now(timezone.utc),
+                    "reddit_created_at": datetime.now(UTC),
                     "app_title": extracted_data["app_title"],
                     "app_concept": "Transformed concept",
                     "problem_statement": "Transformed problem",
@@ -215,7 +219,7 @@ class TestOnlyMapsRealSchemaIssues:
         validation_service = Mock(spec=ValidationService)
 
         # This simulates the complex validation chain that OnlyMaps would bypass
-        async def complex_validation_chain(data: Dict[str, Any]) -> bool:
+        async def complex_validation_chain(data: dict[str, Any]) -> bool:
             """Simulates complex validation that OnlyMaps would simplify"""
             step_1 = "Validate submission format"
             step_2 = "Check database connection"
@@ -247,7 +251,7 @@ class TestOnlyMapsRealSchemaIssues:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Constraint Test App",
                 app_concept="App to demonstrate constraint validation complexity",
                 problem_statement="Problem with complex constraint validation",
@@ -363,7 +367,7 @@ class TestOnlyMapsRealTypeConversionIssues:
                 database_data = {
                     **converted_data,
                     "core_functions": str(converted_data.get("nested_objects", {}).get("market_metrics", {})),  # JSON serialization
-                    "reddit_created_at": converted_data.get("reddit_created_at", datetime.now(timezone.utc)),
+                    "reddit_created_at": converted_data.get("reddit_created_at", datetime.now(UTC)),
                 }
                 database_conversion_steps.append("Database-specific type handling")
             except Exception as e:
@@ -467,7 +471,7 @@ class TestOnlyMapsRealTypeConversionIssues:
                     "final_score": float(complex_json["analysis_result"]["final_score"]),  # Type enforcement
                     "embedding": str(complex_json["analysis_result"].get("embedding", "[]")),  # JSON string
                     "metadata": {
-                        "serialization_timestamp": datetime.now(timezone.utc).isoformat(),
+                        "serialization_timestamp": datetime.now(UTC).isoformat(),
                         "serialization_complexity": "high",
                         "nested_object_count": 3
                     }
@@ -605,7 +609,7 @@ class TestOnlyMapsRealPerformanceIssues:
                         reddit_author="db_user",
                         reddit_upvotes=int(result.get("final_score", 0)),
                         reddit_comments_count=int(result.get("final_score", 0) * 0.3),
-                        reddit_created_at=datetime.now(timezone.utc),
+                        reddit_created_at=datetime.now(UTC),
                         app_title=result.get("app_title", ""),
                         app_concept="Database performance test",
                         problem_statement="Database performance test problem",
@@ -665,7 +669,7 @@ class TestOnlyMapsRealAPICompatibilityIssues:
         mock_orchestrator = Mock(spec=PipelineOrchestrator)
 
         # Simulate current orchestration layer complexity
-        def current_complex_orchestration(analyses: List[AnalysisResult]) -> Dict[str, Any]:
+        def current_complex_orchestration(analyses: list[AnalysisResult]) -> dict[str, Any]:
             """Simulates current complex orchestration logic"""
             complex_steps = []
 
@@ -772,8 +776,8 @@ if __name__ == "__main__":
     print("5. API Compatibility - Complex orchestration layer integration requirements")
 
     # Run pytest programmatically
-    import sys
     import subprocess
+    import sys
 
     if len(sys.argv) > 1 and sys.argv[1] == "--verbose":
         # Run with verbose output

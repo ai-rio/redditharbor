@@ -2,17 +2,17 @@
 Performance tests for AgnoOpportunityAnalyzer
 """
 
-import pytest
 import asyncio
 import time
+from typing import Any, Dict, List
 from unittest.mock import Mock, patch
-from typing import List, Dict, Any
 
-from tests.performance.conftest import PerformanceMetrics
-from tests.helpers.test_data_factory import RedditSubmissionFactory
-from tests.helpers.mock_agno_agents import MockAgnoTeam
+import pytest
+
 from tests.helpers.assertion_helpers import AgnoAnalysisAssertions
-from tests.performance.conftest import PerformanceTestHelpers
+from tests.helpers.mock_agno_agents import MockAgnoTeam
+from tests.helpers.test_data_factory import RedditSubmissionFactory
+from tests.performance.conftest import PerformanceMetrics, PerformanceTestHelpers
 
 
 class TestAgnoAnalyzerPerformance:

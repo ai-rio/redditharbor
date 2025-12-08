@@ -10,12 +10,14 @@ A clean, type-safe SQL-to-Python mapping library that provides:
 Design Principles: SOLID, DRY, clean architecture
 """
 
+import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import List, Optional, Dict, Any, Type, TypeVar, Union, Protocol
-from pydantic import BaseModel, ValidationError as PydanticValidationError
-import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Protocol, Type, TypeVar, Union
+
+from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 # Configure logger for consistent formatting
 logger = logging.getLogger(__name__)
@@ -27,11 +29,11 @@ T = TypeVar('T', bound=BaseModel)
 class DatabaseConnection(Protocol):
     """Protocol defining database connection interface"""
 
-    def fetch_one_or_none(self, model_class: Type[T], sql: str, params: Optional[Dict[str, Any]] = None) -> Optional[T]:
+    def fetch_one_or_none(self, model_class: type[T], sql: str, params: dict[str, Any] | None = None) -> T | None:
         """Fetch single result or None"""
         ...
 
-    def fetch_many(self, model_class: Type[T], sql: str, params: Optional[Dict[str, Any]] = None) -> List[T]:
+    def fetch_many(self, model_class: type[T], sql: str, params: dict[str, Any] | None = None) -> list[T]:
         """Fetch multiple results"""
         ...
 
@@ -40,7 +42,7 @@ class DatabaseConnection(Protocol):
 class OnlyMapsError(Exception):
     """Base exception for all OnlyMaps errors"""
 
-    def __init__(self, message: str, original_error: Optional[Exception] = None):
+    def __init__(self, message: str, original_error: Exception | None = None):
         super().__init__(message)
         self.original_error = original_error
         self.timestamp = datetime.utcnow()
@@ -119,7 +121,7 @@ class ModelFieldMapper:
     """Handles mapping between SQL data and Pydantic models with schema flexibility"""
 
     @staticmethod
-    def map_to_model_safely(model_class: Type[T], data: Dict[str, Any]) -> T:
+    def map_to_model_safely(model_class: type[T], data: dict[str, Any]) -> T:
         """
         Map data to model with graceful handling of missing/extra fields
 
@@ -159,12 +161,12 @@ class ModelFieldMapper:
             )
 
     @staticmethod
-    def _get_model_fields(model_class: Type[T]) -> Dict[str, Any]:
+    def _get_model_fields(model_class: type[T]) -> dict[str, Any]:
         """Extract field definitions from Pydantic model"""
         return getattr(model_class, 'model_fields', {})
 
     @staticmethod
-    def _filter_data_by_model_fields(data: Dict[str, Any], model_fields: Dict[str, Any]) -> Dict[str, Any]:
+    def _filter_data_by_model_fields(data: dict[str, Any], model_fields: dict[str, Any]) -> dict[str, Any]:
         """Filter data to only include fields that exist in the model"""
         filtered_data = {}
 
@@ -177,7 +179,7 @@ class ModelFieldMapper:
         return filtered_data
 
     @staticmethod
-    def _create_with_defaults(model_class: Type[T], data: Dict[str, Any]) -> T:
+    def _create_with_defaults(model_class: type[T], data: dict[str, Any]) -> T:
         """Create model instance using available data and defaults for missing fields"""
         model_fields = ModelFieldMapper._get_model_fields(model_class)
         safe_data = {}
@@ -220,7 +222,7 @@ class OnlyMapsConnection(DatabaseConnection):
         logger.debug("Database connection established")
         return self
 
-    def __exit__(self, exc_type: Optional[Type[Exception]], exc_val: Optional[Exception], exc_tb: Optional[Any]) -> None:
+    def __exit__(self, exc_type: type[Exception] | None, exc_val: Exception | None, exc_tb: Any | None) -> None:
         """Context manager exit - cleanup connection"""
         self._connected = False
         if exc_val:
@@ -228,7 +230,7 @@ class OnlyMapsConnection(DatabaseConnection):
         else:
             logger.debug("Database connection closed normally")
 
-    def fetch_one_or_none(self, model_class: Type[T], sql: str, params: Optional[Dict[str, Any]] = None) -> Optional[T]:
+    def fetch_one_or_none(self, model_class: type[T], sql: str, params: dict[str, Any] | None = None) -> T | None:
         """
         Execute query and return single result or None with schema flexibility
 
@@ -256,7 +258,7 @@ class OnlyMapsConnection(DatabaseConnection):
             logger.error(f"Query execution failed: {e}")
             raise ConnectionError(f"Failed to execute query: {e}", original_error=e)
 
-    def fetch_many(self, model_class: Type[T], sql: str, params: Optional[Dict[str, Any]] = None) -> List[T]:
+    def fetch_many(self, model_class: type[T], sql: str, params: dict[str, Any] | None = None) -> list[T]:
         """
         Execute query and return multiple results with schema flexibility
 
@@ -294,7 +296,7 @@ class OnlyMapsConnection(DatabaseConnection):
             logger.error(f"Query execution failed: {e}")
             raise ConnectionError(f"Failed to execute query: {e}", original_error=e)
 
-    def _execute_query_single(self, sql: str, params: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    def _execute_query_single(self, sql: str, params: dict[str, Any] | None) -> dict[str, Any] | None:
         """Execute single-row query - mock implementation for tests"""
         # Handle specific test cases
         if "final_score" in sql and "AVG" in sql:
@@ -305,7 +307,7 @@ class OnlyMapsConnection(DatabaseConnection):
             }
         return None
 
-    def _execute_query_many(self, sql: str, params: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _execute_query_many(self, sql: str, params: dict[str, Any] | None) -> list[dict[str, Any]]:
         """Execute multi-row query - mock implementation for tests"""
         # Handle specific test cases
         if "app_title" in sql:
@@ -326,7 +328,7 @@ class OnlyMapsMapper:
         self.config = config
         logger.debug("OnlyMapsMapper initialized")
 
-    def map_from_sql(self, model_class: Type[T], sql: str, params: Optional[Dict[str, Any]] = None) -> Optional[T]:
+    def map_from_sql(self, model_class: type[T], sql: str, params: dict[str, Any] | None = None) -> T | None:
         """
         Map SQL query result to single Python object
 
@@ -341,7 +343,7 @@ class OnlyMapsMapper:
         with self._create_connection() as conn:
             return conn.fetch_one_or_none(model_class, sql, params)
 
-    def map_many_from_sql(self, model_class: Type[T], sql: str, params: Optional[Dict[str, Any]] = None) -> List[T]:
+    def map_many_from_sql(self, model_class: type[T], sql: str, params: dict[str, Any] | None = None) -> list[T]:
         """
         Map SQL query result to multiple Python objects
 

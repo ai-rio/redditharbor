@@ -6,8 +6,8 @@ This test verifies that the main function correctly handles the --with-agentops 
 """
 
 import sys
-from pathlib import Path
 import unittest.mock as mock
+from pathlib import Path
 
 # Add parent directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

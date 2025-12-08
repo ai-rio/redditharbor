@@ -10,8 +10,13 @@ Key Problem Solved:
 "column opportunities.final_score does not exist" error is handled gracefully with schema flexibility
 """
 
+from load.onlymaps_database import (
+    DatabaseStats,
+    OnlyMapsDatabaseLoader,
+    OpportunitySummary,
+)
 from onlymaps import connect
-from load.onlymaps_database import OnlyMapsDatabaseLoader, DatabaseStats, OpportunitySummary
+
 
 def demo_onlymaps_implementation():
     """Demonstrate OnlyMaps implementation solving the key issues"""

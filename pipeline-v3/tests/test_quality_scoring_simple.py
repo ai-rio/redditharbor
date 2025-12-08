@@ -2,14 +2,17 @@
 """
 Simple test script to verify quality scoring implementation
 """
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
 from transform.analyzer import SimpleOpportunityAnalyzer
+
 
 def test_quality_scoring():
     """Test the quality scoring implementation"""
@@ -30,7 +33,7 @@ def test_quality_scoring():
         score=45,
         comments_count=23,
         subreddit="productivity",
-        created_utc=datetime.now(timezone.utc),
+        created_utc=datetime.now(UTC),
         permalink="https://reddit.com/r/productivity/good_123"
     )
 
@@ -38,7 +41,7 @@ def test_quality_scoring():
     print(f"   Content Quality Score: {result1.content_quality_score}")
     print(f"   Is Spam: {result1.is_spam}")
     print(f"   Spam Indicators: {result1.spam_indicators}")
-    print(f"   ✓ High quality content should have score > 60")
+    print("   ✓ High quality content should have score > 60")
 
     # Test 2: Low quality/spam content
     print("\n2. Testing spam content...")
@@ -51,7 +54,7 @@ def test_quality_scoring():
         score=1,
         comments_count=0,
         subreddit="test",
-        created_utc=datetime.now(timezone.utc),
+        created_utc=datetime.now(UTC),
         permalink="https://reddit.com/r/test/spam_456"
     )
 
@@ -59,7 +62,7 @@ def test_quality_scoring():
     print(f"   Content Quality Score: {result2.content_quality_score}")
     print(f"   Is Spam: {result2.is_spam}")
     print(f"   Spam Indicators: {result2.spam_indicators}")
-    print(f"   ✓ Spam content should have score ≤ 40 and is_spam=True")
+    print("   ✓ Spam content should have score ≤ 40 and is_spam=True")
 
     # Test 3: Model validation
     print("\n3. Testing model validation...")

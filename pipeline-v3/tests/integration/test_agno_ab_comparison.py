@@ -4,19 +4,20 @@ A/B Comparison Tests for Agno vs LiteLLM Analyzers
 Phase 5 Production Testing - validates quality improvements and performance metrics
 """
 
-import pytest
-import time
 import json
-from typing import Dict, Any, List, Tuple
-from dataclasses import dataclass, asdict
-from datetime import datetime
-import statistics
 import math
+import statistics
+import time
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
-from models.reddit import RedditSubmission
+import pytest
+
 from models.analysis import AnalysisResult
-from transform.agno_analyzer import AgnoOpportunityAnalyzer
+from models.reddit import RedditSubmission
 from tests.helpers.test_data_factory import RedditSubmissionFactory
+from transform.agno_analyzer import AgnoOpportunityAnalyzer
 
 
 class GroundTruthFactory:
@@ -262,10 +263,10 @@ class ABTestReport:
     test_configuration: ABTestConfiguration
     quality_metrics: QualityMetrics
     performance_metrics: PerformanceMetrics
-    test_metadata: Dict[str, Any]
+    test_metadata: dict[str, Any]
     recommendation: str
-    success_criteria_met: List[str]
-    recommendations: List[str]
+    success_criteria_met: list[str]
+    recommendations: list[str]
 
 
 class TestAgnoABComparison:
@@ -624,15 +625,15 @@ class TestAgnoABComparison:
     def _run_analyzer_batch(
         self,
         analyzer: Any,
-        submissions: List[RedditSubmission]
-    ) -> List[AnalysisResult]:
+        submissions: list[RedditSubmission]
+    ) -> list[AnalysisResult]:
         """Run analyzer on batch of submissions"""
         results = []
         for submission in submissions:
             try:
                 result = analyzer.analyze_submission(submission)
                 results.append(result)
-            except Exception as e:
+            except Exception:
                 # Create error result
                 submission_id = submission.get('submission_id') if isinstance(submission, dict) else submission.id
                 error_result = AnalysisResult(
@@ -664,8 +665,8 @@ class TestAgnoABComparison:
     def _run_timed_analysis(
         self,
         analyzer: Any,
-        submissions: List[RedditSubmission]
-    ) -> Tuple[List[float], List[AnalysisResult]]:
+        submissions: list[RedditSubmission]
+    ) -> tuple[list[float], list[AnalysisResult]]:
         """Run analysis with timing information"""
         times = []
         results = []
@@ -678,7 +679,7 @@ class TestAgnoABComparison:
 
                 times.append(end_time - start_time)
                 results.append(result)
-            except Exception as e:
+            except Exception:
                 end_time = time.time()
 
                 times.append(end_time - start_time)
@@ -712,9 +713,9 @@ class TestAgnoABComparison:
 
     def _calculate_quality_metrics(
         self,
-        litellm_results: List[AnalysisResult],
-        agno_results: List[AnalysisResult],
-        submissions: List[RedditSubmission]
+        litellm_results: list[AnalysisResult],
+        agno_results: list[AnalysisResult],
+        submissions: list[RedditSubmission]
     ) -> QualityMetrics:
         """Calculate quality comparison metrics"""
 
@@ -798,10 +799,10 @@ class TestAgnoABComparison:
 
     def _calculate_performance_metrics(
         self,
-        litellm_times: List[float],
-        agno_times: List[float],
-        litellm_results: List[AnalysisResult],
-        agno_results: List[AnalysisResult]
+        litellm_times: list[float],
+        agno_times: list[float],
+        litellm_results: list[AnalysisResult],
+        agno_results: list[AnalysisResult]
     ) -> PerformanceMetrics:
         """Calculate performance comparison metrics"""
 
@@ -856,8 +857,8 @@ class TestAgnoABComparison:
 
     def _count_false_positives(
         self,
-        results: List[AnalysisResult],
-        submissions: List[RedditSubmission]
+        results: list[AnalysisResult],
+        submissions: list[RedditSubmission]
     ) -> int:
         """Count false positive opportunities"""
         false_positives = 0
@@ -891,8 +892,8 @@ class TestAgnoABComparison:
 
     def _calculate_precision(
         self,
-        results: List[AnalysisResult],
-        submissions: List[RedditSubmission]
+        results: list[AnalysisResult],
+        submissions: list[RedditSubmission]
     ) -> float:
         """Calculate precision metric - TP / (TP + FP)"""
         true_positives = 0
@@ -928,7 +929,7 @@ class TestAgnoABComparison:
         print(f"📊 Precision: TP={true_positives}, FP={false_positives}, Precision={precision:.3f}")
         return precision
 
-    def _calculate_avg_functions(self, results: List[AnalysisResult]) -> float:
+    def _calculate_avg_functions(self, results: list[AnalysisResult]) -> float:
         """Calculate average number of core functions identified"""
         total_functions = 0
 
@@ -938,7 +939,7 @@ class TestAgnoABComparison:
 
         return total_functions / len(results) if results else 0
 
-    def _calculate_percentile(self, data: List[float], percentile: int) -> float:
+    def _calculate_percentile(self, data: list[float], percentile: int) -> float:
         """Calculate percentile value"""
         if not data:
             return 0.0
@@ -997,7 +998,7 @@ class TestAgnoABComparison:
     def _run_comprehensive_ab_test(
         self,
         config: ABTestConfiguration,
-        submissions: List[RedditSubmission],
+        submissions: list[RedditSubmission],
         litellm_analyzer: Any,
         agno_analyzer: Any
     ) -> ABTestReport:
@@ -1072,7 +1073,7 @@ class TestAgnoABComparison:
         self,
         quality_metrics: QualityMetrics,
         performance_metrics: PerformanceMetrics,
-        success_criteria: List[str]
+        success_criteria: list[str]
     ) -> str:
         """Generate overall recommendation"""
         if len(success_criteria) >= 4:
@@ -1086,7 +1087,7 @@ class TestAgnoABComparison:
         self,
         quality_metrics: QualityMetrics,
         performance_metrics: PerformanceMetrics
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate improvement recommendations"""
         recommendations = []
 

@@ -3,9 +3,12 @@
 Test AnalysisResult validation using valid AppIdea data
 """
 
+from datetime import UTC, datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+
 
 def create_valid_app_idea():
     """Create a valid AppIdea for testing"""
@@ -137,7 +140,7 @@ def test_missing_timestamp_validation():
     )
 
     # Recent timestamp should work
-    recent_timestamp = datetime.now(timezone.utc) - timedelta(days=1)
+    recent_timestamp = datetime.now(UTC) - timedelta(days=1)
     analysis = AnalysisResult(
         submission_id="test123",
         app_idea=idea,
@@ -151,7 +154,7 @@ def test_missing_timestamp_validation():
     assert analysis.analyzed_at == recent_timestamp
 
     # Old timestamp should fail
-    old_timestamp = datetime.now(timezone.utc) - timedelta(days=365)
+    old_timestamp = datetime.now(UTC) - timedelta(days=365)
 
     with pytest.raises(ValueError, match="Analysis timestamp is too old"):
         AnalysisResult(

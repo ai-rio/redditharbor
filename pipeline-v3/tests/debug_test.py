@@ -4,8 +4,14 @@ Debug script to test the RED phase of TDD
 """
 
 from unittest.mock import Mock
-from orchestration.pipeline_orchestrator import PipelineOrchestrator, PipelineConfiguration
+
 import pytest
+
+from orchestration.pipeline_orchestrator import (
+    PipelineConfiguration,
+    PipelineOrchestrator,
+)
+
 
 def debug_test():
     """Debug the test method existence"""

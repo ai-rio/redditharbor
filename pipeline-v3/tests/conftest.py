@@ -4,10 +4,11 @@ This file ensures proper Python path configuration for all test imports
 and provides common fixtures for the test suite.
 """
 
-import sys
 import os
-import pytest
+import sys
 from pathlib import Path
+
+import pytest
 
 # CRITICAL: Set up Python path BEFORE any imports to avoid conflicts
 # The order is crucial: pipeline-v3 must be FIRST to avoid conflicts with other models
@@ -41,7 +42,7 @@ os.environ.setdefault('PYTHONPATH', str(pipeline_root))
 
 def pytest_configure(config):
     """Called after command line options have been parsed."""
-    print(f"\n=== Pipeline v3 Test Configuration ===")
+    print("\n=== Pipeline v3 Test Configuration ===")
     print(f"Pipeline root: {pipeline_root}")
     print(f"Parent root: {parent_root}")
     print(f"Working directory: {Path.cwd()}")
@@ -69,7 +70,7 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(config, items):
     """Called after collection has been performed."""
-    print(f"\n=== Test Collection Summary ===")
+    print("\n=== Test Collection Summary ===")
     print(f"Total tests collected: {len(items)}")
 
     # Group tests by module for better organization

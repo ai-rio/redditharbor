@@ -5,8 +5,8 @@ This module provides validation helpers for Agno field values
 to ensure data integrity and consistency.
 """
 
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any
 
 
 class AgnoFieldValidator:
@@ -30,7 +30,7 @@ class AgnoFieldValidator:
     AGENTS_COUNT_MAX = 10
 
     @classmethod
-    def validate_score(cls, value: Optional[float], field_name: str) -> Optional[float]:
+    def validate_score(cls, value: float | None, field_name: str) -> float | None:
         """
         Validate a score field (0-100 range)
 
@@ -56,7 +56,7 @@ class AgnoFieldValidator:
         return float(value)
 
     @classmethod
-    def validate_cost(cls, value: Optional[float]) -> Optional[float]:
+    def validate_cost(cls, value: float | None) -> float | None:
         """
         Validate analysis cost (must be non-negative)
 
@@ -81,7 +81,7 @@ class AgnoFieldValidator:
         return float(value)
 
     @classmethod
-    def validate_agents_count(cls, value: Optional[int]) -> Optional[int]:
+    def validate_agents_count(cls, value: int | None) -> int | None:
         """
         Validate agents count (must be non-negative integer)
 
@@ -106,7 +106,7 @@ class AgnoFieldValidator:
         return value
 
     @classmethod
-    def validate_segment_type(cls, value: Optional[str]) -> Optional[str]:
+    def validate_segment_type(cls, value: str | None) -> str | None:
         """
         Validate market segment type
 
@@ -136,7 +136,7 @@ class AgnoFieldValidator:
         return normalized
 
     @classmethod
-    def validate_validation_status(cls, value: Optional[str]) -> Optional[str]:
+    def validate_validation_status(cls, value: str | None) -> str | None:
         """
         Validate validation status
 
@@ -163,7 +163,7 @@ class AgnoFieldValidator:
         return normalized
 
     @classmethod
-    def validate_agent_metadata(cls, value: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    def validate_agent_metadata(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
         """
         Validate agent metadata structure
 
@@ -204,7 +204,7 @@ class AgnoFieldValidator:
         return value
 
     @classmethod
-    def validate_all_agno_fields(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_all_agno_fields(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Validate all Agno fields in a data dictionary
 
@@ -251,7 +251,7 @@ class AgnoFieldValidator:
         return validated
 
     @classmethod
-    def validate_field_consistency(cls, data: Dict[str, Any]) -> None:
+    def validate_field_consistency(cls, data: dict[str, Any]) -> None:
         """
         Validate logical consistency between Agno fields
 

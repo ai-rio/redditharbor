@@ -4,23 +4,25 @@ Unit tests for AgnoOpportunityAnalyzer - Phase 1 Implementation
 These tests verify the AgnoOpportunityAnalyzer implementation.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any, List
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from models.reddit import RedditSubmission
+from transform.agno_agents import (
+    MarketSegmentAgent,
+    PaymentBehaviorAgent,
+    PricePointAgent,
+    WillingnessToPayAgent,
+)
 
 # Import the actual implementation
 from transform.agno_analyzer import AgnoOpportunityAnalyzer, MockTeam
-from transform.agno_agents import (
-    WillingnessToPayAgent,
-    MarketSegmentAgent,
-    PricePointAgent,
-    PaymentBehaviorAgent
-)
 from transform.agno_synthesis import AgnoSynthesis
-from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from models.reddit import RedditSubmission
 
 
 class TestAgnoOpportunityAnalyzerClassStructure:
@@ -137,7 +139,7 @@ class TestAgnoOpportunityAnalyzerCoreFunctionality:
             downvotes=0,
             comments_count=42,
             subreddit="entrepreneur",
-            created_utc=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            created_utc=datetime(2024, 1, 1, tzinfo=UTC),
             permalink="/r/entrepreneur/test123"
         )
         return submission
@@ -146,7 +148,7 @@ class TestAgnoOpportunityAnalyzerCoreFunctionality:
     def mock_agno_result(self):
         """Create a mock Agno result with agent outputs"""
         class MockResult:
-            def get_agent_result(self, agent_name: str) -> Dict[str, Any]:
+            def get_agent_result(self, agent_name: str) -> dict[str, Any]:
                 agent_results = {
                     "WTP Analyst": {
                         "wtp_score": 75,
@@ -225,7 +227,7 @@ class TestAgnoOpportunityAnalyzerCoreFunctionality:
     def test_synthesize_agent_outputs_with_missing_data(self, analyzer):
         """Test synthesis with missing agent data"""
         class PartialMockResult:
-            def get_agent_result(self, agent_name: str) -> Dict[str, Any]:
+            def get_agent_result(self, agent_name: str) -> dict[str, Any]:
                 return {}  # Return empty data
 
         synthesis = analyzer._synthesize_agent_outputs(PartialMockResult())

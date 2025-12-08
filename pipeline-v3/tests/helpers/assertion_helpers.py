@@ -3,8 +3,8 @@ Custom assertion helpers for Agno analysis validation
 """
 
 import json
-from typing import Dict, Any, List
 from dataclasses import asdict
+from typing import Any, Dict, List
 
 # Any no longer needed - using AnalysisResult from models.analysis instead
 
@@ -23,7 +23,7 @@ class AgnoAnalysisAssertions:
             pytest.fail(f"Invalid JSON response: {response}")
 
     @staticmethod
-    def assert_field_mapping(mapped_data: Dict[str, Any], expected_fields: List[str]):
+    def assert_field_mapping(mapped_data: dict[str, Any], expected_fields: list[str]):
         """Assert that all expected fields are present in mapped data"""
         for field in expected_fields:
             assert field in mapped_data, f"Missing expected field: {field}"
@@ -35,7 +35,7 @@ class AgnoAnalysisAssertions:
         pass
 
     @staticmethod
-    def assert_consensus_metadata(consensus_data: Dict[str, Any]):
+    def assert_consensus_metadata(consensus_data: dict[str, Any]):
         """Assert consensus metadata structure"""
         required_fields = [
             "agent_count",
@@ -53,7 +53,7 @@ class AgnoAnalysisAssertions:
         assert consensus_data["outliers_detected"] >= 0
 
     @staticmethod
-    def assert_friction_indicators(friction_indicators: List[str]):
+    def assert_friction_indicators(friction_indicators: list[str]):
         """Assert friction indicators are valid"""
         valid_indicators = [
             "price_objection",
@@ -93,7 +93,7 @@ class AgnoAnalysisAssertions:
         assert 0 <= confidence <= 1, f"Confidence {confidence} out of range [0, 1]"
 
     @staticmethod
-    def assert_price_points_format(price_points: List[Any]):
+    def assert_price_points_format(price_points: list[Any]):
         """Assert price points are properly formatted"""
         if price_points:
             for price_point in price_points:
@@ -105,7 +105,7 @@ class AgnoAnalysisAssertions:
                     assert price_point.startswith("$"), "Price must start with $"
 
     @staticmethod
-    def assert_agentops_integration(agentops_enabled: bool, events: List[Dict], traces: List[Dict]):
+    def assert_agentops_integration(agentops_enabled: bool, events: list[dict], traces: list[dict]):
         """Assert AgentOps integration is properly recorded"""
         if agentops_enabled:
             assert len(events) > 0, "AgentOps events should be recorded when enabled"
@@ -124,7 +124,7 @@ class AgnoAnalysisAssertions:
                 assert "status" in trace
 
     @staticmethod
-    def assert_field_normalization(data: Dict[str, Any]):
+    def assert_field_normalization(data: dict[str, Any]):
         """Assert field normalization works correctly"""
         # Test sentiment normalization
         sentiment = data.get("sentiment_toward_payment", "")
@@ -145,7 +145,7 @@ class AgnoAnalysisAssertions:
             assert isinstance(price_points, list)
 
     @staticmethod
-    def assert_consensus_calculation(consensus_data: Dict[str, Any], agent_responses: List[Dict]):
+    def assert_consensus_calculation(consensus_data: dict[str, Any], agent_responses: list[dict]):
         """Assert consensus calculation from multiple agents"""
         assert consensus_data["agent_count"] == len(agent_responses)
 
@@ -164,7 +164,7 @@ class AgnoAnalysisAssertions:
         assert agreement_level in ["high", "medium", "low", "very_low"]
 
     @staticmethod
-    def assert_error_handling(error_response: Dict[str, Any]):
+    def assert_error_handling(error_response: dict[str, Any]):
         """Assert error handling returns valid fallback structure"""
         required_fields = [
             "willingness_to_pay_score",
@@ -187,7 +187,7 @@ class AgnoAnalysisAssertions:
         assert "error_occurred" in error_response
 
     @staticmethod
-    def assert_response_parsing_logic(parser_response: Dict[str, Any], raw_response: str):
+    def assert_response_parsing_logic(parser_response: dict[str, Any], raw_response: str):
         """Assert response parsing logic works correctly"""
         # Should always return a dictionary
         assert isinstance(parser_response, dict)
@@ -228,7 +228,7 @@ class AgnoAnalysisAssertions:
             assert value is not None, f"Field {field} is None"
 
     @staticmethod
-    def assert_multi_agent_consistency(analysis_results: List[Any]):
+    def assert_multi_agent_consistency(analysis_results: list[Any]):
         """Assert consistency across multiple analysis results"""
         if len(analysis_results) < 2:
             return  # Not enough results to check consistency

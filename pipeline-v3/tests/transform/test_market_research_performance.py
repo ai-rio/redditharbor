@@ -10,21 +10,22 @@ These tests benchmark:
 - Response time distributions
 """
 
-import pytest
 import asyncio
-import time
-import psutil
-import os
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Dict, Any, List, Tuple
 import json
-from datetime import datetime, timezone
+import os
+import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Tuple
+from unittest.mock import AsyncMock, Mock, patch
 
-from transform.market_research_agent import MarketResearchAgent
-from transform.jina_client import JinaClient
-from transform.caching.jina_cache import JinaCache
 import numpy as np
+import psutil
+import pytest
+
+from transform.caching.jina_cache import JinaCache
+from transform.jina_client import JinaClient
+from transform.market_research_agent import MarketResearchAgent
 
 
 @dataclass
@@ -68,7 +69,7 @@ class TestMarketResearchPerformance:
             max_memory_items=1000
         )
 
-    def measure_performance(self, func, *args, **kwargs) -> Tuple[Any, PerformanceMetrics]:
+    def measure_performance(self, func, *args, **kwargs) -> tuple[Any, PerformanceMetrics]:
         """Measure performance metrics for a function"""
         # Measure memory before
         process = psutil.Process(os.getpid())
@@ -132,7 +133,7 @@ class TestMarketResearchPerformance:
         )
 
         # Report single validation metrics
-        print(f"\nSingle Validation Performance:")
+        print("\nSingle Validation Performance:")
         print(f"  Time: {single_metrics.avg_time_per_request:.3f}s")
         print(f"  Memory: {single_metrics.memory_usage_mb:.2f}MB")
         print(f"  Cost: ${agent.get_cost_summary()['total_cost']:.6f}")
@@ -246,7 +247,7 @@ class TestMarketResearchPerformance:
         read_hit_avg = np.mean(read_times_hit)
         miss_avg = np.mean(miss_times)
 
-        print(f"\nCache Performance:")
+        print("\nCache Performance:")
         print(f"  Write: {write_avg*1000:.3f}ms avg")
         print(f"  Read (hit): {read_hit_avg*1000:.3f}ms avg")
         print(f"  Read (miss): {miss_avg*1000:.3f}ms avg")
@@ -289,7 +290,7 @@ class TestMarketResearchPerformance:
         # Calculate overhead
         overhead = (time_with_tracking - time_without_tracking) / time_without_tracking * 100
 
-        print(f"\nCost Tracking Overhead:")
+        print("\nCost Tracking Overhead:")
         print(f"  With tracking: {time_with_tracking:.3f}s")
         print(f"  Without tracking: {time_without_tracking:.3f}s")
         print(f"  Overhead: {overhead:.1f}%")
@@ -332,7 +333,7 @@ class TestMarketResearchPerformance:
         memory_growth = memory_samples[-1] - baseline_memory
         memory_per_validation = memory_growth / 1000
 
-        print(f"\nMemory Efficiency:")
+        print("\nMemory Efficiency:")
         print(f"  Baseline: {baseline_memory:.2f}MB")
         print(f"  Final: {memory_samples[-1]:.2f}MB")
         print(f"  Growth: {memory_growth:.2f}MB")
@@ -389,7 +390,7 @@ class TestMarketResearchPerformance:
         avg_time = np.mean(times_array)
         p99_time = np.percentile(times_array, 99)
 
-        print(f"\nScore Calculation Performance:")
+        print("\nScore Calculation Performance:")
         print(f"  Average: {avg_time*1000:.3f}ms")
         print(f"  P99: {p99_time*1000:.3f}ms")
         print(f"  Total for {iterations}: {sum(times):.3f}s")
@@ -449,7 +450,7 @@ class TestMarketResearchPerformance:
         avg_time = np.mean(times)
         avg_length = np.mean(reasoning_lengths)
 
-        print(f"\nReasoning Generation Performance:")
+        print("\nReasoning Generation Performance:")
         print(f"  Average time: {avg_time*1000:.3f}ms")
         print(f"  Average length: {avg_length:.0f} chars")
         print(f"  Chars per ms: {avg_length/(avg_time*1000):.0f}")
@@ -516,7 +517,7 @@ class TestMarketResearchPerformance:
         # Calculate metrics
         avg_time = np.mean(times)
 
-        print(f"\nData Conversion Performance:")
+        print("\nData Conversion Performance:")
         print(f"  Average time: {avg_time*1000:.3f}ms")
         print(f"  Items processed: {50 + 20 + 70 + 30}")  # Total items converted
 
@@ -562,7 +563,7 @@ class TestJinaClientPerformance:
             avg_time = np.mean(times)
             requests_per_second = len(urls) / sum(times)
 
-            print(f"\nHTTP Request Performance:")
+            print("\nHTTP Request Performance:")
             print(f"  Average time: {avg_time*1000:.3f}ms")
             print(f"  Requests/sec: {requests_per_second:.0f}")
 

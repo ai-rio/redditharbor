@@ -5,15 +5,16 @@ This test suite validates that our Pydantic models work correctly together,
 with external systems, and in real-world scenarios beyond individual model validation.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
 import json
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Any, Dict, List
 
-from models.reddit import RedditSubmission, RedditComment
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
-from models.database import OpportunityCreate, Opportunity
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from models.database import Opportunity, OpportunityCreate
+from models.reddit import RedditComment, RedditSubmission
 
 
 class TestModelSerializationIntegration:
@@ -132,7 +133,7 @@ class TestModelSerializationIntegration:
             reddit_author="integration_user",
             reddit_upvotes=1000,
             reddit_comments_count=250,
-            reddit_created_at=datetime.now(timezone.utc) - timedelta(days=1),
+            reddit_created_at=datetime.now(UTC) - timedelta(days=1),
             app_title="🚀 Advanced Integration App",
             app_concept="Comprehensive application with advanced features for seamless integration",
             problem_statement="Complex problem requiring sophisticated solution approach",
@@ -217,7 +218,7 @@ class TestModelSerializationIntegration:
             "score": 475,
             "comments_count": 75,
             "subreddit": "entrepreneurship",
-            "created_utc": datetime.now(timezone.utc) - timedelta(hours=2),
+            "created_utc": datetime.now(UTC) - timedelta(hours=2),
             "permalink": "https://reddit.com/r/entrepreneurship/flow123/advanced_app_idea",
             "url": "https://example.com/related_article"
         }
@@ -226,7 +227,7 @@ class TestModelSerializationIntegration:
         try:
             submission = RedditSubmission(**reddit_data)
             assert submission.score == submission.upvotes - submission.downvotes
-            assert submission.created_utc <= datetime.now(timezone.utc)
+            assert submission.created_utc <= datetime.now(UTC)
             assert "🚀" in submission.title
         except Exception as e:
             pytest.fail(f"RedditSubmission creation failed: {e}")
@@ -412,7 +413,7 @@ class TestAPIResponseIntegration:
                     score=submission_data["score"],
                     comments_count=submission_data["num_comments"],
                     subreddit=submission_data["subreddit"],
-                    created_utc=datetime.fromtimestamp(submission_data["created_utc"], tz=timezone.utc),
+                    created_utc=datetime.fromtimestamp(submission_data["created_utc"], tz=UTC),
                     permalink=submission_data["permalink"],
                     url=submission_data.get("url"),
                     is_self=submission_data.get("is_self", True),
@@ -468,7 +469,7 @@ class TestAPIResponseIntegration:
                     score=0,
                     comments_count=0,
                     subreddit="error",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/error/error123"
                 )
 
@@ -644,7 +645,7 @@ class TestDatabaseIntegration:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Test App Title",
                 app_concept="Test concept",
                 problem_statement="Test problem",
@@ -700,7 +701,7 @@ class TestDatabaseIntegration:
                 reddit_author="user1",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="First App",
                 app_concept="First concept",
                 problem_statement="First problem",
@@ -723,7 +724,7 @@ class TestDatabaseIntegration:
                 reddit_author="user2",
                 reddit_upvotes=50,
                 reddit_comments_count=10,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Second App",
                 app_concept="Second concept",
                 problem_statement="Second problem",
@@ -768,7 +769,7 @@ class TestDatabaseIntegration:
                     reddit_author="testuser",
                     reddit_upvotes=100,
                     reddit_comments_count=25,
-                    reddit_created_at=datetime.now(timezone.utc),
+                    reddit_created_at=datetime.now(UTC),
                     app_title="Test App Title",
                     app_concept="Test concept",
                     problem_statement="Test problem",
@@ -807,7 +808,7 @@ class TestDatabaseIntegration:
                     reddit_author=f"user_{thread_id}",
                     reddit_upvotes=100 + thread_id,
                     reddit_comments_count=25 + thread_id,
-                    reddit_created_at=datetime.now(timezone.utc),
+                    reddit_created_at=datetime.now(UTC),
                     app_title=f"Transaction App {thread_id}",
                     app_concept=f"Transaction concept {thread_id}",
                     problem_statement=f"Transaction problem {thread_id}",
@@ -885,7 +886,7 @@ class TestDatabaseIntegration:
                     "reddit_author": "testuser",
                     "reddit_upvotes": 100,
                     "reddit_comments_count": 25,
-                    "reddit_created_at": datetime.now(timezone.utc),
+                    "reddit_created_at": datetime.now(UTC),
                     "app_title": "Rollback Test App",
                     "app_concept": "Rollback concept",
                     "problem_statement": "Rollback problem",
@@ -1096,7 +1097,7 @@ class TestExternalSystemIntegration:
                 "type": event_type,
                 "data": data,
                 "severity": severity,
-                "timestamp": datetime.now(timezone.utc)
+                "timestamp": datetime.now(UTC)
             })
 
         # Test monitoring model validation events
@@ -1238,7 +1239,7 @@ class TestRealWorldScenarioIntegration:
             pipeline_steps.append({
                 "step": step_name,
                 "data": data,
-                "timestamp": datetime.now(timezone.utc)
+                "timestamp": datetime.now(UTC)
             })
 
         # Step 1: Reddit Data Collection
@@ -1253,7 +1254,7 @@ class TestRealWorldScenarioIntegration:
                 "score": 245,
                 "comments_count": 45,
                 "subreddit": "productmanagement",
-                "created_utc": datetime.now(timezone.utc) - timedelta(hours=3),
+                "created_utc": datetime.now(UTC) - timedelta(hours=3),
                 "permalink": "https://reddit.com/r/productmanagement/pipeline_001/revolutionary_app_idea",
                 "is_self": True,
                 "over_18": False
@@ -1268,7 +1269,7 @@ class TestRealWorldScenarioIntegration:
                 "score": 178,
                 "comments_count": 32,
                 "subreddit": "smallbusiness",
-                "created_utc": datetime.now(timezone.utc) - timedelta(hours=6),
+                "created_utc": datetime.now(UTC) - timedelta(hours=6),
                 "permalink": "https://reddit.com/r/smallbusiness/pipeline_002/ai_analytics_platform",
                 "is_self": True,
                 "over_18": False
@@ -1340,7 +1341,7 @@ class TestRealWorldScenarioIntegration:
                     reddit_author="pipeline_user",
                     reddit_upvotes=100,  # Default for pipeline
                     reddit_comments_count=25,  # Default for pipeline
-                    reddit_created_at=datetime.now(timezone.utc),
+                    reddit_created_at=datetime.now(UTC),
                     app_title=analysis_result.app_idea.title,
                     app_concept=analysis_result.app_idea.app_concept,
                     problem_statement=analysis_result.app_idea.problem_statement,
@@ -1458,7 +1459,7 @@ class TestRealWorldScenarioIntegration:
 
         # Generate large batch of test data
         batch_size = 1000
-        batch_start_time = datetime.now(timezone.utc)
+        batch_start_time = datetime.now(UTC)
 
         batch_data = []
         for i in range(batch_size):
@@ -1486,7 +1487,7 @@ class TestRealWorldScenarioIntegration:
         processing_times = []
 
         for chunk_idx, chunk in enumerate(chunks):
-            chunk_start_time = datetime.now(timezone.utc)
+            chunk_start_time = datetime.now(UTC)
 
             try:
                 # Process chunk
@@ -1522,7 +1523,7 @@ class TestRealWorldScenarioIntegration:
 
                 processed_results.extend(chunk_results)
 
-                chunk_end_time = datetime.now(timezone.utc)
+                chunk_end_time = datetime.now(UTC)
                 chunk_duration = (chunk_end_time - chunk_start_time).total_seconds()
                 processing_times.append(chunk_duration)
 

@@ -2,10 +2,10 @@
 Factory pattern for analyzer creation with dependency injection and configuration management
 """
 
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
 import logging
 import os
+from abc import ABC, abstractmethod
+from typing import Any
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ except ImportError:
 
 # Conditional imports with fallbacks
 try:
-    from .analyzer import SimpleOpportunityAnalyzer, OpportunityAnalyzer
+    from .analyzer import OpportunityAnalyzer, SimpleOpportunityAnalyzer
 except ImportError:
     # Mock analyzers for TDD
     class SimpleOpportunityAnalyzer:
@@ -43,7 +43,11 @@ except ImportError:
         pass
 
 try:
-    from .embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider, OpenAIEmbeddingProvider
+    from .embedding_strategies import (
+        EmbeddingStrategy,
+        FakeEmbeddingProvider,
+        OpenAIEmbeddingProvider,
+    )
 except ImportError:
     # Mock embedding strategies for TDD
     class EmbeddingStrategy:
@@ -129,7 +133,7 @@ class AnalyzerFactory(ABC):
     """Abstract base class for analyzer factories"""
 
     @abstractmethod
-    def create_analyzer(self, config: Optional[Dict[str, Any]] = None):
+    def create_analyzer(self, config: dict[str, Any] | None = None):
         """Create an analyzer instance based on configuration"""
         pass
 
@@ -148,7 +152,7 @@ class TestModeAnalyzerFactory(AnalyzerFactory):
         self.embedding_dimensions = embedding_dimensions
         self.value_range = value_range
 
-    def create_analyzer(self, config: Optional[Dict[str, Any]] = None) -> SimpleOpportunityAnalyzer:
+    def create_analyzer(self, config: dict[str, Any] | None = None) -> SimpleOpportunityAnalyzer:
         """
         Create a test mode analyzer with OpenAI embeddings if available, otherwise fake
 
@@ -220,7 +224,7 @@ class ProductionAnalyzerFactory(AnalyzerFactory):
         """
         self.settings = settings or get_settings()
 
-    def create_analyzer(self, config: Optional[Dict[str, Any]] = None) -> OpportunityAnalyzer:
+    def create_analyzer(self, config: dict[str, Any] | None = None) -> OpportunityAnalyzer:
         """
         Create a production analyzer with LLM and embedding services
 
@@ -288,7 +292,7 @@ class HybridAnalyzerFactory(AnalyzerFactory):
         """
         self.settings = settings or get_settings()
 
-    def create_analyzer(self, config: Optional[Dict[str, Any]] = None) -> SimpleOpportunityAnalyzer:
+    def create_analyzer(self, config: dict[str, Any] | None = None) -> SimpleOpportunityAnalyzer:
         """
         Create a hybrid analyzer with configurable embedding strategy
 
@@ -366,7 +370,7 @@ class AgnoAnalyzerFactory(AnalyzerFactory):
         analyzer = factory.create_analyzer()
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize Agno analyzer factory
 
@@ -376,7 +380,7 @@ class AgnoAnalyzerFactory(AnalyzerFactory):
         self.default_config = config or {}
         self.settings = get_settings()
 
-    def create_analyzer(self, config: Optional[Dict[str, Any]] = None) -> AgnoOpportunityAnalyzer:
+    def create_analyzer(self, config: dict[str, Any] | None = None) -> AgnoOpportunityAnalyzer:
         """
         Create an Agno-based multi-agent analyzer
 
@@ -411,7 +415,7 @@ class AgnoAnalyzerFactory(AnalyzerFactory):
         logger.info(f"Created Agno analyzer with model={resolved_config['model']}, agentops={resolved_config['enable_agentops']}")
         return analyzer
 
-    def _resolve_configuration(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _resolve_configuration(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Resolve configuration with proper precedence order
 
@@ -503,7 +507,7 @@ class AgnoAnalyzerFactory(AnalyzerFactory):
 
         return default
 
-    def _validate_config_pre_resolution(self, config: Dict[str, Any]) -> None:
+    def _validate_config_pre_resolution(self, config: dict[str, Any]) -> None:
         """
         Validate configuration parameters before resolution (to catch type errors early)
 
@@ -528,7 +532,7 @@ class AgnoAnalyzerFactory(AnalyzerFactory):
             else:
                 raise ValueError(f"Invalid enable_agentops configuration: {enable_agentops}. Must be boolean.")
 
-    def _validate_config(self, config: Dict[str, Any]) -> None:
+    def _validate_config(self, config: dict[str, Any]) -> None:
         """
         Validate resolved configuration parameters
 
@@ -592,7 +596,7 @@ class AnalyzerFactoryProvider:
         logger.info(f"Selected {factory_type} analyzer factory")
         return factory
 
-    def create_analyzer(self, factory_type: str = None, config: Optional[Dict[str, Any]] = None):
+    def create_analyzer(self, factory_type: str = None, config: dict[str, Any] | None = None):
         """
         Create analyzer using factory of specified type
 
@@ -642,7 +646,7 @@ def get_analyzer_factory_provider(settings=None) -> AnalyzerFactoryProvider:
     return _analyzer_factory_provider
 
 
-def create_analyzer(factory_type: str = None, config: Optional[Dict[str, Any]] = None, settings=None):
+def create_analyzer(factory_type: str = None, config: dict[str, Any] | None = None, settings=None):
     """
     Convenience function to create an analyzer
 
@@ -658,7 +662,7 @@ def create_analyzer(factory_type: str = None, config: Optional[Dict[str, Any]] =
     return provider.create_analyzer(factory_type, config)
 
 
-def get_analyzer(analyzer_type: str = "agno", config: Optional[Dict[str, Any]] = None, settings=None):
+def get_analyzer(analyzer_type: str = "agno", config: dict[str, Any] | None = None, settings=None):
     """
     Get an analyzer instance by type with Agno as default
 

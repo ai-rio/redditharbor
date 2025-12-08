@@ -2,16 +2,16 @@
 Mock implementations of Agno agents for testing
 """
 
-from unittest.mock import Mock
-from typing import Dict, Any, Optional
-import json
 import asyncio
+import json
+from typing import Any, Dict, Optional
+from unittest.mock import Mock
 
 
 class MockWTPAgent:
     """Mock Willingness to Pay Agent"""
 
-    def __init__(self, response_data: Optional[Dict[str, Any]] = None):
+    def __init__(self, response_data: dict[str, Any] | None = None):
         self.response_data = response_data or {
             "sentiment_toward_payment": "Positive",
             "willingness_to_pay_score": 75,
@@ -25,7 +25,7 @@ class MockWTPAgent:
         asyncio.sleep(0.01)
         return json.dumps(self.response_data)
 
-    async def run_async(self, prompt: str) -> Dict[str, Any]:
+    async def run_async(self, prompt: str) -> dict[str, Any]:
         """Mock async run method"""
         await asyncio.sleep(0.01)
         return self.response_data
@@ -34,7 +34,7 @@ class MockWTPAgent:
 class MockSegmentAgent:
     """Mock Market Segment Agent"""
 
-    def __init__(self, response_data: Optional[Dict[str, Any]] = None):
+    def __init__(self, response_data: dict[str, Any] | None = None):
         self.response_data = response_data or {
             "customer_segment": "B2B",
             "confidence": 0.8,
@@ -47,7 +47,7 @@ class MockSegmentAgent:
         asyncio.sleep(0.01)
         return json.dumps(self.response_data)
 
-    async def run_async(self, prompt: str) -> Dict[str, Any]:
+    async def run_async(self, prompt: str) -> dict[str, Any]:
         """Mock async run method"""
         await asyncio.sleep(0.01)
         return self.response_data
@@ -56,7 +56,7 @@ class MockSegmentAgent:
 class MockPriceAgent:
     """Mock Price Point Agent"""
 
-    def __init__(self, response_data: Optional[Dict[str, Any]] = None):
+    def __init__(self, response_data: dict[str, Any] | None = None):
         self.response_data = response_data or {
             "mentioned_price_points": [
                 {"price": "$100/month", "context": "budget"}
@@ -70,7 +70,7 @@ class MockPriceAgent:
         asyncio.sleep(0.01)
         return json.dumps(self.response_data)
 
-    async def run_async(self, prompt: str) -> Dict[str, Any]:
+    async def run_async(self, prompt: str) -> dict[str, Any]:
         """Mock async run method"""
         await asyncio.sleep(0.01)
         return self.response_data
@@ -79,7 +79,7 @@ class MockPriceAgent:
 class MockBehaviorAgent:
     """Mock Payment Behavior Agent"""
 
-    def __init__(self, response_data: Optional[Dict[str, Any]] = None):
+    def __init__(self, response_data: dict[str, Any] | None = None):
         self.response_data = response_data or {
             "current_spending": "$200/month on Salesforce",
             "switching_willingness": "Medium",
@@ -92,7 +92,7 @@ class MockBehaviorAgent:
         asyncio.sleep(0.01)
         return json.dumps(self.response_data)
 
-    async def run_async(self, prompt: str) -> Dict[str, Any]:
+    async def run_async(self, prompt: str) -> dict[str, Any]:
         """Mock async run method"""
         await asyncio.sleep(0.01)
         return self.response_data
@@ -101,7 +101,7 @@ class MockBehaviorAgent:
 class MockAgnoTeam:
     """Mock Agno Team for coordinated testing"""
 
-    def __init__(self, agents: Optional[Dict[str, Mock]] = None):
+    def __init__(self, agents: dict[str, Mock] | None = None):
         self.agents = agents or {
             "wtp": MockWTPAgent(),
             "segment": MockSegmentAgent(),
@@ -127,14 +127,14 @@ class MockAgnoTeam:
             return response
         raise ValueError(f"Unknown agent: {agent_name}")
 
-    def run_all_agents(self, prompt: str) -> Dict[str, str]:
+    def run_all_agents(self, prompt: str) -> dict[str, str]:
         """Run all agents and return responses"""
         responses = {}
         for agent_name in self.agents:
             responses[agent_name] = self.run_agent(agent_name, prompt)
         return responses
 
-    def set_agent_response(self, agent_name: str, response_data: Dict[str, Any]):
+    def set_agent_response(self, agent_name: str, response_data: dict[str, Any]):
         """Set custom response for an agent"""
         if agent_name == "wtp":
             self.agents["wtp"] = MockWTPAgent(response_data)
@@ -241,7 +241,7 @@ class MockAgnoAnalyzer:
         for chunk in chunks:
             yield json.dumps(chunk)
 
-    def _parse_responses(self, responses: Dict[str, str]) -> Dict[str, Any]:
+    def _parse_responses(self, responses: dict[str, str]) -> dict[str, Any]:
         """Parse agent responses (simplified)"""
         parsed = {}
         for agent_name, response in responses.items():

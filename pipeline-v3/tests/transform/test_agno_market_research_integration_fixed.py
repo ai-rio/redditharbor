@@ -11,18 +11,20 @@ These tests verify the actual integration with proper mocking:
 - Backward compatibility maintained
 """
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock, PropertyMock
-from typing import Dict, Any, List
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, PropertyMock, patch
 
-# Import the components to integrate
-from transform.agno_analyzer import AgnoOpportunityAnalyzer, MockTeam, MockCostTracker
-from transform.market_research_agent import MarketResearchAgent
-from transform.agno_synthesis import AgnoSynthesis
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
+
+# Import the components to integrate
+from transform.agno_analyzer import AgnoOpportunityAnalyzer, MockCostTracker, MockTeam
+from transform.agno_synthesis import AgnoSynthesis
+from transform.market_research_agent import MarketResearchAgent
 
 
 class TestMarketResearchAgentIntegration:
@@ -50,7 +52,7 @@ class TestMarketResearchAgentIntegration:
             downvotes=0,
             comments_count=42,
             subreddit="entrepreneur",
-            created_utc=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            created_utc=datetime(2024, 1, 1, tzinfo=UTC),
             permalink="/r/entrepreneur/test123",
             url="https://reddit.com/r/entrepreneur/test123"
         )
@@ -280,7 +282,7 @@ class TestMarketResearchAgentIntegration:
         """
         return AnalysisResult.model_construct(
             submission_id=submission.id,
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Workflow Automation App",
                 app_concept="An AI-powered tool to automate business workflows",

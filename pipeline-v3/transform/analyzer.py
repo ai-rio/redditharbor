@@ -5,7 +5,6 @@ LLM-powered opportunity analysis using LiteLLM with comprehensive cost tracking
 import logging
 import os
 from datetime import datetime
-from typing import List, Optional, Tuple
 
 try:
     import instructor
@@ -71,17 +70,25 @@ except ImportError:
 
     def get_settings():
         return MockSettings()
-from models.reddit import RedditSubmission
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from models.cost_tracking import CostTracking, CostSummary
+from models.cost_tracking import CostSummary, CostTracking
+from models.reddit import RedditSubmission
 
 try:
-    from .embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider, OpenAIEmbeddingProvider
+    from .embedding_strategies import (
+        EmbeddingStrategy,
+        FakeEmbeddingProvider,
+        OpenAIEmbeddingProvider,
+    )
     from .simplicity_processor import SimplicityProcessor
 except ImportError:
     # Fallback for direct import
     try:
-        from transform.embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider, OpenAIEmbeddingProvider
+        from transform.embedding_strategies import (
+            EmbeddingStrategy,
+            FakeEmbeddingProvider,
+            OpenAIEmbeddingProvider,
+        )
         from transform.simplicity_processor import SimplicityProcessor
     except ImportError:
         # Mock implementations for testing
@@ -184,7 +191,7 @@ class SimpleOpportunityAnalyzer:
             embedding_metadata=embedding_metadata
         )
 
-    def analyze_batch(self, submissions: List[RedditSubmission], batch_size: int = None) -> List[AnalysisResult]:
+    def analyze_batch(self, submissions: list[RedditSubmission], batch_size: int = None) -> list[AnalysisResult]:
         """
         Analyze multiple submissions in batches
 
@@ -209,7 +216,7 @@ class SimpleOpportunityAnalyzer:
         logger.info(f"✓ Fake batch analysis complete: {len(results)} successful")
         return results
 
-    
+
     def test_connection(self) -> bool:
         """Test connection using embedding strategy"""
         strategy_test = self.embedding_strategy.test_strategy()
@@ -219,7 +226,7 @@ class SimpleOpportunityAnalyzer:
             logger.warning("Fake analyzer connection test failed")
         return strategy_test
 
-    def _analyze_content_quality(self, submission: RedditSubmission) -> tuple[float, bool, List[str]]:
+    def _analyze_content_quality(self, submission: RedditSubmission) -> tuple[float, bool, list[str]]:
         """
         Analyze content quality and detect spam indicators
 
@@ -501,7 +508,7 @@ Return your analysis as structured JSON following the exact schema provided.
             logger.error(f"LLM analysis failed for submission {submission.id}: {e}")
             raise RuntimeError(f"Failed to analyze submission {submission.id}: {e}")
 
-    def analyze_submission_with_costs(self, submission: RedditSubmission) -> Tuple[AnalysisResult, Optional[CostTracking]]:
+    def analyze_submission_with_costs(self, submission: RedditSubmission) -> tuple[AnalysisResult, CostTracking | None]:
         """
         Analyze a single Reddit submission with cost tracking (if enabled)
 
@@ -529,9 +536,9 @@ Return your analysis as structured JSON following the exact schema provided.
 
     def analyze_batch_with_costs(
         self,
-        submissions: List[RedditSubmission],
+        submissions: list[RedditSubmission],
         batch_size: int = None
-    ) -> Tuple[List[AnalysisResult], Optional[CostSummary]]:
+    ) -> tuple[list[AnalysisResult], CostSummary | None]:
         """
         Analyze multiple submissions in batches with cost summary
 
@@ -633,7 +640,7 @@ Return your analysis as structured JSON following the exact schema provided.
             request_success=success
         )
 
-    def _calculate_cost_summary(self, cost_data_list: List[CostTracking]) -> CostSummary:
+    def _calculate_cost_summary(self, cost_data_list: list[CostTracking]) -> CostSummary:
         """Calculate cost summary from list of cost tracking data"""
         if not cost_data_list:
             return CostSummary(
@@ -670,9 +677,9 @@ Return your analysis as structured JSON following the exact schema provided.
 
     def analyze_batch(
         self,
-        submissions: List[RedditSubmission],
+        submissions: list[RedditSubmission],
         batch_size: int = None
-    ) -> List[AnalysisResult]:
+    ) -> list[AnalysisResult]:
         """
         Analyze multiple submissions in batches for efficiency
 

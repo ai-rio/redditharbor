@@ -2,21 +2,22 @@
 Performance and load testing for pipeline components
 """
 
-import pytest
-import time
 import random
-from unittest.mock import Mock, patch
-from datetime import datetime, timezone
-from typing import List
 import statistics
+import time
+from datetime import UTC, datetime, timezone
+from typing import List
+from unittest.mock import Mock, patch
 
-from orchestration.pipeline_orchestrator import (
-    PipelineOrchestrator,
-    PipelineConfiguration,
-    PipelineResults
-)
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
+from orchestration.pipeline_orchestrator import (
+    PipelineConfiguration,
+    PipelineOrchestrator,
+    PipelineResults,
+)
 
 
 class TestPipelinePerformance:
@@ -52,7 +53,7 @@ class TestPipelinePerformance:
         return orchestrator, mock_reddit_client, mock_analyzer, mock_database_loader, mock_validator
 
     @pytest.fixture
-    def large_submission_dataset(self) -> List[RedditSubmission]:
+    def large_submission_dataset(self) -> list[RedditSubmission]:
         """Generate a large dataset of Reddit submissions for testing"""
         submissions = []
         for i in range(1000):
@@ -65,14 +66,14 @@ class TestPipelinePerformance:
                 score=random.randint(1, 1000),
                 comments_count=random.randint(0, 500),
                 subreddit=random.choice(["productivity", "technology", "business", "design"]),
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink=f"https://reddit.com/r/test/perf_test_{i:04d}"
             )
             submissions.append(submission)
         return submissions
 
     @pytest.fixture
-    def large_analysis_dataset(self) -> List[AnalysisResult]:
+    def large_analysis_dataset(self) -> list[AnalysisResult]:
         """Generate a large dataset of analysis results for testing"""
         analyses = []
         quality_levels = [
@@ -93,7 +94,7 @@ class TestPipelinePerformance:
 
             analysis = AnalysisResult.model_construct(
                 submission_id=f"perf_analysis_{i:04d}",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"Performance Test App {i} ({level_name})",
                     app_concept=f"Test application for performance testing number {i}",
@@ -162,7 +163,7 @@ class TestPipelinePerformance:
             for i in range(size):
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"perf_test_{size}_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"Test App {i}",
                         app_concept="Test concept",
@@ -214,8 +215,9 @@ class TestPipelinePerformance:
 
     def test_memory_usage_during_filtering(self, mock_orchestrator, large_analysis_dataset):
         """Test memory usage during large dataset filtering"""
-        import psutil
         import os
+
+        import psutil
 
         orchestrator, _, _, _, _ = mock_orchestrator
 
@@ -278,7 +280,7 @@ class TestPipelinePerformance:
         for submission in large_submission_dataset:
             analysis = AnalysisResult.model_construct(
                 submission_id=submission.id,
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"App for {submission.id}",
                     app_concept="Test concept",
@@ -358,7 +360,7 @@ class TestPipelinePerformance:
         assert results.high_quality_analyses > 0
         assert results.analyses_stored > 0
 
-        print(f"End-to-end performance:")
+        print("End-to-end performance:")
         print(f"  Total time: {total_time:.2f}s")
         print(f"  Submissions: {results.submissions_extracted} ({submissions_per_second:.1f} submissions/sec)")
         print(f"  Analyses: {results.analyses_generated} ({analyses_per_second:.1f} analyses/sec)")
@@ -394,7 +396,7 @@ class TestPipelinePerformance:
                 score=1,
                 comments_count=0,
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test"
             ) for analysis in batch]
 
@@ -411,7 +413,7 @@ class TestPipelinePerformance:
         assert avg_storage_time < 1.0, f"Average batch storage time too high: {avg_storage_time:.3f}s"
         assert analyses_per_second > 100, f"Storage rate too slow: {analyses_per_second:.1f} analyses/sec"
 
-        print(f"Database storage performance:")
+        print("Database storage performance:")
         print(f"  Total analyses: {total_analyses}")
         print(f"  Total time: {total_storage_time:.2f}s")
         print(f"  Average batch time: {avg_storage_time:.3f}s")
@@ -450,7 +452,7 @@ class TestPipelinePerformance:
             expected_pass_rate = (actual_output / actual_input) * 100
             assert abs(pass_rate_percentage - expected_pass_rate) < 0.1, "Pass rate percentage incorrect"
 
-        print(f"Statistics accuracy check:")
+        print("Statistics accuracy check:")
         print(f"  Input: {actual_input}")
         print(f"  Output: {actual_output}")
         print(f"  Pass rate: {pass_rate_percentage:.1f}%")
@@ -471,7 +473,7 @@ class TestPipelinePerformance:
                 # 10% spam
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"stress_spam_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"SPAM!!! GET RICH {i}",
                         app_concept="AMAZING OPPORTUNITY" * 20,
@@ -494,7 +496,7 @@ class TestPipelinePerformance:
                 # 20% very low quality
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"stress_low_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"App {i}",
                         app_concept="Concept",
@@ -517,7 +519,7 @@ class TestPipelinePerformance:
                 # 70% normal/medium quality
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"stress_normal_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"Quality App {i}",
                         app_concept="Reasonable application concept with decent detail",
@@ -559,7 +561,7 @@ class TestPipelinePerformance:
         assert result['statistics']['spam_filtered'] > 400  # ~10% of 5000
         assert result['statistics']['low_quality_filtered'] > 800  # ~20% of 5000
 
-        print(f"Stress test results:")
+        print("Stress test results:")
         print(f"  Total analyses: {len(stress_analyses)}")
         print(f"  Processing time: {stress_time:.2f}s")
         print(f"  Processing rate: {analyses_per_second:.1f} analyses/sec")
@@ -574,8 +576,9 @@ class TestPipelineLoadTesting:
     def test_memory_leak_detection(self):
         """Test for memory leaks during repeated operations"""
         import gc
-        import psutil
         import os
+
+        import psutil
 
         # Create orchestrator
         mock_orchestrator = PipelineOrchestrator()
@@ -585,7 +588,7 @@ class TestPipelineLoadTesting:
         for i in range(100):
             analysis = AnalysisResult.model_construct(
                 submission_id=f"memory_test_{i}",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"Memory Test App {i}",
                     app_concept="Test concept for memory testing",
@@ -633,7 +636,7 @@ class TestPipelineLoadTesting:
         # Memory growth should be minimal (less than 50MB over 50 iterations)
         assert memory_growth < 50, f"Potential memory leak detected: {memory_growth:.1f}MB growth over 50 iterations"
 
-        print(f"Memory leak test:")
+        print("Memory leak test:")
         print(f"  Initial memory: {initial_memory:.1f}MB")
         print(f"  Final memory: {final_memory:.1f}MB")
         print(f"  Memory growth: {memory_growth:.1f}MB")
@@ -642,8 +645,8 @@ class TestPipelineLoadTesting:
 
     def test_concurrent_simulation_load(self):
         """Simulate concurrent load on pipeline components"""
-        import threading
         import queue
+        import threading
 
         # Create orchestrator
         mock_orchestrator = PipelineOrchestrator()
@@ -658,7 +661,7 @@ class TestPipelineLoadTesting:
             for i in range(100):
                 analysis = AnalysisResult.model_construct(
                     submission_id=f"concurrent_test_{batch_id}_{i}",
-                    analyzed_at=datetime.now(timezone.utc),
+                    analyzed_at=datetime.now(UTC),
                     app_idea=AppIdea.model_construct(
                         title=f"Concurrent Test App {batch_id}_{i}",
                         app_concept="Test concept for concurrent testing",
@@ -723,7 +726,7 @@ class TestPipelineLoadTesting:
         total_filtered = sum(r['output_count'] for r in results)
         avg_processing_time = statistics.mean(r['processing_time'] for r in results)
 
-        print(f"Concurrent load test results:")
+        print("Concurrent load test results:")
         print(f"  Workers: {num_workers}")
         print(f"  Batches processed: {len(results)}")
         print(f"  Total analyses: {total_analyses}")

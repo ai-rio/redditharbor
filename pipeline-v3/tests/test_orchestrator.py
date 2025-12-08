@@ -2,15 +2,20 @@
 Tests for PipelineOrchestrator with TDD approach for quality filtering functionality
 """
 
-import pytest
-from unittest.mock import Mock, MagicMock, patch
-from datetime import datetime, timezone
-from typing import List, Dict, Any
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
 
-# Import the classes we need to test
-from orchestration.pipeline_orchestrator import PipelineOrchestrator, PipelineConfiguration
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
+
+# Import the classes we need to test
+from orchestration.pipeline_orchestrator import (
+    PipelineConfiguration,
+    PipelineOrchestrator,
+)
 
 
 class TestPipelineOrchestratorQualityFiltering:
@@ -40,14 +45,14 @@ class TestPipelineOrchestratorQualityFiltering:
         return orchestrator
 
     @pytest.fixture
-    def sample_analysis_results(self) -> List[AnalysisResult]:
+    def sample_analysis_results(self) -> list[AnalysisResult]:
         """Create sample analysis results for testing using construct to bypass validation"""
         results = []
 
         # High quality analysis (should pass all filters)
         high_quality = AnalysisResult.model_construct(
             submission_id="high_quality_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Task Manager Pro",
                 app_concept="A smart task management app that prioritizes work automatically",
@@ -74,7 +79,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Spam analysis (should be filtered out)
         spam_analysis = AnalysisResult.model_construct(
             submission_id="spam_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Get Rich Quick",
                 app_concept="Make money fast with our revolutionary financial system",
@@ -101,7 +106,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Low quality analysis (should be filtered out by content_quality_score)
         low_quality = AnalysisResult.model_construct(
             submission_id="low_quality_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Simple App",
                 app_concept="An app that does stuff",
@@ -128,7 +133,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Below min_score threshold (should be filtered out)
         low_score = AnalysisResult.model_construct(
             submission_id="low_score_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Average App",
                 app_concept="A mediocre app idea",
@@ -155,7 +160,7 @@ class TestPipelineOrchestratorQualityFiltering:
         # Below min_confidence threshold (should be filtered out)
         low_confidence = AnalysisResult.model_construct(
             submission_id="low_confidence_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Uncertain App",
                 app_concept="An app with unclear value proposition",
@@ -188,7 +193,7 @@ class TestPipelineOrchestratorQualityFiltering:
             "Method _filter_by_quality should exist now (GREEN phase)"
 
         # Method should be callable
-        assert callable(getattr(mock_orchestrator, '_filter_by_quality'))
+        assert callable(mock_orchestrator._filter_by_quality)
 
         # Method call should work without raising AttributeError
         try:
@@ -240,7 +245,7 @@ class TestPipelineOrchestratorQualityFiltering:
         for i in range(3):
             spam_analysis = AnalysisResult.model_construct(
                 submission_id=f"spam_{i}",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"Spam App Number {i}",
                     app_concept="Spam concept application system",
@@ -298,7 +303,7 @@ class TestPipelineOrchestratorQualityFiltering:
         for i in range(3):
             high_quality = AnalysisResult.model_construct(
                 submission_id=f"high_quality_{i}",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"Quality App Number {i}",
                     app_concept="High quality concept system",

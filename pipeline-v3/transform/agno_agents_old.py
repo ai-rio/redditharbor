@@ -2,14 +2,16 @@
 Specialized agents for Agno multi-agent analysis with real LLM integration
 """
 
-from typing import Dict, Any, Optional, List, Type, Union
 import json
 import logging
-from pydantic import BaseModel, Field
+from typing import Any
+
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
-from monitoring.metrics_collector import get_collector
+from pydantic import BaseModel, Field
+
 from config import get_settings
+from monitoring.metrics_collector import get_collector
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +25,8 @@ class WillingnessToPayResult(BaseModel):
     wtp_score: float = Field(..., ge=0, le=100, description="Willingness to pay score (0-100)")
     market_demand_score: float = Field(..., ge=0, le=100, description="Market demand score (0-100)")
     sentiment: str = Field(..., description="Overall payment sentiment")
-    evidence: List[str] = Field(..., description="Evidence supporting the WTP assessment")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    evidence: list[str] = Field(..., description="Evidence supporting the WTP assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class MarketSegmentResult(BaseModel):
@@ -33,17 +35,17 @@ class MarketSegmentResult(BaseModel):
     market_demand_score: float = Field(..., ge=0, le=100, description="Market demand score (0-100)")
     customer_profile: str = Field(..., description="Customer profile description")
     target_audience: str = Field(..., description="Target audience description")
-    indicators: List[str] = Field(..., description="Indicators supporting segment classification")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    indicators: list[str] = Field(..., description="Indicators supporting segment classification")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class PricePointResult(BaseModel):
     """Structured output for price point analysis"""
     price_point: float = Field(..., ge=0, description="Estimated price point in USD")
     monetization_score: float = Field(..., ge=0, le=100, description="Monetization potential score (0-100)")
-    budget_ceiling: Optional[float] = Field(None, ge=0, description="Customer budget ceiling")
+    budget_ceiling: float | None = Field(None, ge=0, description="Customer budget ceiling")
     pricing_model: str = Field(..., description="Recommended pricing model")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class PaymentBehaviorResult(BaseModel):
@@ -52,7 +54,7 @@ class PaymentBehaviorResult(BaseModel):
     pain_intensity_score: float = Field(..., ge=0, le=100, description="Pain intensity score (0-100)")
     purchase_pattern: str = Field(..., description="Typical purchase pattern")
     current_spending: str = Field(..., description="Current spending level")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class BaseAgent(Agent):
@@ -63,7 +65,7 @@ class BaseAgent(Agent):
         model: str,
         api_key: str,
         base_url: str,
-        output_schema: Optional[Type[BaseModel]] = None,
+        output_schema: type[BaseModel] | None = None,
         debug_mode: bool = False
     ):
         """
@@ -102,7 +104,7 @@ class BaseAgent(Agent):
             exponential_backoff=True
         )
 
-    def run(self, input_data: Union[str, Dict[str, Any]]) -> str:
+    def run(self, input_data: str | dict[str, Any]) -> str:
         """
         Run the agent analysis with proper error handling
 
@@ -193,7 +195,7 @@ class BaseAgent(Agent):
         }
         return name_map.get(self.__class__.__name__, self.__class__.__name__.lower())
 
-    def _format_input(self, input_data: Dict[str, Any]) -> str:
+    def _format_input(self, input_data: dict[str, Any]) -> str:
         """Format input data into a prompt for the agent"""
         # This should be overridden by subclasses
         return str(input_data)
@@ -204,9 +206,9 @@ class WillingnessToPayAgent(BaseAgent):
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         debug_mode: bool = False
     ):
         """
@@ -255,7 +257,7 @@ class WillingnessToPayAgent(BaseAgent):
         Be thorough, evidence-based, and provide clear reasoning for your assessments.
         """
 
-    def _format_input(self, input_data: Dict[str, Any]) -> str:
+    def _format_input(self, input_data: dict[str, Any]) -> str:
         """Format input data into a prompt for WTP analysis"""
         prompt = f"""
         Analyze this opportunity for willingness to pay indicators:
@@ -281,9 +283,9 @@ class MarketSegmentAgent(BaseAgent):
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         debug_mode: bool = False
     ):
         """
@@ -327,7 +329,7 @@ class MarketSegmentAgent(BaseAgent):
         Consider both explicit and implicit clues about the target audience.
         """
 
-    def _format_input(self, input_data: Dict[str, Any]) -> str:
+    def _format_input(self, input_data: dict[str, Any]) -> str:
         """Format input data into a prompt for segment analysis"""
         prompt = f"""
         Analyze this opportunity to identify the market segment:
@@ -352,9 +354,9 @@ class PricePointAgent(BaseAgent):
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         debug_mode: bool = False
     ):
         """
@@ -397,7 +399,7 @@ class PricePointAgent(BaseAgent):
         Provide realistic pricing recommendations with clear justification.
         """
 
-    def _format_input(self, input_data: Dict[str, Any]) -> str:
+    def _format_input(self, input_data: dict[str, Any]) -> str:
         """Format input data into a prompt for price analysis"""
         prompt = f"""
         Analyze this opportunity for pricing strategy:
@@ -422,9 +424,9 @@ class PaymentBehaviorAgent(BaseAgent):
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         debug_mode: bool = False
     ):
         """
@@ -467,7 +469,7 @@ class PaymentBehaviorAgent(BaseAgent):
         Consider psychological factors, practical constraints, and past behaviors.
         """
 
-    def _format_input(self, input_data: Dict[str, Any]) -> str:
+    def _format_input(self, input_data: dict[str, Any]) -> str:
         """Format input data into a prompt for behavior analysis"""
         prompt = f"""
         Analyze this opportunity for payment behavior patterns:
@@ -492,9 +494,9 @@ class MarketResearchAgent(BaseAgent):
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         debug_mode: bool = False,
         validation_threshold: float = 70.0,
         max_competitors: int = 5,
@@ -548,7 +550,7 @@ class MarketResearchAgent(BaseAgent):
         Focus on finding concrete data points that support or challenge the opportunity.
         """
 
-    def _format_input(self, input_data: Dict[str, Any]) -> str:
+    def _format_input(self, input_data: dict[str, Any]) -> str:
         """Format input data into a prompt for market research"""
         app_concept = input_data.get('app_concept', '')
         target_market = input_data.get('target_market', '')
@@ -571,7 +573,7 @@ class MarketResearchAgent(BaseAgent):
         """
         return prompt
 
-    def run(self, input_data: Union[str, Dict[str, Any]]) -> str:
+    def run(self, input_data: str | dict[str, Any]) -> str:
         """
         Override run method to handle mock implementation
 

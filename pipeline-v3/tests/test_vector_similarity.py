@@ -12,18 +12,19 @@ and semantic search in the database layer. These tests focus on:
 """
 
 
-import pytest
-from datetime import datetime, UTC, timedelta
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Optional, Dict, Any
-import numpy as np
 import logging
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, List, Optional
+from unittest.mock import MagicMock, Mock, patch
 
-from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from models.reddit import RedditSubmission
-from models.database import Opportunity, OpportunityCreate
+import numpy as np
+import pytest
+
 from load.database import DatabaseLoader
 from load.repositories import SQLAlchemyOpportunityRepository
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from models.database import Opportunity, OpportunityCreate
+from models.reddit import RedditSubmission
 
 # Configure logging for tests
 logging.basicConfig(level=logging.INFO)
@@ -171,13 +172,13 @@ class TestVectorSimilarityFunctionality:
             }
         ]
 
-    def _generate_similar_embedding(self, base_embedding: List[float], similarity: float = 0.8) -> List[float]:
+    def _generate_similar_embedding(self, base_embedding: list[float], similarity: float = 0.8) -> list[float]:
         """Generate an embedding with specified similarity to base embedding"""
         # Add controlled variations to achieve desired similarity
         variation = 1.0 - similarity
         return [x + np.random.normal(0, variation) for x in base_embedding]
 
-    def _calculate_cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
+    def _calculate_cosine_similarity(self, vec1: list[float], vec2: list[float]) -> float:
         """Calculate cosine similarity between two vectors"""
         if len(vec1) != len(vec2):
             raise ValueError("Vectors must have the same dimension")
@@ -195,7 +196,7 @@ class TestVectorSimilarityFunctionality:
 
         return dot_product / (magnitude1 * magnitude2)
 
-    def _store_opportunity_in_db(self, loader: DatabaseLoader, opportunity_data: Dict[str, Any]) -> Opportunity:
+    def _store_opportunity_in_db(self, loader: DatabaseLoader, opportunity_data: dict[str, Any]) -> Opportunity:
         """Store an opportunity in the database and return the model instance"""
         with loader.session_factory() as session:
             # Create Opportunity instance

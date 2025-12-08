@@ -2,12 +2,15 @@
 """
 Minimal test script to verify quality scoring implementation
 """
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import datetime, timezone
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+
 
 def test_quality_scoring_model():
     """Test the quality scoring model implementation"""

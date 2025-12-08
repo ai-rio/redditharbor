@@ -5,10 +5,11 @@ These tests follow strict RED-GREEN-REFACTOR TDD discipline.
 All tests MUST fail initially (RED phase) before implementation.
 """
 
-import pytest
-from unittest.mock import Mock, patch
-import sys
 import os
+import sys
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add pipeline-v3 to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -71,7 +72,7 @@ class TestAgnoAnalyzerFactoryRedPhase:
 
         # Test method exists
         assert hasattr(factory, 'create_analyzer')
-        assert callable(getattr(factory, 'create_analyzer'))
+        assert callable(factory.create_analyzer)
 
     def test_agno_factory_creates_agno_analyzer(self):
         """
@@ -192,10 +193,7 @@ class TestAgnoAnalyzerFactoryRedPhase:
 
         This test will FAIL until we ensure no breaking changes.
         """
-        from transform.analyzer_factory import (
-            get_analyzer,
-            AnalyzerFactoryProvider
-        )
+        from transform.analyzer_factory import AnalyzerFactoryProvider, get_analyzer
 
         # Existing analyzer types should still work
         for analyzer_type in ['simple', 'production', 'hybrid']:
@@ -213,7 +211,10 @@ class TestAgnoAnalyzerFactoryRedPhase:
         This test will FAIL until we implement embedding strategy support.
         """
         from transform.analyzer_factory import AgnoAnalyzerFactory
-        from transform.embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider
+        from transform.embedding_strategies import (
+            EmbeddingStrategy,
+            FakeEmbeddingProvider,
+        )
 
         # Create embedding strategy
         provider = FakeEmbeddingProvider()
@@ -272,7 +273,6 @@ class TestAgnoAnalyzerFactoryRedPhase:
         This test will FAIL until auto-detection is implemented.
         """
         from transform.analyzer_factory import AnalyzerFactoryProvider
-        from unittest.mock import Mock
 
         # Mock settings to prefer Agno
         mock_settings = Mock()

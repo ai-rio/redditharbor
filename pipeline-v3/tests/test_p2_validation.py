@@ -3,8 +3,10 @@
 Test P2 OpportunityCreate database constraint validation using legacy compatibility mode
 """
 
+from datetime import UTC, datetime, timezone
+
 import pytest
-from datetime import datetime, timezone
+
 from models.database import OpportunityCreate
 from services.validation_service import TestDatabaseValidator, ValidationService
 
@@ -37,7 +39,7 @@ def test_p2_database_constraint_validation(legacy_validation_service, legacy_tes
         reddit_author="testuser",
         reddit_upvotes=100,
         reddit_comments_count=25,
-        reddit_created_at=datetime.now(timezone.utc),
+        reddit_created_at=datetime.now(UTC),
         app_title="Test App",
         app_concept="A test application for validation testing",
         problem_statement="A test problem for validation testing",
@@ -68,7 +70,7 @@ def test_p2_database_constraint_validation(legacy_validation_service, legacy_tes
         reddit_author="testuser2",
         reddit_upvotes=150,
         reddit_comments_count=35,
-        reddit_created_at=datetime.now(timezone.utc),
+        reddit_created_at=datetime.now(UTC),
         app_title="Another Test App",
         app_concept="Another test application for validation testing",
         problem_statement="Another test problem for validation testing",
@@ -105,7 +107,7 @@ def test_p2_foreign_key_validation(legacy_validation_service):
         reddit_author="testuser",
         reddit_upvotes=100,
         reddit_comments_count=25,
-        reddit_created_at=datetime.now(timezone.utc),
+        reddit_created_at=datetime.now(UTC),
         app_title="Test App",
         app_concept="A test application for validation testing",
         problem_statement="A test problem for validation testing",
@@ -142,7 +144,7 @@ def test_p2_validation_success(legacy_validation_service):
         reddit_author="testuser",
         reddit_upvotes=100,
         reddit_comments_count=25,
-        reddit_created_at=datetime.now(timezone.utc),
+        reddit_created_at=datetime.now(UTC),
         app_title="Test App",
         app_concept="A test application for validation testing",
         problem_statement="A test problem for validation testing",
@@ -177,7 +179,7 @@ def test_backward_compatibility_without_validation_service():
         reddit_author="testuser",
         reddit_upvotes=100,
         reddit_comments_count=25,
-        reddit_created_at=datetime.now(timezone.utc),
+        reddit_created_at=datetime.now(UTC),
         app_title="Test App",
         app_concept="A test application for validation testing",
         problem_statement="A test problem for validation testing",

@@ -4,9 +4,10 @@ Simple test to verify OnlyMaps integration functionality works correctly.
 This is a focused test to validate TDD GREEN phase completion.
 """
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,8 +17,17 @@ def test_onlymaps_basic_functionality():
 
     # Test that OnlyMaps classes can be imported
     try:
-        from onlymaps import OnlyMapsConfig, OnlyMapsConnection, OnlyMapsMapper, connect
-        from onlymaps import OnlyMapsError, MappingError, ValidationError, SchemaFlexibilityError, PerformanceBenchmarkError
+        from onlymaps import (
+            MappingError,
+            OnlyMapsConfig,
+            OnlyMapsConnection,
+            OnlyMapsError,
+            OnlyMapsMapper,
+            PerformanceBenchmarkError,
+            SchemaFlexibilityError,
+            ValidationError,
+            connect,
+        )
         print("✓ OnlyMaps classes imported successfully")
     except ImportError as e:
         print(f"✗ Failed to import OnlyMaps classes: {e}")
@@ -122,8 +132,8 @@ def test_onlymaps_mapping_functionality():
     """Test OnlyMaps mapping functionality."""
 
     try:
-        from onlymaps import OnlyMapsMapper, OnlyMapsConfig, connect, OnlyMapsConnection
         from models.database import Opportunity
+        from onlymaps import OnlyMapsConfig, OnlyMapsConnection, OnlyMapsMapper, connect
 
         # Test mapper creation
         config = OnlyMapsConfig()
@@ -163,8 +173,8 @@ def test_onlymaps_integration_with_models():
     """Test OnlyMaps integration with existing models."""
 
     try:
-        from onlymaps import OnlyMapsMapper, OnlyMapsConfig
         from models.database import Opportunity, OpportunityCreate
+        from onlymaps import OnlyMapsConfig, OnlyMapsMapper
 
         # Test that we can create config and mapper
         config = OnlyMapsConfig()

@@ -11,8 +11,9 @@ This test verifies the complete TDD implementation of ValidationEvidence data st
 Phase 3 Jina Market Research Integration - Final Verification
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 def test_core_tdd_implementation():

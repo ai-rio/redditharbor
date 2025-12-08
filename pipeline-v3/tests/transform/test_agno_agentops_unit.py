@@ -5,9 +5,10 @@ These tests are written first and should fail initially.
 They will guide the implementation of AgentOps integration.
 """
 
-import pytest
-from unittest.mock import Mock, patch
 import asyncio
+from unittest.mock import Mock, patch
+
+import pytest
 
 
 class TestAgnoDebugMode:

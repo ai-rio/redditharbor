@@ -4,13 +4,14 @@ Shared fixtures and configuration for Agno integration tests
 Following TDD principles - these fixtures support RED-GREEN-REFACTOR workflow
 """
 
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from typing import Any, Dict
 from uuid import uuid4
-from typing import Dict, Any
 
-from models.reddit import RedditSubmission
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from models.reddit import RedditSubmission
 
 
 @pytest.fixture
@@ -194,10 +195,10 @@ def mock_agno_team_result(
     This fixture simulates the response from Agno Team after running all agents
     """
     class MockAgnoResult:
-        def __init__(self, agent_results: Dict[str, Any]):
+        def __init__(self, agent_results: dict[str, Any]):
             self.agent_results = agent_results
 
-        def get_agent_result(self, agent_name: str) -> Dict[str, Any]:
+        def get_agent_result(self, agent_name: str) -> dict[str, Any]:
             """Get result from specific agent"""
             return self.agent_results.get(agent_name, {})
 

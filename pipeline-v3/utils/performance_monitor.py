@@ -2,13 +2,14 @@
 Performance monitoring and metrics collection for Pipeline v3
 """
 
-import time
-import logging
 import functools
-from typing import Dict, Any, Optional, Callable
-from dataclasses import dataclass, field
-from collections import defaultdict, deque
+import logging
 import threading
+import time
+from collections import defaultdict, deque
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +20,9 @@ class PerformanceMetrics:
     operation_name: str
     duration: float
     timestamp: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     success: bool = True
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class PerformanceMonitor:
@@ -39,7 +40,7 @@ class PerformanceMonitor:
         """
         self.max_history = max_history
         self._metrics: deque = deque(maxlen=max_history)
-        self._operation_stats: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
+        self._operation_stats: dict[str, dict[str, Any]] = defaultdict(lambda: {
             'count': 0,
             'total_duration': 0.0,
             'min_duration': float('inf'),
@@ -53,9 +54,9 @@ class PerformanceMonitor:
         self,
         operation_name: str,
         duration: float,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
         success: bool = True,
-        error_message: Optional[str] = None
+        error_message: str | None = None
     ) -> None:
         """
         Record a performance metric
@@ -93,7 +94,7 @@ class PerformanceMonitor:
         else:
             stats['error_count'] += 1
 
-    def get_operation_stats(self, operation_name: str) -> Dict[str, Any]:
+    def get_operation_stats(self, operation_name: str) -> dict[str, Any]:
         """
         Get statistics for a specific operation
 
@@ -117,7 +118,7 @@ class PerformanceMonitor:
 
         return stats
 
-    def get_all_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_stats(self) -> dict[str, dict[str, Any]]:
         """Get statistics for all operations"""
         with self._lock:
             return {
@@ -125,7 +126,7 @@ class PerformanceMonitor:
                 for op_name in self._operation_stats.keys()
             }
 
-    def get_recent_metrics(self, count: int = 100, operation_name: Optional[str] = None) -> list[PerformanceMetrics]:
+    def get_recent_metrics(self, count: int = 100, operation_name: str | None = None) -> list[PerformanceMetrics]:
         """
         Get recent metrics
 
@@ -149,7 +150,7 @@ class PerformanceMonitor:
             self._metrics.clear()
             self._operation_stats.clear()
 
-    def timer(self, operation_name: str, metadata: Optional[Dict[str, Any]] = None):
+    def timer(self, operation_name: str, metadata: dict[str, Any] | None = None):
         """
         Decorator to time function execution
 
@@ -187,7 +188,7 @@ class PerformanceMonitor:
             return wrapper
         return decorator
 
-    def context_timer(self, operation_name: str, metadata: Optional[Dict[str, Any]] = None):
+    def context_timer(self, operation_name: str, metadata: dict[str, Any] | None = None):
         """
         Context manager for timing operations
 
@@ -224,7 +225,7 @@ class PerformanceMonitor:
 
         return TimerContext(self, operation_name, metadata)
 
-    def get_performance_summary(self) -> Dict[str, Any]:
+    def get_performance_summary(self) -> dict[str, Any]:
         """Get a summary of overall performance metrics"""
         with self._lock:
             all_stats = self.get_all_stats()
@@ -258,11 +259,11 @@ def get_performance_monitor() -> PerformanceMonitor:
     return _performance_monitor
 
 
-def monitor_performance(operation_name: str, metadata: Optional[Dict[str, Any]] = None):
+def monitor_performance(operation_name: str, metadata: dict[str, Any] | None = None):
     """Decorator for monitoring function performance"""
     return get_performance_monitor().timer(operation_name, metadata)
 
 
-def performance_timer(operation_name: str, metadata: Optional[Dict[str, Any]] = None):
+def performance_timer(operation_name: str, metadata: dict[str, Any] | None = None):
     """Context manager for timing operations"""
     return get_performance_monitor().context_timer(operation_name, metadata)

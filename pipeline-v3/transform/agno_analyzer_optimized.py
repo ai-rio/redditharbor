@@ -13,36 +13,35 @@ Key optimizations:
 """
 
 import asyncio
+import concurrent.futures
+import gc
 import json
 import logging
 import time
-from typing import List, Dict, Any, Optional, Tuple, Union, Callable, AsyncGenerator
-from datetime import datetime, timezone
-from dataclasses import dataclass, field
-from enum import Enum
-import concurrent.futures
-from contextlib import asynccontextmanager
+from collections import defaultdict, deque
+from collections.abc import AsyncGenerator
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+
 import aiohttp
 import numpy as np
-from collections import defaultdict, deque
 import psutil
-import gc
-from functools import wraps
 
 # Import existing models and components
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
-from transform.agno_synthesis import AgnoSynthesis
 from transform.agno_agents import (
-    WillingnessToPayAgent,
     MarketSegmentAgent,
+    PaymentBehaviorAgent,
     PricePointAgent,
-    PaymentBehaviorAgent
+    WillingnessToPayAgent,
 )
+from transform.agno_synthesis import AgnoSynthesis
+from transform.embedding_factory import EmbeddingFactory
+from transform.embedding_strategies import EmbeddingStrategy
 from transform.market_research_agent import MarketResearchAgent
 from transform.simplicity_processor import SimplicityProcessor
-from transform.embedding_strategies import EmbeddingStrategy
-from transform.embedding_factory import EmbeddingFactory
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -92,7 +91,7 @@ class PerformanceMetrics:
         self.metrics['memory_usage'].append(process.memory_info().rss / 1024 / 1024)  # MB
         self.metrics['cpu_usage'].append(process.cpu_percent())
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get comprehensive metrics summary"""
         total_time = time.time() - self.start_time
         total = self.metrics['total_submissions']
@@ -184,7 +183,7 @@ class BatchConfig:
 class AsyncAgentExecutor:
     """Execute agents concurrently with proper error handling"""
 
-    def __init__(self, agents: Dict[str, Any], config: BatchConfig, metrics: PerformanceMetrics):
+    def __init__(self, agents: dict[str, Any], config: BatchConfig, metrics: PerformanceMetrics):
         self.agents = agents
         self.config = config
         self.metrics = metrics
@@ -195,7 +194,7 @@ class AsyncAgentExecutor:
         agent_name: str,
         agent: Any,
         input_data: str
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         """Execute a single agent with timeout and error handling"""
         async with self.semaphore:
             start_time = time.time()
@@ -222,7 +221,7 @@ class AsyncAgentExecutor:
 
                 return agent_name, result
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self.metrics.metrics['errors'][f'{agent_name}_timeout'] += 1
                 logger.error(f"Agent {agent_name} timed out")
                 return agent_name, {"error": "Agent timeout", "error_type": "TimeoutError"}
@@ -241,7 +240,7 @@ class AsyncAgentExecutor:
                 lambda: agent.run(input_data)
             )
 
-    async def execute_all_agents(self, input_data: str) -> Dict[str, Dict[str, Any]]:
+    async def execute_all_agents(self, input_data: str) -> dict[str, dict[str, Any]]:
         """Execute all agents concurrently"""
         tasks = [
             self.execute_agent(name, agent, input_data)
@@ -282,8 +281,8 @@ class BatchEmbeddingProcessor:
         self,
         text: str,
         submission_id: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Optional[List[float]]:
+        metadata: dict[str, Any] | None = None
+    ) -> list[float] | None:
         """Add embedding request to queue and return result"""
         if not self.embedding_strategy:
             return None
@@ -307,7 +306,7 @@ class BatchEmbeddingProcessor:
         try:
             result = await asyncio.wait_for(future, timeout=self.config.embedding_timeout)
             return result
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"Embedding timeout for submission {submission_id}")
             return None
 
@@ -335,7 +334,7 @@ class BatchEmbeddingProcessor:
                         await self._process_batch(batch)
                         batch = []
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Process remaining batch on timeout
                     if batch:
                         await self._process_batch(batch)
@@ -347,7 +346,7 @@ class BatchEmbeddingProcessor:
         finally:
             self.processing = False
 
-    async def _process_batch(self, batch: List[Dict[str, Any]]):
+    async def _process_batch(self, batch: list[dict[str, Any]]):
         """Process a single batch of embeddings"""
         if not batch or not self.embedding_strategy:
             return
@@ -388,8 +387,8 @@ class BatchEmbeddingProcessor:
     async def _generate_single_embedding(
         self,
         text: str,
-        metadata: Optional[Dict[str, Any]]
-    ) -> Optional[List[float]]:
+        metadata: dict[str, Any] | None
+    ) -> list[float] | None:
         """Generate single embedding in executor"""
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -415,7 +414,7 @@ class OptimizedAgnoAnalyzer:
         self,
         model: str = "anthropic/claude-haiku-4.5",
         base_url: str = "https://openrouter.ai/api/v1",
-        config: Optional[BatchConfig] = None,
+        config: BatchConfig | None = None,
         enable_embeddings: bool = True,
         embedding_provider: str = "cohere"
     ):
@@ -543,8 +542,8 @@ class OptimizedAgnoAnalyzer:
 
     async def analyze_batch_async(
         self,
-        submissions: List[RedditSubmission]
-    ) -> List[AnalysisResult]:
+        submissions: list[RedditSubmission]
+    ) -> list[AnalysisResult]:
         """Analyze multiple submissions concurrently"""
         logger.info(f"Analyzing batch of {len(submissions)} submissions concurrently")
 
@@ -601,7 +600,7 @@ class OptimizedAgnoAnalyzer:
             for result in results:
                 yield result
 
-    async def get_performance_metrics(self) -> Dict[str, Any]:
+    async def get_performance_metrics(self) -> dict[str, Any]:
         """Get current performance metrics"""
         return self.metrics.get_summary()
 
@@ -610,7 +609,7 @@ class OptimizedAgnoAnalyzer:
         await self.connection_manager.close_all()
 
     # Include existing methods from original analyzer
-    def _prepare_agno_input(self, submission: RedditSubmission) -> Dict[str, Any]:
+    def _prepare_agno_input(self, submission: RedditSubmission) -> dict[str, Any]:
         """Convert RedditSubmission to Agno input format"""
         return {
             "title": getattr(submission, 'title', ''),
@@ -621,7 +620,7 @@ class OptimizedAgnoAnalyzer:
             "num_comments": getattr(submission, 'comments_count', 0)
         }
 
-    def _create_mock_result(self, agent_results: Dict[str, Dict[str, Any]]) -> Any:
+    def _create_mock_result(self, agent_results: dict[str, dict[str, Any]]) -> Any:
         """Create mock result object from agent results"""
         class MockResult:
             def __init__(self, agent_results):
@@ -766,7 +765,7 @@ class OptimizedAgnoAnalyzer:
 
         return " | ".join(text_parts)
 
-    def _create_fallback_result(self, submission: Optional[RedditSubmission]) -> AnalysisResult:
+    def _create_fallback_result(self, submission: RedditSubmission | None) -> AnalysisResult:
         """Create fallback result for error cases"""
         app_idea = AppIdea(
             title="Error Recovery Tool",
@@ -812,8 +811,8 @@ class AgnoOpportunityAnalyzer(OptimizedAgnoAnalyzer):
 
     def analyze_batch_with_costs(
         self,
-        submissions: List[RedditSubmission]
-    ) -> Tuple[List[AnalysisResult], Dict[str, Any]]:
+        submissions: list[RedditSubmission]
+    ) -> tuple[list[AnalysisResult], dict[str, Any]]:
         """Synchronous wrapper for async batch analysis"""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)

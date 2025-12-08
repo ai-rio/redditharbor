@@ -2,17 +2,18 @@
 Base test classes providing common functionality for Agno analyzer tests
 """
 
-import pytest
-from typing import Dict, Any, Optional
-from unittest.mock import Mock, MagicMock
-from dataclasses import asdict
 import json
+from dataclasses import asdict
+from typing import Any, Dict, Optional
+from unittest.mock import MagicMock, Mock
+
+import pytest
 
 # Import the analyzer - handle import errors gracefully
 try:
     from core.agents.monetization.agno_analyzer import (
         MonetizationAgnoAnalyzer,
-        MonetizationAnalysis
+        MonetizationAnalysis,
     )
     IMPORTS_AVAILABLE = True
 except ImportError as e:
@@ -97,7 +98,7 @@ class MockAgentResponse:
     """Helper class for creating mock agent responses"""
 
     @staticmethod
-    def create_wtp_response(score: int, sentiment: str, evidence: list = None, reasoning: str = "Test reasoning") -> Dict[str, Any]:
+    def create_wtp_response(score: int, sentiment: str, evidence: list = None, reasoning: str = "Test reasoning") -> dict[str, Any]:
         return {
             "sentiment_toward_payment": sentiment,
             "willingness_to_pay_score": score,
@@ -106,7 +107,7 @@ class MockAgentResponse:
         }
 
     @staticmethod
-    def create_segment_response(segment: str, confidence: float, indicators: list = None) -> Dict[str, Any]:
+    def create_segment_response(segment: str, confidence: float, indicators: list = None) -> dict[str, Any]:
         return {
             "customer_segment": segment,
             "confidence": confidence,
@@ -115,7 +116,7 @@ class MockAgentResponse:
         }
 
     @staticmethod
-    def create_price_response(prices: list, budget_ceiling: str = "$500/month") -> Dict[str, Any]:
+    def create_price_response(prices: list, budget_ceiling: str = "$500/month") -> dict[str, Any]:
         price_points = [
             {"price": price, "context": "test context"}
             for price in prices
@@ -127,7 +128,7 @@ class MockAgentResponse:
         }
 
     @staticmethod
-    def create_behavior_response(spending: str, willingness: str = "High") -> Dict[str, Any]:
+    def create_behavior_response(spending: str, willingness: str = "High") -> dict[str, Any]:
         return {
             "current_spending": spending,
             "switching_willingness": willingness,
@@ -136,7 +137,7 @@ class MockAgentResponse:
         }
 
     @staticmethod
-    def create_combined_agent_response(wtp: Dict, segment: Dict, price: Dict, behavior: Dict) -> str:
+    def create_combined_agent_response(wtp: dict, segment: dict, price: dict, behavior: dict) -> str:
         """Create a combined response string from multiple agents"""
         response_parts = [
             f"WTP Analysis: {json.dumps(wtp)}",

@@ -6,20 +6,25 @@ missing columns, and schema evolution scenarios while maintaining
 robust SQL-to-Python object mapping functionality.
 """
 
-import pytest
 import uuid
-from datetime import datetime, UTC, timedelta
-from typing import List, Dict, Any, Optional, Union
-from unittest.mock import Mock, patch, MagicMock, call
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
+from unittest.mock import MagicMock, Mock, call, patch
 
+import pytest
+
+from load.database import DatabaseLoader
 from models import (
-    AnalysisResult, AppIdea, MarketMetrics, RedditSubmission, RedditComment
+    AnalysisResult,
+    AppIdea,
+    MarketMetrics,
+    RedditComment,
+    RedditSubmission,
 )
 from models.database import Opportunity, OpportunityCreate
-from load.database import DatabaseLoader
 
 # Import OnlyMaps components (assuming they exist)
-from onlymaps import OnlyMapsMapper, OnlyMapsConfig, SchemaFlexibilityError
+from onlymaps import OnlyMapsConfig, OnlyMapsMapper, SchemaFlexibilityError
 
 
 class TestOnlyMapsSchemaFlexibility:

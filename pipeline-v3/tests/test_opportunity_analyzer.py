@@ -10,11 +10,12 @@ has pgvector capability but embedding generation is not implemented.
 """
 
 
-import pytest
-from datetime import datetime, UTC
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from typing import List, Optional
 import hashlib
+from datetime import UTC, datetime
+from typing import List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
@@ -391,7 +392,7 @@ class TestVectorEmbeddingImplementation:
             # Verify all analyses have embeddings
             for analysis in analyses:
                 assert analysis.embedding is not None, \
-                    f"All analyses in batch should have embeddings"
+                    "All analyses in batch should have embeddings"
 
         # This test will FAIL because no embeddings are generated
         # When implemented, verify reasonable scaling performance

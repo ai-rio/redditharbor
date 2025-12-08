@@ -3,12 +3,13 @@
 Production validation tests for OpportunityCreate with ValidationService integration
 """
 
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from models.database import OpportunityCreate
-from services.validation_service import ValidationService, TestDatabaseValidator
+from services.validation_service import TestDatabaseValidator, ValidationService
 
 
 class TestProductionValidation:
@@ -35,7 +36,7 @@ class TestProductionValidation:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application for validation testing",
             problem_statement="A test problem for validation testing",
@@ -66,7 +67,7 @@ class TestProductionValidation:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application for validation testing",
             problem_statement="A test problem for validation testing",
@@ -100,7 +101,7 @@ class TestProductionValidation:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application for validation testing",
             problem_statement="A test problem for validation testing",
@@ -131,7 +132,7 @@ class TestProductionValidation:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application for validation testing",
             problem_statement="A test problem for validation testing",
@@ -160,7 +161,7 @@ class TestProductionValidation:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application for validation testing",
             problem_statement="A test problem for validation testing",
@@ -193,7 +194,7 @@ class TestProductionValidation:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application for validation testing",
             problem_statement="A test problem for validation testing",
@@ -222,7 +223,7 @@ class TestProductionValidation:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application for validation testing",
             problem_statement="A test problem for validation testing",
