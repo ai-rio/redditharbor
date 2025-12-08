@@ -2,9 +2,7 @@
 Configuration settings for Pipeline v3 using existing RedditHarbor infrastructure
 """
 
-import os
 from pathlib import Path
-from typing import List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -103,7 +101,7 @@ class Settings(BaseSettings):
     )
 
     # Pipeline Configuration
-    default_subreddits: List[str] = Field(
+    default_subreddits: list[str] = Field(
         default=["productivity", "tools"],
         description="Default subreddits to fetch from"
     )
@@ -306,7 +304,7 @@ class Settings(BaseSettings):
         else:
             raise ValueError("default_subreddits must be a string or list")
 
-    
+
     @property
     def project_root(self) -> Path:
         """Get the project root directory"""

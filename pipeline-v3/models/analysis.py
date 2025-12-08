@@ -2,10 +2,8 @@
 AI analysis data models with Pydantic validation for LLM output
 """
 
-from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Set
-import re
 import math
+from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -127,7 +125,7 @@ class AppIdea(BaseModel):
     )
 
     # Core functions (strict limit: 1-3 functions max)
-    core_functions: List[str] = Field(
+    core_functions: list[str] = Field(
         ...,
         min_items=1,
         max_items=3,
@@ -142,7 +140,7 @@ class AppIdea(BaseModel):
         description="Target audience description (specific demographic)"
     )
 
-  
+
     @field_validator('title')
     @classmethod
     def validate_title_case(cls, v: str) -> str:
@@ -204,7 +202,7 @@ class AppIdea(BaseModel):
 
     @field_validator('core_functions')
     @classmethod
-    def validate_core_functions(cls, v: List[str]) -> List[str]:
+    def validate_core_functions(cls, v: list[str]) -> list[str]:
         """Validate core functions are reasonable"""
         if not all(
             isinstance(func, str) and
@@ -318,7 +316,7 @@ class AnalysisResult(BaseModel):
         default=False,
         description="Whether the content is identified as spam"
     )
-    spam_indicators: List[str] = Field(
+    spam_indicators: list[str] = Field(
         default_factory=list,
         description="List of spam indicators detected in the content"
     )
@@ -336,66 +334,66 @@ class AnalysisResult(BaseModel):
     )
 
     # Optional embedding for semantic search
-    embedding: Optional[List[float]] = Field(
+    embedding: list[float] | None = Field(
         None,
         description="Text embedding vector for similarity search"
     )
 
     # Optional embedding metadata
-    embedding_metadata: Optional[dict] = Field(
+    embedding_metadata: dict | None = Field(
         None,
         description="Metadata about the embedding generation"
     )
 
     # Agno multi-agent analysis fields (Phase 2+)
-    agno_wtp_score: Optional[float] = Field(
+    agno_wtp_score: float | None = Field(
         None,
         ge=0.0,
         le=100.0,
         description="Agno willingness-to-pay agent score (0-100)"
     )
-    agno_segment_confidence: Optional[float] = Field(
+    agno_segment_confidence: float | None = Field(
         None,
         ge=0.0,
         le=100.0,
         description="Agno market segment confidence score (0-100)"
     )
-    agno_price_potential: Optional[float] = Field(
+    agno_price_potential: float | None = Field(
         None,
         ge=0.0,
         description="Agno price potential score (0-100)"
     )
-    agno_behavior_score: Optional[float] = Field(
+    agno_behavior_score: float | None = Field(
         None,
         ge=0.0,
         le=100.0,
         description="Agno payment behavior score (0-100)"
     )
-    agno_consensus_confidence: Optional[float] = Field(
+    agno_consensus_confidence: float | None = Field(
         None,
         ge=0.0,
         le=100.0,
         description="Agno agent consensus confidence (0-100)"
     )
-    agno_segment_type: Optional[str] = Field(
+    agno_segment_type: str | None = Field(
         None,
         description="Agno identified market segment type (e.g., 'SMB', 'Enterprise')"
     )
-    agno_agents_count: Optional[int] = Field(
+    agno_agents_count: int | None = Field(
         None,
         ge=0,
         description="Number of Agno agents that participated in analysis"
     )
-    agno_analysis_cost_usd: Optional[float] = Field(
+    agno_analysis_cost_usd: float | None = Field(
         None,
         ge=0.0,
         description="Cost of Agno analysis in USD"
     )
-    agno_agent_metadata: Optional[dict] = Field(
+    agno_agent_metadata: dict | None = Field(
         None,
         description="Metadata about Agno agent responses and reasoning"
     )
-    agno_validation_status: Optional[str] = Field(
+    agno_validation_status: str | None = Field(
         None,
         description="Agno market validation status (e.g., 'validated', 'pending', 'failed')"
     )
@@ -484,13 +482,13 @@ class AnalysisResult(BaseModel):
     @model_validator(mode='after')
     def validate_timestamp_reasonableness(self) -> 'AnalysisResult':
         """Validate that analysis timestamp is not too old"""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         max_age_days = 365
 
         # Ensure both timestamps are timezone-aware
         if self.analyzed_at.tzinfo is None:
             # Assume timezone-aware if not specified
-            analyzed_at = self.analyzed_at.replace(tzinfo=timezone.utc)
+            analyzed_at = self.analyzed_at.replace(tzinfo=UTC)
         else:
             analyzed_at = self.analyzed_at
 

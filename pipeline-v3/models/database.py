@@ -2,8 +2,8 @@
 SQLAlchemy database models with pgvector support
 """
 
-from datetime import datetime, timezone, timedelta
-from typing import List, Optional, TYPE_CHECKING
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -11,17 +11,24 @@ if TYPE_CHECKING:
     from services.validation_service import ValidationService
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Float, ForeignKey, Index, Integer,
-    JSON, String, Text, func, text
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, mapped_column
-from sqlalchemy.sql import expression
+from sqlalchemy.orm import relationship
+
 # Use JSON for storing embeddings to avoid pgvector dependency issues
 PGVECTOR_AVAILABLE = False
-from sqlalchemy import JSON as Vector
-from sqlalchemy import JSON as VECTOR
 import uuid
 
 Base = declarative_base()
@@ -77,7 +84,7 @@ class Opportunity(Base):
     spam_indicators = Column(JSON, nullable=True)  # List of spam reasons
 
     # Semantic search - stored as JSON for compatibility
-    embedding: Optional[List[float]] = Column(JSON, nullable=True)
+    embedding: list[float] | None = Column(JSON, nullable=True)
 
     # Agno multi-agent analysis fields (Phase 2+)
     agno_wtp_score = Column(Float, nullable=True, comment="Agno willingness-to-pay agent score (0-100)")
@@ -135,7 +142,7 @@ class OpportunityCreate(BaseModel):
     reddit_title: str = Field(..., min_length=1, max_length=300, description="Reddit submission title")
     reddit_url: str = Field(..., description="Reddit submission URL")
     subreddit: str = Field(..., min_length=1, max_length=21, description="Subreddit name")
-    reddit_author: Optional[str] = Field(None, description="Reddit author username")
+    reddit_author: str | None = Field(None, description="Reddit author username")
     reddit_upvotes: int = Field(..., ge=0, description="Number of upvotes")
     reddit_comments_count: int = Field(..., ge=0, description="Number of comments")
     reddit_created_at: datetime = Field(..., description="Reddit creation timestamp")
@@ -145,7 +152,7 @@ class OpportunityCreate(BaseModel):
     app_concept: str = Field(..., min_length=1, description="App concept description")
     problem_statement: str = Field(..., min_length=1, description="Problem statement")
     target_audience: str = Field(..., min_length=1, description="Target audience description")
-    core_functions: List[str] = Field(..., min_items=1, description="List of core functions")
+    core_functions: list[str] = Field(..., min_items=1, description="List of core functions")
 
     # Analysis metrics
     market_demand: float = Field(..., ge=0, le=100, description="Market demand score")
@@ -160,21 +167,21 @@ class OpportunityCreate(BaseModel):
     # AI Quality Assessment fields (Phase 2+)
     content_quality_score: float = Field(default=50.0, ge=0.0, le=100.0, description="AI-generated content quality score")
     is_spam: bool = Field(default=False, description="AI-identified spam flag")
-    spam_indicators: List[str] = Field(default=[], description="List of spam detection reasons")
+    spam_indicators: list[str] = Field(default=[], description="List of spam detection reasons")
 
-    embedding: Optional[List[float]] = Field(None, description="Vector embedding")
+    embedding: list[float] | None = Field(None, description="Vector embedding")
 
     # Agno multi-agent analysis fields (Phase 2+)
-    agno_wtp_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno willingness-to-pay agent score")
-    agno_segment_confidence: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno market segment confidence score")
-    agno_price_potential: Optional[float] = Field(None, ge=0.0, description="Agno price potential score")
-    agno_behavior_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno payment behavior score")
-    agno_consensus_confidence: Optional[float] = Field(None, ge=0.0, le=100.0, description="Agno agent consensus confidence")
-    agno_segment_type: Optional[str] = Field(None, max_length=50, description="Agno identified market segment type")
-    agno_agents_count: Optional[int] = Field(None, ge=0, description="Number of Agno agents that participated")
-    agno_analysis_cost_usd: Optional[float] = Field(None, ge=0.0, description="Cost of Agno analysis in USD")
-    agno_agent_metadata: Optional[dict] = Field(None, description="Metadata about Agno agent responses")
-    agno_validation_status: Optional[str] = Field(None, max_length=50, description="Agno market validation status")
+    agno_wtp_score: float | None = Field(None, ge=0.0, le=100.0, description="Agno willingness-to-pay agent score")
+    agno_segment_confidence: float | None = Field(None, ge=0.0, le=100.0, description="Agno market segment confidence score")
+    agno_price_potential: float | None = Field(None, ge=0.0, description="Agno price potential score")
+    agno_behavior_score: float | None = Field(None, ge=0.0, le=100.0, description="Agno payment behavior score")
+    agno_consensus_confidence: float | None = Field(None, ge=0.0, le=100.0, description="Agno agent consensus confidence")
+    agno_segment_type: str | None = Field(None, max_length=50, description="Agno identified market segment type")
+    agno_agents_count: int | None = Field(None, ge=0, description="Number of Agno agents that participated")
+    agno_analysis_cost_usd: float | None = Field(None, ge=0.0, description="Cost of Agno analysis in USD")
+    agno_agent_metadata: dict | None = Field(None, description="Metadata about Agno agent responses")
+    agno_validation_status: str | None = Field(None, max_length=50, description="Agno market validation status")
 
     # Validation service injection for production database validation
     _validation_service: Optional['ValidationService'] = None
@@ -249,9 +256,9 @@ class OpportunityCreate(BaseModel):
     @model_validator(mode='after')
     def validate_date_reasonableness(self):
         """Validate that created_at date is reasonable"""
-        if self.reddit_created_at > datetime.now(timezone.utc):
+        if self.reddit_created_at > datetime.now(UTC):
             raise ValueError('Created date cannot be in the future')
-        if self.reddit_created_at < datetime.now(timezone.utc) - timedelta(days=3650):
+        if self.reddit_created_at < datetime.now(UTC) - timedelta(days=3650):
             raise ValueError('Date is too old (more than 10 years)')
         return self
 

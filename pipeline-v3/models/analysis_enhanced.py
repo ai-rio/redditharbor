@@ -6,9 +6,9 @@ ValidationEvidence fields for Phase 3 Jina Market Research Integration.
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Union
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 # Import the base models
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
@@ -33,41 +33,41 @@ class AnalysisResultWithJina(AnalysisResult):
     """
 
     # Jina Market Research fields (from Phase 3 documentation)
-    jina_validation_score: Optional[float] = Field(
+    jina_validation_score: float | None = Field(
         None,
         ge=0.0,
         le=100.0,
         description="Jina market research validation score (0-100)"
     )
-    jina_data_quality_score: Optional[float] = Field(
+    jina_data_quality_score: float | None = Field(
         None,
         ge=0.0,
         le=100.0,
         description="Quality score of Jina-extracted data (0-100)"
     )
-    jina_competitor_count: Optional[int] = Field(
+    jina_competitor_count: int | None = Field(
         None,
         ge=0,
         description="Number of competitors analyzed by Jina"
     )
-    jina_market_size_tam: Optional[str] = Field(
+    jina_market_size_tam: str | None = Field(
         None,
         description="Total Addressable Market size from Jina research"
     )
-    jina_market_size_growth: Optional[str] = Field(
+    jina_market_size_growth: str | None = Field(
         None,
         description="Market growth rate from Jina research"
     )
-    jina_evidence_urls: Optional[List[str]] = Field(
+    jina_evidence_urls: list[str] | None = Field(
         default_factory=list,
         description="List of evidence URLs fetched by Jina"
     )
-    jina_api_cost_usd: Optional[float] = Field(
+    jina_api_cost_usd: float | None = Field(
         None,
         ge=0.0,
         description="Total Jina API cost in USD"
     )
-    jina_cache_hit_rate: Optional[float] = Field(
+    jina_cache_hit_rate: float | None = Field(
         None,
         ge=0.0,
         le=1.0,
@@ -75,11 +75,11 @@ class AnalysisResultWithJina(AnalysisResult):
     )
 
     # Validation metadata
-    validation_evidence: Optional[Dict[str, Any]] = Field(
+    validation_evidence: dict[str, Any] | None = Field(
         None,
         description="Full ValidationEvidence data structure"
     )
-    validation_level: Optional[str] = Field(
+    validation_level: str | None = Field(
         None,
         description="Validation level (LOW, MEDIUM, HIGH)"
     )
@@ -94,7 +94,7 @@ class AnalysisResultWithJina(AnalysisResult):
     def from_base_analysis_result(
         cls,
         base_result: AnalysisResult,
-        validation_evidence: Optional[Dict[str, Any]] = None
+        validation_evidence: dict[str, Any] | None = None
     ) -> 'AnalysisResultWithJina':
         """
         Create enhanced AnalysisResult from base AnalysisResult and validation evidence
@@ -134,7 +134,7 @@ class AnalysisResultWithJina(AnalysisResult):
 
         return cls(**base_data)
 
-    def get_enhanced_summary(self) -> Dict[str, Any]:
+    def get_enhanced_summary(self) -> dict[str, Any]:
         """
         Get enhanced summary including Jina validation data
 
@@ -191,7 +191,7 @@ class AnalysisResultWithJina(AnalysisResult):
         else:
             return "LOW_QUALITY"
 
-    def get_market_insights(self) -> Dict[str, Any]:
+    def get_market_insights(self) -> dict[str, Any]:
         """
         Get market insights from validation evidence
 
@@ -243,10 +243,10 @@ def create_analysis_result_with_jina(
     content_quality_score: float,
     confidence_score: float,
     trust_level: str,
-    validation_evidence: Optional[Dict[str, Any]] = None,
-    jina_cost: Optional[float] = None,
+    validation_evidence: dict[str, Any] | None = None,
+    jina_cost: float | None = None,
     is_spam: bool = False,
-    spam_indicators: Optional[List[str]] = None
+    spam_indicators: list[str] | None = None
 ) -> AnalysisResultWithJina:
     """
     Factory function to create AnalysisResultWithJina with proper field mapping
@@ -291,8 +291,8 @@ def create_analysis_result_with_jina(
 
 # Factory function for creating enhanced results from Agno analyzer
 def create_enhanced_result_from_agno(
-    agno_result: Dict[str, Any],
-    validation_evidence: Optional[Dict[str, Any]] = None
+    agno_result: dict[str, Any],
+    validation_evidence: dict[str, Any] | None = None
 ) -> AnalysisResultWithJina:
     """
     Create enhanced AnalysisResult from Agno analyzer output

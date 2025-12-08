@@ -2,8 +2,7 @@
 Reddit data models using Pydantic for validation
 """
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -29,7 +28,7 @@ class RedditSubmission(BaseModel):
     permalink: str = Field(..., description="Reddit permalink URL")
 
     # Optional fields
-    url: Optional[str] = Field(None, description="External URL if any")
+    url: str | None = Field(None, description="External URL if any")
     is_self: bool = Field(default=True, description="Whether it's a self post")
     over_18: bool = Field(default=False, description="NSFW flag")
 
@@ -55,7 +54,7 @@ class RedditSubmission(BaseModel):
     @classmethod
     def validate_timestamp(cls, v):
         """Ensure timestamp is in the past"""
-        if v > datetime.now(timezone.utc):
+        if v > datetime.now(UTC):
             raise ValueError("created_utc cannot be in the future")
         return v
 
@@ -128,8 +127,8 @@ class RedditSubmission(BaseModel):
 
         return v
 
-  
-  
+
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -144,14 +143,14 @@ class RedditComment(BaseModel):
     author: str = Field(..., description="Author username")
     text: str = Field(..., description="Comment text")
     upvotes: int = Field(..., ge=0, description="Number of upvotes")
-    score: Optional[int] = Field(None, description="Comment score (should equal upvotes)")
+    score: int | None = Field(None, description="Comment score (should equal upvotes)")
     created_utc: datetime = Field(..., description="Creation timestamp")
 
     @field_validator('created_utc')
     @classmethod
     def validate_timestamp(cls, v):
         """Ensure timestamp is in the past"""
-        if v > datetime.now(timezone.utc):
+        if v > datetime.now(UTC):
             raise ValueError("created_utc cannot be in the future")
         return v
 

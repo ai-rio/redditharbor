@@ -1,8 +1,8 @@
 """Data models for Pipeline v3"""
 
-from .reddit import RedditSubmission, RedditComment
-from .analysis import AppIdea, AnalysisResult, MarketMetrics
+from .analysis import AnalysisResult, AppIdea, MarketMetrics
 from .database import Opportunity, OpportunityCreate
+from .reddit import RedditComment, RedditSubmission
 
 __all__ = [
     "RedditSubmission",
