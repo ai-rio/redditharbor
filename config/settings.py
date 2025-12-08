@@ -59,6 +59,7 @@ DEFAULT_LIMIT = 500  # Increased limit for better opportunity analysis
 
 # Privacy Settings
 ENABLE_PII_ANONYMIZATION = False  # Temporarily disabled for testing research framework
+<<<<<<< Updated upstream
 
 # DLT Configuration Settings
 # DLT pipeline configuration for enhanced Reddit data collection
@@ -314,3 +315,5 @@ def get_redis_config():
         'password': password,
         'url': f"redis://{host}:{port}/{db}"
     }
+=======
+>>>>>>> Stashed changes
