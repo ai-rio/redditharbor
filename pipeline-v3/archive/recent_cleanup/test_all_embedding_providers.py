@@ -9,7 +9,6 @@ import sys
 sys.path.append('.')
 
 from transform.embedding_factory import EmbeddingFactory
-from transform.embedding_strategies import FakeEmbeddingProvider
 
 
 def test_embedding_providers():

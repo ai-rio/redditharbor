@@ -3,13 +3,13 @@
 Comprehensive test runner for AgnoOpportunityAnalyzer test suite
 """
 
+import argparse
+import json
+import os
 import subprocess
 import sys
-import argparse
-import os
-from pathlib import Path
-import json
 from datetime import datetime
+from pathlib import Path
 
 
 def run_command(cmd, cwd=None):

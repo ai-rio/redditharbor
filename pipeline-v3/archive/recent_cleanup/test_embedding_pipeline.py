@@ -9,18 +9,17 @@ This script tests:
 4. End-to-end embedding pipeline
 """
 
+import logging
 import os
 import sys
-import logging
-from datetime import datetime, timezone
-from typing import List, Dict, Any
+from datetime import UTC, datetime
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.reddit import RedditSubmission
 from transform.agno_analyzer import AgnoOpportunityAnalyzer
-from transform.embedding_strategies import FakeEmbeddingProvider, EmbeddingStrategy
+from transform.embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider
 
 # Configure logging
 logging.basicConfig(
@@ -118,7 +117,7 @@ def test_agno_analyzer_embeddings():
             downvotes=0,
             score=245,
             comments_count=45,
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/programming/test_123"
         )
 
@@ -167,7 +166,7 @@ def test_agno_analyzer_disabled_embeddings():
             downvotes=0,
             score=123,
             comments_count=23,
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/entrepreneur/test_456"
         )
 
@@ -209,7 +208,7 @@ def test_embedding_consistency():
             downvotes=0,
             score=50,
             comments_count=10,
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/testing/consistency_test"
         )
 

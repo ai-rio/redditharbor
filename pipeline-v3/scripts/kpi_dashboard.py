@@ -8,11 +8,12 @@ Access: http://localhost:5000
 """
 
 import sys
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
+
 import psycopg2
+from flask import Flask, jsonify, render_template_string
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template_string, jsonify
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -322,10 +323,10 @@ def main():
     print("=" * 80)
     print("🚀 Starting Pipeline v3 KPI Dashboard")
     print("=" * 80)
-    print(f"\n📊 Dashboard URL: http://localhost:5000")
-    print(f"🔄 Auto-refresh: Every 30 seconds")
-    print(f"📡 API Endpoint: http://localhost:5000/api/stats")
-    print(f"\nPress Ctrl+C to stop\n")
+    print("\n📊 Dashboard URL: http://localhost:5000")
+    print("🔄 Auto-refresh: Every 30 seconds")
+    print("📡 API Endpoint: http://localhost:5000/api/stats")
+    print("\nPress Ctrl+C to stop\n")
     print("=" * 80)
 
     app.run(host='0.0.0.0', port=5000, debug=True)

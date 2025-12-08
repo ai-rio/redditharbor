@@ -4,16 +4,18 @@ Demonstration of Phase 2 AgentOps integration for Pipeline v3
 Shows production monitoring, session management, and cost tracking
 """
 
-import sys
-import os
-import time
 import random
+import sys
+import time
+
 sys.path.append('.')
 
-from monitoring.agentops_tracker import AgentOpsTracker, AgentOpsConfig
-from monitoring.agentops_decorators import trace, tool, llm_call
-from models.cost_tracking import CostTracking, CostSummary
 from datetime import datetime
+
+from models.cost_tracking import CostTracking
+from monitoring.agentops_decorators import llm_call, tool, trace
+from monitoring.agentops_tracker import AgentOpsConfig, AgentOpsTracker
+
 
 def demonstrate_agentops_integration():
     """Demonstrate AgentOps monitoring capabilities"""
@@ -147,15 +149,15 @@ def demonstrate_agentops_integration():
     print("   📋 Custom tags and filtering")
     print("   📥 Export capabilities for reporting")
 
-    print(f"\n🎉 Phase 2 AgentOps Integration Complete!")
+    print("\n🎉 Phase 2 AgentOps Integration Complete!")
     print(f"⏰ Demo completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Show environment setup
-    print(f"\n🔧 Environment Setup:")
-    print(f"   export AGENTOPS_API_KEY=your_key_here")
-    print(f"   export AGENTOPS_PROJECT_NAME=pipeline-v3-production")
-    print(f"   export AGENTOPS_ENABLED=true")
-    print(f"   export AGENTOPS_TAGS=production,pipeline-v3")
+    print("\n🔧 Environment Setup:")
+    print("   export AGENTOPS_API_KEY=your_key_here")
+    print("   export AGENTOPS_PROJECT_NAME=pipeline-v3-production")
+    print("   export AGENTOPS_ENABLED=true")
+    print("   export AGENTOPS_TAGS=production,pipeline-v3")
 
 
 if __name__ == "__main__":

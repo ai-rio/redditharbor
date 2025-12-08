@@ -5,8 +5,8 @@ TDD Step 3: Write a test that fails for cost tracking integration in workflow
 
 def test_workflow_tracks_cost():
     """Test that TrackedWorkflow tracks execution cost"""
-    from workflows.tracked_workflow import TrackedWorkflow
     from monitoring.cost_tracker import CostTracker
+    from workflows.tracked_workflow import TrackedWorkflow
 
     workflow = TrackedWorkflow(
         name="test_workflow",

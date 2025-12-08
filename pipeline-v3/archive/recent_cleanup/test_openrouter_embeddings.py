@@ -3,7 +3,6 @@
 Test OpenRouter embedding functionality with text-embedding-3-small
 """
 
-import os
 import sys
 
 sys.path.append('.')

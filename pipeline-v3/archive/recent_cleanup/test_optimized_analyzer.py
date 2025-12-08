@@ -7,18 +7,18 @@ Phase 5 production requirements are met.
 """
 
 import asyncio
-import time
 import json
 import logging
+import sys
+import time
 from datetime import datetime
 from pathlib import Path
-import sys
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from models.reddit import RedditSubmission
-from transform.agno_analyzer_optimized import OptimizedAgnoAnalyzer, BatchConfig
+from transform.agno_analyzer_optimized import BatchConfig, OptimizedAgnoAnalyzer
 
 # Configure logging
 logging.basicConfig(
@@ -325,8 +325,9 @@ async def test_memory_usage():
     logger.info("TESTING MEMORY USAGE")
     logger.info("="*60)
 
-    import psutil
     import gc
+
+    import psutil
 
     process = psutil.Process()
     initial_memory = process.memory_info().rss / 1024 / 1024  # MB

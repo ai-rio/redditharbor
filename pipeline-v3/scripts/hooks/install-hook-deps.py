@@ -6,6 +6,7 @@ Install dependencies for Claude Code hooks
 import subprocess
 import sys
 
+
 def install_hook_dependencies():
     """Install required dependencies for hooks using uv."""
     dependencies = [

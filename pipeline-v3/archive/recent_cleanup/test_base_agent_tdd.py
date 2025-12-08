@@ -5,7 +5,8 @@ TDD Step 1: Write a test that fails for BaseAgent AgentOps integration
 
 def test_base_agent_initializes_agentops_tracker():
     """Test that BaseAgent initializes AgentOps tracker when enabled"""
-    from unittest.mock import patch, Mock
+    from unittest.mock import Mock, patch
+
     from transform.agno_agents import BaseAgent
 
     with patch('transform.agno_agents.get_tracker') as mock_tracker:

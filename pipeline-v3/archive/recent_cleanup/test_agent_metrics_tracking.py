@@ -12,27 +12,24 @@ Expected agents: wtp, segment, price, payment, market
 import asyncio
 import json
 import logging
-import sys
 import os
+import sys
 from datetime import datetime, timedelta
-from typing import Dict, Any
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Import agents
-from pipeline_v3.transform.agno_agents import (
-    Agent,
-    WillingnessToPayAgent,
-    MarketSegmentAgent,
-    PricePointAgent,
-    PaymentBehaviorAgent,
-    MarketResearchAgent
-)
-
 # Import metrics collector
 from pipeline_v3.monitoring.metrics_collector import get_collector
+from pipeline_v3.transform.agno_agents import (
+    MarketResearchAgent,
+    MarketSegmentAgent,
+    PaymentBehaviorAgent,
+    PricePointAgent,
+    WillingnessToPayAgent,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -101,7 +98,7 @@ async def test_agent_metrics_tracking():
 
             # Verify result is valid JSON
             parsed_result = json.loads(result)
-            print(f"  ✅ Agent executed successfully")
+            print("  ✅ Agent executed successfully")
             print(f"  📊 Result keys: {list(parsed_result.keys())}")
 
             results.append({
@@ -163,6 +160,7 @@ async def check_metrics_database(expected_agent_names):
 
         # Query recent metrics (last hour)
         import psycopg2
+
         from config import get_settings
 
         settings = get_settings()

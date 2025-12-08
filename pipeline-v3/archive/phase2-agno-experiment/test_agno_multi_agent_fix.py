@@ -3,9 +3,8 @@
 Test script to verify the Agno multi-agent coordination fixes
 """
 
-import json
 import logging
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import uuid4
 
 # Configure logging
@@ -15,6 +14,7 @@ logger = logging.getLogger(__name__)
 # Import models and analyzer
 from models.reddit import RedditSubmission
 from transform.agno_analyzer import AgnoOpportunityAnalyzer
+
 
 def test_agent_coordination():
     """Test that all 4 agents are properly coordinating and generating meaningful consensus"""
@@ -131,7 +131,7 @@ def test_agent_coordination():
         price_score = result.agno_agent_details.get('price', {}).get('monetization_score', 0)
         behavior_score = result.agno_agent_details.get('behavior', {}).get('pain_intensity_score', 0)
 
-        print(f"   Raw Agent Scores:")
+        print("   Raw Agent Scores:")
         print(f"     - WTP Agent: {wtp_score}")
         print(f"     - Segment Agent: {segment_score}")
         print(f"     - Price Agent: {price_score}")
@@ -141,11 +141,11 @@ def test_agent_coordination():
         expected_market_demand = (wtp_score * 0.6) + (segment_score * 0.4)
         expected_pain_intensity = (wtp_score * 0.5) + (behavior_score * 0.3) + (price_score * 0.2)
 
-        print(f"\n   Expected Consensus:")
+        print("\n   Expected Consensus:")
         print(f"     - Market Demand: {expected_market_demand:.1f}")
         print(f"     - Pain Intensity: {expected_pain_intensity:.1f}")
 
-        print(f"\n   Actual Consensus:")
+        print("\n   Actual Consensus:")
         print(f"     - Market Demand: {result.market_metrics.market_demand:.1f}")
         print(f"     - Pain Intensity: {result.market_metrics.pain_intensity:.1f}")
 

@@ -13,12 +13,13 @@ Expected Results:
 - Overall Status: PASSED
 """
 
-import subprocess
-import sys
 import asyncio
 import json
 import os
 import re
+import subprocess
+import sys
+
 
 def run_command(cmd, description, timeout=60):
     """Run command and return success status"""
@@ -84,7 +85,7 @@ async def test_production_imports():
 
     # Test combined import
     try:
-        from production import PrometheusMetrics, HealthCheckEndpoint
+        from production import HealthCheckEndpoint, PrometheusMetrics
         results['combined_import'] = True
         print("✅ Combined import: SUCCESS")
     except Exception as e:
@@ -128,7 +129,7 @@ def verify_configuration():
     # Check pytest.ini
     try:
         if os.path.exists('pytest.ini'):
-            with open('pytest.ini', 'r') as f:
+            with open('pytest.ini') as f:
                 content = f.read()
                 if 'asyncio_mode = auto' in content:
                     results['pytest_config'] = True
@@ -146,7 +147,7 @@ def verify_configuration():
     # Check pyproject.toml for pytest-asyncio
     try:
         if os.path.exists('pyproject.toml'):
-            with open('pyproject.toml', 'r') as f:
+            with open('pyproject.toml') as f:
                 content = f.read()
                 if 'pytest-asyncio' in content:
                     results['pytest_asyncio_dep'] = True

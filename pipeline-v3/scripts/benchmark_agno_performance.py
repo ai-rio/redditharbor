@@ -4,13 +4,13 @@ Performance benchmark for RedditHarbor Agno analyzer
 Tests both sequential and parallel execution
 """
 
+import asyncio
+import json
 import os
 import sys
 import time
-import asyncio
-import json
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List
 
 sys.path.append('.')
 
@@ -25,7 +25,7 @@ class PerformanceBenchmark:
     def __init__(self):
         self.results = {}
 
-    def create_test_submissions(self, count: int = 10) -> List[RedditSubmission]:
+    def create_test_submissions(self, count: int = 10) -> list[RedditSubmission]:
         """Create test submissions for benchmarking"""
         submissions = []
 
@@ -52,7 +52,7 @@ class PerformanceBenchmark:
 
         return submissions
 
-    async def benchmark_sequential_execution(self, analyzer, submissions: List[RedditSubmission]):
+    async def benchmark_sequential_execution(self, analyzer, submissions: list[RedditSubmission]):
         """Benchmark sequential agent execution"""
         print("\n=== Sequential Execution Benchmark ===")
         start_time = time.time()
@@ -79,7 +79,7 @@ class PerformanceBenchmark:
             'results': results
         }
 
-    async def benchmark_parallel_execution(self, analyzer, submissions: List[RedditSubmission]):
+    async def benchmark_parallel_execution(self, analyzer, submissions: list[RedditSubmission]):
         """Benchmark parallel agent execution"""
         print("\n=== Parallel Execution Benchmark ===")
 
@@ -103,7 +103,7 @@ class PerformanceBenchmark:
             'results': results
         }
 
-    async def benchmark_embedding_providers(self, submissions: List[RedditSubmission]):
+    async def benchmark_embedding_providers(self, submissions: list[RedditSubmission]):
         """Benchmark different embedding providers"""
         print("\n=== Embedding Provider Benchmark ===")
 
@@ -143,7 +143,7 @@ class PerformanceBenchmark:
 
         return results
 
-    async def benchmark_batch_embeddings(self, analyzer, texts: List[str]):
+    async def benchmark_batch_embeddings(self, analyzer, texts: list[str]):
         """Benchmark batch embedding processing"""
         print("\n=== Batch Embedding Benchmark ===")
 

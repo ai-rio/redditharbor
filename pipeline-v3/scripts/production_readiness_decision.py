@@ -10,12 +10,12 @@ Decision Matrix:
 - Complete Failure: 3+ Tier 1 FAIL → STOP
 """
 
-import sys
-import json
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List
 import glob
+import json
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -37,14 +37,14 @@ class ProductionReadinessDecision:
             "deployment_plan": None
         }
 
-    def load_latest_report(self, pattern: str) -> Dict:
+    def load_latest_report(self, pattern: str) -> dict:
         """Load most recent report matching pattern"""
         files = glob.glob(str(self.reports_dir / pattern))
         if not files:
             return None
 
         latest = max(files, key=lambda x: Path(x).stat().st_mtime)
-        with open(latest, 'r') as f:
+        with open(latest) as f:
             return json.load(f)
 
     def analyze_phase1(self):
@@ -201,7 +201,7 @@ class ProductionReadinessDecision:
         for i, rec in enumerate(self.decision["recommendations"], 1):
             print(f"{i}. {rec}")
 
-        print(f"\n📅 DEPLOYMENT PLAN:")
+        print("\n📅 DEPLOYMENT PLAN:")
         print(f"   {self.decision['deployment_plan']}")
 
         print("\n" + "=" * 80)

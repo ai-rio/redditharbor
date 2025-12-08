@@ -8,10 +8,10 @@ This script tests:
 4. End-to-end metrics flow
 """
 
+import logging
 import os
 import sys
 import time
-import logging
 from datetime import datetime
 
 # Add project root to Python path
@@ -30,7 +30,7 @@ def test_metrics_collector():
     logger.info("Testing MetricsCollector Basic Functionality")
     logger.info("=" * 80)
 
-    from monitoring.metrics_collector import MetricsCollector, get_collector
+    from monitoring.metrics_collector import get_collector
 
     # Test global collector
     collector = get_collector()
@@ -106,10 +106,10 @@ def test_agent_metrics():
     logger.info("=" * 80)
 
     from transform.agno_agents import (
-        WillingnessToPayAgent,
         MarketSegmentAgent,
+        PaymentBehaviorAgent,
         PricePointAgent,
-        PaymentBehaviorAgent
+        WillingnessToPayAgent,
     )
 
     agents = [
@@ -161,7 +161,7 @@ def test_market_research_agent_metrics():
     import asyncio
     result = asyncio.run(agent.run(test_input))
 
-    logger.info(f"✓ Market research completed")
+    logger.info("✓ Market research completed")
     logger.info(f"  - Validation score: {result.get('validation_score', 'N/A')}")
     logger.info(f"  - Jina cost: ${result.get('jina_cost', 0):.6f}")
 
@@ -174,7 +174,10 @@ def test_pipeline_orchestrator_metrics():
     logger.info("Testing PipelineOrchestrator Metrics")
     logger.info("=" * 80)
 
-    from orchestration.pipeline_orchestrator import PipelineOrchestrator, PipelineConfiguration
+    from orchestration.pipeline_orchestrator import (
+        PipelineConfiguration,
+        PipelineOrchestrator,
+    )
 
     # Create orchestrator
     orchestrator = PipelineOrchestrator()
@@ -212,6 +215,7 @@ def verify_metrics_in_database():
 
     try:
         import psycopg2
+
         from config import get_settings
 
         settings = get_settings()
@@ -265,6 +269,7 @@ def clean_test_metrics():
 
     try:
         import psycopg2
+
         from config import get_settings
 
         settings = get_settings()

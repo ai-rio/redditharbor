@@ -4,11 +4,12 @@ Dashboard Health Monitor
 Periodically checks dashboard status and reports issues
 """
 
-import time
-import requests
 import sys
-from pathlib import Path
+import time
 from datetime import datetime
+from pathlib import Path
+
+import requests
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -55,7 +56,7 @@ def main():
     print("=" * 60)
     print("🏥 Dashboard Health Monitor")
     print("=" * 60)
-    print(f"Monitoring: http://localhost:5000")
+    print("Monitoring: http://localhost:5000")
     print("Press Ctrl+C to stop monitoring")
     print("=" * 60)
 

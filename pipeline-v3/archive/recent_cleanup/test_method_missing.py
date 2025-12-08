@@ -4,6 +4,7 @@ Direct test to verify start_analysis_session method is missing
 """
 
 import sys
+
 sys.path.insert(0, '/home/carlos/projects/redditharbor-core-functions-fix/pipeline-v3')
 
 # Test 1: Verify the method doesn't exist (should fail)

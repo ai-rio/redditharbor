@@ -8,7 +8,8 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Dict
+from typing import Any
+
 from dotenv import load_dotenv
 
 # Load environment variables from project root

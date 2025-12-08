@@ -11,14 +11,15 @@ Validates Phase 5 requirements:
 """
 
 import asyncio
-import time
-import statistics
 import json
 import logging
-from datetime import datetime
-from typing import Dict, List, Any
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import statistics
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from typing import Any, Dict, List
+
 from dotenv import load_dotenv
 
 # Load environment
@@ -32,10 +33,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import RedditHarbor components
-from models.reddit import RedditSubmission
-from transform.analyzer_factory import AnalyzerFactory, AgnoAnalyzerFactory
-from transform.embedding_factory import EmbeddingFactory
 from models.analysis import AnalysisResult
+from models.reddit import RedditSubmission
+from transform.analyzer_factory import AgnoAnalyzerFactory, AnalyzerFactory
+from transform.embedding_factory import EmbeddingFactory
 
 
 class Phase5Comparator:
@@ -50,7 +51,7 @@ class Phase5Comparator:
         }
         self.test_submissions = self._generate_test_submissions()
 
-    def _generate_test_submissions(self) -> List[RedditSubmission]:
+    def _generate_test_submissions(self) -> list[RedditSubmission]:
         """Generate test Reddit submissions for comparison"""
         submissions = []
 
@@ -170,7 +171,7 @@ class Phase5Comparator:
             logger.error(f"Agno analyzer error with {embedding_provider}: {e}")
             return float('inf'), 0.0, 0.0
 
-    async def run_single_test(self, submission: RedditSubmission) -> Dict[str, Any]:
+    async def run_single_test(self, submission: RedditSubmission) -> dict[str, Any]:
         """Run single A/B test across all analyzers"""
         logger.info(f"Testing: {submission.title[:50]}...")
 
@@ -224,14 +225,14 @@ class Phase5Comparator:
                 except Exception as e:
                     logger.error(f"Test failed: {e}")
 
-    def _record_result(self, result: Dict[str, Any]) -> None:
+    def _record_result(self, result: dict[str, Any]) -> None:
         """Record test result"""
         for analyzer in ['baseline', 'agno_fake', 'agno_openai', 'agno_cohere']:
             self.results[analyzer]['latencies'].append(result[analyzer]['latency'])
             self.results[analyzer]['costs'].append(result[analyzer]['cost'])
             self.results[analyzer]['quality_scores'].append(result[analyzer]['quality'])
 
-    def calculate_metrics(self) -> Dict[str, Any]:
+    def calculate_metrics(self) -> dict[str, Any]:
         """Calculate performance metrics"""
         metrics = {}
 

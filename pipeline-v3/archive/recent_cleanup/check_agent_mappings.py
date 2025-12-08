@@ -7,8 +7,9 @@ that all 5 agents are properly defined with correct name mappings.
 """
 
 import ast
-import sys
 import os
+import sys
+
 
 def read_agent_file():
     """Read and parse the agno_agents.py file"""
@@ -16,7 +17,7 @@ def read_agent_file():
     agent_file_path = os.path.join(os.path.dirname(__file__), '..', 'transform', 'agno_agents.py')
 
     try:
-        with open(agent_file_path, 'r') as f:
+        with open(agent_file_path) as f:
             content = f.read()
         return content
     except FileNotFoundError:

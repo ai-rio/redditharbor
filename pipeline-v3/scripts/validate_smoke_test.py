@@ -11,8 +11,9 @@ Success Criteria:
 """
 
 import sys
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -94,7 +95,7 @@ class SmokeTestValidator:
 
     def check_mandatory_fields(self) -> bool:
         """Check that all mandatory fields are populated"""
-        print(f"\n📋 Checking mandatory fields...")
+        print("\n📋 Checking mandatory fields...")
 
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Check for NULL values in actual table fields
@@ -130,7 +131,7 @@ class SmokeTestValidator:
             if status == "PASS":
                 print(f"✓ All {len(actual_fields)} mandatory fields populated")
             else:
-                print(f"✗ Found NULL values in mandatory fields:")
+                print("✗ Found NULL values in mandatory fields:")
                 for check in null_checks:
                     if check['null_count'] > 0:
                         print(f"  - {check['field']}: {check['null_count']} nulls")

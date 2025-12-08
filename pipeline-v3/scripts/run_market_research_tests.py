@@ -3,8 +3,8 @@
 Test runner script for MarketResearchAgent tests
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add pipeline-v3 to Python path
