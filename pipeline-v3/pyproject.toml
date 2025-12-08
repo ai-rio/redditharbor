@@ -69,6 +69,7 @@ dependencies = [
     "watchfiles>=0.20.0",
     "jsonschema>=4.0.0",
     "tdd-guard-pytest>=0.1.2",
+    "fastapi>=0.124.0",
 ]
 
 [project.optional-dependencies]

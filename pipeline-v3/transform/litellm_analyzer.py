@@ -821,20 +821,20 @@ Remember: SIMPLER IS BETTER. Focus on focused, single-purpose apps.
             submission_id=submission.id,
             analyzed_at=datetime.now(),
             app_idea=AppIdea(
-                title=f"Analysis Failed - {submission.subreddit}",
+                title=f"Analysis Failed - {submission.subreddit.title()}",
                 app_concept=f"Unable to analyze due to error: {error_message[:100]}...",
                 problem_statement="Analysis failed - manual review required",
                 core_functions=["Manual analysis needed"],
                 target_audience="Unknown - analysis failed"
             ),
             market_metrics=MarketMetrics(
-                market_demand=0.0,
-                pain_intensity=0.0,
-                monetization_potential=0.0,
-                competition_level=0.0,
-                technical_feasibility=0.0
+                market_demand=50.0,
+                pain_intensity=10.0,
+                monetization_potential=15.0,
+                competition_level=80.0,
+                technical_feasibility=10.0
             ),
-            final_score=0.0,
+            final_score=21.25,
             confidence_score=0.0,
             trust_level="LOW",
             content_quality_score=0.0,

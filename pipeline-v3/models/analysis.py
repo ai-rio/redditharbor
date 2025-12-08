@@ -157,6 +157,9 @@ class AppIdea(BaseModel):
         # Allow some exceptions (articles, prepositions, etc. should not be capitalized unless first word)
         exceptions = {'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'with', 'in', 'of'}
         for i, word in enumerate(words):
+            # Skip non-alphabetic words (hyphens, numbers, etc.)
+            if not word or not word[0].isalpha():
+                continue
             if i == 0 or word.lower() not in exceptions:
                 if not word[0].isupper():
                     raise ValueError(f"Title must be in title case. Expected: '{expected_title}', got: '{title}'")
