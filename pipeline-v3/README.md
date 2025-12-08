@@ -280,6 +280,18 @@ mypy .
 | Cost Tracking | Basic | Real-time with analytics |
 | Multi-Agent | Single agent | Agno framework integration |
 
+## Documentation
+
+### 📚 Implementation & Research
+
+- **[docs/implementation/BRANCH_PLAN.md](./docs/implementation/BRANCH_PLAN.md)** - Branch planning and development strategy
+- **[docs/implementation/TDD_IMPLEMENTATION_GUIDE.md](./docs/implementation/TDD_IMPLEMENTATION_GUIDE.md)** - TDD methodology guide for AgentOps integration
+- **[docs/implementation/IMPLEMENTATION_SUMMARY.md](./docs/implementation/IMPLEMENTATION_SUMMARY.md)** - AgentOps integration implementation summary
+
+### 📊 Architecture & Dependencies
+
+- **[docs/architecture/requirements.txt](./docs/architecture/requirements.txt)** - Project dependencies and requirements
+
 ## Next Steps
 
 1. **Add embedding generation** for semantic similarity search
