@@ -1,7 +1,8 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
+from agno.workflow import Workflow
 
 
-class TrackedWorkflow:
+class TrackedWorkflow(Workflow):
     """Minimal TrackedWorkflow implementation for TDD"""
 
     def __init__(
@@ -25,3 +26,21 @@ class TrackedWorkflow:
         """Track a cost amount"""
         if self.cost_tracker:
             self.cost_tracker.track_cost(amount, category)
+
+    def run(self):
+        session_id = None
+        try:
+            if self.enable_agentops and hasattr(self, 'agentops_tracker') and self.agentops_tracker:
+                session_id = self.agentops_tracker.start_session(
+                    session_name=self.name,
+                    tags=["workflow", "tracked_workflow"]
+                )
+            return super().run()
+        except Exception as e:
+            raise
+        finally:
+            if session_id and self.enable_agentops and hasattr(self, 'agentops_tracker') and self.agentops_tracker:
+                self.agentops_tracker.end_session(
+                    status="success",
+                    metadata={"workflow_name": self.name}
+                )
