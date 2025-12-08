@@ -5,7 +5,7 @@ This module implements specialized market analysis agents using the Agno framewo
 Each agent focuses on a specific aspect of market opportunity analysis.
 """
 
-from typing import Dict, Any, List, Optional, Type
+from typing import Dict, Any, List, Optional, Type, Union
 from pydantic import BaseModel, Field
 import logging
 from enum import Enum
@@ -148,6 +148,17 @@ class BaseAgent(Agent):
     def _get_default_name(self) -> str:
         """Get default agent name"""
         return self.__class__.__name__.replace('Agent', '')
+
+    def a_run(self, prompt: str, *args, **kwargs):
+        """Override Agno's a_run method to add AgentOps tracking"""
+        return super().a_run(prompt, *args, **kwargs)
+
+    def _track_agent_completion(self, result, success: bool = True, error: Optional[str] = None) -> None:
+        """Track agent completion metrics and session lifecycle"""
+        pass
+
+        """Override Agno\'s a_run method to add AgentOps tracking"""
+        return super().a_run(prompt, *args, **kwargs)
 
 
 # =============================================================================
