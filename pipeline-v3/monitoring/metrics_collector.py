@@ -16,14 +16,14 @@ Usage:
         result = agent.execute()
 """
 
+import logging
 import time
-import psycopg2
-import psycopg2.extras
 from contextlib import contextmanager
 from functools import wraps
-from typing import Optional, Dict, Any
-from datetime import datetime
-import logging
+from typing import Any
+
+import psycopg2
+import psycopg2.extras
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class MetricsCollector:
     """Collects and stores pipeline execution metrics"""
 
-    def __init__(self, database_url: Optional[str] = None, enabled: bool = True):
+    def __init__(self, database_url: str | None = None, enabled: bool = True):
         """
         Initialize metrics collector
 
@@ -69,11 +69,11 @@ class MetricsCollector:
         phase: str,
         duration_seconds: float,
         success: bool,
-        agent_name: Optional[str] = None,
-        opportunity_id: Optional[str] = None,
-        api_cost_usd: Optional[float] = None,
-        error_message: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        agent_name: str | None = None,
+        opportunity_id: str | None = None,
+        api_cost_usd: float | None = None,
+        error_message: str | None = None,
+        metadata: dict[str, Any] | None = None
     ):
         """
         Record a single metric to database
@@ -128,8 +128,8 @@ class MetricsCollector:
     def track(
         self,
         phase: str,
-        agent_name: Optional[str] = None,
-        opportunity_id: Optional[str] = None
+        agent_name: str | None = None,
+        opportunity_id: str | None = None
     ):
         """
         Context manager for automatic execution tracking
@@ -202,7 +202,7 @@ def get_collector() -> MetricsCollector:
 
 def track_execution(
     phase: str,
-    agent_name: Optional[str] = None,
+    agent_name: str | None = None,
     opportunity_id_param: str = "opportunity_id"
 ):
     """

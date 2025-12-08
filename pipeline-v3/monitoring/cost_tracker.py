@@ -1,10 +1,10 @@
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class CostTracker:
     """Minimal CostTracker implementation for TDD"""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize CostTracker"""
         self.config = config or {}
         self.total_cost = 0.0
