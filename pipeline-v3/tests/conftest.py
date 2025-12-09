@@ -13,7 +13,7 @@ import pytest
 # CRITICAL: Set up Python path BEFORE any imports to avoid conflicts
 # The order is crucial: pipeline-v3 must be FIRST to avoid conflicts with other models
 
-pipeline_root = Path(__file__).parent.absolute()
+pipeline_root = Path(__file__).parent.parent.absolute()  # Go up to pipeline-v3 root
 
 # Remove any existing references to avoid conflicts with project models
 original_path = sys.path[:]

@@ -1,4 +1,5 @@
 from typing import Any
+import uuid
 
 from agno.workflow import Workflow
 
@@ -18,6 +19,12 @@ class TrackedWorkflow(Workflow):
         self.config = config or {}
         self.enable_agentops = enable_agentops
         self.cost_tracker = cost_tracker
+
+        # Generate unique session ID
+        self.session_id = str(uuid.uuid4())
+
+        # Initialize session state
+        self.session_state = "initialized"
 
         # Initialize AgentOps tracker if enabled
         if self.enable_agentops:

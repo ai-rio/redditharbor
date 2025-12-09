@@ -19,7 +19,8 @@ AsyncF = Callable[..., Any]
 
 def trace(name: str | None = None, tags: list[str] | None = None,
          track_args: bool = False, track_result: bool = False,
-         include_timing: bool = True, track_errors: bool = True) -> Callable:
+         include_timing: bool = True, track_errors: bool = True,
+         timeout: float | None = None) -> Callable:
     """
     Decorator to trace function execution with AgentOps
 
@@ -30,6 +31,7 @@ def trace(name: str | None = None, tags: list[str] | None = None,
         track_result: Whether to track function result
         include_timing: Whether to include timing information
         track_errors: Whether to track errors automatically
+        timeout: Timeout in seconds for function execution (None for no timeout)
 
     Returns:
         Decorated function with AgentOps tracing
