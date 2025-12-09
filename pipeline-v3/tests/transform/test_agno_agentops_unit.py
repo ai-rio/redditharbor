@@ -99,7 +99,17 @@ class TestBaseAgentAgentOpsIntegration:
 
     def test_base_agent_initializes_agentops_tracker(self):
         """Test that BaseAgent initializes AgentOps tracker when enabled"""
-        with patch('transform.agno_agents.OpenAIChat'):
+        # Import the real OpenAIChat to create a proper mock instance
+        from agno.models.openai import OpenAIChat
+
+        # Create a real OpenAIChat instance to use in the test
+        mock_model = OpenAIChat(
+            id="anthropic/claude-haiku-4.5",
+            api_key="test_key",
+            base_url="https://openrouter.ai/api/v1"
+        )
+
+        with patch('transform.agno_agents.OpenAIChat', return_value=mock_model):
             with patch('transform.agno_agents.get_tracker') as mock_get_tracker:
                 mock_tracker = Mock()
                 mock_get_tracker.return_value = mock_tracker
@@ -118,9 +128,19 @@ class TestBaseAgentAgentOpsIntegration:
                 assert hasattr(agent, 'agentops_tracker')
                 assert agent.agentops_tracker == mock_tracker
 
-    def test_base_agent_a_run_tracking_success(self):
+    def test_base_agent_arun_tracking_success(self):
         """Test that BaseAgent tracks successful execution"""
-        with patch('transform.agno_agents.OpenAIChat'):
+        # Import the real OpenAIChat to create a proper mock instance
+        from agno.models.openai import OpenAIChat
+
+        # Create a real OpenAIChat instance to use in the test
+        mock_model = OpenAIChat(
+            id="anthropic/claude-haiku-4.5",
+            api_key="test_key",
+            base_url="https://openrouter.ai/api/v1"
+        )
+
+        with patch('transform.agno_agents.OpenAIChat', return_value=mock_model):
             with patch('transform.agno_agents.get_tracker') as mock_get_tracker:
                 mock_tracker = Mock()
                 mock_get_tracker.return_value = mock_tracker
@@ -134,15 +154,50 @@ class TestBaseAgentAgentOpsIntegration:
                     enable_agentops=True
                 )
 
-                # Mock the parent class run method
-                with patch.object(agent.__class__.__bases__[0], 'a_run', return_value="success"):
-                    # This should fail: tracking not implemented in a_run
-                    result = asyncio.run(agent.a_run("test input"))
+                # Mock the parent class arun method to return a coroutine
+                async def mock_arun_impl(*args, **kwargs):
+                    return "success"
+
+                with patch.object(agent.__class__.__bases__[0], 'arun', side_effect=mock_arun_impl):
+                    # This should fail: tracking not implemented in arun
+                    result = asyncio.run(agent.arun("test input"))
 
                     # Should fail: tracking not performed
                     assert result == "success"
                     # Verify tracking was called
                     mock_tracker.track_event.assert_called()
+
+
+class TestBaseAgentEdgeCases:
+    """Test edge cases for BaseAgent initialization"""
+
+    def test_base_agent_without_agentops(self):
+        """Test that BaseAgent works correctly when AgentOps is disabled"""
+        from agno.models.openai import OpenAIChat
+
+        mock_model = OpenAIChat(
+            id="anthropic/claude-haiku-4.5",
+            api_key="test_key",
+            base_url="https://openrouter.ai/api/v1"
+        )
+
+        with patch('transform.agno_agents.OpenAIChat', return_value=mock_model):
+            with patch('transform.agno_agents.get_tracker') as mock_get_tracker:
+                from transform.agno_agents import BaseAgent
+
+                # Initialize without AgentOps
+                agent = BaseAgent(
+                    model="anthropic/claude-haiku-4.5",
+                    api_key="test_key",
+                    base_url="https://openrouter.ai/api/v1",
+                    enable_agentops=False
+                )
+
+                # Tracker should not be initialized
+                assert hasattr(agent, 'agentops_tracker')
+                assert agent.agentops_tracker is None
+                # get_tracker should not be called
+                mock_get_tracker.assert_not_called()
 
 
 if __name__ == "__main__":
