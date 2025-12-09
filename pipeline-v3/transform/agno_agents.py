@@ -93,6 +93,7 @@ class BaseAgent(Agent):
             base_url: API base URL
             output_schema: Pydantic schema for structured output
             debug_mode: Enable debug logging
+            enable_agentops: Enable AgentOps tracking for agent execution (default: False)
             instructions: Agent instructions
             name: Agent name
         """
@@ -148,16 +149,19 @@ class BaseAgent(Agent):
         """Get default agent name"""
         return self.__class__.__name__.replace('Agent', '')
 
-    def a_run(self, prompt: str, *args, **kwargs):
-        """Override Agno's a_run method to add AgentOps tracking"""
-        return super().a_run(prompt, *args, **kwargs)
+    async def arun(self, prompt: str, *args, **kwargs):
+        """Override Agno's arun method to add AgentOps tracking"""
+        result = await super().arun(prompt, *args, **kwargs)
+
+        # Track completion if AgentOps is enabled
+        if self.enable_agentops and self.agentops_tracker:
+            self.agentops_tracker.track_event()
+
+        return result
 
     def _track_agent_completion(self, result, success: bool = True, error: str | None = None) -> None:
         """Track agent completion metrics and session lifecycle"""
         pass
-
-        """Override Agno\'s a_run method to add AgentOps tracking"""
-        return super().a_run(prompt, *args, **kwargs)
 
 
 # =============================================================================

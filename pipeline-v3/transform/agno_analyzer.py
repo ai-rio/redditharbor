@@ -403,6 +403,7 @@ class AgnoOpportunityAnalyzer:
         self.model = model or settings.agno_model
         self.base_url = base_url or settings.agno_base_url
         self.enable_agentops = enable_agentops if enable_agentops is not None else settings.agno_enable_agentops
+        self.enable_debug = enable_debug
         self.weights = weights or ScoringWeights()
         self.thresholds = thresholds or AnalysisThresholds()
 
@@ -463,28 +464,28 @@ class AgnoOpportunityAnalyzer:
             model=self.model,
             api_key=settings.openai_api_key,
             base_url=self.base_url,
-            debug_mode=self.enable_agentops  # Enable debug if AgentOps is enabled
+            debug_mode=self.enable_debug
         )
 
         self.segment_agent = MarketSegmentAgent(
             model=self.model,
             api_key=settings.openai_api_key,
             base_url=self.base_url,
-            debug_mode=self.enable_agentops
+            debug_mode=self.enable_debug
         )
 
         self.price_agent = PricePointAgent(
             model=self.model,
             api_key=settings.openai_api_key,
             base_url=self.base_url,
-            debug_mode=self.enable_agentops
+            debug_mode=self.enable_debug
         )
 
         self.behavior_agent = PaymentBehaviorAgent(
             model=self.model,
             api_key=settings.openai_api_key,
             base_url=self.base_url,
-            debug_mode=self.enable_agentops
+            debug_mode=self.enable_debug
         )
 
         # Initialize MarketResearchAgent with configuration
@@ -492,7 +493,7 @@ class AgnoOpportunityAnalyzer:
             model=self.model,
             api_key=settings.openai_api_key,
             base_url=self.base_url,
-            debug_mode=self.enable_agentops
+            debug_mode=self.enable_debug
         )
 
         # Create real Agno Team with role delegation
@@ -510,7 +511,7 @@ class AgnoOpportunityAnalyzer:
                 "Provide structured outputs with scores and evidence.",
                 "Work collaboratively to build a comprehensive market assessment."
             ],
-            debug_mode=self.enable_agentops
+            debug_mode=self.enable_debug
         )
 
     def _initialize_processors(self) -> None:
