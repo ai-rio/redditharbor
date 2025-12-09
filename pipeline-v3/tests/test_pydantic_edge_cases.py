@@ -5,15 +5,16 @@ This test suite validates that our Pydantic models handle boundary conditions,
 extreme values, and unusual scenarios that could cause failures in production.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
-from typing import List
 import json
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
+from typing import List
 
-from models.reddit import RedditSubmission, RedditComment
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.database import OpportunityCreate
+from models.reddit import RedditComment, RedditSubmission
 
 
 class TestRedditSubmissionEdgeCases:
@@ -34,7 +35,7 @@ class TestRedditSubmissionEdgeCases:
             score=100,
             comments_count=25,
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123"
         )
 
@@ -52,7 +53,7 @@ class TestRedditSubmissionEdgeCases:
                 score=100,
                 comments_count=25,
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
 
@@ -86,7 +87,7 @@ class TestRedditSubmissionEdgeCases:
                 score=100,
                 comments_count=25,
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
 
@@ -109,7 +110,7 @@ class TestRedditSubmissionEdgeCases:
             score=2147483647,  # Max int32 value
             comments_count=2147483647,  # Max int32 value
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123"
         )
 
@@ -128,7 +129,7 @@ class TestRedditSubmissionEdgeCases:
                 score=10,
                 comments_count=5,
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
 
@@ -156,7 +157,7 @@ class TestRedditSubmissionEdgeCases:
                     score=100,
                     comments_count=25,
                     subreddit="test" if case["field"] != "Subreddit" else "",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -185,7 +186,7 @@ class TestRedditSubmissionEdgeCases:
                     score=100,
                     comments_count=25,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -194,7 +195,7 @@ class TestRedditSubmissionEdgeCases:
         # Current implementation may not handle extreme timestamps
 
         # Test Unix epoch (1970-01-01)
-        epoch_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        epoch_time = datetime(1970, 1, 1, tzinfo=UTC)
         submission = RedditSubmission(
             id="test123",
             title="Old post",
@@ -212,7 +213,7 @@ class TestRedditSubmissionEdgeCases:
         assert submission.created_utc == epoch_time
 
         # Test very recent timestamp (future boundary)
-        very_recent = datetime.now(timezone.utc) + timedelta(microseconds=1)
+        very_recent = datetime.now(UTC) + timedelta(microseconds=1)
         with pytest.raises(ValueError, match="cannot be in the future"):
             RedditSubmission(
                 id="test123",
@@ -251,7 +252,7 @@ class TestRedditSubmissionEdgeCases:
                 score=100,
                 comments_count=25,
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink=url
             )
 
@@ -278,7 +279,7 @@ class TestRedditSubmissionEdgeCases:
                     score=10,
                     comments_count=5,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink=invalid_url
                 )
 
@@ -297,7 +298,7 @@ class TestRedditSubmissionEdgeCases:
             score=100,
             comments_count=25,
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123"
         )
 
@@ -330,7 +331,7 @@ class TestRedditSubmissionEdgeCases:
                     score=100 + thread_id,
                     comments_count=25 + thread_id,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
                 results.append(submission)
@@ -371,7 +372,7 @@ class TestRedditCommentEdgeCases:
                 author=f"user_{depth}",
                 text=f"Comment at depth {depth}",
                 upvotes=max(1, 10 - depth),  # Decreasing engagement with depth
-                created_utc=datetime.now(timezone.utc) - timedelta(minutes=depth)
+                created_utc=datetime.now(UTC) - timedelta(minutes=depth)
             )
             depth_submissions.append(comment)
             current_parent_id = f"comment_{depth}"
@@ -388,7 +389,7 @@ class TestRedditCommentEdgeCases:
         # Current implementation doesn't track comment velocity
 
         # Simulate extremely fast comment posting
-        submission_time = datetime.now(timezone.utc)
+        submission_time = datetime.now(UTC)
         fast_comments = []
 
         for i in range(100):  # 100 comments in rapid succession
@@ -426,7 +427,7 @@ class TestRedditCommentEdgeCases:
             author="testuser",
             text=max_length_comment,
             upvotes=100,
-            created_utc=datetime.now(timezone.utc)
+            created_utc=datetime.now(UTC)
         )
 
         # This should validate maximum length handling
@@ -440,7 +441,7 @@ class TestRedditCommentEdgeCases:
                 author="testuser",
                 text="a" * 10001,  # One character over limit
                 upvotes=100,
-                created_utc=datetime.now(timezone.utc)
+                created_utc=datetime.now(UTC)
             )
 
     def test_comment_score_anomalies(self):
@@ -464,7 +465,7 @@ class TestRedditCommentEdgeCases:
                     text="Test comment",
                     upvotes=case["upvotes"],
                     score=case["score"],
-                    created_utc=datetime.now(timezone.utc)
+                    created_utc=datetime.now(UTC)
                 )
 
     def test_comment_automated_detection(self):
@@ -488,7 +489,7 @@ class TestRedditCommentEdgeCases:
                     author="bot_user",
                     text=bot_text,
                     upvotes=0,
-                    created_utc=datetime.now(timezone.utc)
+                    created_utc=datetime.now(UTC)
                 )
 
 
@@ -859,10 +860,10 @@ class TestAnalysisResultEdgeCases:
 
         # Test various timestamp scenarios
         timestamp_cases = [
-            {"time": datetime(1970, 1, 1, tzinfo=timezone.utc), "description": "Unix epoch"},
-            {"time": datetime(2038, 1, 1, tzinfo=timezone.utc), "description": "Y2K38 issue"},
-            {"time": datetime.now(timezone.utc) - timedelta(days=1), "description": "Yesterday"},
-            {"time": datetime.now(timezone.utc), "description": "Current"},
+            {"time": datetime(1970, 1, 1, tzinfo=UTC), "description": "Unix epoch"},
+            {"time": datetime(2038, 1, 1, tzinfo=UTC), "description": "Y2K38 issue"},
+            {"time": datetime.now(UTC) - timedelta(days=1), "description": "Yesterday"},
+            {"time": datetime.now(UTC), "description": "Current"},
         ]
 
         for case in timestamp_cases:
@@ -898,7 +899,7 @@ class TestAnalysisResultEdgeCases:
 
             # Validate timestamp properties
             assert analysis.analyzed_at.tzinfo is not None, "Timestamp must have timezone info"
-            assert analysis.analyzed_at <= datetime.now(timezone.utc), "Analysis timestamp cannot be in the future"
+            assert analysis.analyzed_at <= datetime.now(UTC), "Analysis timestamp cannot be in the future"
 
     def test_model_deep_copy_and_isolation(self):
         """Test model deep copy and isolation - SHOULD FAIL"""
@@ -1083,7 +1084,7 @@ class TestOpportunityCreateEdgeCases:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title=case["app_title"] if case["field"] == "app_title" else "Valid App Title",
                 app_concept="Valid concept",
                 problem_statement="Valid problem",
@@ -1113,7 +1114,7 @@ class TestOpportunityCreateEdgeCases:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Valid App Title",
                 app_concept="Valid concept",
                 problem_statement="Valid problem",
@@ -1149,7 +1150,7 @@ class TestOpportunityCreateEdgeCases:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Valid App Title",
                 app_concept="Valid concept",
                 problem_statement="Valid problem",
@@ -1166,7 +1167,6 @@ class TestOpportunityCreateEdgeCases:
             )
 
             # This should validate JSON field handling
-            import json
             json_str = json.dumps(create.core_functions)
             parsed_back = json.loads(json_str)
             assert parsed_back == create.core_functions
@@ -1189,7 +1189,7 @@ class TestOpportunityCreateEdgeCases:
                     reddit_author="testuser",
                     reddit_upvotes=100,
                     reddit_comments_count=25,
-                    reddit_created_at=datetime.now(timezone.utc),
+                    reddit_created_at=datetime.now(UTC),
                     app_title="Valid App Title",
                     app_concept="Valid concept",
                     problem_statement="Valid problem",
@@ -1229,7 +1229,7 @@ class TestOpportunityCreateEdgeCases:
                     reddit_author="testuser",
                     reddit_upvotes=100,
                     reddit_comments_count=25,
-                    reddit_created_at=datetime.now(timezone.utc),
+                    reddit_created_at=datetime.now(UTC),
                     app_title="Valid App Title",
                     app_concept="Valid concept",
                     problem_statement="Valid problem",
@@ -1263,7 +1263,7 @@ class TestOpportunityCreateEdgeCases:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Valid App Title",
                 app_concept="Valid concept",
                 problem_statement="Valid problem",
@@ -1289,9 +1289,9 @@ class TestOpportunityCreateEdgeCases:
 
         # Test various datetime scenarios
         datetime_cases = [
-            {"created_at": datetime(1970, 1, 1, tzinfo=timezone.utc), "description": "Unix epoch"},
-            {"created_at": datetime(2030, 1, 1, tzinfo=timezone.utc), "description": "Future but reasonable"},
-            {"created_at": datetime.now(timezone.utc) - timedelta(days=365), "description": "One year old"},
+            {"created_at": datetime(1970, 1, 1, tzinfo=UTC), "description": "Unix epoch"},
+            {"created_at": datetime(2030, 1, 1, tzinfo=UTC), "description": "Future but reasonable"},
+            {"created_at": datetime.now(UTC) - timedelta(days=365), "description": "One year old"},
         ]
 
         for case in datetime_cases:
@@ -1321,10 +1321,10 @@ class TestOpportunityCreateEdgeCases:
 
             # This should validate datetime handling
             assert create.reddit_created_at.tzinfo is not None, "DateTime must have timezone info"
-            assert create.reddit_created_at <= datetime.now(timezone.utc), "Created date cannot be in the future"
+            assert create.reddit_created_at <= datetime.now(UTC), "Created date cannot be in the future"
 
             # Test very old dates (should fail validation)
-            very_old_date = datetime(2005, 1, 1, tzinfo=timezone.utc)  # Before Reddit really existed
+            very_old_date = datetime(2005, 1, 1, tzinfo=UTC)  # Before Reddit really existed
             with pytest.raises(ValueError, match="Date is too old"):
                 OpportunityCreate(
                     submission_id="test123",
@@ -1363,7 +1363,7 @@ class TestOpportunityCreateEdgeCases:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App Title",
             app_concept="Test app concept for database validation",
             problem_statement="Test problem statement for database validation",

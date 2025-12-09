@@ -3,17 +3,17 @@
 Test script to verify Agno analyzer works without Jina integration
 """
 
-import sys
 import os
-import json
+import sys
 from datetime import datetime
 
 # Add pipeline-v3 to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from models.reddit import RedditSubmission
-from transform.analyzer_factory import AgnoAnalyzerFactory
 from monitoring.metrics_collector import get_collector
+from transform.analyzer_factory import AgnoAnalyzerFactory
+
 
 def test_agno_without_jina():
     """Test that Agno analyzer works without Jina API integration"""
@@ -34,7 +34,7 @@ def test_agno_without_jina():
         created_at=datetime.utcnow().isoformat()
     )
 
-    print(f"\nTest Submission:")
+    print("\nTest Submission:")
     print(f"  Title: {submission.title}")
     print(f"  Subreddit: r/{submission.subreddit}")
     print(f"  Content snippet: {submission.text[:100]}...")
@@ -86,13 +86,13 @@ def test_agno_without_jina():
     print(f"Confidence Score: {getattr(result, 'confidence_score', 'N/A')}")
 
     if hasattr(result, 'app_idea'):
-        print(f"\nApp Idea:")
+        print("\nApp Idea:")
         print(f"  Title: {getattr(result.app_idea, 'title', 'N/A')}")
         print(f"  Concept: {getattr(result.app_idea, 'app_concept', 'N/A')[:100]}...")
         print(f"  Target Audience: {getattr(result.app_idea, 'target_audience', 'N/A')}")
 
     if hasattr(result, 'market_metrics'):
-        print(f"\nMarket Metrics:")
+        print("\nMarket Metrics:")
         print(f"  Market Demand: {getattr(result.market_metrics, 'market_demand', 'N/A')}")
         print(f"  Pain Intensity: {getattr(result.market_metrics, 'pain_intensity', 'N/A')}")
         print(f"  Monetization Potential: {getattr(result.market_metrics, 'monetization_potential', 'N/A')}")
@@ -148,7 +148,7 @@ def test_agno_without_jina():
     # Print cost summary if available
     if hasattr(analyzer, 'cost_tracker'):
         cost_summary = analyzer.cost_tracker.get_cost_summary()
-        print(f"\nCost Summary:")
+        print("\nCost Summary:")
         print(f"  Total Cost: ${cost_summary['total_cost']:.6f}")
         print(f"  Analysis Count: {cost_summary['analysis_count']}")
 
@@ -199,7 +199,7 @@ def test_batch_analysis():
     print(f"\nAnalyzing {len(submissions)} submissions...")
     try:
         results, cost_summary = analyzer.analyze_batch_with_costs(submissions)
-        print(f"✓ Batch analysis completed")
+        print("✓ Batch analysis completed")
         print(f"  Results: {len(results)} analyses")
         print(f"  Total cost: ${cost_summary.get('total_cost', 0):.6f}")
         print(f"  Throughput: {cost_summary.get('throughput', 0):.2f} submissions/sec")

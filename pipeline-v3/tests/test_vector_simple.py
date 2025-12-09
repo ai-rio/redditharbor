@@ -4,16 +4,18 @@ Simple standalone test for vector similarity functionality
 This test verifies the core vector operations without complex dependencies
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.getcwd())
 
+from datetime import UTC, datetime
+from typing import Any, Dict, List
+
 import numpy as np
-from datetime import datetime, UTC
-from typing import List, Dict, Any
 
 
-def calculate_cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
+def calculate_cosine_similarity(vec1: list[float], vec2: list[float]) -> float:
     """Calculate cosine similarity between two vectors"""
     if len(vec1) != len(vec2):
         raise ValueError("Vectors must have the same dimension")
@@ -45,7 +47,7 @@ def calculate_cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
         return dot_product / (magnitude1 * magnitude2)
 
 
-def generate_similar_embedding(base_embedding: List[float], similarity: float = 0.8) -> List[float]:
+def generate_similar_embedding(base_embedding: list[float], similarity: float = 0.8) -> list[float]:
     """Generate an embedding with specified similarity to base embedding"""
     # Add controlled variations to achieve desired similarity
     variation = 1.0 - similarity

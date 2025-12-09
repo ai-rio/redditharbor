@@ -9,10 +9,9 @@ extracted using Jina API integration with Pydantic validation and serialization.
 """
 
 import json
-import re
-from typing import List, Dict, Any, Optional, Union
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -25,7 +24,7 @@ class CompetitorPricing:
 
     company_name: str
     pricing_model: str  # subscription/freemium/one-time/usage-based
-    pricing_tiers: List[Dict[str, Any]]  # [{"name": "Pro", "price": "$29/mo"}]
+    pricing_tiers: list[dict[str, Any]]  # [{"name": "Pro", "price": "$29/mo"}]
     target_market: str  # B2B/B2C/Enterprise/SMB/B2B2C
     source_url: str
     confidence: float  # 0-100
@@ -167,13 +166,13 @@ class ValidationEvidence:
     """
 
     # From competitor analysis
-    competitor_pricing: List[CompetitorPricing]  # Real pricing data
+    competitor_pricing: list[CompetitorPricing]  # Real pricing data
 
     # From industry reports
-    market_size: Optional[MarketSizeData]  # TAM/SAM/growth rates
+    market_size: MarketSizeData | None  # TAM/SAM/growth rates
 
     # From launch platforms
-    similar_launches: List[ProductLaunchData]  # Benchmark metrics
+    similar_launches: list[ProductLaunchData]  # Benchmark metrics
 
     # Quality metrics
     validation_score: float  # 0-100 (evidence-based)
@@ -181,8 +180,8 @@ class ValidationEvidence:
     reasoning: str  # Evidence-backed reasoning
 
     # Metadata
-    search_queries_used: List[str]  # Jina search queries
-    urls_fetched: List[str]  # Sources fetched
+    search_queries_used: list[str]  # Jina search queries
+    urls_fetched: list[str]  # Sources fetched
     total_cost: float  # Jina + LLM costs
 
     def __post_init__(self):
@@ -258,7 +257,7 @@ class ValidationEvidence:
             total_cost=data['total_cost']
         )
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get summary statistics from validation evidence"""
         return {
             'competitors_found': len(self.competitor_pricing),
@@ -280,7 +279,7 @@ class ValidationEvidence:
         else:
             return "LOW"
 
-    def get_quality_metrics(self) -> Dict[str, str]:
+    def get_quality_metrics(self) -> dict[str, str]:
         """Get quality assessment metrics"""
         # Calculate overall quality
         avg_score = (self.validation_score + self.data_quality_score) / 2
@@ -322,7 +321,7 @@ class ValidationEvidence:
             'launch_benchmarks': len(self.similar_launches)
         }
 
-    def to_database_dict(self) -> Dict[str, Any]:
+    def to_database_dict(self) -> dict[str, Any]:
         """Convert to database-compatible dictionary"""
         return {
             'competitor_pricing': json.loads(self.to_json())['competitor_pricing'],
@@ -337,7 +336,7 @@ class ValidationEvidence:
         }
 
     @classmethod
-    def from_database_dict(cls, db_dict: Dict[str, Any]) -> 'ValidationEvidence':
+    def from_database_dict(cls, db_dict: dict[str, Any]) -> 'ValidationEvidence':
         """Create from database dictionary"""
         return cls(
             competitor_pricing=[
@@ -361,7 +360,7 @@ class ValidationEvidence:
             total_cost=db_dict['total_cost']
         )
 
-    def to_analysis_result_format(self) -> Dict[str, Any]:
+    def to_analysis_result_format(self) -> dict[str, Any]:
         """Convert to AnalysisResult-compatible format for Pipeline v3"""
         return {
             'jina_validation_score': self.validation_score,
@@ -375,7 +374,7 @@ class ValidationEvidence:
             'quality_metrics': self.get_quality_metrics()
         }
 
-    def get_cost_analysis(self) -> Dict[str, Any]:
+    def get_cost_analysis(self) -> dict[str, Any]:
         """Get detailed cost analysis"""
         return {
             'total_cost': self.total_cost,
@@ -390,7 +389,7 @@ class ValidationEvidence:
             'cost_breakdown_available': True  # Could be expanded with detailed breakdown
         }
 
-    def get_cost_optimization_recommendations(self) -> List[str]:
+    def get_cost_optimization_recommendations(self) -> list[str]:
         """Get cost optimization recommendations"""
         recommendations = []
 

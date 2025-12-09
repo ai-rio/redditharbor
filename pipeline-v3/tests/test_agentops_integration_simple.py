@@ -3,8 +3,8 @@
 Simple test to verify AgentOps integration works (GREEN phase)
 """
 
-import sys
 import os
+import sys
 from datetime import datetime
 
 # Add project root to path
@@ -16,7 +16,7 @@ def test_agentops_tracker():
     print("=" * 60)
 
     try:
-        from monitoring.agentops_tracker import AgentOpsTracker, AgentOpsConfig
+        from monitoring.agentops_tracker import AgentOpsConfig, AgentOpsTracker
         print("✅ AgentOps tracker imported successfully")
     except ImportError as e:
         print(f"❌ Failed to import AgentOps tracker: {e}")
@@ -91,7 +91,7 @@ def test_agentops_decorators():
     print("-" * 40)
 
     try:
-        from monitoring.agentops_decorators import trace, tool, llm_call
+        from monitoring.agentops_decorators import llm_call, tool, trace
         print("✅ AgentOps decorators imported successfully")
     except ImportError as e:
         print(f"❌ Failed to import AgentOps decorators: {e}")

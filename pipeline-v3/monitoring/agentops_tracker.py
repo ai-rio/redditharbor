@@ -3,16 +3,15 @@ AgentOps integration for Pipeline v3 monitoring and observability
 Provides session management, cost tracking, and performance monitoring capabilities
 """
 
-import os
-import logging
-import time
-import json
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Union, Callable
-from dataclasses import dataclass, field
-from functools import wraps
 import asyncio
+import logging
+import os
 import threading
+import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Optional
 
 # AgentOps imports with fallback handling
 try:
@@ -23,7 +22,7 @@ except ImportError:
     agentops = None
 
 # Local imports
-from models.cost_tracking import CostTracking, CostSummary
+from models.cost_tracking import CostSummary
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +32,10 @@ class AgentOpsConfig:
     """Configuration for AgentOps integration"""
 
     enabled: bool = True
-    api_key: Optional[str] = None
+    api_key: str | None = None
     project_name: str = "pipeline-v3"
     auto_start_session: bool = True
-    session_tags: List[str] = field(default_factory=lambda: ["production", "pipeline-v3"])
+    session_tags: list[str] = field(default_factory=lambda: ["production", "pipeline-v3"])
     instrument_llm_calls: bool = True  # Use manual tracking for better control
     max_retries: int = 3
     retry_delay: float = 1.0
@@ -64,16 +63,16 @@ class SessionMetrics:
 
     session_id: str
     start_time: datetime
-    end_time: Optional[datetime] = None
+    end_time: datetime | None = None
     total_cost: float = 0.0
     total_tokens: int = 0
     total_operations: int = 0
     successful_operations: int = 0
     failed_operations: int = 0
     total_latency: float = 0.0
-    errors: List[Dict[str, Any]] = field(default_factory=list)
-    agent_coordinations: List[Dict[str, Any]] = field(default_factory=list)
-    workflow_steps: List[Dict[str, Any]] = field(default_factory=list)
+    errors: list[dict[str, Any]] = field(default_factory=list)
+    agent_coordinations: list[dict[str, Any]] = field(default_factory=list)
+    workflow_steps: list[dict[str, Any]] = field(default_factory=list)
 
     def get_success_rate(self) -> float:
         """Calculate success rate as percentage"""
@@ -87,7 +86,7 @@ class SessionMetrics:
             return 0.0
         return self.total_latency / self.total_operations
 
-    def get_duration(self) -> Optional[float]:
+    def get_duration(self) -> float | None:
         """Get session duration in seconds"""
         if self.end_time is None:
             return None
@@ -100,7 +99,7 @@ class AgentOpsTracker:
     Provides comprehensive observability with fallback to local tracking
     """
 
-    def __init__(self, config: Optional[AgentOpsConfig] = None):
+    def __init__(self, config: AgentOpsConfig | None = None):
         """
         Initialize AgentOps tracker
 
@@ -115,7 +114,7 @@ class AgentOpsTracker:
         self.local_tracking_enabled = self.config.fallback_to_local_tracking
 
         # Local tracking data (fallback when AgentOps unavailable)
-        self.local_sessions: Dict[str, SessionMetrics] = {}
+        self.local_sessions: dict[str, SessionMetrics] = {}
         self.current_local_session = None
 
         # Thread safety
@@ -168,7 +167,7 @@ class AgentOpsTracker:
                 return False
             raise
 
-    def start_session(self, session_name: str, tags: Optional[List[str]] = None) -> Optional[str]:
+    def start_session(self, session_name: str, tags: list[str] | None = None) -> str | None:
         """
         Start a new tracking session
 
@@ -209,7 +208,7 @@ class AgentOpsTracker:
 
             return session_id
 
-    def end_session(self, status: str = "success", metadata: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def end_session(self, status: str = "success", metadata: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """
         End current tracking session
 
@@ -283,7 +282,7 @@ class AgentOpsTracker:
             time.time() - self._last_batch_flush >= self._batch_timeout
         )
 
-    def _add_event_to_batch(self, event_name: str, event_data: Dict[str, Any]) -> None:
+    def _add_event_to_batch(self, event_name: str, event_data: dict[str, Any]) -> None:
         """Add event to batch for processing"""
         self._batch_events.append((event_name, event_data))
 
@@ -292,7 +291,7 @@ class AgentOpsTracker:
 
     def track_llm_call(self, model: str, tokens: int, cost: float,
                       latency: float, success: bool = True,
-                      metadata: Optional[Dict[str, Any]] = None) -> bool:
+                      metadata: dict[str, Any] | None = None) -> bool:
         """
         Track an LLM API call
 
@@ -384,7 +383,7 @@ class AgentOpsTracker:
         return self.current_local_session is not None
 
     def track_latency(self, operation_name: str, latency: float,
-                     metadata: Optional[Dict[str, Any]] = None) -> bool:
+                     metadata: dict[str, Any] | None = None) -> bool:
         """
         Track operation latency
 
@@ -425,7 +424,7 @@ class AgentOpsTracker:
         return self.current_local_session is not None
 
     def track_operation_result(self, operation_name: str, success: bool,
-                              metadata: Optional[Dict[str, Any]] = None) -> bool:
+                              metadata: dict[str, Any] | None = None) -> bool:
         """
         Track operation result (success/failure)
 
@@ -468,7 +467,7 @@ class AgentOpsTracker:
         return self.current_local_session is not None
 
     def track_error(self, error_type: str, error_message: str,
-                   metadata: Optional[Dict[str, Any]] = None) -> bool:
+                   metadata: dict[str, Any] | None = None) -> bool:
         """
         Track an error
 
@@ -516,7 +515,7 @@ class AgentOpsTracker:
         return self.current_local_session is not None
 
     def track_agent_coordination(self, primary_agent: str, coordinating_agent: str,
-                                operation: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
+                                operation: str, metadata: dict[str, Any] | None = None) -> bool:
         """
         Track multi-agent coordination
 
@@ -566,7 +565,7 @@ class AgentOpsTracker:
 
     def track_workflow_step(self, agent_name: str, step_name: str,
                            step_status: str, step_duration: float,
-                           metadata: Optional[Dict[str, Any]] = None) -> bool:
+                           metadata: dict[str, Any] | None = None) -> bool:
         """
         Track workflow step across agents
 
@@ -617,7 +616,7 @@ class AgentOpsTracker:
 
         return self.current_local_session is not None
 
-    def get_session_summary(self) -> Optional[Dict[str, Any]]:
+    def get_session_summary(self) -> dict[str, Any] | None:
         """
         Get summary of current session
 
@@ -633,7 +632,7 @@ class AgentOpsTracker:
 
         return self._generate_session_summary(session_metrics, "active")
 
-    def get_performance_summary(self) -> Optional[Dict[str, Any]]:
+    def get_performance_summary(self) -> dict[str, Any] | None:
         """
         Get performance summary of current session
 
@@ -660,7 +659,7 @@ class AgentOpsTracker:
         }
 
     def _generate_session_summary(self, session_metrics: SessionMetrics,
-                                 status: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                                 status: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         """Generate comprehensive session summary"""
         summary = {
             "session_id": session_metrics.session_id,
@@ -691,7 +690,7 @@ class AgentOpsTracker:
 
     def track_llm_call_with_retry(self, model: str, tokens: int, cost: float,
                                  latency: float, success: bool = True,
-                                 max_retries: Optional[int] = None) -> bool:
+                                 max_retries: int | None = None) -> bool:
         """
         Track LLM call with retry mechanism
 
@@ -720,7 +719,7 @@ class AgentOpsTracker:
                 time.sleep(self.config.retry_delay * (2 ** attempt))  # Exponential backoff
 
     def track_with_fallback(self, primary_tracking: Callable,
-                          fallback_data: Dict[str, Any]) -> bool:
+                          fallback_data: dict[str, Any]) -> bool:
         """
         Track with fallback mechanism
 
@@ -761,7 +760,7 @@ class AgentOpsTracker:
 
 
 # Global tracker instance
-_global_tracker: Optional[AgentOpsTracker] = None
+_global_tracker: AgentOpsTracker | None = None
 
 
 def get_tracker() -> AgentOpsTracker:
@@ -773,18 +772,18 @@ def get_tracker() -> AgentOpsTracker:
 
 
 def track_llm_call(model: str, tokens: int, cost: float, latency: float,
-                  success: bool = True, metadata: Optional[Dict[str, Any]] = None) -> bool:
+                  success: bool = True, metadata: dict[str, Any] | None = None) -> bool:
     """Convenience function to track LLM calls using global tracker"""
     return get_tracker().track_llm_call(model, tokens, cost, latency, success, metadata)
 
 
 def track_latency(operation_name: str, latency: float,
-                 metadata: Optional[Dict[str, Any]] = None) -> bool:
+                 metadata: dict[str, Any] | None = None) -> bool:
     """Convenience function to track latency using global tracker"""
     return get_tracker().track_latency(operation_name, latency, metadata)
 
 
 def track_error(error_type: str, error_message: str,
-               metadata: Optional[Dict[str, Any]] = None) -> bool:
+               metadata: dict[str, Any] | None = None) -> bool:
     """Convenience function to track errors using global tracker"""
     return get_tracker().track_error(error_type, error_message, metadata)

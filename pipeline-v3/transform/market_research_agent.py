@@ -7,35 +7,30 @@ documentation, providing real-world market validation using Jina Reader API.
 Based on Phase 3 Jina Integration Documentation lines 88-202
 """
 
-import json
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Any
 
 # Import ValidationEvidence models with fallback
 try:
     from transform.validation_evidence_pydantic import (
-        ValidationEvidence,
+        PYDANTIC_AVAILABLE,
         CompetitorPricing,
         MarketSizeData,
         ProductLaunchData,
-        create_validation_evidence,
+        ValidationEvidence,
         assess_validation_quality,
-        PYDANTIC_AVAILABLE
+        create_validation_evidence,
     )
 except ImportError:
     from transform.validation_evidence import (
         ValidationEvidence,
-        CompetitorPricing,
-        MarketSizeData,
-        ProductLaunchData
     )
     PYDANTIC_AVAILABLE = False
 
 # Import Jina client for real market research
 try:
-    from transform.jina_client import JinaClient
     from transform.caching.jina_cache import get_jina_cache
+    from transform.jina_client import JinaClient
     JINA_AVAILABLE = True
 except ImportError:
     JINA_AVAILABLE = False
@@ -61,14 +56,14 @@ class MarketResearchAgent:
     def __init__(
         self,
         model: str = "anthropic/claude-haiku-4.5",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1",
-        jina_api_key: Optional[str] = None,
+        jina_api_key: str | None = None,
         validation_threshold: float = 70.0,
         max_competitors: int = 5,
         max_launches: int = 3,
         enable_cost_tracking: bool = True,
-        use_real_jina: Optional[bool] = None
+        use_real_jina: bool | None = None
     ):
         """
         Initialize MarketResearchAgent with configuration
@@ -144,7 +139,7 @@ class MarketResearchAgent:
         """
         return score >= self.validation_threshold
 
-    async def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """
         Execute market research using Jina API
 
@@ -421,8 +416,8 @@ class MarketResearchAgent:
             f"{app_concept} product launches"
         ]
         urls_fetched = [
-            f"https://example-competitor.com/pricing",
-            f"https://example-report.com/market-analysis",
+            "https://example-competitor.com/pricing",
+            "https://example-report.com/market-analysis",
             f"https://producthunt.com/posts/{app_concept.lower().replace(' ', '-')}"
         ]
 
@@ -453,7 +448,7 @@ class MarketResearchAgent:
         self,
         app_concept: str,
         target_market: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for competitor pricing information
 
@@ -498,7 +493,7 @@ class MarketResearchAgent:
         self,
         app_concept: str,
         target_market: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Search for market size information
 
@@ -522,7 +517,7 @@ class MarketResearchAgent:
     async def _search_product_launches(
         self,
         app_concept: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for similar product launches
 
@@ -557,9 +552,9 @@ class MarketResearchAgent:
 
     def _calculate_validation_score(
         self,
-        competitor_pricing: List[Dict[str, Any]],
-        market_size: Optional[Dict[str, Any]],
-        similar_launches: List[Dict[str, Any]]
+        competitor_pricing: list[dict[str, Any]],
+        market_size: dict[str, Any] | None,
+        similar_launches: list[dict[str, Any]]
     ) -> float:
         """
         Calculate overall validation score based on available evidence
@@ -626,9 +621,9 @@ class MarketResearchAgent:
 
     def _calculate_data_quality_score(
         self,
-        competitor_pricing: List[Dict[str, Any]],
-        market_size: Optional[Dict[str, Any]],
-        similar_launches: List[Dict[str, Any]]
+        competitor_pricing: list[dict[str, Any]],
+        market_size: dict[str, Any] | None,
+        similar_launches: list[dict[str, Any]]
     ) -> float:
         """
         Calculate data quality score based on source credibility
@@ -687,9 +682,9 @@ class MarketResearchAgent:
 
     def _generate_reasoning(
         self,
-        competitor_pricing: List[Dict[str, Any]],
-        market_size: Optional[Dict[str, Any]],
-        similar_launches: List[Dict[str, Any]],
+        competitor_pricing: list[dict[str, Any]],
+        market_size: dict[str, Any] | None,
+        similar_launches: list[dict[str, Any]],
         validation_score: float
     ) -> str:
         """
@@ -745,7 +740,7 @@ class MarketResearchAgent:
 
         return " ".join(reasoning_parts)
 
-    def _convert_evidence_to_dict(self, evidence: ValidationEvidence) -> Dict[str, Any]:
+    def _convert_evidence_to_dict(self, evidence: ValidationEvidence) -> dict[str, Any]:
         """
         Convert ValidationEvidence to dictionary format
 
@@ -804,7 +799,7 @@ class MarketResearchAgent:
             "quality_metrics": _safe_assess_validation_quality(evidence) if PYDANTIC_AVAILABLE else {}
         }
 
-    def _create_error_result(self, error_message: str) -> Dict[str, Any]:
+    def _create_error_result(self, error_message: str) -> dict[str, Any]:
         """
         Create error result for failed market research
 
@@ -827,7 +822,7 @@ class MarketResearchAgent:
             "error": error_message
         }
 
-    def get_cost_summary(self) -> Dict[str, Any]:
+    def get_cost_summary(self) -> dict[str, Any]:
         """
         Get cost summary for market research operations
 
@@ -863,7 +858,7 @@ class MarketResearchAgent:
         await self.close()
 
 
-def _safe_assess_validation_quality(evidence) -> Dict[str, Any]:
+def _safe_assess_validation_quality(evidence) -> dict[str, Any]:
     """Safely assess validation quality, handling Mock objects"""
     try:
         from transform.validation_evidence_pydantic import assess_validation_quality

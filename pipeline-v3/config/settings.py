@@ -2,9 +2,7 @@
 Configuration settings for Pipeline v3 using existing RedditHarbor infrastructure
 """
 
-import os
 from pathlib import Path
-from typing import List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -103,7 +101,7 @@ class Settings(BaseSettings):
     )
 
     # Pipeline Configuration
-    default_subreddits: List[str] = Field(
+    default_subreddits: list[str] = Field(
         default=["productivity", "tools"],
         description="Default subreddits to fetch from"
     )
@@ -164,6 +162,68 @@ class Settings(BaseSettings):
         default=True,
         alias="AGNO_ANALYZER_ENABLED",
         description="Enable Agno multi-agent analyzer"
+    )
+    agno_track_costs: bool = Field(
+        default=True,
+        alias="AGNO_TRACK_COSTS",
+        description="Enable Agno cost tracking"
+    )
+    agno_debug_mode: bool = Field(
+        default=False,
+        alias="AGNO_DEBUG_MODE",
+        description="Enable Agno debug mode for detailed logging"
+    )
+    agentops_api_key: str = Field(
+        default="",
+        alias="AGENTOPS_API_KEY",
+        description="AgentOps API key for tracking"
+    )
+    agentops_enabled: bool = Field(
+        default=False,
+        alias="AGENTOPS_ENABLED",
+        description="Enable AgentOps integration"
+    )
+
+    # Agno Model Cost Configuration
+    agno_claude_cost_per_million_input_tokens: float = Field(
+        default=3.0,
+        alias="AGNO_CLAUDE_COST_PER_MILLION_INPUT_TOKENS",
+        description="Cost per million Claude input tokens (USD)"
+    )
+    agno_claude_cost_per_million_output_tokens: float = Field(
+        default=15.0,
+        alias="AGNO_CLAUDE_COST_PER_MILLION_OUTPUT_TOKENS",
+        description="Cost per million Claude output tokens (USD)"
+    )
+    agno_gpt4_cost_per_million_input_tokens: float = Field(
+        default=30.0,
+        alias="AGNO_GPT4_COST_PER_MILLION_INPUT_TOKENS",
+        description="Cost per million GPT-4 input tokens (USD)"
+    )
+    agno_gpt4_cost_per_million_output_tokens: float = Field(
+        default=60.0,
+        alias="AGNO_GPT4_COST_PER_MILLION_OUTPUT_TOKENS",
+        description="Cost per million GPT-4 output tokens (USD)"
+    )
+    agno_gpt4o_cost_per_million_input_tokens: float = Field(
+        default=5.0,
+        alias="AGNO_GPT4O_COST_PER_MILLION_INPUT_TOKENS",
+        description="Cost per million GPT-4o input tokens (USD)"
+    )
+    agno_gpt4o_cost_per_million_output_tokens: float = Field(
+        default=15.0,
+        alias="AGNO_GPT4O_COST_PER_MILLION_OUTPUT_TOKENS",
+        description="Cost per million GPT-4o output tokens (USD)"
+    )
+    agno_haiku_cost_per_million_input_tokens: float = Field(
+        default=1.0,
+        alias="AGNO_HAIKU_COST_PER_MILLION_INPUT_TOKENS",
+        description="Cost per million Haiku input tokens (USD)"
+    )
+    agno_haiku_cost_per_million_output_tokens: float = Field(
+        default=5.0,
+        alias="AGNO_HAIKU_COST_PER_MILLION_OUTPUT_TOKENS",
+        description="Cost per million Haiku output tokens (USD)"
     )
     agno_orchestration_mode: str = Field(
         default="sequential",
@@ -306,7 +366,7 @@ class Settings(BaseSettings):
         else:
             raise ValueError("default_subreddits must be a string or list")
 
-    
+
     @property
     def project_root(self) -> Path:
         """Get the project root directory"""

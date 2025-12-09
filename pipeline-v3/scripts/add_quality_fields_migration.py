@@ -11,8 +11,8 @@ Run with: uv run python scripts/add_quality_fields_migration.py
 """
 
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -20,6 +20,7 @@ sys.path.insert(0, str(project_root))
 
 try:
     from sqlalchemy import create_engine, text
+
     from config import get_settings
 except ImportError as e:
     print(f"Error importing required modules: {e}")
@@ -175,7 +176,7 @@ def verify_migration():
                 if avg_quality is not None:
                     logger.info(f"   • Average quality: {avg_quality:.1f}")
                 else:
-                    logger.info(f"   • Average quality: N/A (no records)")
+                    logger.info("   • Average quality: N/A (no records)")
                 logger.info(f"   • Records with indicators: {has_indicators}")
 
                 # Test a sample query that would use the new indexes

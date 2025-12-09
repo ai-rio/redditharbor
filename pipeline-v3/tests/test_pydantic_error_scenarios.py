@@ -5,15 +5,16 @@ This test suite validates that our Pydantic models handle error scenarios gracef
 including malformed data, serialization failures, and unexpected inputs.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Union
 import json
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Any, Dict, List, Union
 
-from models.reddit import RedditSubmission, RedditComment
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.database import OpportunityCreate
+from models.reddit import RedditComment, RedditSubmission
 
 
 class TestRedditSubmissionErrorScenarios:
@@ -33,7 +34,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
             {
@@ -45,7 +46,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
             {
@@ -57,7 +58,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
             {
@@ -69,7 +70,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
             {
@@ -133,7 +134,7 @@ class TestRedditSubmissionErrorScenarios:
                     score=0,
                     comments_count=0,
                     subreddit="error",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/error/error123"
                 )
 
@@ -152,7 +153,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/duplicate123"
             },
             {
@@ -164,7 +165,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 50,
                 "comments_count": 10,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/duplicate123"
             }
         ]
@@ -198,7 +199,7 @@ class TestRedditSubmissionErrorScenarios:
             score=100,
             comments_count=25,
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123"
         )
 
@@ -247,7 +248,7 @@ class TestRedditSubmissionErrorScenarios:
                 score=100,
                 comments_count=25,
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
         except MemoryError:
@@ -271,7 +272,7 @@ class TestRedditSubmissionErrorScenarios:
                     score=100,
                     comments_count=25,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/large{i}"
                 )
                 large_objects.append(submission)
@@ -298,7 +299,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
             {
@@ -310,7 +311,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
             {
@@ -322,7 +323,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": 100,
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
             {
@@ -334,7 +335,7 @@ class TestRedditSubmissionErrorScenarios:
                 "score": "100",  # String instead of int
                 "comments_count": 25,
                 "subreddit": "test",
-                "created_utc": datetime.now(timezone.utc),
+                "created_utc": datetime.now(UTC),
                 "permalink": "https://reddit.com/r/test/test123"
             },
         ]
@@ -362,7 +363,7 @@ class TestRedditSubmissionErrorScenarios:
                     score=edge_case["score"],
                     comments_count=25,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -381,7 +382,7 @@ class TestRedditCommentErrorScenarios:
             author="testuser",
             text="Orphan comment",
             upvotes=10,
-            created_utc=datetime.now(timezone.utc)
+            created_utc=datetime.now(UTC)
         )
 
         # This should validate parent submission existence
@@ -405,7 +406,7 @@ class TestRedditCommentErrorScenarios:
                 "author": "user1",
                 "text": "First level comment",
                 "upvotes": 10,
-                "created_utc": datetime.now(timezone.utc)
+                "created_utc": datetime.now(UTC)
             },
             {
                 "id": "comment2",
@@ -413,7 +414,7 @@ class TestRedditCommentErrorScenarios:
                 "author": "user2",
                 "text": "Second level comment",
                 "upvotes": 8,
-                "created_utc": datetime.now(timezone.utc)
+                "created_utc": datetime.now(UTC)
             },
             {
                 "id": "comment3",
@@ -421,7 +422,7 @@ class TestRedditCommentErrorScenarios:
                 "author": "user3",
                 "text": "Third level comment (creates loop)",
                 "upvotes": 5,
-                "created_utc": datetime.now(timezone.utc)
+                "created_utc": datetime.now(UTC)
             },
             {
                 "id": "comment4",
@@ -429,7 +430,7 @@ class TestRedditCommentErrorScenarios:
                 "author": "user4",
                 "text": "Fourth level comment (would create loop)",
                 "upvotes": 3,
-                "created_utc": datetime.now(timezone.utc)
+                "created_utc": datetime.now(UTC)
             }
         ]
 
@@ -496,7 +497,7 @@ class TestRedditCommentErrorScenarios:
                     author="spammer",
                     text=spam_text,
                     upvotes=0,
-                    created_utc=datetime.now(timezone.utc)
+                    created_utc=datetime.now(UTC)
                 )
 
     def test_comment_velocity_spam_detection(self):
@@ -505,7 +506,7 @@ class TestRedditCommentErrorScenarios:
 
         # Simulate user posting many comments in short time
         rapid_comments = []
-        base_time = datetime.now(timezone.utc)
+        base_time = datetime.now(UTC)
 
         for i in range(100):  # 100 comments in rapid succession
             comment_time = base_time + timedelta(milliseconds=i * 50)  # Every 50ms
@@ -567,7 +568,7 @@ class TestRedditCommentErrorScenarios:
                     author="bypass_user",
                     text=bypass_case["text"],
                     upvotes=0,
-                    created_utc=datetime.now(timezone.utc)
+                    created_utc=datetime.now(UTC)
                 )
 
 
@@ -1072,7 +1073,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1088,7 +1089,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1104,7 +1105,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1120,7 +1121,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1169,7 +1170,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1185,7 +1186,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1201,7 +1202,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1266,7 +1267,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": -100,  # Negative upvotes
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1282,7 +1283,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": -25,  # Negative comments count
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1331,7 +1332,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1347,7 +1348,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1363,7 +1364,7 @@ class TestOpportunityCreateErrorScenarios:
                 "reddit_author": "testuser",
                 "reddit_upvotes": 100,
                 "reddit_comments_count": 25,
-                "reddit_created_at": datetime.now(timezone.utc),
+                "reddit_created_at": datetime.now(UTC),
                 "app_title": "Test App Title",
                 "app_concept": "Test concept",
                 "problem_statement": "Test problem",
@@ -1412,7 +1413,7 @@ class TestOpportunityCreateErrorScenarios:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App Title",
             app_concept="Test concept",
             problem_statement="Test problem",
@@ -1463,7 +1464,7 @@ class TestOpportunityCreateErrorScenarios:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title=truncation_case["app_title"] if "app_title" in truncation_case else "Valid App Title",
                 app_concept="Test concept",
                 problem_statement="Test problem",

@@ -5,24 +5,30 @@ This file provides comprehensive fixtures and mock strategies for testing OnlyMa
 SQL-to-Python object mapping integration with pipeline-v3.
 """
 
-import pytest
 import asyncio
-from datetime import datetime, UTC, timedelta
-from typing import List, Dict, Any, Optional, AsyncGenerator
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-import uuid
-from pathlib import Path
 import json
-import tempfile
 import os
+import tempfile
+import uuid
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
+
+from load.database import DatabaseLoader
 
 # Import models for fixtures
 from models import (
-    AnalysisResult, AppIdea, MarketMetrics, RedditSubmission, RedditComment
+    AnalysisResult,
+    AppIdea,
+    MarketMetrics,
+    RedditComment,
+    RedditSubmission,
 )
 from models.database import Opportunity, OpportunityCreate
-from load.database import DatabaseLoader
-
 
 # =============================================================================
 # Database Schema Fixtures

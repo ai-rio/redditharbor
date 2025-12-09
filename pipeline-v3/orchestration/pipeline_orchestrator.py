@@ -5,19 +5,18 @@ Pipeline orchestration with dependency injection and clean separation of concern
 import logging
 import os
 import time
-from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from typing import Any
 
 from config import get_settings
 from extract import RedditClient
-from transform import AnalysisValidator
-from transform.analyzer_factory import create_analyzer
 from load import DatabaseLoader
-from staging import StagingLayer, StagingConfig
 from models.analysis import AnalysisResult
 from models.reddit import RedditSubmission
 from monitoring.metrics_collector import get_collector
+from staging import StagingConfig, StagingLayer
+from transform import AnalysisValidator
+from transform.analyzer_factory import create_analyzer
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +24,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PipelineConfiguration:
     """Configuration for pipeline execution"""
-    subreddits: Optional[List[str]] = None
+    subreddits: list[str] | None = None
     limit: int = 10
     sort_by: str = "hot"
     time_filter: str = "week"
     min_score: float = 0.0
     min_confidence: float = 40.0
-    batch_size: Optional[int] = None
+    batch_size: int | None = None
     test_mode: bool = False
     dry_run: bool = False
     validate_quality: bool = False
@@ -65,10 +64,10 @@ class PipelineResults:
     validation_rate: float = 0.0
     high_score_rate: float = 0.0
     average_score: float = 0.0
-    trust_distribution: Dict[str, int] = None
+    trust_distribution: dict[str, int] = None
 
     # Database statistics
-    database_stats: Optional[Dict[str, Any]] = None
+    database_stats: dict[str, Any] | None = None
 
 
 class PipelineOrchestrator:
@@ -79,11 +78,11 @@ class PipelineOrchestrator:
 
     def __init__(
         self,
-        reddit_client: Optional[RedditClient] = None,
+        reddit_client: RedditClient | None = None,
         analyzer_factory=None,
-        database_loader: Optional[DatabaseLoader] = None,
-        validator: Optional[AnalysisValidator] = None,
-        staging_layer: Optional[StagingLayer] = None,
+        database_loader: DatabaseLoader | None = None,
+        validator: AnalysisValidator | None = None,
+        staging_layer: StagingLayer | None = None,
         settings=None
     ):
         """
@@ -188,7 +187,7 @@ class PipelineOrchestrator:
         logger.info("=" * 80)
         logger.info("PIPELINE V3 - Reddit Opportunity Analysis")
         logger.info("=" * 80)
-        logger.info(f"Configuration:")
+        logger.info("Configuration:")
         logger.info(f"  - Subreddits: {config.subreddits or self.settings.default_subreddits}")
         logger.info(f"  - Limit: {config.limit}")
         logger.info(f"  - Sort by: {config.sort_by}")
@@ -265,7 +264,7 @@ class PipelineOrchestrator:
             logger.debug("Exception details:", exc_info=True)
             raise RuntimeError(f"Pipeline execution failed: {e}")
 
-    def _extract_submissions(self, config: PipelineConfiguration) -> tuple[List[RedditSubmission], float]:
+    def _extract_submissions(self, config: PipelineConfiguration) -> tuple[list[RedditSubmission], float]:
         """Extract Reddit submissions"""
         logger.info("STEP 1: Extracting Reddit submissions")
 
@@ -299,7 +298,7 @@ class PipelineOrchestrator:
 
             return submissions, extraction_time
 
-    def _stage_submissions(self, submissions: List[RedditSubmission], config: PipelineConfiguration) -> tuple[List[RedditSubmission], float]:
+    def _stage_submissions(self, submissions: list[RedditSubmission], config: PipelineConfiguration) -> tuple[list[RedditSubmission], float]:
         """
         Stage submissions with deduplication and checkpointing
 
@@ -341,8 +340,8 @@ class PipelineOrchestrator:
         return staged_submissions, staging_time
 
     def _analyze_submissions_with_tracking(
-        self, submissions: List[RedditSubmission], config: PipelineConfiguration
-    ) -> tuple[List[AnalysisResult], float]:
+        self, submissions: list[RedditSubmission], config: PipelineConfiguration
+    ) -> tuple[list[AnalysisResult], float]:
         """Analyze submissions with individual opportunity tracking"""
         logger.info("STEP 2: Analyzing submissions with LLM (with individual tracking)")
 
@@ -392,8 +391,8 @@ class PipelineOrchestrator:
         return analyses, transform_time
 
     def _analyze_submissions(
-        self, submissions: List[RedditSubmission], config: PipelineConfiguration
-    ) -> tuple[List[AnalysisResult], float]:
+        self, submissions: list[RedditSubmission], config: PipelineConfiguration
+    ) -> tuple[list[AnalysisResult], float]:
         """Analyze submissions with LLM (legacy method for backward compatibility)"""
         logger.info("STEP 2: Analyzing submissions with LLM")
 
@@ -423,8 +422,8 @@ class PipelineOrchestrator:
             return analyses, transform_time
 
     def _validate_analyses(
-        self, analyses: List[AnalysisResult], config: PipelineConfiguration
-    ) -> tuple[List[AnalysisResult], float]:
+        self, analyses: list[AnalysisResult], config: PipelineConfiguration
+    ) -> tuple[list[AnalysisResult], float]:
         """Validate and filter analysis results with comprehensive quality filtering"""
         logger.info("STEP 3: Validating analysis quality")
         validate_start = time.time()
@@ -466,7 +465,7 @@ class PipelineOrchestrator:
         validation_time = time.time() - validate_start
 
         # Enhanced completion logging
-        logger.info(f"✓ Quality filtering and validation complete:")
+        logger.info("✓ Quality filtering and validation complete:")
         logger.info(f"  - Input analyses: {len(analyses)}")
         logger.info(f"  - After quality filtering: {len(filtered_analyses)}")
         logger.info(f"  - After additional validation: {len(high_quality_analyses)}")
@@ -479,10 +478,10 @@ class PipelineOrchestrator:
 
     def _store_analyses(
         self,
-        analyses: List[AnalysisResult],
-        submissions: List[RedditSubmission],
+        analyses: list[AnalysisResult],
+        submissions: list[RedditSubmission],
         config: PipelineConfiguration
-    ) -> tuple[Dict[str, int], float]:
+    ) -> tuple[dict[str, int], float]:
         """Store analyses to database"""
         storage_stats = {"stored": 0, "skipped": 0, "errors": 0}
         storage_time = 0.0
@@ -519,7 +518,7 @@ class PipelineOrchestrator:
 
         return storage_stats, storage_time
 
-    def _filter_by_quality(self, analyses: List[AnalysisResult], config: PipelineConfiguration) -> Dict[str, Any]:
+    def _filter_by_quality(self, analyses: list[AnalysisResult], config: PipelineConfiguration) -> dict[str, Any]:
         """
         Filter analyses by quality criteria with comprehensive logging and statistics
 
@@ -644,11 +643,11 @@ class PipelineOrchestrator:
         stats['filtered_items'] = filtering_reasons
 
         # Comprehensive logging
-        logger.info(f"Quality filtering complete:")
+        logger.info("Quality filtering complete:")
         logger.info(f"  Input: {stats['total_input']} analyses")
         logger.info(f"  Output: {stats['final_count']} analyses")
         logger.info(f"  Pass rate: {stats['filtering_percentages']['pass_rate_percentage'] if 'filtering_percentages' in stats else 0}%")
-        logger.info(f"  Filtered breakdown:")
+        logger.info("  Filtered breakdown:")
         logger.info(f"    - Spam: {stats['spam_filtered']} ({stats['filtering_percentages']['spam_percentage'] if 'filtering_percentages' in stats else 0}%)")
         logger.info(f"    - Low quality: {stats['low_quality_filtered']} ({stats['filtering_percentages']['low_quality_percentage'] if 'filtering_percentages' in stats else 0}%)")
         logger.info(f"    - Below min_score ({config.min_score}): {stats['below_min_score_filtered']} ({stats['filtering_percentages']['below_score_percentage'] if 'filtering_percentages' in stats else 0}%)")
@@ -664,7 +663,7 @@ class PipelineOrchestrator:
             for analysis in filtered_analyses:
                 trust_counts[analysis.trust_level] = trust_counts.get(analysis.trust_level, 0) + 1
 
-            logger.info(f"  Approved analyses summary:")
+            logger.info("  Approved analyses summary:")
             logger.info(f"    - Average score: {avg_score:.1f}")
             logger.info(f"    - Average confidence: {avg_confidence:.1f}")
             logger.info(f"    - Trust levels: {trust_counts}")
@@ -682,10 +681,10 @@ class PipelineOrchestrator:
         analysis_time: float,
         validation_time: float,
         storage_time: float,
-        submissions: List[RedditSubmission],
-        analyses: List[AnalysisResult],
-        high_quality_analyses: List[AnalysisResult],
-        storage_stats: Dict[str, int],
+        submissions: list[RedditSubmission],
+        analyses: list[AnalysisResult],
+        high_quality_analyses: list[AnalysisResult],
+        storage_stats: dict[str, int],
         config: PipelineConfiguration
     ) -> PipelineResults:
         """Create pipeline results object"""

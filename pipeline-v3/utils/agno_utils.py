@@ -5,10 +5,10 @@ This module provides helper functions for extracting, transforming,
 and formatting Agno field data for persistence and analysis.
 """
 
-from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
+from typing import Any
 
 from .agno_validators import AgnoFieldValidator
 
@@ -30,7 +30,7 @@ class AgnoFieldExtractor:
     DEFAULT_SCORE = 50.0
 
     @classmethod
-    def extract_score(cls, agent_data: Dict[str, Any], agent_type: str) -> float:
+    def extract_score(cls, agent_data: dict[str, Any], agent_type: str) -> float:
         """
         Extract score from agent data using key mappings
 
@@ -64,7 +64,7 @@ class AgnoFieldExtractor:
         return cls.DEFAULT_SCORE
 
     @classmethod
-    def extract_segment_type(cls, agent_data: Dict[str, Any]) -> Optional[str]:
+    def extract_segment_type(cls, agent_data: dict[str, Any]) -> str | None:
         """
         Extract segment type from agent data
 
@@ -85,7 +85,7 @@ class AgnoFieldExtractor:
         return None
 
     @classmethod
-    def extract_validation_status(cls, market_research_data: Dict[str, Any]) -> str:
+    def extract_validation_status(cls, market_research_data: dict[str, Any]) -> str:
         """
         Extract validation status from market research agent
 
@@ -112,7 +112,7 @@ class AgnoFieldExtractor:
             return 'failed'
 
     @classmethod
-    def build_agent_metadata(cls, agent_results: Dict[str, Dict], analysis_config: Dict[str, Any]) -> Dict[str, Any]:
+    def build_agent_metadata(cls, agent_results: dict[str, dict], analysis_config: dict[str, Any]) -> dict[str, Any]:
         """
         Build structured metadata from agent results
 
@@ -153,7 +153,7 @@ class AgnoFieldTransformer:
     """Transforms Agno fields between different formats"""
 
     @classmethod
-    def prepare_for_db_storage(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_for_db_storage(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Prepare Agno fields for database storage
 
@@ -192,7 +192,7 @@ class AgnoFieldTransformer:
         return prepared
 
     @classmethod
-    def prepare_for_api_response(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_for_api_response(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Prepare Agno fields for API response
 
@@ -233,7 +233,7 @@ class AgnoConsensusCalculator:
     """Calculates consensus metrics from agent results"""
 
     @classmethod
-    def calculate_variance_confidence(cls, scores: List[float]) -> float:
+    def calculate_variance_confidence(cls, scores: list[float]) -> float:
         """
         Calculate confidence based on score variance
 
@@ -261,7 +261,7 @@ class AgnoConsensusCalculator:
         return round(confidence, 1)
 
     @classmethod
-    def calculate_agreement_score(cls, scores: List[float], tolerance: float = 10.0) -> float:
+    def calculate_agreement_score(cls, scores: list[float], tolerance: float = 10.0) -> float:
         """
         Calculate agreement score based on how close scores are to each other
 
@@ -287,7 +287,7 @@ class AgnoConsensusCalculator:
         return round((agreements / total_pairs) * 100, 1) if total_pairs > 0 else 0.0
 
     @classmethod
-    def calculate_weighted_consensus(cls, agent_scores: Dict[str, float], weights: Dict[str, float]) -> float:
+    def calculate_weighted_consensus(cls, agent_scores: dict[str, float], weights: dict[str, float]) -> float:
         """
         Calculate weighted consensus from agent scores
 
@@ -315,7 +315,7 @@ class AgnoConsensusCalculator:
         return round(weighted_sum / total_weight, 1)
 
 
-def extract_agno_fields_from_agent_results(agent_results: Dict[str, Dict], analysis_config: Dict[str, Any]) -> Dict[str, Any]:
+def extract_agno_fields_from_agent_results(agent_results: dict[str, dict], analysis_config: dict[str, Any]) -> dict[str, Any]:
     """
     Extract all Agno fields from raw agent results
 

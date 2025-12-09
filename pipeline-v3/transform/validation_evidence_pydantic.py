@@ -11,20 +11,18 @@ This module provides enhanced validation evidence data structures with:
 - Database and AnalysisResult integration methods
 """
 
-import json
 import re
-from typing import List, Dict, Any, Optional, Union, Literal
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 # Pydantic import with fallback
 try:
     import pydantic
-    from pydantic import BaseModel, Field, validator, root_validator
+    from pydantic import BaseModel, Field, root_validator, validator
     PYDANTIC_AVAILABLE = True
 except ImportError:
     # Fallback to dataclasses if Pydantic not available
-    from dataclasses import dataclass, asdict
     PYDANTIC_AVAILABLE = False
     # Create dummy pydantic module for fallback
     class ValidationError(Exception):
@@ -90,7 +88,7 @@ if PYDANTIC_AVAILABLE:
 
         company_name: str = Field(..., min_length=1, description="Name of the competitor company")
         pricing_model: PricingModel = Field(..., description="Pricing model type")
-        pricing_tiers: List[Dict[str, Any]] = Field(default_factory=list, description="Pricing tiers with details")
+        pricing_tiers: list[dict[str, Any]] = Field(default_factory=list, description="Pricing tiers with details")
         target_market: TargetMarket = Field(..., description="Target market segment")
         source_url: str = Field(..., min_length=1, description="URL of pricing page")
         confidence: float = Field(..., ge=0.0, le=100.0, description="Confidence score (0-100)")
@@ -139,7 +137,7 @@ if PYDANTIC_AVAILABLE:
         """Market size information from industry reports (Pydantic enhanced)"""
 
         tam_value: str = Field(..., min_length=1, description="Total Addressable Market size")
-        sam_value: Optional[str] = Field(None, description="Serviceable Addressable Market size")
+        sam_value: str | None = Field(None, description="Serviceable Addressable Market size")
         growth_rate: str = Field(..., description="Market growth rate (must contain %)")
         source_name: str = Field(..., min_length=1, description="Source of market data")
         source_url: str = Field(..., min_length=1, description="URL of source report")
@@ -229,13 +227,13 @@ if PYDANTIC_AVAILABLE:
         """Real market data from Jina API (Pydantic enhanced)"""
 
         # From competitor analysis
-        competitor_pricing: List[CompetitorPricing] = Field(default_factory=list, description="Competitor pricing data")
+        competitor_pricing: list[CompetitorPricing] = Field(default_factory=list, description="Competitor pricing data")
 
         # From industry reports
-        market_size: Optional[MarketSizeData] = Field(None, description="Market size information")
+        market_size: MarketSizeData | None = Field(None, description="Market size information")
 
         # From launch platforms
-        similar_launches: List[ProductLaunchData] = Field(default_factory=list, description="Product launch benchmarks")
+        similar_launches: list[ProductLaunchData] = Field(default_factory=list, description="Product launch benchmarks")
 
         # Quality metrics
         validation_score: float = Field(..., ge=0.0, le=100.0, description="Validation score (0-100)")
@@ -243,8 +241,8 @@ if PYDANTIC_AVAILABLE:
         reasoning: str = Field(..., min_length=1, description="Evidence-backed reasoning")
 
         # Metadata
-        search_queries_used: List[str] = Field(default_factory=list, description="Jina search queries used")
-        urls_fetched: List[str] = Field(default_factory=list, description="Source URLs fetched")
+        search_queries_used: list[str] = Field(default_factory=list, description="Jina search queries used")
+        urls_fetched: list[str] = Field(default_factory=list, description="Source URLs fetched")
         total_cost: float = Field(..., ge=0.0, description="Total Jina + LLM costs")
 
         class Config:
@@ -269,7 +267,7 @@ if PYDANTIC_AVAILABLE:
             """Deserialize from JSON string"""
             return cls.parse_raw(json_str)
 
-        def get_summary(self) -> Dict[str, Any]:
+        def get_summary(self) -> dict[str, Any]:
             """Get summary statistics from validation evidence"""
             validation_level = self.get_validation_level()
             return {
@@ -292,7 +290,7 @@ if PYDANTIC_AVAILABLE:
             else:
                 return ValidationLevel.LOW
 
-        def get_quality_metrics(self) -> Dict[str, Union[str, int]]:
+        def get_quality_metrics(self) -> dict[str, str | int]:
             """Get quality assessment metrics"""
             # Calculate overall quality
             avg_score = (self.validation_score + self.data_quality_score) / 2
@@ -334,7 +332,7 @@ if PYDANTIC_AVAILABLE:
                 'launch_benchmarks': len(self.similar_launches)
             }
 
-        def to_database_dict(self) -> Dict[str, Any]:
+        def to_database_dict(self) -> dict[str, Any]:
             """Convert to database-compatible dictionary"""
             return {
                 'competitor_pricing': [comp.dict() for comp in self.competitor_pricing],
@@ -349,7 +347,7 @@ if PYDANTIC_AVAILABLE:
             }
 
         @classmethod
-        def from_database_dict(cls, db_dict: Dict[str, Any]) -> 'ValidationEvidence':
+        def from_database_dict(cls, db_dict: dict[str, Any]) -> 'ValidationEvidence':
             """Create from database dictionary"""
             competitor_pricing = [
                 CompetitorPricing(**comp_data)
@@ -377,7 +375,7 @@ if PYDANTIC_AVAILABLE:
                 total_cost=db_dict['total_cost']
             )
 
-        def to_analysis_result_format(self) -> Dict[str, Any]:
+        def to_analysis_result_format(self) -> dict[str, Any]:
             """Convert to AnalysisResult-compatible format for Pipeline v3"""
             return {
                 'jina_validation_score': self.validation_score,
@@ -391,7 +389,7 @@ if PYDANTIC_AVAILABLE:
                 'quality_metrics': self.get_quality_metrics()
             }
 
-        def get_cost_analysis(self) -> Dict[str, Any]:
+        def get_cost_analysis(self) -> dict[str, Any]:
             """Get detailed cost analysis"""
             return {
                 'total_cost': self.total_cost,
@@ -406,7 +404,7 @@ if PYDANTIC_AVAILABLE:
                 'cost_breakdown_available': True
             }
 
-        def get_cost_optimization_recommendations(self) -> List[str]:
+        def get_cost_optimization_recommendations(self) -> list[str]:
             """Get cost optimization recommendations"""
             recommendations = []
 
@@ -434,12 +432,10 @@ if PYDANTIC_AVAILABLE:
 
 else:
     # Fallback implementation using the original dataclass-based models
-    from .validation_evidence import (
-        ValidationEvidence as OriginalValidationEvidence,
-        CompetitorPricing as OriginalCompetitorPricing,
-        MarketSizeData as OriginalMarketSizeData,
-        ProductLaunchData as OriginalProductLaunchData
-    )
+    from .validation_evidence import CompetitorPricing as OriginalCompetitorPricing
+    from .validation_evidence import MarketSizeData as OriginalMarketSizeData
+    from .validation_evidence import ProductLaunchData as OriginalProductLaunchData
+    from .validation_evidence import ValidationEvidence as OriginalValidationEvidence
 
     # Create aliases for backward compatibility
     CompetitorPricing = OriginalCompetitorPricing
@@ -450,14 +446,14 @@ else:
 
 # Factory function for creating ValidationEvidence instances
 def create_validation_evidence(
-    competitor_pricing: Optional[List[Dict[str, Any]]] = None,
-    market_size: Optional[Dict[str, Any]] = None,
-    similar_launches: Optional[List[Dict[str, Any]]] = None,
+    competitor_pricing: list[dict[str, Any]] | None = None,
+    market_size: dict[str, Any] | None = None,
+    similar_launches: list[dict[str, Any]] | None = None,
     validation_score: float = 0.0,
     data_quality_score: float = 0.0,
     reasoning: str = "",
-    search_queries_used: Optional[List[str]] = None,
-    urls_fetched: Optional[List[str]] = None,
+    search_queries_used: list[str] | None = None,
+    urls_fetched: list[str] | None = None,
     total_cost: float = 0.0
 ) -> ValidationEvidence:
     """
@@ -556,7 +552,7 @@ def create_validation_evidence(
 
 
 # Utility function for validation evidence quality assessment
-def assess_validation_quality(evidence: ValidationEvidence) -> Dict[str, Any]:
+def assess_validation_quality(evidence: ValidationEvidence) -> dict[str, Any]:
     """
     Comprehensive quality assessment for validation evidence
 

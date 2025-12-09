@@ -19,14 +19,14 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 # Import production-ready components
 from transform.market_research_agent import MarketResearchAgent
+from transform.market_research_health import HealthCheckService, run_health_server
 from transform.market_research_monitoring import get_monitor
 from transform.market_research_resilience import get_resilience_manager, resilient
 from transform.market_research_security import get_security_manager
-from transform.market_research_health import HealthCheckService, run_health_server
 
 # Configure logging
 logging.basicConfig(
@@ -93,7 +93,7 @@ class ProductionMarketResearchService:
             logger.error(f"Failed to initialize service: {e}")
             raise
 
-    def _get_production_settings(self) -> Dict[str, Any]:
+    def _get_production_settings(self) -> dict[str, Any]:
         """Get production configuration from environment"""
         return {
             # API Configuration
@@ -144,11 +144,11 @@ class ProductionMarketResearchService:
     @resilient('MarketResearchAgent', 'process_request', max_attempts=3)
     async def process_market_research_request(
         self,
-        request_data: Dict[str, Any],
+        request_data: dict[str, Any],
         api_key: str,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
-    ) -> Dict[str, Any]:
+        ip_address: str | None = None,
+        user_agent: str | None = None
+    ) -> dict[str, Any]:
         """
         Process market research request with full production safeguards
 
@@ -254,7 +254,7 @@ class ProductionMarketResearchService:
 
             raise
 
-    async def get_service_health(self) -> Dict[str, Any]:
+    async def get_service_health(self) -> dict[str, Any]:
         """Get comprehensive service health status"""
         if not self._initialized:
             return {
@@ -283,7 +283,7 @@ class ProductionMarketResearchService:
 
         return health_result
 
-    async def get_service_metrics(self) -> Dict[str, Any]:
+    async def get_service_metrics(self) -> dict[str, Any]:
         """Get comprehensive service metrics"""
         if not self._initialized:
             return {'error': 'Service not initialized'}

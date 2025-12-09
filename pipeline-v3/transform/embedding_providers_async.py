@@ -3,12 +3,13 @@ Optimized embedding providers with async support and connection pooling
 """
 
 import asyncio
-import aiohttp
 import logging
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
-import numpy as np
 from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import Any
+
+import aiohttp
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class BaseEmbeddingProvider(ABC):
     """Base class for embedding providers with async support"""
 
-    def __init__(self, model: str, dimensions: int, api_key: Optional[str] = None):
+    def __init__(self, model: str, dimensions: int, api_key: str | None = None):
         self.model = model
         self.dimensions = dimensions
         self.api_key = api_key
@@ -53,16 +54,16 @@ class BaseEmbeddingProvider(ABC):
             self.session = None
 
     @abstractmethod
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for single text"""
         pass
 
     @abstractmethod
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for batch of texts"""
         pass
 
-    def generate_embedding_sync(self, text: str) -> Tuple[List[float], Dict[str, Any]]:
+    def generate_embedding_sync(self, text: str) -> tuple[list[float], dict[str, Any]]:
         """Synchronous wrapper for backward compatibility"""
         # Run async method in event loop
         loop = asyncio.new_event_loop()
@@ -91,7 +92,7 @@ class CohereEmbeddingProvider(BaseEmbeddingProvider):
         self,
         model: str = "embed-english-v3.0",
         dimensions: int = 1024,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://api.cohere.ai/v1"
     ):
         super().__init__(model, dimensions, api_key)
@@ -99,12 +100,12 @@ class CohereEmbeddingProvider(BaseEmbeddingProvider):
         self.max_batch_size = 96  # Cohere's maximum batch size
         self.rate_limit_delay = 0.1  # 100ms between batches
 
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for single text"""
         embeddings = await self.generate_embeddings_batch([text])
         return embeddings[0]
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for batch of texts"""
         if not self.session:
             await self._initialize_session()
@@ -125,7 +126,7 @@ class CohereEmbeddingProvider(BaseEmbeddingProvider):
 
         return all_embeddings
 
-    async def _generate_batch_request(self, texts: List[str]) -> List[List[float]]:
+    async def _generate_batch_request(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for a single batch"""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -154,7 +155,7 @@ class CohereEmbeddingProvider(BaseEmbeddingProvider):
                     # Return zero embeddings on error
                     return [[0.0] * self.dimensions for _ in texts]
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("Cohere API timeout")
             return [[0.0] * self.dimensions for _ in texts]
 
@@ -162,7 +163,7 @@ class CohereEmbeddingProvider(BaseEmbeddingProvider):
             logger.error(f"Cohere API error: {e}")
             return [[0.0] * self.dimensions for _ in texts]
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get provider information"""
         return {
             "provider": "Cohere",
@@ -187,13 +188,13 @@ class OpenRouterEmbeddingProvider(BaseEmbeddingProvider):
         self,
         model: str = "openai/text-embedding-3-small",
         dimensions: int = 1536,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1"
     ):
         super().__init__(model, dimensions, api_key)
         self.base_url = base_url
 
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for single text"""
         if not self.session:
             await self._initialize_session()
@@ -229,7 +230,7 @@ class OpenRouterEmbeddingProvider(BaseEmbeddingProvider):
             logger.error(f"OpenRouter API error: {e}")
             return [0.0] * self.dimensions
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for batch (processes individually)"""
         if not texts:
             return []
@@ -238,7 +239,7 @@ class OpenRouterEmbeddingProvider(BaseEmbeddingProvider):
         tasks = [self.generate_embedding(text) for text in texts]
         return await asyncio.gather(*tasks)
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get provider information"""
         return {
             "provider": "OpenRouter",
@@ -259,19 +260,19 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
         self,
         model: str = "text-embedding-3-small",
         dimensions: int = 1536,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://api.openai.com/v1"
     ):
         super().__init__(model, dimensions, api_key)
         self.base_url = base_url
         self.max_batch_size = 2048  # OpenAI's limit
 
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for single text"""
         embeddings = await self.generate_embeddings_batch([text])
         return embeddings[0]
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for batch of texts"""
         if not self.session:
             await self._initialize_session()
@@ -314,7 +315,7 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
             logger.error(f"OpenAI API error: {e}")
             return [[0.0] * self.dimensions for _ in texts]
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get provider information"""
         return {
             "provider": "OpenAI",
@@ -335,13 +336,13 @@ class FakeEmbeddingProvider(BaseEmbeddingProvider):
         self,
         model: str = "fake-embeddings",
         dimensions: int = 1536,
-        value_range: Tuple[float, float] = (-1.0, 1.0)
+        value_range: tuple[float, float] = (-1.0, 1.0)
     ):
         super().__init__(model, dimensions, None)
         self.value_range = value_range
         np.random.seed(42)  # For reproducible embeddings
 
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """Generate deterministic embedding for text"""
         # Create hash-based embedding for consistency
         hash_val = hash(text) % (2 ** 32)
@@ -353,11 +354,11 @@ class FakeEmbeddingProvider(BaseEmbeddingProvider):
         ).tolist()
         return embedding
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for batch"""
         return [await self.generate_embedding(text) for text in texts]
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get provider information"""
         return {
             "provider": "Fake",
@@ -374,7 +375,7 @@ class AdaptiveEmbeddingProvider:
     based on throughput, cost, and reliability metrics
     """
 
-    def __init__(self, providers: List[BaseEmbeddingProvider]):
+    def __init__(self, providers: list[BaseEmbeddingProvider]):
         self.providers = providers
         self.current_provider_index = 0
         self.metrics = {
@@ -385,7 +386,7 @@ class AdaptiveEmbeddingProvider:
             "provider_stats": [{} for _ in providers]
         }
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings with adaptive provider selection"""
         if not texts:
             return []
@@ -447,7 +448,7 @@ class AdaptiveEmbeddingProvider:
             logger.error("All embedding providers failed")
             return [[0.0] * provider.dimensions for _ in texts]
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get comprehensive metrics"""
         return {
             **self.metrics,
@@ -462,7 +463,7 @@ class AdaptiveEmbeddingProvider:
             "current_provider": self.current_provider_index
         }
 
-    async def health_check(self) -> Dict[int, bool]:
+    async def health_check(self) -> dict[int, bool]:
         """Check health of all providers"""
         results = {}
         test_text = "Health check test"

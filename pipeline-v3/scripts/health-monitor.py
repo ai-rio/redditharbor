@@ -7,19 +7,20 @@ Comprehensive health monitoring script for RedditHarbor Phase 5 production deplo
 Monitors application health, external APIs, database connectivity, and system resources.
 """
 
-import asyncio
-import aiohttp
-import asyncpg
 import argparse
+import asyncio
 import json
 import logging
 import os
 import sys
 import time
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
+
+import aiohttp
+import asyncpg
 import psutil
 
 # Configure logging
@@ -54,7 +55,7 @@ class HealthCheck:
     message: str
     timestamp: datetime
     duration_ms: float
-    details: Optional[Dict] = None
+    details: dict | None = None
 
 
 @dataclass
@@ -62,7 +63,7 @@ class HealthReport:
     """Comprehensive health report"""
     overall_status: HealthStatus
     timestamp: datetime
-    checks: List[HealthCheck]
+    checks: list[HealthCheck]
     environment: str
     version: str
     node_name: str
@@ -71,14 +72,14 @@ class HealthReport:
 class HealthMonitor:
     """Main health monitoring class"""
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: dict | None = None):
         self.config = config or self._load_config()
-        self.session: Optional[aiohttp.ClientSession] = None
-        self.db_pool: Optional[asyncpg.Pool] = None
+        self.session: aiohttp.ClientSession | None = None
+        self.db_pool: asyncpg.Pool | None = None
         self.start_time = datetime.now()
-        self.check_history: List[HealthReport] = []
+        self.check_history: list[HealthReport] = []
 
-    def _load_config(self) -> Dict:
+    def _load_config(self) -> dict:
         """Load configuration from environment and defaults"""
         return {
             "database_url": os.getenv("DATABASE_URL"),
@@ -270,7 +271,7 @@ class HealthMonitor:
                 duration_ms=duration_ms
             )
 
-    async def check_external_apis(self) -> List[HealthCheck]:
+    async def check_external_apis(self) -> list[HealthCheck]:
         """Check external API health"""
         checks = []
 
@@ -337,7 +338,7 @@ class HealthMonitor:
                     return HealthCheck(
                         name=name,
                         status=HealthStatus.HEALTHY,
-                        message=f"Cohere API healthy",
+                        message="Cohere API healthy",
                         timestamp=datetime.now(),
                         duration_ms=duration_ms,
                         details={"rate_limit_remaining": rate_limit}
@@ -464,7 +465,7 @@ class HealthMonitor:
                 duration_ms=duration_ms
             )
 
-    async def check_system_resources(self) -> List[HealthCheck]:
+    async def check_system_resources(self) -> list[HealthCheck]:
         """Check system resource usage"""
         checks = []
 
@@ -626,7 +627,7 @@ class HealthMonitor:
                 duration_ms=duration_ms
             )
 
-    def _parse_metrics(self, metrics_text: str) -> Dict[str, float]:
+    def _parse_metrics(self, metrics_text: str) -> dict[str, float]:
         """Parse key metrics from Prometheus text format"""
         metrics = {}
 
@@ -710,7 +711,7 @@ class HealthMonitor:
         else:
             self._print_table_report(report)
 
-    def _serialize_report(self, report: HealthReport) -> Dict:
+    def _serialize_report(self, report: HealthReport) -> dict:
         """Serialize report to JSON-serializable dict"""
         return {
             "overall_status": report.overall_status.value,
@@ -736,7 +737,7 @@ class HealthMonitor:
         """Print health report in table format"""
         # Header
         print(f"\n{'='*80}")
-        print(f"RedditHarbor Phase 5 Health Report")
+        print("RedditHarbor Phase 5 Health Report")
         print(f"{'='*80}")
         print(f"Timestamp:    {report.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Environment:  {report.environment}")
@@ -765,7 +766,7 @@ class HealthMonitor:
 
         print(f"\n{'='*80}")
 
-    async def run_continuous_monitoring(self, interval: int = 60, alert_file: Optional[str] = None):
+    async def run_continuous_monitoring(self, interval: int = 60, alert_file: str | None = None):
         """Run continuous monitoring with optional alert file"""
         logger.info(f"Starting continuous monitoring (interval: {interval}s)")
 
@@ -792,7 +793,7 @@ class HealthMonitor:
             logger.error(f"Monitoring error: {e}")
             raise
 
-    def _generate_alerts(self, report: HealthReport) -> List[Dict]:
+    def _generate_alerts(self, report: HealthReport) -> list[dict]:
         """Generate alerts from health report"""
         alerts = []
 
@@ -821,7 +822,7 @@ class HealthMonitor:
 
         return alerts
 
-    async def _handle_alerts(self, alerts: List[Dict], alert_file: Optional[str]):
+    async def _handle_alerts(self, alerts: list[dict], alert_file: str | None):
         """Handle generated alerts"""
         for alert in alerts:
             # Log alert

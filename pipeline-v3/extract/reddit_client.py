@@ -3,11 +3,10 @@ Reddit API client using PRAW for data extraction with proper error handling
 """
 
 import logging
-from datetime import datetime, UTC
-from typing import List
+from datetime import UTC, datetime
 
 import praw
-from prawcore import ResponseException, NotFound, Forbidden
+from prawcore import Forbidden, NotFound, ResponseException
 
 from config import get_settings
 from models import RedditSubmission
@@ -49,11 +48,11 @@ class RedditClient:
 
     def fetch_submissions(
         self,
-        subreddits: List[str],
+        subreddits: list[str],
         limit: int,
         sort_by: str = "hot",
         time_filter: str = "week"
-    ) -> List[RedditSubmission]:
+    ) -> list[RedditSubmission]:
         """
         Fetch Reddit submissions from specified subreddits
 
@@ -118,7 +117,7 @@ class RedditClient:
 
                 logger.info(f"✓ Fetched {subreddit_count} submissions from r/{subreddit_name}")
 
-            except (NotFound, Forbidden) as e:
+            except (NotFound, Forbidden):
                 error_msg = f"Subreddit r/{subreddit_name} not found or private"
                 logger.error(error_msg)
                 errors.append(error_msg)

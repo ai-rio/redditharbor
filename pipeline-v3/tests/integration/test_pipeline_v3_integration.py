@@ -2,10 +2,11 @@
 Integration tests for pipeline v3 with Agno analyzer
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from tests.integration.conftest import IntegrationTestHelpers
 

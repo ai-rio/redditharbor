@@ -12,15 +12,14 @@ Provides live monitoring of:
 
 import asyncio
 import json
-import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
 import logging
 from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from typing import Any
 
-import psutil
 import numpy as np
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +57,7 @@ class PerformanceMonitor:
         self,
         window_size_minutes: int = 10,
         snapshot_interval_seconds: int = 5,
-        alert_thresholds: Optional[AlertThresholds] = None
+        alert_thresholds: AlertThresholds | None = None
     ):
         self.window_size_minutes = window_size_minutes
         self.snapshot_interval = snapshot_interval_seconds
@@ -254,7 +253,7 @@ class PerformanceMonitor:
 
         return False
 
-    async def _handle_alert(self, alert: Dict[str, Any]):
+    async def _handle_alert(self, alert: dict[str, Any]):
         """Handle performance alert"""
         # Could integrate with:
         # - Slack notifications
@@ -285,7 +284,7 @@ class PerformanceMonitor:
         self.active_connections = active
         self.queue_depth = queue_depth
 
-    def get_current_metrics(self) -> Dict[str, Any]:
+    def get_current_metrics(self) -> dict[str, Any]:
         """Get current performance metrics"""
         if not self.snapshots:
             return {"status": "no_data"}
@@ -497,7 +496,7 @@ class DashboardReporter:
         else:
             return "status-warning"
 
-    async def generate_json_report(self) -> Dict[str, Any]:
+    async def generate_json_report(self) -> dict[str, Any]:
         """Generate JSON performance report"""
         metrics = self.monitor.get_current_metrics()
 
@@ -513,7 +512,7 @@ class DashboardReporter:
             "alerts": self._get_active_alerts(metrics)
         }
 
-    def _is_healthy(self, metrics: Dict[str, Any]) -> bool:
+    def _is_healthy(self, metrics: dict[str, Any]) -> bool:
         """Check if system is healthy"""
         current = metrics.get('current', {})
         return (
@@ -522,7 +521,7 @@ class DashboardReporter:
             current.get('error_rate', 0) <= 0.02
         )
 
-    def _get_active_alerts(self, metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _get_active_alerts(self, metrics: dict[str, Any]) -> list[dict[str, Any]]:
         """Get list of active alerts"""
         alerts = []
         current = metrics.get('current', {})

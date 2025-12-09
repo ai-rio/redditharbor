@@ -3,24 +3,23 @@ OpenTelemetry tracing for Pipeline v3
 Provides distributed tracing for end-to-end pipeline monitoring
 """
 
-import time
-import uuid
 import logging
-from typing import Dict, Any, Optional, List
+import uuid
 from contextlib import contextmanager
 from functools import wraps
+from typing import Any
 
 # Check if OpenTelemetry is available
 try:
     from opentelemetry import trace
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    from opentelemetry.context import Context
     from opentelemetry.exporter.jaeger.thrift import JaegerExporter
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.propagate import extract, inject
     from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.semconv.trace import SpanAttributes
-    from opentelemetry.propagate import inject, extract
-    from opentelemetry.context import Context
     OPENTELEMETRY_AVAILABLE = True
 except ImportError:
     OPENTELEMETRY_AVAILABLE = False
@@ -39,8 +38,8 @@ class PipelineTracer:
         service_name: str = "pipeline-v3",
         service_version: str = "3.0.0",
         environment: str = "development",
-        jaeger_endpoint: Optional[str] = None,
-        otlp_endpoint: Optional[str] = None
+        jaeger_endpoint: str | None = None,
+        otlp_endpoint: str | None = None
     ):
         """
         Initialize pipeline tracer
@@ -70,7 +69,7 @@ class PipelineTracer:
             logger.error(f"Failed to initialize OpenTelemetry: {e}")
             self.enabled = False
 
-    def _setup_tracing(self, jaeger_endpoint: Optional[str], otlp_endpoint: Optional[str]):
+    def _setup_tracing(self, jaeger_endpoint: str | None, otlp_endpoint: str | None):
         """Set up OpenTelemetry tracing configuration"""
         # Create resource with service metadata
         resource = Resource.create({
@@ -130,7 +129,7 @@ class PipelineTracer:
         self,
         name: str,
         kind: trace.SpanKind = trace.SpanKind.INTERNAL,
-        attributes: Optional[Dict[str, Any]] = None
+        attributes: dict[str, Any] | None = None
     ) -> trace.Span:
         """
         Create a new span
@@ -162,7 +161,7 @@ class PipelineTracer:
     def create_pipeline_span(
         self,
         pipeline_id: str,
-        subreddits: List[str],
+        subreddits: list[str],
         limit: int,
         test_mode: bool = False
     ) -> trace.Span:
@@ -187,7 +186,7 @@ class PipelineTracer:
         self,
         stage: str,
         pipeline_id: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: dict[str, Any] | None = None
     ) -> trace.Span:
         """Create pipeline stage span"""
         if not self.enabled:
@@ -323,7 +322,7 @@ class PipelineTracer:
 
 
 # Global tracer instance
-_tracer: Optional[PipelineTracer] = None
+_tracer: PipelineTracer | None = None
 
 
 def get_tracer() -> PipelineTracer:
@@ -338,8 +337,8 @@ def initialize_tracing(
     service_name: str = "pipeline-v3",
     service_version: str = "3.0.0",
     environment: str = "development",
-    jaeger_endpoint: Optional[str] = None,
-    otlp_endpoint: Optional[str] = None
+    jaeger_endpoint: str | None = None,
+    otlp_endpoint: str | None = None
 ) -> PipelineTracer:
     """
     Initialize global tracing
@@ -368,7 +367,7 @@ def initialize_tracing(
 @contextmanager
 def trace_pipeline_execution(
     pipeline_id: str,
-    subreddits: List[str],
+    subreddits: list[str],
     limit: int,
     test_mode: bool = False
 ):
@@ -390,7 +389,7 @@ def trace_pipeline_execution(
 
 
 @contextmanager
-def trace_stage(stage: str, pipeline_id: str, metadata: Optional[Dict[str, Any]] = None):
+def trace_stage(stage: str, pipeline_id: str, metadata: dict[str, Any] | None = None):
     """Context manager for tracing pipeline stages"""
     tracer = get_tracer()
     if not tracer.enabled:
@@ -497,7 +496,7 @@ def trace_function(operation: str, span_kind: trace.SpanKind = trace.SpanKind.IN
     return decorator
 
 
-def add_span_attributes(attributes: Dict[str, Any]):
+def add_span_attributes(attributes: dict[str, Any]):
     """Add attributes to current span"""
     if not OPENTELEMETRY_AVAILABLE:
         return
@@ -508,7 +507,7 @@ def add_span_attributes(attributes: Dict[str, Any]):
             current_span.set_attribute(key, value)
 
 
-def set_span_error(error: Exception, message: Optional[str] = None):
+def set_span_error(error: Exception, message: str | None = None):
     """Set current span as error"""
     if not OPENTELEMETRY_AVAILABLE:
         return

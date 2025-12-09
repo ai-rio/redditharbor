@@ -2,9 +2,10 @@
 Tests for configuration management
 """
 
-import pytest
 import os
 from unittest.mock import patch
+
+import pytest
 
 from config.settings import Settings, get_settings, reload_settings
 

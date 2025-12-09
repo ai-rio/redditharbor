@@ -16,18 +16,20 @@ Key integration requirements:
 - Backward compatibility maintained
 """
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, Any, List
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-# Import the components to integrate
-from transform.agno_analyzer import AgnoOpportunityAnalyzer, MockTeam, MockCostTracker
-from transform.market_research_agent import MarketResearchAgent
-from transform.agno_synthesis import AgnoSynthesis
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
+
+# Import the components to integrate
+from transform.agno_analyzer import AgnoOpportunityAnalyzer, MockCostTracker, MockTeam
+from transform.agno_synthesis import AgnoSynthesis
+from transform.market_research_agent import MarketResearchAgent
 
 
 class TestMarketResearchAgentIntegrationRED:
@@ -56,7 +58,7 @@ class TestMarketResearchAgentIntegrationRED:
             downvotes=0,
             comments_count=42,
             subreddit="entrepreneur",
-            created_utc=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            created_utc=datetime(2024, 1, 1, tzinfo=UTC),
             permalink="/r/entrepreneur/test123"
         )
 

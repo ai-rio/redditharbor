@@ -2,9 +2,9 @@
 Performance configuration and optimization settings
 """
 
-from dataclasses import dataclass
-from typing import Dict, Any, Optional
 import os
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -46,7 +46,7 @@ class LLMPerformanceConfig:
 class CachingConfig:
     """Configuration for caching strategies"""
     enable_redis: bool = False
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
     redis_ttl: int = 3600
     enable_memory_cache: bool = True
     memory_cache_size: int = 1000
@@ -115,7 +115,7 @@ class PerformanceConfigManager:
         if os.getenv('ENABLE_PROFILING'):
             self.config.enable_profiling = os.getenv('ENABLE_PROFILING').lower() == 'true'
 
-    def get_database_url_config(self, database_url: str) -> Dict[str, Any]:
+    def get_database_url_config(self, database_url: str) -> dict[str, Any]:
         """Get database configuration for SQLAlchemy create_engine"""
         return {
             'url': database_url,
@@ -162,7 +162,7 @@ class PerformanceConfigManager:
             self.config.caching.enable_redis = False
             self.config.enable_profiling = True
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         """Get configuration as dictionary for logging/debugging"""
         return {
             'embedding': {

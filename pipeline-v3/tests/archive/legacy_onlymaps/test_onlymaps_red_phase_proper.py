@@ -5,8 +5,9 @@ These tests demonstrate real integration issues that OnlyMaps would solve.
 They MUST FAIL before OnlyMaps implementation to follow proper TDD discipline.
 """
 
-import pytest
 from typing import List, Optional
+
+import pytest
 from pydantic import BaseModel
 
 
@@ -14,14 +15,14 @@ from pydantic import BaseModel
 class OpportunitySummary(BaseModel):
     id: str
     app_title: str
-    final_score: Optional[float] = None  # This field doesn't exist in current DB schema
+    final_score: float | None = None  # This field doesn't exist in current DB schema
     trust_level: str = "MEDIUM"
 
 
 class DatabaseStats(BaseModel):
     total_opportunities: int
-    avg_final_score: Optional[float] = None  # Missing column
-    max_score: Optional[float] = None
+    avg_final_score: float | None = None  # Missing column
+    max_score: float | None = None
 
 
 def test_onlymaps_missing_import():
@@ -34,7 +35,9 @@ def test_onlymaps_missing_import():
 def test_onlymaps_missing_database_loader_implementation():
     """Test that OnlyMaps-based DatabaseLoader doesn't exist yet - should FAIL"""
     # This should fail because we haven't implemented OnlyMapsDatabaseLoader yet
-    from load.onlymaps_database import OnlyMapsDatabaseLoader  # Should raise ImportError
+    from load.onlymaps_database import (
+        OnlyMapsDatabaseLoader,  # Should raise ImportError
+    )
 
     # If import worked, instantiation should fail
     loader = OnlyMapsDatabaseLoader("postgresql://postgres:postgres@127.0.0.1:54331/postgres")
@@ -136,8 +139,12 @@ def test_onlymaps_integration_goal():
     # This is what we wanted to achieve with OnlyMaps - should work now
 
     # Test the actual OnlyMaps implementation we created
+    from load.onlymaps_database import (
+        DatabaseStats,
+        OnlyMapsDatabaseLoader,
+        OpportunitySummary,
+    )
     from onlymaps import connect
-    from load.onlymaps_database import OnlyMapsDatabaseLoader, DatabaseStats, OpportunitySummary
 
     # Test 1: Basic OnlyMaps connection
     database_url = "postgresql://postgres:postgres@127.0.0.1:54331/postgres"

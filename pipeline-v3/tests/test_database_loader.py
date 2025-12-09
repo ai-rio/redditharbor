@@ -11,11 +11,12 @@ placeholder data instead of preserving original Reddit submission data.
 """
 
 
-import pytest
 import logging
-from datetime import datetime, UTC
-from unittest.mock import Mock, patch, MagicMock
+from datetime import UTC, datetime
 from typing import List
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Import models with fallbacks
 try:
@@ -26,8 +27,8 @@ except ImportError as e:
     # Try importing individually
     try:
         from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-        from models.reddit import RedditSubmission
         from models.database import Opportunity, OpportunityCreate
+        from models.reddit import RedditSubmission
     except ImportError as e2:
         logger.error(f"Could not import models individually: {e2}")
         raise ImportError(f"Could not import required models: {e}, {e2}")
@@ -141,7 +142,7 @@ class MockDatabaseLoader(DatabaseLoader):
             self._session_factory = sessionmaker(bind=self.engine)
         return self._session_factory
 
-    def store_analyses(self, analyses: List[AnalysisResult], reddit_submissions: List = None) -> dict:
+    def store_analyses(self, analyses: list[AnalysisResult], reddit_submissions: list = None) -> dict:
         """Override to store in memory for testing using data mapper"""
         stats = {"stored": 0, "skipped": 0, "errors": 0}
 

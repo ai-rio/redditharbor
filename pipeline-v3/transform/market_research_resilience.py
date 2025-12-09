@@ -6,20 +6,19 @@ for Jina Market Research Integration Phase 3.7
 """
 
 import asyncio
-import json
 import logging
-import time
 import random
-from typing import Dict, Any, List, Optional, Callable, Union, TypeVar, Awaitable
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from collections import deque
-from enum import Enum
 import traceback
+from collections import deque
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
 from functools import wraps
+from typing import Any, TypeVar
 
 # Import monitoring components
-from transform.market_research_monitoring import get_monitor, CircuitBreaker
+from transform.market_research_monitoring import CircuitBreaker, get_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +51,13 @@ class ErrorContext:
     """Context information for errors"""
     operation: str
     component: str
-    app_concept_id: Optional[str] = None
-    target_market: Optional[str] = None
-    request_id: Optional[str] = None
-    user_id: Optional[str] = None
+    app_concept_id: str | None = None
+    target_market: str | None = None
+    request_id: str | None = None
+    user_id: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
     retry_count: int = 0
-    additional_data: Dict[str, Any] = field(default_factory=dict)
+    additional_data: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -68,8 +67,8 @@ class ErrorInfo:
     category: ErrorCategory
     severity: ErrorSeverity
     context: ErrorContext
-    traceback_str: Optional[str] = None
-    recovery_action: Optional[str] = None
+    traceback_str: str | None = None
+    recovery_action: str | None = None
     should_retry: bool = True
     retry_delay_seconds: float = 1.0
     max_retries: int = 3
@@ -78,7 +77,7 @@ class ErrorInfo:
         if self.traceback_str is None:
             self.traceback_str = traceback.format_exc()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for logging/serialization"""
         return {
             'exception_type': type(self.exception).__name__,
@@ -112,9 +111,9 @@ class DeadLetterQueue:
 
     async def add_failed_request(
         self,
-        request_data: Dict[str, Any],
+        request_data: dict[str, Any],
         error_info: ErrorInfo,
-        retry_after: Optional[datetime] = None
+        retry_after: datetime | None = None
     ):
         """Add failed request to DLQ"""
         if retry_after is None:
@@ -137,7 +136,7 @@ class DeadLetterQueue:
             f"Retry after: {retry_after}, Retry count: {error_info.context.retry_count}"
         )
 
-    async def get_retryable_requests(self) -> List[Dict[str, Any]]:
+    async def get_retryable_requests(self) -> list[dict[str, Any]]:
         """Get requests that are ready for retry"""
         now = datetime.now()
         retryable = []
@@ -150,7 +149,7 @@ class DeadLetterQueue:
 
         return retryable
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get DLQ statistics"""
         if not self.failed_requests:
             return {'total_failed': 0, 'oldest_failure': None, 'newest_failure': None}
@@ -202,7 +201,7 @@ class ErrorHandler:
         exception: Exception,
         operation: str,
         component: str,
-        context_data: Optional[Dict[str, Any]] = None
+        context_data: dict[str, Any] | None = None
     ) -> ErrorInfo:
         """Classify error and create ErrorInfo"""
         error_message = str(exception).lower()
@@ -262,7 +261,7 @@ class ErrorHandler:
         else:
             return True, 1.0, 1   # Default retry strategy
 
-    async def handle_error(self, error_info: ErrorInfo) -> Optional[str]:
+    async def handle_error(self, error_info: ErrorInfo) -> str | None:
         """Handle error and return recovery action"""
         # Log error with appropriate level
         log_level = {
@@ -412,7 +411,7 @@ class ResilienceManager:
         component: str,
         operation: str,
         *args,
-        context_data: Optional[Dict[str, Any]] = None,
+        context_data: dict[str, Any] | None = None,
         **kwargs
     ) -> T:
         """
@@ -510,7 +509,7 @@ class ResilienceManager:
         self,
         component: str,
         operation: str,
-        retry_policy: Optional[RetryPolicy] = None
+        retry_policy: RetryPolicy | None = None
     ):
         """
         Decorator for adding resilience to functions
@@ -586,7 +585,7 @@ class ResilienceManager:
                     retry_after=datetime.now() + timedelta(hours=1)  # 1 hour delay
                 )
 
-    def get_resilience_stats(self) -> Dict[str, Any]:
+    def get_resilience_stats(self) -> dict[str, Any]:
         """Get comprehensive resilience statistics"""
         stats = {
             'circuit_breakers': {
@@ -608,7 +607,7 @@ class ResilienceManager:
 
 
 # Global resilience manager instance
-_resilience_manager: Optional[ResilienceManager] = None
+_resilience_manager: ResilienceManager | None = None
 
 
 def get_resilience_manager() -> ResilienceManager:

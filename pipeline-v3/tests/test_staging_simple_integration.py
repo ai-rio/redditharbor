@@ -3,13 +3,14 @@ Simple integration test for staging layer functionality
 Demonstrates complete TDD implementation without external dependencies
 """
 
-import pytest
 import tempfile
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from models.reddit import RedditSubmission
-from staging.staging_layer import StagingLayer, StagingConfig, CheckpointManager
+from staging.staging_layer import CheckpointManager, StagingConfig, StagingLayer
 
 
 class TestStagingSimpleIntegration:

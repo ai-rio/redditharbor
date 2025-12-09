@@ -133,7 +133,7 @@ def get_file_destination(file_path: str) -> str:
 
     return 'root'  # Default to root if no rule matches
 
-def validate_file_creation(file_paths: List[str], tool_name: str = None) -> dict:
+def validate_file_creation(file_paths: list[str], tool_name: str = None) -> dict:
     """Validate file creation/operation against organization rules."""
     violations = []
     warnings = []

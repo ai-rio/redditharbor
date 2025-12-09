@@ -2,10 +2,11 @@
 Comprehensive tests for AnalysisResult quality scoring and validation
 """
 
-import pytest
 import math
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from typing import List
+
+import pytest
 
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.reddit import RedditSubmission
@@ -19,7 +20,7 @@ class TestAnalysisResultQualityScoring:
         """Create a high-quality analysis result"""
         return AnalysisResult.model_construct(
             submission_id="high_quality_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Productivity Manager Pro",
                 app_concept="An intelligent task management application that automatically prioritizes work based on deadlines and importance",
@@ -47,7 +48,7 @@ class TestAnalysisResultQualityScoring:
         """Create a low-quality analysis result"""
         return AnalysisResult.model_construct(
             submission_id="low_quality_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Simple App",
                 app_concept="An app",
@@ -75,7 +76,7 @@ class TestAnalysisResultQualityScoring:
         """Create a spam analysis result"""
         return AnalysisResult.model_construct(
             submission_id="spam_1",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="GET RICH QUICK!!!",
                 app_concept="Make millions overnight with our revolutionary system",
@@ -138,7 +139,7 @@ class TestAnalysisResultQualityScoring:
         with pytest.raises(ValueError, match="Spam content must have content_quality_score"):
             AnalysisResult(
                 submission_id="invalid_spam",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea(
                     title="Fake App",
                     app_concept="Fake concept",
@@ -168,7 +169,7 @@ class TestAnalysisResultQualityScoring:
         for level in valid_trust_levels:
             analysis = AnalysisResult.model_construct(
                 submission_id="test_trust",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title="Test App",
                     app_concept="Test concept",
@@ -194,7 +195,7 @@ class TestAnalysisResultQualityScoring:
         with pytest.raises(ValueError, match="trust_level must be one of"):
             AnalysisResult(
                 submission_id="invalid_trust",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea(
                     title="Test App",
                     app_concept="Test concept",
@@ -223,7 +224,7 @@ class TestAnalysisResultQualityScoring:
         valid_embedding = [0.1, 0.2, 0.3] * 100  # 300 dimensions
         analysis = AnalysisResult.model_construct(
             submission_id="test_embedding",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Test App",
                 app_concept="Test concept",
@@ -249,7 +250,7 @@ class TestAnalysisResultQualityScoring:
         """Test that None embedding is allowed"""
         analysis = AnalysisResult.model_construct(
             submission_id="test_no_embedding",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea.model_construct(
                 title="Test App",
                 app_concept="Test concept",
@@ -276,7 +277,7 @@ class TestAnalysisResultQualityScoring:
         with pytest.raises(ValueError, match="Invalid embedding vector: must be a list"):
             AnalysisResult(
                 submission_id="invalid_embedding_type",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea(
                     title="Test App",
                     app_concept="Test concept",
@@ -305,7 +306,7 @@ class TestAnalysisResultQualityScoring:
         with pytest.raises(ValueError, match="Invalid embedding vector: too short"):
             AnalysisResult(
                 submission_id="invalid_embedding_length",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea(
                     title="Test App",
                     app_concept="Test concept",
@@ -334,7 +335,7 @@ class TestAnalysisResultQualityScoring:
         with pytest.raises(ValueError, match="Invalid embedding vector: element .* is NaN"):
             AnalysisResult(
                 submission_id="invalid_embedding_values",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea(
                     title="Test App",
                     app_concept="Test concept",
@@ -360,13 +361,13 @@ class TestAnalysisResultQualityScoring:
 
     def test_timestamp_validation_future(self):
         """Test that future timestamps are rejected"""
-        future_time = datetime.now(timezone.utc) + timedelta(days=1)
+        future_time = datetime.now(UTC) + timedelta(days=1)
         with pytest.raises(ValueError, match="Analysis timestamp is too old"):
             # Note: This tests the old timestamp validation, not future timestamp
             # because the validation checks for timestamps that are too old, not future
             AnalysisResult(
                 submission_id="future_timestamp",
-                analyzed_at=datetime.now(timezone.utc) - timedelta(days=400),  # Too old
+                analyzed_at=datetime.now(UTC) - timedelta(days=400),  # Too old
                 app_idea=AppIdea(
                     title="Test App",
                     app_concept="Test concept",
@@ -394,7 +395,7 @@ class TestAnalysisResultQualityScoring:
         with pytest.raises(ValueError, match="Final score inconsistency"):
             AnalysisResult(
                 submission_id="inconsistent_scores",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea(
                     title="Test App",
                     app_concept="Test concept",
@@ -423,7 +424,7 @@ class TestAnalysisResultQualityScoring:
         # This should pass - final score within 20 points of metrics average
         analysis = AnalysisResult(
             submission_id="consistent_scores",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea(
                 title="Test App",
                 app_concept="Test concept",
@@ -453,7 +454,7 @@ class TestAnalysisResultQualityScoring:
         # Exactly at spam quality threshold (40) and marked as spam - should pass
         spam_at_threshold = AnalysisResult(
             submission_id="spam_at_threshold",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea(
                 title="Test App",
                 app_concept="Test concept",
@@ -478,7 +479,7 @@ class TestAnalysisResultQualityScoring:
         with pytest.raises(ValueError, match="Spam content must have content_quality_score"):
             AnalysisResult(
                 submission_id="spam_above_threshold",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea(
                     title="Test App",
                     app_concept="Test concept",
@@ -681,7 +682,7 @@ class TestQualityScoringIntegration:
         """Test complete quality analysis flow from high to low quality"""
         high_quality_analysis = AnalysisResult(
             submission_id="integration_test_high",
-            analyzed_at=datetime.now(timezone.utc),
+            analyzed_at=datetime.now(UTC),
             app_idea=AppIdea(
                 title="Professional Task Manager",
                 app_concept="An intelligent task management application designed for professionals who need to coordinate complex projects across multiple teams",
@@ -738,7 +739,7 @@ class TestQualityScoringIntegration:
         for level_name, quality_score, expected_trust in quality_levels:
             analysis = AnalysisResult.model_construct(
                 submission_id=f"quality_{level_name}",
-                analyzed_at=datetime.now(timezone.utc),
+                analyzed_at=datetime.now(UTC),
                 app_idea=AppIdea.model_construct(
                     title=f"{level_name.title()} Quality App",
                     app_concept="Test concept",

@@ -9,15 +9,19 @@ in the pipeline-v3 live test.
 DO NOT IMPLEMENT ONLYMAPS SOLUTIONS IN THESE TESTS - THEY MUST FAIL TO IDENTIFY ISSUES
 """
 
-import pytest
-from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
-from unittest.mock import Mock, patch
 import asyncio
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List, Optional
+from unittest.mock import Mock, patch
 
-from models.database import Opportunity, OpportunityCreate
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from orchestration.pipeline_orchestrator import PipelineOrchestrator, PipelineConfiguration
+from models.database import Opportunity, OpportunityCreate
+from orchestration.pipeline_orchestrator import (
+    PipelineConfiguration,
+    PipelineOrchestrator,
+)
 from services.validation_service import ValidationService
 
 
@@ -35,7 +39,7 @@ class TestOnlyMapsSchemaMismatch:
     """
 
     @pytest.fixture
-    def sample_opportunity_data(self) -> Dict[str, Any]:
+    def sample_opportunity_data(self) -> dict[str, Any]:
         """Sample opportunity data that should fail with current schema"""
         return {
             "submission_id": "test_final_score_error",
@@ -45,7 +49,7 @@ class TestOnlyMapsSchemaMismatch:
             "reddit_author": "testuser",
             "reddit_upvotes": 500,
             "reddit_comments_count": 125,
-            "reddit_created_at": datetime.now(timezone.utc),
+            "reddit_created_at": datetime.now(UTC),
             "app_title": "Final Score Test App",
             "app_concept": "App to demonstrate final_score column access issues",
             "problem_statement": "Problem with database schema mapping",
@@ -80,7 +84,7 @@ class TestOnlyMapsSchemaMismatch:
             final_score = opportunity.final_score  # This should fail
 
             # Database-style column access should also fail
-            db_score = getattr(opportunity, 'final_score')  # This should also fail
+            db_score = opportunity.final_score  # This should also fail
 
             raise AssertionError(
                 f"OnlyMaps column access succeeded unexpectedly: {final_score}, {db_score}"
@@ -146,7 +150,7 @@ class TestOnlyMapsSchemaMismatch:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Mapping Test App",
                 app_concept="App to demonstrate mapping issues",
                 problem_statement="Problem with field mapping",
@@ -196,7 +200,7 @@ class TestOnlyMapsSchemaMismatch:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Constraint Test App",
             app_concept="App to demonstrate constraint issues",
             problem_statement="Problem with database constraints",
@@ -351,7 +355,7 @@ class TestOnlyMapsTypeConversion:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Type Inconsistency App",
                 app_concept="App with type inconsistencies",
                 problem_statement="Type consistency problem",
@@ -427,7 +431,7 @@ class TestOnlyMapsTypeConversion:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Serialization Test App",
                 app_concept="Complex app concept",
                 problem_statement="Complex problem",
@@ -492,7 +496,7 @@ class TestOnlyMapsPerformanceComparison:
         )
 
     @pytest.fixture
-    def sample_analysis_results(self) -> List[AnalysisResult]:
+    def sample_analysis_results(self) -> list[AnalysisResult]:
         """Create sample analysis results for performance testing"""
         results = []
         for i in range(10):
@@ -539,7 +543,7 @@ class TestOnlyMapsPerformanceComparison:
         results = sample_analysis_results
 
         # Simulate current SQLAlchemy approach - should be complex and slow
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
 
         with pytest.raises((ValueError, TypeError, RuntimeError)) as exc_info:
             # Current approach requires complex object graph traversal
@@ -560,7 +564,7 @@ class TestOnlyMapsPerformanceComparison:
                         "reddit_author": "processed_user",
                         "reddit_upvotes": int(result.final_score),
                         "reddit_comments_count": int(result.confidence_score),
-                        "reddit_created_at": datetime.now(timezone.utc),
+                        "reddit_created_at": datetime.now(UTC),
                         "app_title": result.app_idea.title,
                         "app_concept": result.app_idea.app_concept,
                         "problem_statement": result.app_idea.problem_statement,
@@ -589,7 +593,7 @@ class TestOnlyMapsPerformanceComparison:
                     raise RuntimeError(f"Complex processing failed: {e}")
 
             # OnlyMaps would expect this to be much simpler and faster
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             processing_time = (end_time - start_time).total_seconds()
 
             assert len(processed_results) == 0, "Current approach should fail due to complexity"
@@ -676,13 +680,13 @@ class TestOnlyMapsPerformanceComparison:
             # Current system requires complex connection management
             try:
                 # This simulates complex database operations that OnlyMaps would simplify
-                connection_start = datetime.now(timezone.utc)
+                connection_start = datetime.now(UTC)
 
                 # Complex connection setup (OnlyMaps would not require this)
                 orchestrator.initialize_connections(config)
 
                 # Complex database operations with high overhead
-                connection_end = datetime.now(timezone.utc)
+                connection_end = datetime.now(UTC)
                 connection_time = (connection_end - connection_start).total_seconds()
 
                 # OnlyMaps would expect much lower overhead
@@ -722,7 +726,7 @@ class TestOnlyMapsAPICompatibility:
         return PipelineOrchestrator()
 
     @pytest.fixture
-    def sample_opportunities(self) -> List[Opportunity]:
+    def sample_opportunities(self) -> list[Opportunity]:
         """Create sample opportunities for API testing"""
         opportunities = []
         for i in range(3):
@@ -734,7 +738,7 @@ class TestOnlyMapsAPICompatibility:
                 reddit_author="testuser",
                 reddit_upvotes=100 + i * 10,
                 reddit_comments_count=25 + i * 5,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title=f"API Test App {i}",
                 app_concept=f"API test app concept {i}",
                 problem_statement=f"API test problem {i}",
@@ -924,8 +928,8 @@ if __name__ == "__main__":
     print("4. API Compatibility - Orchestration layer integration issues")
 
     # Run pytest programmatically
-    import sys
     import subprocess
+    import sys
 
     if len(sys.argv) > 1 and sys.argv[1] == "--verbose":
         # Run with verbose output

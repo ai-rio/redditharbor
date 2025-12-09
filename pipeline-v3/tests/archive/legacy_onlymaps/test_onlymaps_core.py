@@ -6,20 +6,25 @@ of OnlyMaps, ensuring it correctly maps database records to Python objects
 with proper type conversion and validation.
 """
 
-import pytest
 import uuid
-from datetime import datetime, UTC, timedelta
-from typing import List, Dict, Any, Optional
-from unittest.mock import Mock, patch, MagicMock, call
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, List, Optional
+from unittest.mock import MagicMock, Mock, call, patch
 
+import pytest
+
+from load.database import DatabaseLoader
 from models import (
-    AnalysisResult, AppIdea, MarketMetrics, RedditSubmission, RedditComment
+    AnalysisResult,
+    AppIdea,
+    MarketMetrics,
+    RedditComment,
+    RedditSubmission,
 )
 from models.database import Opportunity, OpportunityCreate
-from load.database import DatabaseLoader
 
 # Import OnlyMaps components (assuming they exist)
-from onlymaps import OnlyMapsMapper, OnlyMapsConfig, MappingError, ValidationError
+from onlymaps import MappingError, OnlyMapsConfig, OnlyMapsMapper, ValidationError
 
 
 class TestOnlyMapsCoreMapping:

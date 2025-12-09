@@ -427,6 +427,7 @@ generate_*
 process_*
 analyze_*
 
+<<<<<<< Updated upstream
 # Claude AI assistant files
 .claude/
 
@@ -467,6 +468,11 @@ schema.sql
 schema_dumps/*.sql
 schema_dumps/*.sql.backup
 
+=======
+# Error Log
+error_log/
+
+>>>>>>> Stashed changes
 # =============================================================================
 # END OF .GITIGNORE
 # =============================================================================

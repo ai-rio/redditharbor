@@ -5,13 +5,14 @@ This test suite validates that our Pydantic models enforce proper business rules
 domain constraints, and real-world validation logic that goes beyond basic type checking.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from typing import List
 
-from models.reddit import RedditSubmission, RedditComment
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.database import OpportunityCreate
+from models.reddit import RedditComment, RedditSubmission
 
 
 class TestRedditSubmissionBusinessLogic:
@@ -32,7 +33,7 @@ class TestRedditSubmissionBusinessLogic:
             score=5000,  # Impossible - score = upvotes - downvotes = 990
             comments_count=50,
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123"
         )
 
@@ -44,7 +45,7 @@ class TestRedditSubmissionBusinessLogic:
         # Current implementation only checks for future dates, not age patterns
 
         # Very old submissions (months/years) should be flagged
-        old_date = datetime.now(timezone.utc) - timedelta(days=365)
+        old_date = datetime.now(UTC) - timedelta(days=365)
         submission = RedditSubmission(
             id="test123",
             title="Old Post",
@@ -59,7 +60,7 @@ class TestRedditSubmissionBusinessLogic:
         )
 
         # This should validate that old submissions have proportionally lower engagement
-        if (submission.created_utc < datetime.now(timezone.utc) - timedelta(days=30) and
+        if (submission.created_utc < datetime.now(UTC) - timedelta(days=30) and
             submission.upvotes > 1000):
             pytest.fail("Old submissions shouldn't have high engagement")
 
@@ -80,7 +81,7 @@ class TestRedditSubmissionBusinessLogic:
                 score=100,
                 comments_count=25,
                 subreddit=subreddit,
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             ):
                 # Technical submissions should have more substantial content
@@ -108,7 +109,7 @@ class TestRedditSubmissionBusinessLogic:
                 score=indicator["upvotes"],
                 comments_count=indicator["comments"],
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
 
@@ -142,7 +143,7 @@ class TestRedditSubmissionBusinessLogic:
                     score=10,
                     comments_count=5,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -151,7 +152,7 @@ class TestRedditSubmissionBusinessLogic:
             # Current implementation doesn't consider author history
 
             # New accounts (<1 month) with high engagement should be scrutinized
-            new_account_threshold = datetime.now(timezone.utc) - timedelta(days=30)
+            new_account_threshold = datetime.now(UTC) - timedelta(days=30)
 
             # This would require tracking author history - current model doesn't support this
             # The test demonstrates what should be validated
@@ -179,7 +180,7 @@ class TestRedditCommentBusinessLogic:
             author="user1",
             text="This is a top-level comment",
             upvotes=10,
-            created_utc=datetime.now(timezone.utc)
+            created_utc=datetime.now(UTC)
         )
 
         # Level 5 comment (deep nested)
@@ -189,7 +190,7 @@ class TestRedditCommentBusinessLogic:
             author="user5",
             text="This is a very deep nested comment",  # Should be shorter/less formal
             upvotes=5,
-            created_utc=datetime.now(timezone.utc)
+            created_utc=datetime.now(UTC)
         )
 
         # Deep comments should be shorter and more conversational
@@ -217,7 +218,7 @@ class TestRedditCommentBusinessLogic:
                     author="user1",
                     text=comment_text,
                     upvotes=10,
-                    created_utc=datetime.now(timezone.utc)
+                    created_utc=datetime.now(UTC)
                 )
 
     def test_comment_velocity_business_rules(self):
@@ -225,7 +226,7 @@ class TestRedditCommentBusinessLogic:
         # Current implementation doesn't track comment timing
 
         # Comments posted very quickly after submission should be scrutinized
-        submission_time = datetime.now(timezone.utc)
+        submission_time = datetime.now(UTC)
         comment_time = submission_time + timedelta(seconds=10)  # 10 seconds after
 
         comment = RedditComment(
@@ -725,7 +726,7 @@ class TestAnalysisResultBusinessLogic:
         """Test temporal consistency business logic - SHOULD FAIL"""
         # Current implementation doesn't validate temporal consistency
 
-        old_analysis_time = datetime.now(timezone.utc) - timedelta(days=180)  # 6 months old
+        old_analysis_time = datetime.now(UTC) - timedelta(days=180)  # 6 months old
 
         idea = AppIdea(
             title="Test App",
@@ -754,7 +755,7 @@ class TestAnalysisResultBusinessLogic:
         )
 
         # This should validate that old analyses have adjusted scores
-        age_factor = (datetime.now(timezone.utc) - analysis.analyzed_at).days / 365
+        age_factor = (datetime.now(UTC) - analysis.analyzed_at).days / 365
 
         # Market conditions change, so old high scores should be discounted
         adjusted_score = analysis.final_score * (1 - age_factor * 0.2)

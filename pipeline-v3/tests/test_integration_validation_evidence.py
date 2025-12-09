@@ -11,9 +11,10 @@ This tests the complete integration of ValidationEvidence data structures with:
 Phase 3 Jina Integration - Integration Testing
 """
 
-import sys
-import os
 import asyncio
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 def test_market_research_agent_integration():

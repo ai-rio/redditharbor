@@ -3,8 +3,8 @@ Mock PRAW module for testing RedditClient functionality without actual PRAW inst
 """
 
 import sys
-from unittest.mock import Mock, MagicMock
 from types import ModuleType
+from unittest.mock import MagicMock, Mock
 
 
 class MockSubmission:

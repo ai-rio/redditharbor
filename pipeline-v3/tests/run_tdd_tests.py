@@ -22,10 +22,10 @@ Examples:
 """
 
 import argparse
-import sys
 import subprocess
+import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 class TDDTestRunner:
@@ -76,7 +76,7 @@ class TDDTestRunner:
             }
         }
 
-    def run_all_tests(self, verbose: bool = False, fail_fast: bool = False) -> Dict[str, Any]:
+    def run_all_tests(self, verbose: bool = False, fail_fast: bool = False) -> dict[str, Any]:
         """Run all TDD failing tests and return comprehensive results"""
         print("=" * 80)
         print("PIPELINE V3 TDD TEST SUITE - RED PHASE")
@@ -128,7 +128,7 @@ class TDDTestRunner:
 
         return results
 
-    def run_single_test(self, test_file: str, verbose: bool = False, continue_on_failure: bool = True) -> Dict[str, Any]:
+    def run_single_test(self, test_file: str, verbose: bool = False, continue_on_failure: bool = True) -> dict[str, Any]:
         """Run a single test file and return results"""
         test_path = self.pipeline_root / "tests" / test_file
 
@@ -183,7 +183,7 @@ class TDDTestRunner:
                 "output": str(e)
             }
 
-    def run_specific_test(self, test_name: str, verbose: bool = False) -> Dict[str, Any]:
+    def run_specific_test(self, test_name: str, verbose: bool = False) -> dict[str, Any]:
         """Run a specific test module"""
         if test_name not in self.tests_config:
             available = ", ".join(self.tests_config.keys())
@@ -194,7 +194,7 @@ class TDDTestRunner:
         print(f"Running specific test: {test_config['description']}")
         return self.run_single_test(test_config["file"], verbose)
 
-    def generate_summary_report(self, results: Dict[str, Any], overall_success: bool):
+    def generate_summary_report(self, results: dict[str, Any], overall_success: bool):
         """Generate a comprehensive summary report of test results"""
         print("\n" + "=" * 80)
         print("TDD TEST SUITE SUMMARY REPORT")
@@ -206,7 +206,7 @@ class TDDTestRunner:
         else:
             print("🔴 OVERALL: Tests failed as expected - ready for implementation phase")
 
-        print(f"\nTest Results Summary:")
+        print("\nTest Results Summary:")
         print("-" * 50)
 
         # Individual test results
@@ -235,15 +235,15 @@ class TDDTestRunner:
                 config = self.tests_config[test_name]
                 print(f"\n🎯 {config['description']}:")
                 print(f"   Focus: {config['focus']}")
-                print(f"   Actions needed:")
+                print("   Actions needed:")
                 for i, action in enumerate(config['expected_failures'], 1):
                     print(f"     {i}. {action}")
 
-            print(f"\n🚀 Next Steps:")
-            print(f"1. Review the failing tests to understand required functionality")
-            print(f"2. Implement the missing features following TDD green phase principles")
-            print(f"3. Re-run these tests to verify implementation correctness")
-            print(f"4. Remove these tests once functionality is complete")
+            print("\n🚀 Next Steps:")
+            print("1. Review the failing tests to understand required functionality")
+            print("2. Implement the missing features following TDD green phase principles")
+            print("3. Re-run these tests to verify implementation correctness")
+            print("4. Remove these tests once functionality is complete")
 
         # Technical debt status
         print(f"\n{'='*80}")
@@ -255,15 +255,15 @@ class TDDTestRunner:
 
         print("DEBT-007: Reddit Data Preservation Gap")
         print(f"   Status: {'🔴 UNRESOLVED' if debt_007_failed else '🟢 RESOLVED'}")
-        print(f"   Impact: Database creates placeholder data instead of preserving original Reddit metadata")
-        print(f"   Priority: HIGH - affects data integrity and research quality")
+        print("   Impact: Database creates placeholder data instead of preserving original Reddit metadata")
+        print("   Priority: HIGH - affects data integrity and research quality")
 
         print("\nDEBT-008: Missing Vector Embedding Implementation")
         print(f"   Status: {'🔴 UNRESOLVED' if debt_008_failed else '🟢 RESOLVED'}")
-        print(f"   Impact: pgvector capability exists but no embeddings are generated")
-        print(f"   Priority: HIGH - prevents semantic search and deduplication")
+        print("   Impact: pgvector capability exists but no embeddings are generated")
+        print("   Priority: HIGH - prevents semantic search and deduplication")
 
-        print(f"\nTotal Technical Debt Items: 2")
+        print("\nTotal Technical Debt Items: 2")
         print(f"Resolved: {2 - len([name for name, result in results.items() if not result['success']])}")
         print(f"Unresolved: {len([name for name, result in results.items() if not result['success']])}")
 
@@ -278,7 +278,7 @@ class TDDTestRunner:
             print(f"   File: {config['file']}")
             print(f"   Focus: {config['focus']}")
 
-            print(f"\n   Test Categories:")
+            print("\n   Test Categories:")
             if "database_loader" in test_name:
                 print("     • Data Integrity Tests")
                 print("       - Reddit submission title preservation")
@@ -320,11 +320,11 @@ class TDDTestRunner:
                 print("       - Similarity threshold tuning")
                 print("       - Accuracy metrics and confidence scoring")
 
-            print(f"\n   Expected Failures:")
+            print("\n   Expected Failures:")
             for failure in config['expected_failures']:
                 print(f"     • {failure}")
 
-            print(f"\n   TDD Purpose:")
+            print("\n   TDD Purpose:")
             print("     These tests serve as specifications for missing functionality.")
             print("     They document exactly what behavior needs to be implemented")
             print("     before moving to the green phase of TDD.")

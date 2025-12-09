@@ -5,14 +5,15 @@ This test suite validates that our Pydantic models have comprehensive schema val
 that catches edge cases, missing constraints, and incomplete validation rules.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
-from typing import List
 import json
+from datetime import UTC, datetime, timedelta, timezone
+from typing import List
 
-from models.reddit import RedditSubmission, RedditComment
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.database import OpportunityCreate
+from models.reddit import RedditComment, RedditSubmission
 
 
 class TestRedditSubmissionSchemaCompleteness:
@@ -31,7 +32,7 @@ class TestRedditSubmissionSchemaCompleteness:
             score=200,     # INCONSISTENT - should trigger validation failure
             comments_count=25,
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123"
         )
         # This assertion should FAIL because current implementation doesn't validate score consistency
@@ -51,7 +52,7 @@ class TestRedditSubmissionSchemaCompleteness:
                 score=-10,     # Negative score should be rejected
                 comments_count=25,
                 subreddit="test",
-                created_utc=datetime.now(timezone.utc),
+                created_utc=datetime.now(UTC),
                 permalink="https://reddit.com/r/test/test123"
             )
 
@@ -67,7 +68,7 @@ class TestRedditSubmissionSchemaCompleteness:
             score=100,
             comments_count=25,
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123",
             url="invalid-url-not-a-valid-domain"  # Should trigger validation
         )
@@ -97,7 +98,7 @@ class TestRedditSubmissionSchemaCompleteness:
                     score=100,
                     comments_count=25,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -125,7 +126,7 @@ class TestRedditSubmissionSchemaCompleteness:
                     score=100,
                     comments_count=25,
                     subreddit=subreddit,
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -145,7 +146,7 @@ class TestRedditSubmissionSchemaCompleteness:
                     score=100,
                     comments_count=25,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -171,7 +172,7 @@ class TestRedditSubmissionSchemaCompleteness:
                     score=100,
                     comments_count=25,
                     subreddit="test",
-                    created_utc=datetime.now(timezone.utc),
+                    created_utc=datetime.now(UTC),
                     permalink="https://reddit.com/r/test/test123"
                 )
 
@@ -187,7 +188,7 @@ class TestRedditSubmissionSchemaCompleteness:
             score=100,                  # Impossible score with 0 upvotes
             comments_count=0,           # No comments
             subreddit="test",
-            created_utc=datetime.now(timezone.utc),
+            created_utc=datetime.now(UTC),
             permalink="https://reddit.com/r/test/test123"
         )
 
@@ -233,7 +234,7 @@ class TestRedditCommentSchemaCompleteness:
             text="Test comment",
             upvotes=10,
             score=-5,  # Inconsistent with upvotes
-            created_utc=datetime.now(timezone.utc)
+            created_utc=datetime.now(UTC)
         )
         # This should FAIL because score can't be negative with positive upvotes
         assert comment.score >= 0
@@ -257,7 +258,7 @@ class TestRedditCommentSchemaCompleteness:
                     author="testuser",
                     text=comment_text,
                     upvotes=10,
-                    created_utc=datetime.now(timezone.utc)
+                    created_utc=datetime.now(UTC)
                 )
 
 
@@ -544,7 +545,7 @@ class TestAnalysisResultSchemaCompleteness:
             technical_feasibility=85.0
         )
 
-        old_timestamp = datetime.now(timezone.utc) - timedelta(days=365)
+        old_timestamp = datetime.now(UTC) - timedelta(days=365)
 
         with pytest.raises(ValueError, match="Analysis timestamp is too old"):
             AnalysisResult(
@@ -573,7 +574,7 @@ class TestOpportunityCreateSchemaCompleteness:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application",
             problem_statement="A test problem",
@@ -610,7 +611,7 @@ class TestOpportunityCreateSchemaCompleteness:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application",
             problem_statement="A test problem",
@@ -647,7 +648,7 @@ class TestOpportunityCreateSchemaCompleteness:
             reddit_author="testuser",
             reddit_upvotes=100,
             reddit_comments_count=25,
-            reddit_created_at=datetime.now(timezone.utc),
+            reddit_created_at=datetime.now(UTC),
             app_title="Test App",
             app_concept="A test application",
             problem_statement="A test problem",

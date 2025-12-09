@@ -15,16 +15,20 @@ Each test addresses specific problems identified in live testing:
 These tests MUST FAIL to identify the issues OnlyMaps will solve.
 """
 
-import pytest
-from datetime import datetime, timezone
-from typing import List, Dict, Any
-from unittest.mock import Mock, patch, MagicMock
 import asyncio
 import time
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
 
-from models.database import Opportunity, OpportunityCreate
+import pytest
+
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from orchestration.pipeline_orchestrator import PipelineOrchestrator, PipelineConfiguration
+from models.database import Opportunity, OpportunityCreate
+from orchestration.pipeline_orchestrator import (
+    PipelineConfiguration,
+    PipelineOrchestrator,
+)
 from services.validation_service import ValidationService
 
 
@@ -48,7 +52,6 @@ class TestOnlyMapsSchemaMismatchIssues:
 
         # Simulate the exact error that occurs when database schema changes
         # but ORM mappings are not updated - create a minimal scenario that fails
-        from unittest.mock import patch, MagicMock
 
         # Simulate the exact error that occurs when database schema changes
         # but ORM mappings are not updated - create a minimal scenario that fails
@@ -158,7 +161,7 @@ class TestOnlyMapsSchemaMismatchIssues:
         validation_service = Mock(spec=ValidationService)
 
         # This simulates the complex validation that OnlyMaps would eliminate
-        async def complex_validation_chain(data: Dict[str, Any]) -> bool:
+        async def complex_validation_chain(data: dict[str, Any]) -> bool:
             """Complex validation chain that OnlyMaps would bypass"""
 
             # Simulate multiple validation steps
@@ -200,7 +203,7 @@ class TestOnlyMapsSchemaMismatchIssues:
                 reddit_author="testuser",
                 reddit_upvotes=100,
                 reddit_comments_count=25,
-                reddit_created_at=datetime.now(timezone.utc),
+                reddit_created_at=datetime.now(UTC),
                 app_title="Constraint Validation Test App",
                 app_concept="App demonstrating constraint validation complexity",
                 problem_statement="Problem with complex database constraint validation",
@@ -307,7 +310,7 @@ class TestOnlyMapsTypeConversionIssues:
                     **converted_data,
                     "core_functions": str(converted_data.get("market_metrics", {})),  # JSON serialization
                     "app_concept": str(converted_data.get("app_concept", "")),  # String conversion
-                    "reddit_created_at": datetime.now(timezone.utc),  # DateTime conversion
+                    "reddit_created_at": datetime.now(UTC),  # DateTime conversion
                 }
                 conversion_steps.append("SQLAlchemy model preparation")
             except Exception as e:
@@ -409,7 +412,7 @@ class TestOnlyMapsTypeConversionIssues:
                     "final_score": float(complex_json["analysis_result"]["final_score"]),
                     "embedding": str(complex_json["analysis_result"].get("embedding", "[]")),
                     "metadata": {
-                        "serialization_timestamp": datetime.now(timezone.utc).isoformat(),
+                        "serialization_timestamp": datetime.now(UTC).isoformat(),
                         "complexity_level": "high",
                         "nested_object_count": 3,
                         "serialization_steps": len(serialization_steps)
@@ -645,8 +648,8 @@ if __name__ == "__main__":
     print()
 
     # Run pytest programmatically
-    import sys
     import subprocess
+    import sys
 
     if len(sys.argv) > 1 and sys.argv[1] == "--verbose":
         # Run with verbose output

@@ -3,15 +3,14 @@ Staging layer implementation for Extract → Transform pipeline flow
 Provides temporary storage, deduplication, and checkpoint/restart capabilities
 """
 
+import hashlib
 import json
 import logging
 import uuid
-import time
-from datetime import datetime, UTC
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Set, Union
-from dataclasses import dataclass, field
-import hashlib
+from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -38,7 +37,7 @@ class StagedSubmission(BaseModel):
     stage_timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     batch_id: str
     content_hash: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         json_encoders = {
@@ -51,8 +50,8 @@ class CheckpointData(BaseModel):
     checkpoint_id: str
     batch_id: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    submission_ids: List[str]
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    submission_ids: list[str]
+    metadata: dict[str, Any] = Field(default_factory=dict)
     processed_count: int = 0
     total_count: int = 0
 
@@ -60,7 +59,7 @@ class CheckpointData(BaseModel):
 class CheckpointManager:
     """Manages checkpoint creation, storage, and recovery"""
 
-    def __init__(self, staging_directory: Union[str, Path]):
+    def __init__(self, staging_directory: str | Path):
         """
         Initialize checkpoint manager
 
@@ -71,7 +70,7 @@ class CheckpointManager:
         self.checkpoints_dir = self.staging_directory / "checkpoints"
         self.checkpoints_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_checkpoint(self, checkpoint_data: Dict[str, Any]) -> str:
+    def save_checkpoint(self, checkpoint_data: dict[str, Any]) -> str:
         """
         Save checkpoint data to disk
 
@@ -108,7 +107,7 @@ class CheckpointManager:
         logger.info(f"✓ Saved checkpoint {checkpoint.checkpoint_id} for batch {checkpoint.batch_id}")
         return checkpoint.checkpoint_id
 
-    def get_checkpoint(self, checkpoint_id: str) -> Optional[Dict[str, Any]]:
+    def get_checkpoint(self, checkpoint_id: str) -> dict[str, Any] | None:
         """
         Retrieve checkpoint data
 
@@ -124,14 +123,14 @@ class CheckpointManager:
             return None
 
         try:
-            with open(checkpoint_file, 'r', encoding='utf-8') as f:
+            with open(checkpoint_file, encoding='utf-8') as f:
                 checkpoint_data = json.load(f)
             return checkpoint_data
         except Exception as e:
             logger.error(f"Failed to load checkpoint {checkpoint_id}: {e}")
             return None
 
-    def list_checkpoints(self) -> List[Dict[str, Any]]:
+    def list_checkpoints(self) -> list[dict[str, Any]]:
         """
         List all available checkpoints
 
@@ -142,7 +141,7 @@ class CheckpointManager:
 
         for checkpoint_file in self.checkpoints_dir.glob("*.json"):
             try:
-                with open(checkpoint_file, 'r', encoding='utf-8') as f:
+                with open(checkpoint_file, encoding='utf-8') as f:
                     checkpoint_data = json.load(f)
 
                 checkpoints.append({
@@ -160,7 +159,7 @@ class CheckpointManager:
         checkpoints.sort(key=lambda x: x['timestamp'], reverse=True)
         return checkpoints
 
-    def get_latest_checkpoint(self) -> Optional[Dict[str, Any]]:
+    def get_latest_checkpoint(self) -> dict[str, Any] | None:
         """
         Get the most recent checkpoint
 
@@ -206,7 +205,7 @@ class StagingLayer:
     Staging layer for Extract → Transform pipeline with deduplication and resilience
     """
 
-    def __init__(self, config: StagingConfig, checkpoint_manager: Optional[CheckpointManager] = None):
+    def __init__(self, config: StagingConfig, checkpoint_manager: CheckpointManager | None = None):
         """
         Initialize staging layer
 
@@ -222,8 +221,8 @@ class StagingLayer:
         self.checkpoint_manager = checkpoint_manager or CheckpointManager(self.staging_directory)
 
         # Staging state
-        self.processed_ids: Set[str] = set()
-        self.current_batch: List[StagedSubmission] = []
+        self.processed_ids: set[str] = set()
+        self.current_batch: list[StagedSubmission] = []
 
         # Initialize persistence
         if config.enable_persistence:
@@ -273,7 +272,7 @@ class StagingLayer:
         except Exception as e:
             raise ValueError(f"Invalid submission data: {e}")
 
-    def _save_batch(self, batch_id: str, submissions: List[StagedSubmission]) -> None:
+    def _save_batch(self, batch_id: str, submissions: list[StagedSubmission]) -> None:
         """
         Save batch data to disk
 
@@ -296,7 +295,7 @@ class StagingLayer:
         with open(batch_file, 'w', encoding='utf-8') as f:
             json.dump(batch_data, f, indent=2, default=str)
 
-    def _load_batch(self, batch_id: str) -> List[StagedSubmission]:
+    def _load_batch(self, batch_id: str) -> list[StagedSubmission]:
         """
         Load batch data from disk
 
@@ -314,7 +313,7 @@ class StagingLayer:
         if not batch_file.exists():
             raise FileNotFoundError(f"Batch {batch_id} not found")
 
-        with open(batch_file, 'r', encoding='utf-8') as f:
+        with open(batch_file, encoding='utf-8') as f:
             batch_data = json.load(f)
 
         submissions = []
@@ -346,7 +345,7 @@ class StagingLayer:
             return
 
         try:
-            with open(state_file, 'r', encoding='utf-8') as f:
+            with open(state_file, encoding='utf-8') as f:
                 state_data = json.load(f)
 
             self.processed_ids = set(state_data.get('processed_ids', []))
@@ -405,7 +404,7 @@ class StagingLayer:
 
         return True
 
-    def store_submissions(self, submissions: List[RedditSubmission]) -> Union[str, List[str]]:
+    def store_submissions(self, submissions: list[RedditSubmission]) -> str | list[str]:
         """
         Store submissions in staging with automatic batch management
 
@@ -456,7 +455,7 @@ class StagingLayer:
             self._save_batch(batch_id, self.current_batch)
             logger.info(f"✓ Finalized batch {batch_id} with {len(self.current_batch)} submissions")
 
-    def get_batch(self, batch_id: str) -> List[RedditSubmission]:
+    def get_batch(self, batch_id: str) -> list[RedditSubmission]:
         """
         Retrieve batch by ID
 
@@ -472,7 +471,7 @@ class StagingLayer:
         staged_submissions = self._load_batch(batch_id)
         return [staged.submission for staged in staged_submissions]
 
-    def list_batches(self) -> List[str]:
+    def list_batches(self) -> list[str]:
         """
         List all available batch IDs
 
@@ -486,7 +485,7 @@ class StagingLayer:
         batch_files = list(batches_dir.glob("*.json"))
         return [f.stem for f in batch_files]
 
-    def create_checkpoint(self, batch_id: str) -> Dict[str, Any]:
+    def create_checkpoint(self, batch_id: str) -> dict[str, Any]:
         """
         Create checkpoint for current batch
 
@@ -518,7 +517,7 @@ class StagingLayer:
         logger.info(f"✓ Created checkpoint {checkpoint_id} for batch {batch_id}")
         return full_checkpoint_data
 
-    def recover_from_checkpoint(self, checkpoint_id: str) -> Optional[List[RedditSubmission]]:
+    def recover_from_checkpoint(self, checkpoint_id: str) -> list[RedditSubmission] | None:
         """
         Recover submissions from checkpoint
 
@@ -590,7 +589,7 @@ class StagingLayer:
             logger.error(f"Failed to rollback batch {batch_id}: {e}")
             return False
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get staging layer statistics
 

@@ -11,16 +11,17 @@ Validates scalability requirements:
 """
 
 import asyncio
-import time
-import statistics
 import json
 import logging
-import psutil
-import threading
-from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Any
 import os
+import statistics
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
+import psutil
 from dotenv import load_dotenv
 
 # Load environment
@@ -88,7 +89,7 @@ class LoadTester:
             url=f'https://reddit.com/r/{case["subreddit"]}/comments/load_test_{index}/'
         )
 
-    async def analyze_submission(self, submission: RedditSubmission, worker_id: int) -> Dict[str, Any]:
+    async def analyze_submission(self, submission: RedditSubmission, worker_id: int) -> dict[str, Any]:
         """Analyze a single submission"""
         start_time = time.time()
 
@@ -142,7 +143,7 @@ class LoadTester:
                 self.metrics['cpu_usage'].append(psutil.Process().cpu_percent())
             time.sleep(1)  # Sample every second
 
-    async def run_load_test(self, duration_minutes: int = 1, target_rpm: int = 1000) -> Dict[str, Any]:
+    async def run_load_test(self, duration_minutes: int = 1, target_rpm: int = 1000) -> dict[str, Any]:
         """
         Run load test for specified duration and target RPM
 
@@ -154,7 +155,7 @@ class LoadTester:
         total_requests = target_rpm * duration_minutes
         requests_per_second = target_rpm / 60
 
-        logger.info(f"Starting load test:")
+        logger.info("Starting load test:")
         logger.info(f"  Duration: {duration_minutes} minute(s)")
         logger.info(f"  Target RPM: {target_rpm}")
         logger.info(f"  Total requests: {total_requests}")
@@ -223,7 +224,7 @@ class LoadTester:
         # Calculate results
         return self.calculate_load_test_results(total_requests, duration_seconds)
 
-    def calculate_load_test_results(self, total_requests: int, duration_seconds: int) -> Dict[str, Any]:
+    def calculate_load_test_results(self, total_requests: int, duration_seconds: int) -> dict[str, Any]:
         """Calculate load test results"""
         actual_duration = (self.metrics['end_time'] - self.metrics['start_time']).total_seconds()
         actual_rpm = self.metrics['successes'] / actual_duration * 60
@@ -278,7 +279,7 @@ class LoadTester:
 
         return results
 
-    def generate_load_test_report(self, results: Dict[str, Any]) -> str:
+    def generate_load_test_report(self, results: dict[str, Any]) -> str:
         """Generate load test report"""
         report = [
             "# Phase 5: Load Testing Report",
@@ -375,7 +376,7 @@ class LoadTester:
 
         return "\n".join(report)
 
-    async def run_test_suite(self, test_configs: List[Dict[str, int]]) -> str:
+    async def run_test_suite(self, test_configs: list[dict[str, int]]) -> str:
         """Run multiple load test configurations"""
         all_reports = ["# Phase 5: Load Testing Suite\n"]
 

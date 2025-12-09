@@ -2,13 +2,14 @@
 Tests for Pydantic data models
 """
 
-import pytest
 import math
-from datetime import datetime, UTC, timedelta
+from datetime import UTC, datetime, timedelta
 
-from models.reddit import RedditSubmission, RedditComment
-from models.analysis import AppIdea, MarketMetrics, AnalysisResult
+import pytest
+
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from models.database import Opportunity
+from models.reddit import RedditComment, RedditSubmission
 
 
 class TestRedditSubmission:
@@ -267,7 +268,7 @@ class TestRedditSubmissionExtended:
         )
         assert valid_negative_submission.score == -15
 
-  
+
     def test_author_validation_edge_cases(self):
         """Test author validation edge cases"""
         with pytest.raises(ValueError, match="Invalid Reddit username"):

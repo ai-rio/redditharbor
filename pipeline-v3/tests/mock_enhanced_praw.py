@@ -4,9 +4,9 @@ This module provides properly configured mocks for PRAW Reddit API functionality
 """
 
 import sys
+from datetime import UTC, datetime
 from types import ModuleType
-from unittest.mock import Mock, MagicMock, PropertyMock
-from datetime import datetime, UTC
+from unittest.mock import MagicMock, Mock, PropertyMock
 
 
 class MockAuthor:

@@ -34,7 +34,7 @@ NAMING_RULES = {
     'exceptions': ['README.md', 'CHANGELOG.md', 'LICENSE']  # These can use different naming
 }
 
-def check_docs_structure(docs_path: str = 'docs') -> Dict:
+def check_docs_structure(docs_path: str = 'docs') -> dict:
     """Check if docs/ directory follows proper organization."""
     docs_dir = Path(docs_path)
 
@@ -103,7 +103,7 @@ def check_docs_structure(docs_path: str = 'docs') -> Dict:
         'structure': structure
     }
 
-def check_doc_file_content(file_path: str) -> Dict:
+def check_doc_file_content(file_path: str) -> dict:
     """Check if a documentation file follows content standards."""
     path = Path(file_path)
 

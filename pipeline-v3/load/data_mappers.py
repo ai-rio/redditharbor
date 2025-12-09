@@ -2,9 +2,8 @@
 Data mapping layer for converting between domain models and database entities
 """
 
-from datetime import datetime
-from typing import Optional
 import logging
+from datetime import datetime
 
 from models import AnalysisResult, Opportunity, RedditSubmission
 
@@ -29,7 +28,7 @@ class AnalysisToOpportunityMapper:
     def map_single(
         self,
         analysis: AnalysisResult,
-        reddit_submission: Optional[RedditSubmission] = None
+        reddit_submission: RedditSubmission | None = None
     ) -> Opportunity:
         """
         Convert a single AnalysisResult to Opportunity
@@ -49,7 +48,7 @@ class AnalysisToOpportunityMapper:
     def map_batch(
         self,
         analyses: list[AnalysisResult],
-        reddit_submissions: Optional[list[RedditSubmission]] = None
+        reddit_submissions: list[RedditSubmission] | None = None
     ) -> list[Opportunity]:
         """
         Convert multiple AnalysisResults to Opportunities

@@ -3,7 +3,6 @@ Analysis validation and quality checking module
 """
 
 import logging
-from typing import List
 
 from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 
@@ -192,10 +191,10 @@ class AnalysisValidator:
 
     def filter_high_quality_analyses(
         self,
-        analyses: List[AnalysisResult],
+        analyses: list[AnalysisResult],
         min_score: float = 70.0,
         min_confidence: float = 60.0
-    ) -> List[AnalysisResult]:
+    ) -> list[AnalysisResult]:
         """
         Filter analyses for high quality results
 
@@ -219,7 +218,7 @@ class AnalysisValidator:
         logger.info(f"✓ Found {len(high_quality)} high quality analyses ({len(high_quality)/len(analyses)*100:.1f}%)")
         return high_quality
 
-    def get_quality_summary(self, analyses: List[AnalysisResult]) -> dict:
+    def get_quality_summary(self, analyses: list[AnalysisResult]) -> dict:
         """
         Generate quality summary statistics for a batch of analyses
 

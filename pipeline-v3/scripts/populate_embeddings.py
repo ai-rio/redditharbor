@@ -10,18 +10,19 @@ This script:
 5. Provides progress reporting and error handling
 """
 
+import logging
 import os
 import sys
-import logging
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from transform.embedding_strategies import FakeEmbeddingProvider, EmbeddingStrategy
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
+from transform.embedding_strategies import EmbeddingStrategy, FakeEmbeddingProvider
 
 # Configure logging
 logging.basicConfig(
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 class EmbeddingPopulator:
     """Handles embedding population for existing opportunities"""
 
-    def __init__(self, db_config: Dict[str, Any]):
+    def __init__(self, db_config: dict[str, Any]):
         """
         Initialize populator with database configuration
 
@@ -71,7 +72,7 @@ class EmbeddingPopulator:
             self.conn.close()
             logger.info("✓ Disconnected from database")
 
-    def get_opportunities_without_embeddings(self) -> List[Dict[str, Any]]:
+    def get_opportunities_without_embeddings(self) -> list[dict[str, Any]]:
         """
         Fetch opportunities that don't have embeddings yet
 
@@ -106,7 +107,7 @@ class EmbeddingPopulator:
             logger.error(f"Failed to fetch opportunities: {e}")
             raise
 
-    def generate_embedding_text(self, opportunity: Dict[str, Any]) -> str:
+    def generate_embedding_text(self, opportunity: dict[str, Any]) -> str:
         """
         Generate comprehensive text for embedding creation
 
@@ -129,7 +130,7 @@ class EmbeddingPopulator:
 
         return " | ".join(text_parts)
 
-    def generate_embedding_for_opportunity(self, opportunity: Dict[str, Any]) -> Optional[List[float]]:
+    def generate_embedding_for_opportunity(self, opportunity: dict[str, Any]) -> list[float] | None:
         """
         Generate embedding vector for a single opportunity
 
@@ -164,7 +165,7 @@ class EmbeddingPopulator:
             logger.error(f"Failed to generate embedding for opportunity {opportunity['id']}: {e}")
             return None
 
-    def update_opportunity_embedding(self, opportunity_id: str, embedding_vector: List[float]) -> bool:
+    def update_opportunity_embedding(self, opportunity_id: str, embedding_vector: list[float]) -> bool:
         """
         Update opportunity with embedding vector
 
@@ -192,7 +193,7 @@ class EmbeddingPopulator:
             self.conn.rollback()
             return False
 
-    def populate_embeddings(self) -> Dict[str, Any]:
+    def populate_embeddings(self) -> dict[str, Any]:
         """
         Main method to populate embeddings for all opportunities
 
@@ -283,7 +284,7 @@ def main():
     print(f"Failed updates: {results['failed_updates']}")
 
     if results['errors']:
-        print(f"\nErrors encountered:")
+        print("\nErrors encountered:")
         for error in results['errors']:
             print(f"  - {error}")
 

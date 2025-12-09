@@ -3,24 +3,24 @@ AgentOps decorators for easy integration with Pipeline v3 components
 Provides @trace and @tool decorators for automatic tracking
 """
 
-import time
 import functools
-import asyncio
 import inspect
-from typing import Any, Callable, Dict, List, Optional, Union
+import time
+from collections.abc import Callable
 from datetime import datetime
-import json
+from typing import Any
 
-from .agentops_tracker import get_tracker, track_latency, track_error
+from .agentops_tracker import get_tracker, track_error, track_latency
 
 # Type hints for decorator functions
 F = Callable[..., Any]
 AsyncF = Callable[..., Any]
 
 
-def trace(name: Optional[str] = None, tags: Optional[List[str]] = None,
+def trace(name: str | None = None, tags: list[str] | None = None,
          track_args: bool = False, track_result: bool = False,
-         include_timing: bool = True, track_errors: bool = True) -> Callable:
+         include_timing: bool = True, track_errors: bool = True,
+         timeout: float | None = None) -> Callable:
     """
     Decorator to trace function execution with AgentOps
 
@@ -31,6 +31,7 @@ def trace(name: Optional[str] = None, tags: Optional[List[str]] = None,
         track_result: Whether to track function result
         include_timing: Whether to include timing information
         track_errors: Whether to track errors automatically
+        timeout: Timeout in seconds for function execution (None for no timeout)
 
     Returns:
         Decorated function with AgentOps tracing
@@ -225,9 +226,9 @@ def trace(name: Optional[str] = None, tags: Optional[List[str]] = None,
     return decorator
 
 
-def tool(name: Optional[str] = None, category: Optional[str] = None,
+def tool(name: str | None = None, category: str | None = None,
         track_usage: bool = True, track_cost: bool = False,
-        cost_callback: Optional[Callable[[], float]] = None) -> Callable:
+        cost_callback: Callable[[], float] | None = None) -> Callable:
     """
     Decorator to mark and track tool usage
 
@@ -419,9 +420,9 @@ def tool(name: Optional[str] = None, category: Optional[str] = None,
     return decorator
 
 
-def llm_call(model_name: Optional[str] = None,
+def llm_call(model_name: str | None = None,
             track_cost: bool = True, track_tokens: bool = True,
-            custom_cost_calculator: Optional[Callable] = None) -> Callable:
+            custom_cost_calculator: Callable | None = None) -> Callable:
     """
     Decorator specifically for LLM API calls with detailed cost tracking
 
@@ -612,8 +613,8 @@ def llm_call(model_name: Optional[str] = None,
 class AgentOpsTraceContext:
     """Context manager for manual AgentOps tracing"""
 
-    def __init__(self, name: str, tags: Optional[List[str]] = None,
-                 metadata: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, tags: list[str] | None = None,
+                 metadata: dict[str, Any] | None = None):
         self.name = name
         self.tags = tags or []
         self.metadata = metadata or {}
@@ -641,8 +642,8 @@ class AgentOpsTraceContext:
         self.tracker.end_session(status, self.metadata)
 
 
-def trace_context(name: str, tags: Optional[List[str]] = None,
-                  metadata: Optional[Dict[str, Any]] = None) -> AgentOpsTraceContext:
+def trace_context(name: str, tags: list[str] | None = None,
+                  metadata: dict[str, Any] | None = None) -> AgentOpsTraceContext:
     """
     Create a trace context manager
 

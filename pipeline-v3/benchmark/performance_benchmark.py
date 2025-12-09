@@ -6,28 +6,27 @@ to validate the 1000 submissions/minute target with P99 latency < 10s.
 """
 
 import asyncio
-import time
 import json
 import logging
 import statistics
-import psutil
-import tracemalloc
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timezone
-from dataclasses import dataclass, asdict
-from concurrent.futures import ThreadPoolExecutor
-import numpy as np
-import pandas as pd
-from pathlib import Path
 
 # Add parent directory to path
 import sys
+import time
+import tracemalloc
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
+import psutil
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from models.reddit import RedditSubmission
-from transform.agno_analyzer_optimized import OptimizedAgnoAnalyzer, BatchConfig
+from transform.agno_analyzer_optimized import BatchConfig, OptimizedAgnoAnalyzer
 
 # Configure logging
 logging.basicConfig(
@@ -71,7 +70,7 @@ class BenchmarkResult:
     submissions_per_minute: float
 
     # Latency metrics
-    latencies: List[float]
+    latencies: list[float]
     p50_latency: float
     p95_latency: float
     p99_latency: float
@@ -83,15 +82,15 @@ class BenchmarkResult:
     peak_cpu_percent: float
 
     # Error tracking
-    error_types: Dict[str, int]
+    error_types: dict[str, int]
 
     # Agent metrics
-    agent_latencies: Dict[str, List[float]]
+    agent_latencies: dict[str, list[float]]
 
     # Timestamp
     timestamp: datetime
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
             **asdict(self),
@@ -137,7 +136,7 @@ class SubmissionGenerator:
         """Initialize with seed for reproducible generation"""
         np.random.seed(seed)
 
-    def generate_submission(self, id_override: Optional[str] = None) -> RedditSubmission:
+    def generate_submission(self, id_override: str | None = None) -> RedditSubmission:
         """Generate a single realistic Reddit submission"""
         submission_id = id_override or f"benchmark_{int(time.time() * 1000000)}"
 
@@ -153,10 +152,10 @@ class SubmissionGenerator:
             author=f"benchmark_user_{np.random.randint(1, 1000)}",
             score=np.random.randint(1, 100),
             comments_count=np.random.randint(0, 50),
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(UTC)
         )
 
-    def generate_batch(self, count: int) -> List[RedditSubmission]:
+    def generate_batch(self, count: int) -> list[RedditSubmission]:
         """Generate a batch of submissions"""
         return [self.generate_submission() for _ in range(count)]
 
@@ -192,7 +191,7 @@ class ResourceMonitor:
 
             await asyncio.sleep(0.1)  # Sample every 100ms
 
-    def stop_monitoring(self) -> Tuple[float, float, float]:
+    def stop_monitoring(self) -> tuple[float, float, float]:
         """Stop monitoring and return metrics"""
         self.monitoring = False
 
@@ -325,7 +324,7 @@ class BenchmarkRunner:
                 peak_cpu_percent=peak_cpu,
                 error_types=errors,
                 agent_latencies=agent_latencies,
-                timestamp=datetime.now(timezone.utc)
+                timestamp=datetime.now(UTC)
             )
 
             # Cleanup
@@ -347,7 +346,7 @@ class BenchmarkRunner:
             await analyzer.close()
             raise
 
-    async def run_all_benchmarks(self) -> List[BenchmarkResult]:
+    async def run_all_benchmarks(self) -> list[BenchmarkResult]:
         """Run all predefined benchmarks"""
         configs = [
             # Light load test
@@ -446,12 +445,12 @@ class BenchmarkRunner:
 
         logger.info(f"Saved benchmark result to {filepath}")
 
-    def generate_summary_report(self, results: List[BenchmarkResult]):
+    def generate_summary_report(self, results: list[BenchmarkResult]):
         """Generate comprehensive summary report"""
         report = []
         report.append("# RedditHarbor Performance Benchmark Report")
-        report.append(f"\nGenerated: {datetime.now(timezone.utc).isoformat()}")
-        report.append(f"\n## Executive Summary\n")
+        report.append(f"\nGenerated: {datetime.now(UTC).isoformat()}")
+        report.append("\n## Executive Summary\n")
 
         # Check if targets met
         target_met = any(
@@ -484,7 +483,7 @@ class BenchmarkRunner:
 
         # Best performing configuration
         best_rpm = max(results, key=lambda r: r.submissions_per_minute)
-        report.append(f"\n### Best Throughput\n")
+        report.append("\n### Best Throughput\n")
         report.append(f"- **Test**: {best_rpm.test_name}")
         report.append(f"- **RPM**: {best_rpm.submissions_per_minute:.1f}")
         report.append(f"- **Configuration**: {best_rpm.max_concurrent_submissions} concurrent submissions, "
@@ -492,13 +491,13 @@ class BenchmarkRunner:
 
         # Best latency
         best_latency = min(results, key=lambda r: r.p99_latency)
-        report.append(f"\n### Best Latency\n")
+        report.append("\n### Best Latency\n")
         report.append(f"- **Test**: {best_latency.test_name}")
         report.append(f"- **P99 Latency**: {best_latency.p99_latency:.2f}s")
         report.append(f"- **Configuration**: {best_latency.max_concurrent_submissions} concurrent submissions")
 
         # Resource efficiency
-        report.append(f"\n### Resource Efficiency\n")
+        report.append("\n### Resource Efficiency\n")
         efficiency_scores = []
         for result in results:
             # Score = RPM / (Memory_MB/1000) * (1 - error_rate)
@@ -512,7 +511,7 @@ class BenchmarkRunner:
         report.append(f"- **Memory per RPM**: {most_efficient[0].peak_memory_mb/most_efficient[0].submissions_per_minute:.2f}MB")
 
         # Recommendations
-        report.append(f"\n## Recommendations\n")
+        report.append("\n## Recommendations\n")
 
         if not target_met:
             report.append("\n### To Achieve Target Performance (1000 RPM, P99 < 10s):")
@@ -527,10 +526,10 @@ class BenchmarkRunner:
                              f"Consider reducing to 25-30 to prevent API rate limiting.")
 
             if low_rpm_tests:
-                report.append(f"- **Increase Throughput**: Tests below 1000 RPM should increase concurrent submissions to 50-60.")
+                report.append("- **Increase Throughput**: Tests below 1000 RPM should increase concurrent submissions to 50-60.")
 
-            report.append(f"- **Enable Connection Pooling**: Ensure API endpoints support keep-alive connections")
-            report.append(f"- **Optimize Batching**: Use Cohere's maximum batch size of 96 texts for embeddings")
+            report.append("- **Enable Connection Pooling**: Ensure API endpoints support keep-alive connections")
+            report.append("- **Optimize Batching**: Use Cohere's maximum batch size of 96 texts for embeddings")
 
         # Embedding impact analysis
         embedding_tests = [r for r in results if r.enable_embeddings]
@@ -541,34 +540,34 @@ class BenchmarkRunner:
             avg_rpm_without = np.mean([r.submissions_per_minute for r in no_embedding_tests])
             impact = ((avg_rpm_without - avg_rpm_with) / avg_rpm_with) * 100
 
-            report.append(f"\n### Embedding Impact Analysis")
+            report.append("\n### Embedding Impact Analysis")
             report.append(f"- **With Embeddings**: {avg_rpm_with:.1f} RPM average")
             report.append(f"- **Without Embeddings**: {avg_rpm_without:.1f} RPM average")
             report.append(f"- **Performance Impact**: {impact:.1f}% {'decrease' if impact > 0 else 'increase'}")
 
         # Scaling recommendations
-        report.append(f"\n## Production Scaling Recommendations\n")
-        report.append(f"\n### Infrastructure Requirements")
-        report.append(f"- **CPU**: 8+ cores for optimal concurrency")
-        report.append(f"- **Memory**: 8GB minimum, 16GB recommended for 1000 RPM")
-        report.append(f"- **Network**: 1Gbps for API call bandwidth")
-        report.append(f"- **API Rate Limits**: Ensure 500+ calls/minute for LLM providers")
+        report.append("\n## Production Scaling Recommendations\n")
+        report.append("\n### Infrastructure Requirements")
+        report.append("- **CPU**: 8+ cores for optimal concurrency")
+        report.append("- **Memory**: 8GB minimum, 16GB recommended for 1000 RPM")
+        report.append("- **Network**: 1Gbps for API call bandwidth")
+        report.append("- **API Rate Limits**: Ensure 500+ calls/minute for LLM providers")
 
-        report.append(f"\n### Configuration for Target Performance")
-        report.append(f"- ```python")
-        report.append(f"batch_config = BatchConfig(")
-        report.append(f"    embedding_batch_size=96,  # Max for Cohere")
-        report.append(f"    max_concurrent_agents=20,  # Balanced load")
-        report.append(f"    max_concurrent_submissions=50,  # Optimal throughput")
-        report.append(f")")
-        report.append(f"```")
+        report.append("\n### Configuration for Target Performance")
+        report.append("- ```python")
+        report.append("batch_config = BatchConfig(")
+        report.append("    embedding_batch_size=96,  # Max for Cohere")
+        report.append("    max_concurrent_agents=20,  # Balanced load")
+        report.append("    max_concurrent_submissions=50,  # Optimal throughput")
+        report.append(")")
+        report.append("```")
 
-        report.append(f"\n### Monitoring Metrics")
-        report.append(f"- Track P99 latency (target: <10s)")
-        report.append(f"- Monitor RPM (target: 1000)")
-        report.append(f"- Alert on memory usage (>4GB)")
-        report.append(f"- Watch API rate limits (backpressure)")
-        report.append(f"- Monitor error rate (>1% triggers alert)")
+        report.append("\n### Monitoring Metrics")
+        report.append("- Track P99 latency (target: <10s)")
+        report.append("- Monitor RPM (target: 1000)")
+        report.append("- Alert on memory usage (>4GB)")
+        report.append("- Watch API rate limits (backpressure)")
+        report.append("- Monitor error rate (>1% triggers alert)")
 
         # Save report
         report_text = "\n".join(report)
@@ -582,7 +581,7 @@ class BenchmarkRunner:
         # Generate visualizations
         self.generate_visualizations(results)
 
-    def generate_visualizations(self, results: List[BenchmarkResult]):
+    def generate_visualizations(self, results: list[BenchmarkResult]):
         """Generate performance visualization charts"""
         if not results:
             return

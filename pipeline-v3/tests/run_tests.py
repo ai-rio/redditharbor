@@ -3,10 +3,10 @@
 Comprehensive test runner for pipeline quality filtering and performance tests
 """
 
-import sys
+import argparse
 import os
 import subprocess
-import argparse
+import sys
 import time
 from pathlib import Path
 

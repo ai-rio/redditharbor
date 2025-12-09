@@ -2,15 +2,14 @@
 Repository pattern implementation for database operations with clean separation of concerns
 """
 
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-import logging
+from typing import Any
 
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from models import AnalysisResult, Opportunity
+from models import Opportunity
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +23,12 @@ class OpportunityRepository(ABC):
         pass
 
     @abstractmethod
-    def save_batch(self, opportunities: List[Opportunity]) -> Dict[str, int]:
+    def save_batch(self, opportunities: list[Opportunity]) -> dict[str, int]:
         """Save multiple opportunities and return statistics"""
         pass
 
     @abstractmethod
-    def find_by_submission_id(self, submission_id: str) -> Optional[Opportunity]:
+    def find_by_submission_id(self, submission_id: str) -> Opportunity | None:
         """Find opportunity by submission ID"""
         pass
 
@@ -38,29 +37,29 @@ class OpportunityRepository(ABC):
         self,
         limit: int = 100,
         min_score: float = 0.0,
-        trust_levels: Optional[List[str]] = None,
-        subreddits: Optional[List[str]] = None
-    ) -> List[Opportunity]:
+        trust_levels: list[str] | None = None,
+        subreddits: list[str] | None = None
+    ) -> list[Opportunity]:
         """Find opportunities with filtering"""
         pass
 
     @abstractmethod
     def find_similar(
         self,
-        embedding: List[float],
+        embedding: list[float],
         similarity_threshold: float = 0.8,
         limit: int = 10
-    ) -> List[Opportunity]:
+    ) -> list[Opportunity]:
         """Find opportunities similar to given embedding"""
         pass
 
     @abstractmethod
-    def count_by_filters(self, filters: Dict[str, Any]) -> int:
+    def count_by_filters(self, filters: dict[str, Any]) -> int:
         """Count opportunities by filters"""
         pass
 
     @abstractmethod
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get database statistics"""
         pass
 
@@ -108,7 +107,7 @@ class SQLAlchemyOpportunityRepository(OpportunityRepository):
             session.rollback()
             return False
 
-    def save_batch(self, opportunities: List[Opportunity]) -> Dict[str, int]:
+    def save_batch(self, opportunities: list[Opportunity]) -> dict[str, int]:
         """
         Save multiple opportunities in a transaction
 
@@ -159,7 +158,7 @@ class SQLAlchemyOpportunityRepository(OpportunityRepository):
 
         return stats
 
-    def find_by_submission_id(self, submission_id: str) -> Optional[Opportunity]:
+    def find_by_submission_id(self, submission_id: str) -> Opportunity | None:
         """
         Find opportunity by submission ID
 
@@ -184,9 +183,9 @@ class SQLAlchemyOpportunityRepository(OpportunityRepository):
         self,
         limit: int = 100,
         min_score: float = 0.0,
-        trust_levels: Optional[List[str]] = None,
-        subreddits: Optional[List[str]] = None
-    ) -> List[Opportunity]:
+        trust_levels: list[str] | None = None,
+        subreddits: list[str] | None = None
+    ) -> list[Opportunity]:
         """
         Find opportunities with filtering
 
@@ -227,10 +226,10 @@ class SQLAlchemyOpportunityRepository(OpportunityRepository):
 
     def find_similar(
         self,
-        embedding: List[float],
+        embedding: list[float],
         similarity_threshold: float = 0.8,
         limit: int = 10
-    ) -> List[Opportunity]:
+    ) -> list[Opportunity]:
         """
         Find opportunities similar to the given embedding using cosine similarity
 
@@ -277,7 +276,7 @@ class SQLAlchemyOpportunityRepository(OpportunityRepository):
             logger.error(f"Failed to find similar opportunities: {e}")
             raise RuntimeError(f"Similarity search failed: {e}")
 
-    def _calculate_cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
+    def _calculate_cosine_similarity(self, vec1: list[float], vec2: list[float]) -> float:
         """
         Calculate cosine similarity between two vectors
 
@@ -319,7 +318,7 @@ class SQLAlchemyOpportunityRepository(OpportunityRepository):
 
             return dot_product / (magnitude1 * magnitude2)
 
-    def count_by_filters(self, filters: Dict[str, Any]) -> int:
+    def count_by_filters(self, filters: dict[str, Any]) -> int:
         """
         Count opportunities by filters
 
@@ -349,7 +348,7 @@ class SQLAlchemyOpportunityRepository(OpportunityRepository):
             logger.error(f"Failed to count opportunities: {e}")
             return 0
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get database statistics and summary metrics
 

@@ -5,13 +5,13 @@ This module implements specialized market analysis agents using the Agno framewo
 Each agent focuses on a specific aspect of market opportunity analysis.
 """
 
-from typing import Dict, Any, List, Optional, Type
-from pydantic import BaseModel, Field
 import logging
-from enum import Enum
 
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
+from pydantic import BaseModel, Field
+
+from monitoring.agentops_tracker import get_tracker
 from monitoring.metrics_collector import get_collector
 
 # Configure logger
@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 class WillingnessToPayResult(BaseModel):
     """Structured output for willingness to pay analysis"""
     wtp_score: float = Field(..., ge=0, le=100, description="Willingness to pay score (0-100)")
-    price_range: Optional[str] = Field(None, description="Identified price range")
+    price_range: str | None = Field(None, description="Identified price range")
     budget_mentioned: bool = Field(default=False, description="Whether budget was explicitly mentioned")
     confidence_score: float = Field(..., ge=0, le=100, description="Confidence in the analysis")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class MarketSegmentResult(BaseModel):
@@ -36,16 +36,16 @@ class MarketSegmentResult(BaseModel):
     segment_type: str = Field(..., description="Type of market segment")
     growth_potential: float = Field(..., ge=0, le=100, description="Growth potential score (0-100)")
     confidence_score: float = Field(..., ge=0, le=100, description="Confidence in the analysis")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class PricePointResult(BaseModel):
     """Structured output for price point analysis"""
     price_point: float = Field(..., ge=0, description="Estimated price point in USD")
     monetization_score: float = Field(..., ge=0, le=100, description="Monetization potential score (0-100)")
-    budget_ceiling: Optional[float] = Field(None, ge=0, description="Customer budget ceiling")
+    budget_ceiling: float | None = Field(None, ge=0, description="Customer budget ceiling")
     pricing_model: str = Field(..., description="Recommended pricing model")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class PaymentBehaviorResult(BaseModel):
@@ -54,7 +54,7 @@ class PaymentBehaviorResult(BaseModel):
     pain_intensity_score: float = Field(..., ge=0, le=100, description="Pain intensity score (0-100)")
     purchase_pattern: str = Field(..., description="Typical purchase pattern")
     current_spending: str = Field(..., description="Current spending level")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 class MarketResearchResult(BaseModel):
@@ -63,7 +63,7 @@ class MarketResearchResult(BaseModel):
     competitor_count: int = Field(..., ge=0, description="Number of identified competitors")
     market_maturity: str = Field(..., description="Market maturity level")
     barriers_to_entry: str = Field(..., description="Entry barriers assessment")
-    reasoning: Optional[str] = Field(None, description="Reasoning behind the assessment")
+    reasoning: str | None = Field(None, description="Reasoning behind the assessment")
 
 
 # =============================================================================
@@ -78,10 +78,11 @@ class BaseAgent(Agent):
         model: str,
         api_key: str,
         base_url: str,
-        output_schema: Optional[Type[BaseModel]] = None,
+        output_schema: type[BaseModel] | None = None,
         debug_mode: bool = False,
-        instructions: Optional[List[str]] = None,
-        name: Optional[str] = None
+        enable_agentops: bool = False,
+        instructions: list[str] | None = None,
+        name: str | None = None
     ):
         """
         Initialize base agent with OpenRouter configuration
@@ -92,6 +93,7 @@ class BaseAgent(Agent):
             base_url: API base URL
             output_schema: Pydantic schema for structured output
             debug_mode: Enable debug logging
+            enable_agentops: Enable AgentOps tracking for agent execution (default: False)
             instructions: Agent instructions
             name: Agent name
         """
@@ -117,6 +119,14 @@ class BaseAgent(Agent):
         self.metrics = get_collector()
         self.agent_name = self._get_agent_name()
 
+        # Initialize AgentOps tracking if enabled
+        self.enable_agentops = enable_agentops
+        self.agentops_tracker = None
+        if self.enable_agentops:
+            self.agentops_tracker = get_tracker()
+            self.agentops_tracker.start_session(f"{self.agent_name}_session")
+            logger.info(f"AgentOps tracking enabled for {self.agent_name}")
+
         # Initialize the Agno Agent without overriding run()
         super().__init__(
             model=self.openai_model,
@@ -138,6 +148,20 @@ class BaseAgent(Agent):
     def _get_default_name(self) -> str:
         """Get default agent name"""
         return self.__class__.__name__.replace('Agent', '')
+
+    async def arun(self, prompt: str, *args, **kwargs):
+        """Override Agno's arun method to add AgentOps tracking"""
+        result = await super().arun(prompt, *args, **kwargs)
+
+        # Track completion if AgentOps is enabled
+        if self.enable_agentops and self.agentops_tracker:
+            self.agentops_tracker.track_event()
+
+        return result
+
+    def _track_agent_completion(self, result, success: bool = True, error: str | None = None) -> None:
+        """Track agent completion metrics and session lifecycle"""
+        pass
 
 
 # =============================================================================

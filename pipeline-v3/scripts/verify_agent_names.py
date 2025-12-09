@@ -6,8 +6,8 @@ This script verifies the agent_name mapping without requiring database connectio
 or complex dependencies.
 """
 
-import sys
 import os
+import sys
 
 # Add pipeline-v3 to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -18,11 +18,11 @@ def test_agent_name_mappings():
     # Import agents
     from transform.agno_agents import (
         Agent,
-        WillingnessToPayAgent,
+        MarketResearchAgent,
         MarketSegmentAgent,
-        PricePointAgent,
         PaymentBehaviorAgent,
-        MarketResearchAgent
+        PricePointAgent,
+        WillingnessToPayAgent,
     )
 
     # Expected agent name mappings
@@ -77,11 +77,11 @@ def test_agent_count():
     """Verify we have exactly 5 agents"""
 
     from transform.agno_agents import (
-        WillingnessToPayAgent,
+        MarketResearchAgent,
         MarketSegmentAgent,
-        PricePointAgent,
         PaymentBehaviorAgent,
-        MarketResearchAgent
+        PricePointAgent,
+        WillingnessToPayAgent,
     )
 
     agent_classes = [
@@ -92,7 +92,7 @@ def test_agent_count():
         MarketResearchAgent
     ]
 
-    print(f"\n📊 AGENT COUNT VERIFICATION")
+    print("\n📊 AGENT COUNT VERIFICATION")
     print(f"Found {len(agent_classes)} agent classes")
 
     expected_count = 5

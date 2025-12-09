@@ -4,16 +4,17 @@ Comprehensive Vector Similarity Test Suite
 Tests the full vector similarity functionality including database integration
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.getcwd())
 
 import time
-from datetime import datetime, UTC
-from typing import List, Dict, Any
+from datetime import UTC, datetime
+from typing import Any, Dict, List
 
 
-def calculate_cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
+def calculate_cosine_similarity(vec1: list[float], vec2: list[float]) -> float:
     """Calculate cosine similarity between two vectors"""
     if len(vec1) != len(vec2):
         raise ValueError("Vectors must have the same dimension")
@@ -47,7 +48,7 @@ def calculate_cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
         return dot_product / (magnitude1 * magnitude2)
 
 
-def generate_similar_embedding(base_embedding: List[float], similarity: float = 0.8) -> List[float]:
+def generate_similar_embedding(base_embedding: list[float], similarity: float = 0.8) -> list[float]:
     """Generate an embedding with specified similarity to base embedding"""
     try:
         import numpy as np
@@ -77,7 +78,7 @@ class MockVectorSimilarityRepository:
     def __init__(self):
         self.opportunities = []
 
-    def add_opportunity(self, opportunity_data: Dict[str, Any]):
+    def add_opportunity(self, opportunity_data: dict[str, Any]):
         """Add an opportunity to the mock database"""
         opportunity = MockOpportunity(**opportunity_data)
         self.opportunities.append(opportunity)
@@ -85,10 +86,10 @@ class MockVectorSimilarityRepository:
 
     def find_similar(
         self,
-        embedding: List[float],
+        embedding: list[float],
         similarity_threshold: float = 0.8,
         limit: int = 10
-    ) -> List[MockOpportunity]:
+    ) -> list[MockOpportunity]:
         """Find opportunities similar to the given embedding"""
         similar_opportunities = []
 
@@ -544,7 +545,7 @@ def main():
 
     total_time = time.time() - test_start_time
 
-    print(f"\n=== TEST SUMMARY ===")
+    print("\n=== TEST SUMMARY ===")
     print(f"Tests Passed: {tests_passed}/{total_tests}")
     print(f"Total Time: {total_time:.3f}s")
 

@@ -5,14 +5,14 @@ Phase 5 Test Runner for Agno Integration
 Comprehensive test execution for production validation
 """
 
-import os
-import sys
-import subprocess
 import json
+import os
+import subprocess
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -28,7 +28,7 @@ class Phase5TestRunner:
         self.reports_dir = project_root / "test_reports" / "phase5"
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
-    def run_all_tests(self) -> Dict[str, Any]:
+    def run_all_tests(self) -> dict[str, Any]:
         """
         Run all Phase 5 tests and generate comprehensive report
 
@@ -94,7 +94,7 @@ class Phase5TestRunner:
 
         return report
 
-    def _run_test_suite(self, suite: Dict[str, Any]) -> Dict[str, Any]:
+    def _run_test_suite(self, suite: dict[str, Any]) -> dict[str, Any]:
         """
         Run a single test suite
 
@@ -173,7 +173,7 @@ class Phase5TestRunner:
                 "tests": []
             }
 
-    def _print_suite_results(self, suite_name: str, result: Dict[str, Any]):
+    def _print_suite_results(self, suite_name: str, result: dict[str, Any]):
         """Print results for a test suite"""
         status = "✅ PASSED" if result['passed'] else "❌ FAILED"
         print(f"\n{status} - {suite_name}")
@@ -187,7 +187,7 @@ class Phase5TestRunner:
         if not result['passed'] and result['stderr']:
             print(f"Error: {result['stderr'][:200]}...")
 
-    def _generate_comprehensive_report(self) -> Dict[str, Any]:
+    def _generate_comprehensive_report(self) -> dict[str, Any]:
         """Generate comprehensive test report"""
         end_time = datetime.now()
         total_duration = (end_time - self.start_time).total_seconds()
@@ -258,7 +258,7 @@ class Phase5TestRunner:
             }
         }
 
-    def _validate_success_criteria(self) -> Dict[str, Any]:
+    def _validate_success_criteria(self) -> dict[str, Any]:
         """Validate Phase 5 success criteria"""
         criteria = {
             "quality_improvement_85_percent": self._check_quality_improvement(),
@@ -366,7 +366,7 @@ class Phase5TestRunner:
                 pass
         return False
 
-    def _identify_critical_issues(self) -> List[str]:
+    def _identify_critical_issues(self) -> list[str]:
         """Identify critical issues preventing production deployment"""
         issues = []
 
@@ -384,7 +384,7 @@ class Phase5TestRunner:
 
         return issues
 
-    def _generate_recommendations(self) -> List[str]:
+    def _generate_recommendations(self) -> list[str]:
         """Generate recommendations based on test results"""
         recommendations = []
 
@@ -412,7 +412,7 @@ class Phase5TestRunner:
 
         return recommendations
 
-    def _save_report(self, report: Dict[str, Any]):
+    def _save_report(self, report: dict[str, Any]):
         """Save comprehensive report to file"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_file = self.reports_dir / f"phase5_comprehensive_report_{timestamp}.json"
@@ -427,7 +427,7 @@ class Phase5TestRunner:
 
         print(f"\n📄 Report saved to: {report_file}")
 
-    def _print_final_summary(self, report: Dict[str, Any]):
+    def _print_final_summary(self, report: dict[str, Any]):
         """Print final test execution summary"""
         print("\n" + "=" * 80)
         print("PHASE 5 TEST EXECUTION SUMMARY")
@@ -435,14 +435,14 @@ class Phase5TestRunner:
 
         # Overall results
         summary = report['summary']
-        print(f"\n📊 OVERALL RESULTS:")
+        print("\n📊 OVERALL RESULTS:")
         print(f"  Test Suites: {summary['passed_suites']}/{summary['total_suites']} passed")
         print(f"  Success Rate: {summary['success_rate']:.1%}")
         print(f"  Critical Suites: {summary['critical_suites_passed']}/{summary['total_suites']} passed")
 
         # Success criteria
         criteria = report['success_criteria']
-        print(f"\n✅ SUCCESS CRITERIA:")
+        print("\n✅ SUCCESS CRITERIA:")
         print(f"  Met: {criteria['met_count']}/{criteria['total_count']}")
         for criterion, passed in criteria.items():
             if criterion not in ['all_met', 'met_count', 'total_count']:
@@ -451,16 +451,16 @@ class Phase5TestRunner:
 
         # Production readiness
         validation = report['phase5_validation']
-        print(f"\n🚀 PRODUCTION READINESS:")
+        print("\n🚀 PRODUCTION READINESS:")
         print(f"  Ready for Production: {'YES' if validation['ready_for_production'] else 'NO'}")
 
         if validation['critical_issues']:
-            print(f"\n⚠️  CRITICAL ISSUES:")
+            print("\n⚠️  CRITICAL ISSUES:")
             for issue in validation['critical_issues']:
                 print(f"  - {issue}")
 
         if validation['recommendations']:
-            print(f"\n💡 RECOMMENDATIONS:")
+            print("\n💡 RECOMMENDATIONS:")
             for rec in validation['recommendations']:
                 print(f"  - {rec}")
 

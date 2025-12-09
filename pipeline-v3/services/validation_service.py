@@ -5,8 +5,7 @@ Provides production-ready database constraint and foreign key validation.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, Protocol
-from sqlalchemy.orm import Session
+
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)

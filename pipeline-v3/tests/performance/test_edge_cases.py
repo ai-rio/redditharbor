@@ -2,14 +2,15 @@
 Edge case tests for AgnoOpportunityAnalyzer
 """
 
-import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
 
-from tests.helpers.test_data_factory import RedditSubmissionFactory
-from tests.helpers.mock_agno_agents import MockAgnoTeam, MockWTPAgent
+import pytest
+
 from tests.helpers.assertion_helpers import AgnoAnalysisAssertions
+from tests.helpers.mock_agno_agents import MockAgnoTeam, MockWTPAgent
+from tests.helpers.test_data_factory import RedditSubmissionFactory
 from tests.performance.conftest import PerformanceTestHelpers
 
 

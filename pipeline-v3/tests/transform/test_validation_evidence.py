@@ -12,16 +12,18 @@ TDD Approach:
 Based on Phase 3 Jina Integration Documentation lines 366-427
 """
 
-import pytest
 import json
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
-from datetime import datetime
+import os
 
 # Import the models directly by executing the module
 # This bypasses the sqlalchemy dependency issues in the broader test suite
 import sys
-import os
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 try:

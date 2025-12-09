@@ -3,10 +3,10 @@
 Simple validation script to test metrics collection
 """
 
+import json
 import os
 import sys
 import time
-import json
 from datetime import datetime
 
 # Add project root to Python path
@@ -53,6 +53,7 @@ def test_and_validate_metrics():
     # Verify database storage
     try:
         import psycopg2
+
         from config import get_settings
 
         settings = get_settings()

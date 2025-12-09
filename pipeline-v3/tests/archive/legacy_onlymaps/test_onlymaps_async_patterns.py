@@ -13,15 +13,17 @@ Requirements tested:
 - Event-driven data processing
 """
 
-import pytest
 import asyncio
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, AsyncGenerator
-from unittest.mock import AsyncMock, patch, MagicMock
 import logging
-import time
 import threading
+import time
+from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,7 @@ class TestOnlyMapsAsyncMapping:
     @pytest.mark.asyncio
     async def test_async_stream_processing(self, async_onlymaps_mapper):
         """Test async stream processing of large datasets."""
-        async def data_stream() -> AsyncGenerator[Dict[str, Any], None]:
+        async def data_stream() -> AsyncGenerator[dict[str, Any], None]:
             for i in range(100):
                 yield {
                     "title": f"Stream Post {i}",
@@ -616,23 +618,23 @@ async def async_onlymaps_mapper():
     """Create async OnlyMaps mapper for testing."""
     # Mock async OnlyMaps mapper
     class AsyncOnlyMapsMapper:
-        async def async_map_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        async def async_map_data(self, data: dict[str, Any]) -> dict[str, Any]:
             await asyncio.sleep(0.001)  # Simulate async operation
             return data.copy()
 
-        async def async_batch_process(self, data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        async def async_batch_process(self, data_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             results = []
             for data in data_list:
                 result = await self.async_map_data(data)
                 results.append(result)
             return results
 
-        async def async_stream_process(self, data_stream) -> AsyncGenerator[Dict[str, Any], None]:
+        async def async_stream_process(self, data_stream) -> AsyncGenerator[dict[str, Any], None]:
             async for data in data_stream:
                 await asyncio.sleep(0.001)  # Simulate async operation
                 yield data
 
-        async def async_concurrent_process(self, data_list: List[Dict[str, Any]], max_concurrent: int = 10) -> List[Dict[str, Any]]:
+        async def async_concurrent_process(self, data_list: list[dict[str, Any]], max_concurrent: int = 10) -> list[dict[str, Any]]:
             semaphore = asyncio.Semaphore(max_concurrent)
 
             async def process_with_semaphore(data):
@@ -642,7 +644,7 @@ async def async_onlymaps_mapper():
             tasks = [process_with_semaphore(data) for data in data_list]
             return await asyncio.gather(*tasks)
 
-        async def async_batch_process_with_error_handling(self, data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        async def async_batch_process_with_error_handling(self, data_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             results = []
             for data in data_list:
                 try:
@@ -652,14 +654,14 @@ async def async_onlymaps_mapper():
                     results.append({"success": False, "error": str(e)})
             return results
 
-        async def async_validate_data(self, data: Dict[str, Any]) -> bool:
+        async def async_validate_data(self, data: dict[str, Any]) -> bool:
             await asyncio.sleep(0.001)  # Simulate async validation
             return True  # Always pass for test purposes
 
-        async def async_batch_validate(self, data_list: List[Dict[str, Any]]) -> List[bool]:
+        async def async_batch_validate(self, data_list: list[dict[str, Any]]) -> list[bool]:
             return await asyncio.gather(*[self.async_validate_data(data) for data in data_list])
 
-        async def async_process_with_retry(self, data_list: List[Dict[str, Any]], max_retries: int = 3) -> List[Dict[str, Any]]:
+        async def async_process_with_retry(self, data_list: list[dict[str, Any]], max_retries: int = 3) -> list[dict[str, Any]]:
             results = []
             for data in data_list:
                 success = False
@@ -675,7 +677,7 @@ async def async_onlymaps_mapper():
                 results.append({"success": success, "data": result if success else None})
             return results
 
-        async def async_process_with_circuit_breaker(self, data_list: List[Dict[str, Any]], failure_threshold: int = 5) -> List[Dict[str, Any]]:
+        async def async_process_with_circuit_breaker(self, data_list: list[dict[str, Any]], failure_threshold: int = 5) -> list[dict[str, Any]]:
             # Simple circuit breaker implementation
             failure_count = 0
             results = []
@@ -694,31 +696,31 @@ async def async_onlymaps_mapper():
 
             return results
 
-        async def async_deadlock_safe_process(self, data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        async def async_deadlock_safe_process(self, data_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             # Use asyncio.gather with timeout to prevent deadlocks
             try:
                 return await asyncio.wait_for(
                     asyncio.gather(*[self.async_map_data(data) for data in data_list]),
                     timeout=10.0
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Handle timeout gracefully
                 return [{"success": False, "error": "Timeout"} for _ in data_list]
 
-        async def async_process_with_resource_cleanup(self, data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        async def async_process_with_resource_cleanup(self, data_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             try:
                 return await self.async_batch_process(data_list)
             finally:
                 # Resource cleanup would happen here
                 pass
 
-        async def async_event_processor(self, events: List[Dict[str, Any]]) -> AsyncGenerator[Dict[str, Any], None]:
+        async def async_event_processor(self, events: list[dict[str, Any]]) -> AsyncGenerator[dict[str, Any], None]:
             for event in events:
                 event["processed_at"] = datetime.now()
                 await asyncio.sleep(0.001)  # Simulate processing
                 yield event
 
-        async def async_pipeline_process(self, data_list: List[Dict[str, Any]], stages: List[str]) -> List[Dict[str, Any]]:
+        async def async_pipeline_process(self, data_list: list[dict[str, Any]], stages: list[str]) -> list[dict[str, Any]]:
             results = []
             for data in data_list:
                 result = data.copy()
@@ -727,7 +729,7 @@ async def async_onlymaps_mapper():
                 results.append(result)
             return results
 
-        async def async_state_machine_process(self, data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        async def async_state_machine_process(self, data_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             results = []
             for data in data_list:
                 state_machine = {
@@ -738,12 +740,12 @@ async def async_onlymaps_mapper():
                 results.append(state_machine)
             return results
 
-        async def async_notify_observers(self, event_data: Dict[str, Any], observers: List[AsyncMock]) -> None:
+        async def async_notify_observers(self, event_data: dict[str, Any], observers: list[AsyncMock]) -> None:
             for observer in observers:
                 await observer(event_data)
 
         # Sync methods for interoperability testing
-        def sync_map_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        def sync_map_data(self, data: dict[str, Any]) -> dict[str, Any]:
             return data.copy()
 
     return AsyncOnlyMapsMapper()

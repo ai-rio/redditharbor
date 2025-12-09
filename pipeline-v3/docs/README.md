@@ -53,6 +53,7 @@ docs/
 │   ├── filtering-architecture.md      # Dual filtering system architecture
 │   ├── onlymaps-test-architecture.md  # OnlyMaps testing framework design
 │   ├── v2-to-v3-migration.md          # Migration guide from v2
+│   ├── requirements.txt               # Project dependencies and requirements
 │   └── adr/                           # Architecture Decision Records
 │   └── [60+ architecture docs]        # Phase reports, audits, scaling recommendations
 ├── components/                         # Pipeline components documentation
@@ -66,6 +67,8 @@ docs/
 ├── implementation/                     # Implementation details and technical guides
 │   ├── elt-pipeline-implementation.md # Full implementation guide
 │   ├── IMPLEMENTATION_SUMMARY.md      # Complete implementation overview
+│   ├── BRANCH_PLAN.md                 # Branch planning and development strategy
+│   ├── TDD_IMPLEMENTATION_GUIDE.md   # TDD methodology guide for AgentOps integration
 │   ├── VALIDATION_REFACTOR_PLAN.md    # Validation system refactoring strategy
 │   ├── README_ONLYMAPS_TESTS.md       # OnlyMaps testing framework
 │   ├── ai-content-quality-scoring.md  # AI content quality assessment
@@ -131,9 +134,14 @@ pipeline-v3/
   - Real API integration setup
   - Testing strategies and performance optimization
 
+**AgentOps Integration Documentation:**
+
+- **[BRANCH_PLAN.md](./implementation/BRANCH_PLAN.md)** - Branch planning and development strategy
+- **[TDD_IMPLEMENTATION_GUIDE.md](./implementation/TDD_IMPLEMENTATION_GUIDE.md)** - TDD methodology guide for AgentOps integration
+- **[IMPLEMENTATION_SUMMARY.md](./implementation/IMPLEMENTATION_SUMMARY.md)** - Complete AgentOps integration overview and achievements
+
 **New Implementation Documentation:**
 
-- **[Implementation Summary](./implementation/IMPLEMENTATION_SUMMARY.md)** - Complete implementation overview and achievements
 - **[Validation Refactor Plan](./implementation/VALIDATION_REFACTOR_PLAN.md)** - Detailed validation system refactoring strategy
 - **[OnlyMaps Test Architecture](./implementation/README_ONLYMAPS_TESTS.md)** - Comprehensive OnlyMaps testing framework
 - **[AI Content Quality Scoring](./implementation/ai-content-quality-scoring.md)** - AI-powered content quality assessment system

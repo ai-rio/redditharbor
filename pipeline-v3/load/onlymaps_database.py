@@ -9,10 +9,10 @@ This module provides OnlyMapsDatabaseLoader that works directly with PostgreSQL:
 """
 
 import logging
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +20,15 @@ logger = logging.getLogger(__name__)
 class DatabaseStats(BaseModel):
     """Database statistics model for OnlyMaps integration"""
     total_opportunities: int
-    avg_final_score: Optional[float] = None  # Handles missing final_score column
-    max_score: Optional[float] = None
+    avg_final_score: float | None = None  # Handles missing final_score column
+    max_score: float | None = None
 
 
 class OpportunitySummary(BaseModel):
     """Opportunity summary model with schema flexibility"""
     id: str
     app_title: str
-    final_score: Optional[float] = None  # This field doesn't exist in current DB schema
+    final_score: float | None = None  # This field doesn't exist in current DB schema
     trust_level: str = "MEDIUM"
 
 
@@ -57,7 +57,7 @@ class OnlyMapsDatabaseLoader:
         self.database_url = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
         self.connection = None
 
-        logger.info(f"PostgreSQL Database Loader initialized for Agno field persistence")
+        logger.info("PostgreSQL Database Loader initialized for Agno field persistence")
 
     def _get_connection(self):
         """Get or create PostgreSQL connection"""
@@ -121,7 +121,7 @@ class OnlyMapsDatabaseLoader:
                 max_score=None
             )
 
-    def _get_opportunities_internal(self, limit: int = 100) -> List[OpportunitySummary]:
+    def _get_opportunities_internal(self, limit: int = 100) -> list[OpportunitySummary]:
         """
         Get opportunities with PostgreSQL type mapping
 
@@ -175,8 +175,9 @@ class OnlyMapsDatabaseLoader:
         Returns:
             Dictionary with storage statistics
         """
-        from load.data_mappers import AnalysisToOpportunityMapper
         import json
+
+        from load.data_mappers import AnalysisToOpportunityMapper
 
         logger.info(f"Storing {len(analyses) if analyses else 0} analyses with OnlyMaps (clean schema)")
 

@@ -13,20 +13,21 @@ Requirements tested:
 - Interface evolution
 """
 
-import pytest
-from datetime import datetime
-from typing import Dict, Any, List, Optional
-from unittest.mock import Mock, MagicMock, patch
-import logging
 import inspect
+import logging
 import warnings
 from copy import deepcopy
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from tests.fixtures.onlymaps_fixtures import (
-    sample_reddit_submissions,
-    sample_opportunity_data,
     legacy_interface_examples,
-    migration_test_data
+    migration_test_data,
+    sample_opportunity_data,
+    sample_reddit_submissions,
 )
 
 # Mock database loader for backward compatibility testing
@@ -776,26 +777,26 @@ class TestOnlyMapsRealWorldCompatibility:
 class OnlyMapsMapper:
     """Mock OnlyMaps mapper for testing compatibility."""
 
-    def process_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Process data with compatibility checks."""
         if not isinstance(data, dict):
             return {"success": False, "error": "Invalid data type"}
 
         return {"success": True, "data": data}
 
-    def process_sqlalchemy_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_sqlalchemy_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Process SQLAlchemy-compatible data."""
         return {"success": True, "data": data}
 
-    def legacy_api_compatibility(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def legacy_api_compatibility(self, data: dict[str, Any]) -> dict[str, Any]:
         """Handle legacy API compatibility."""
         return {"success": True, "data": data}
 
-    def process_database_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_database_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Process database-compatible data."""
         return {"success": True, "data": data}
 
-    def rest_api_compatibility(self, response: Dict[str, Any]) -> Dict[str, Any]:
+    def rest_api_compatibility(self, response: dict[str, Any]) -> dict[str, Any]:
         """Handle REST API compatibility."""
         processed_posts = []
         if "data" in response and "children" in response["data"]:
@@ -812,14 +813,14 @@ class OnlyMapsMapper:
             "processed_posts": processed_posts
         }
 
-    def config_interface_compatibility(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def config_interface_compatibility(self, config: dict[str, Any]) -> dict[str, Any]:
         """Handle configuration compatibility."""
         return {
             "success": True,
             "normalized_config": config
         }
 
-    def batch_process(self, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def batch_process(self, data_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Process batch of data."""
         return {
             "success": True,
@@ -827,7 +828,7 @@ class OnlyMapsMapper:
             "results": [{"success": True, "data": data} for data in data_list]
         }
 
-    def migrate_legacy_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def migrate_legacy_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Migrate legacy data format."""
         migrated = data.copy()
 
@@ -843,7 +844,7 @@ class OnlyMapsMapper:
 
         return {"success": True, "data": migrated}
 
-    def migrate_with_integrity_checks(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def migrate_with_integrity_checks(self, data: dict[str, Any]) -> dict[str, Any]:
         """Migrate data with integrity checks."""
         integrity_checks = {
             "passed": True,
@@ -856,7 +857,7 @@ class OnlyMapsMapper:
             "data": data
         }
 
-    def batch_migrate_data(self, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def batch_migrate_data(self, data_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Batch migrate data."""
         results = []
         for data in data_list:
@@ -869,7 +870,7 @@ class OnlyMapsMapper:
             "results": results
         }
 
-    def handle_schema_evolution(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_schema_evolution(self, data: dict[str, Any]) -> dict[str, Any]:
         """Handle schema evolution."""
         evolved_data = data.copy()
 
@@ -881,7 +882,7 @@ class OnlyMapsMapper:
 
         return {"success": True, "data": evolved_data}
 
-    def migrate_database_data(self, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def migrate_database_data(self, data_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Migrate database data."""
         migrated_data = []
         for data in data_list:
@@ -894,33 +895,33 @@ class OnlyMapsMapper:
             "migrated_data": migrated_data
         }
 
-    def legacy_processing_method(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def legacy_processing_method(self, data: dict[str, Any]) -> dict[str, Any]:
         """Deprecated legacy method."""
         warnings.warn("legacy_processing_method is deprecated", DeprecationWarning)
         return self.process_data(data)
 
-    def old_process_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def old_process_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Legacy method alias."""
         return self.process_data(data)
 
-    def legacy_validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def legacy_validate(self, data: dict[str, Any]) -> dict[str, Any]:
         """Legacy validation method alias."""
         return {"success": True, "valid": isinstance(data, dict)}
 
-    def convert_from_sql(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def convert_from_sql(self, data: dict[str, Any]) -> dict[str, Any]:
         """Legacy SQL conversion method alias."""
         return self.process_data(data)
 
-    def check_version_compatibility(self, from_version: str, to_version: str) -> Dict[str, Any]:
+    def check_version_compatibility(self, from_version: str, to_version: str) -> dict[str, Any]:
         """Check version compatibility."""
         # Simple compatibility logic - all versions are compatible for testing
         return {"is_compatible": True}
 
-    def handle_feature_flag(self, feature: str, enabled: bool) -> Dict[str, Any]:
+    def handle_feature_flag(self, feature: str, enabled: bool) -> dict[str, Any]:
         """Handle feature flags."""
         return {"handled": True, "feature": feature, "enabled": enabled}
 
-    def enable_gradual_migration(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def enable_gradual_migration(self, config: dict[str, Any]) -> dict[str, Any]:
         """Enable gradual migration."""
         return {
             "success": True,
@@ -928,23 +929,23 @@ class OnlyMapsMapper:
             "fallback_enabled": config.get("fallback_to_legacy", False)
         }
 
-    def register_plugin(self, plugin: Dict[str, Any]) -> Dict[str, Any]:
+    def register_plugin(self, plugin: dict[str, Any]) -> dict[str, Any]:
         """Register custom plugin."""
         return {"success": True, "plugin_name": plugin["name"]}
 
-    def execute_plugin(self, plugin_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute_plugin(self, plugin_name: str, data: dict[str, Any]) -> dict[str, Any]:
         """Execute registered plugin."""
         return {"passed": True, "plugin": plugin_name, "data": data}
 
-    def register_event_handler(self, event: str, handler) -> Dict[str, Any]:
+    def register_event_handler(self, event: str, handler) -> dict[str, Any]:
         """Register event handler."""
         return {"success": True, "event": event}
 
-    def handle_new_configuration(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_new_configuration(self, config: dict[str, Any]) -> dict[str, Any]:
         """Handle new configuration format."""
         return {"success": True, "normalized_config": config}
 
-    def generate_interface_documentation(self) -> Dict[str, Any]:
+    def generate_interface_documentation(self) -> dict[str, Any]:
         """Generate interface documentation."""
         return {
             "success": True,
@@ -953,7 +954,7 @@ class OnlyMapsMapper:
             "return_types": {"success": "bool", "data": "Dict[str, Any]"}
         }
 
-    def compatibility_layer_check(self) -> Dict[str, Any]:
+    def compatibility_layer_check(self) -> dict[str, Any]:
         """Check compatibility layer."""
         return {
             "success": True,
@@ -962,11 +963,11 @@ class OnlyMapsMapper:
             "legacy_aliases": ["old_process_data", "legacy_validate", "convert_from_sql"]
         }
 
-    def process_data_legacy_format(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_data_legacy_format(self, data: dict[str, Any]) -> dict[str, Any]:
         """Process data in legacy format."""
         return self.process_data(data)
 
-    def process_real_world_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_real_world_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Process real-world API data."""
         processed_posts = []
         if "data" in data and "children" in data["data"]:
@@ -976,7 +977,7 @@ class OnlyMapsMapper:
 
         return {"success": True, "processed_posts": processed_posts}
 
-    def integrate_with_legacy_system(self, response: Dict[str, Any]) -> Dict[str, Any]:
+    def integrate_with_legacy_system(self, response: dict[str, Any]) -> dict[str, Any]:
         """Integrate with legacy system."""
         integrated_data = []
         if "data" in response:
@@ -990,7 +991,7 @@ class OnlyMapsMapper:
             "integrated_data": integrated_data
         }
 
-    def setup_monitoring(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def setup_monitoring(self, config: dict[str, Any]) -> dict[str, Any]:
         """Setup monitoring."""
         return {
             "success": True,

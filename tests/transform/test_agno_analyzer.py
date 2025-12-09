@@ -4,6 +4,12 @@ Unit tests for AgnoOpportunityAnalyzer - Phase 1 Implementation
 These tests verify the AgnoOpportunityAnalyzer implementation.
 """
 
+import sys
+from pathlib import Path
+
+# Add pipeline-v3 to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "pipeline-v3"))
+
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any, List

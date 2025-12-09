@@ -4,16 +4,16 @@ Test data factory for generating test data sets
 
 import json
 import random
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
 import uuid
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 
 class RedditSubmissionFactory:
     """Factory for creating Reddit submission test data"""
 
     @staticmethod
-    def create_submission(submission_type: str = "high_wtp_b2b") -> Dict[str, Any]:
+    def create_submission(submission_type: str = "high_wtp_b2b") -> dict[str, Any]:
         """Create a single submission by type"""
         if submission_type == "high_wtp_b2b":
             return RedditSubmissionFactory.create_high_wtp_b2b()
@@ -33,7 +33,7 @@ class RedditSubmissionFactory:
             return RedditSubmissionFactory.create_high_wtp_b2b()  # Default
 
     @staticmethod
-    def create_high_wtp_b2b() -> Dict[str, Any]:
+    def create_high_wtp_b2b() -> dict[str, Any]:
         """Create high willingness-to-pay B2B submission"""
         return {
             "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
@@ -49,7 +49,7 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
-    def create_low_wtp_b2c() -> Dict[str, Any]:
+    def create_low_wtp_b2c() -> dict[str, Any]:
         """Create low willingness-to-pay B2C submission"""
         return {
             "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
@@ -65,7 +65,7 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
-    def create_mixed_segment() -> Dict[str, Any]:
+    def create_mixed_segment() -> dict[str, Any]:
         """Create mixed B2B/B2C segment submission"""
         return {
             "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
@@ -81,7 +81,7 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
-    def create_urgent_needs() -> Dict[str, Any]:
+    def create_urgent_needs() -> dict[str, Any]:
         """Create urgent needs submission"""
         return {
             "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
@@ -97,7 +97,7 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
-    def create_price_sensitive() -> Dict[str, Any]:
+    def create_price_sensitive() -> dict[str, Any]:
         """Create price-sensitive submission"""
         return {
             "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
@@ -113,7 +113,7 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
-    def create_enterprise_needs() -> Dict[str, Any]:
+    def create_enterprise_needs() -> dict[str, Any]:
         """Create enterprise-level needs submission"""
         return {
             "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
@@ -129,7 +129,7 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
-    def create_false_positive() -> Dict[str, Any]:
+    def create_false_positive() -> dict[str, Any]:
         """Create submission that should be flagged as false positive"""
         return {
             "submission_id": f"sub_{uuid.uuid4().hex[:8]}",
@@ -145,7 +145,7 @@ class RedditSubmissionFactory:
         }
 
     @staticmethod
-    def create_ab_test_dataset(size: int = 100) -> List[Dict[str, Any]]:
+    def create_ab_test_dataset(size: int = 100) -> list[dict[str, Any]]:
         """Create balanced dataset for A/B testing"""
         # Mix of high WTP B2B and B2C opportunities for testing
         dataset = []
@@ -169,7 +169,7 @@ class RedditSubmissionFactory:
         return dataset[:size]
 
     @staticmethod
-    def create_batch_submissions(count: int, mix: Dict[str, int] = None) -> List[Dict[str, Any]]:
+    def create_batch_submissions(count: int, mix: dict[str, int] = None) -> list[dict[str, Any]]:
         """Create batch of submissions with specified mix"""
         if mix is None:
             mix = {
@@ -212,7 +212,7 @@ class AgentResponseFactory:
     """Factory for creating mock agent responses"""
 
     @staticmethod
-    def create_wtp_variations() -> List[Dict[str, Any]]:
+    def create_wtp_variations() -> list[dict[str, Any]]:
         """Create various WTP agent responses"""
         return [
             {
@@ -242,7 +242,7 @@ class AgentResponseFactory:
         ]
 
     @staticmethod
-    def create_segment_variations() -> List[Dict[str, Any]]:
+    def create_segment_variations() -> list[dict[str, Any]]:
         """Create various segment agent responses"""
         return [
             {
@@ -272,7 +272,7 @@ class AgentResponseFactory:
         ]
 
     @staticmethod
-    def create_price_variations() -> List[Dict[str, Any]]:
+    def create_price_variations() -> list[dict[str, Any]]:
         """Create various price agent responses"""
         return [
             {
@@ -306,7 +306,7 @@ class AgentResponseFactory:
         ]
 
     @staticmethod
-    def create_behavior_variations() -> List[Dict[str, Any]]:
+    def create_behavior_variations() -> list[dict[str, Any]]:
         """Create various behavior agent responses"""
         return [
             {
@@ -336,7 +336,7 @@ class AgentResponseFactory:
         ]
 
     @staticmethod
-    def create_consensus_scenarios() -> List[Dict[str, Any]]:
+    def create_consensus_scenarios() -> list[dict[str, Any]]:
         """Create consensus calculation scenarios"""
         return [
             {
@@ -430,7 +430,7 @@ class PerformanceDataFactory:
     """Factory for creating performance test data"""
 
     @staticmethod
-    def create_large_batch(size: int = 1000) -> List[Dict[str, Any]]:
+    def create_large_batch(size: int = 1000) -> list[dict[str, Any]]:
         """Create large batch for performance testing"""
         return RedditSubmissionFactory.create_batch_submissions(
             size,
@@ -442,7 +442,7 @@ class PerformanceDataFactory:
         )
 
     @staticmethod
-    def create_edge_case_submissions() -> List[Dict[str, Any]]:
+    def create_edge_case_submissions() -> list[dict[str, Any]]:
         """Create edge case submissions"""
         edge_cases = [
             # Very long text
@@ -490,7 +490,7 @@ class PerformanceDataFactory:
         return edge_cases
 
     @staticmethod
-    def create_concurrent_test_scenarios() -> List[Dict[str, Any]]:
+    def create_concurrent_test_scenarios() -> list[dict[str, Any]]:
         """Create concurrent test scenarios"""
         return [
             {"batches": 1, "batch_size": 10, "concurrent": True},
@@ -501,7 +501,7 @@ class PerformanceDataFactory:
         ]
 
     @staticmethod
-    def create_memory_test_data() -> List[Dict[str, Any]]:
+    def create_memory_test_data() -> list[dict[str, Any]]:
         """Create data for memory testing"""
         # Create data with varying memory footprints
         datasets = []
@@ -525,7 +525,7 @@ class TestDatasetGenerator:
     """Main test dataset generator"""
 
     @staticmethod
-    def generate_complete_test_dataset() -> Dict[str, Any]:
+    def generate_complete_test_dataset() -> dict[str, Any]:
         """Generate complete test dataset"""
         return {
             "submissions": {
@@ -561,13 +561,13 @@ class TestDatasetGenerator:
         }
 
     @staticmethod
-    def save_test_dataset(filepath: str, dataset: Dict[str, Any]):
+    def save_test_dataset(filepath: str, dataset: dict[str, Any]):
         """Save test dataset to file"""
         with open(filepath, 'w') as f:
             json.dump(dataset, f, indent=2, default=str)
 
     @staticmethod
-    def load_test_dataset(filepath: str) -> Dict[str, Any]:
+    def load_test_dataset(filepath: str) -> dict[str, Any]:
         """Load test dataset from file"""
-        with open(filepath, 'r') as f:
+        with open(filepath) as f:
             return json.load(f)

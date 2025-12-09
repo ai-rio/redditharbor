@@ -6,34 +6,32 @@ Provides comprehensive health status, readiness checks, and diagnostics for prod
 """
 
 import asyncio
+import http.server
 import json
 import logging
-import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass
-import http.server
 import socketserver
-from urllib.parse import urlparse, parse_qs
-import threading
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
 # FastAPI/Starlette for production endpoints (with fallback)
 try:
     from fastapi import FastAPI, HTTPException, Request, Response
-    from fastapi.responses import JSONResponse, PlainTextResponse
     from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse, PlainTextResponse
     from fastapi.status import HTTP_503_SERVICE_UNAVAILABLE
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
 
 # Import monitoring components
-from transform.market_research_monitoring import get_monitor, MarketResearchMonitor
+from transform.market_research_monitoring import MarketResearchMonitor, get_monitor
 
 # Import MarketResearchAgent for health checks
 try:
-    from transform.market_research_agent import MarketResearchAgent
     from transform.jina_client import JinaClient
+    from transform.market_research_agent import MarketResearchAgent
     MARKET_RESEARCH_AVAILABLE = True
 except ImportError:
     MARKET_RESEARCH_AVAILABLE = False
@@ -48,14 +46,14 @@ class HealthCheckResult:
     healthy: bool
     message: str
     response_time_ms: float = 0.0
-    details: Optional[Dict[str, Any]] = None
+    details: dict[str, Any] | None = None
     timestamp: datetime = None
 
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary"""
         return {
             'name': self.name,
@@ -331,7 +329,7 @@ class HealthCheckService:
         self.component_checker = ComponentHealthChecker()
         self.monitor = get_monitor()
 
-    async def check_liveness(self) -> Dict[str, Any]:
+    async def check_liveness(self) -> dict[str, Any]:
         """
         Liveness probe - checks if the service is running
         Returns 200 if service is alive, 503 if not
@@ -343,7 +341,7 @@ class HealthCheckService:
             'version': '3.7.0'
         }
 
-    async def check_readiness(self) -> Dict[str, Any]:
+    async def check_readiness(self) -> dict[str, Any]:
         """
         Readiness probe - checks if the service is ready to handle requests
         Returns 200 if ready, 503 if not ready
@@ -375,7 +373,7 @@ class HealthCheckService:
             'checks': [check.to_dict() for check in checks]
         }, status_code
 
-    async def check_health(self, detailed: bool = False) -> Dict[str, Any]:
+    async def check_health(self, detailed: bool = False) -> dict[str, Any]:
         """
         Comprehensive health check of all components
         """
@@ -454,7 +452,7 @@ class HealthCheckService:
             return self.monitor.prometheus.get_metrics()
         return "# No metrics available"
 
-    async def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> dict[str, Any]:
         """Get detailed service status"""
         return await self.monitor.get_health_status()
 
@@ -570,7 +568,7 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
             logger.error(f"Health check error: {e}")
             self._send_error_response(500, f"Internal server error: {str(e)}")
 
-    def _send_json_response(self, status_code: int, data: Dict[str, Any]):
+    def _send_json_response(self, status_code: int, data: dict[str, Any]):
         """Send JSON response"""
         self.send_response(status_code)
         self.send_header('Content-type', 'application/json')

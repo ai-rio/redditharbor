@@ -2,10 +2,10 @@
 Embedding generation strategies with pluggable providers
 """
 
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class EmbeddingProvider(ABC):
     """Abstract base class for embedding generation providers"""
 
     @abstractmethod
-    def generate_embedding(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> tuple[List[float], Dict[str, Any]]:
+    def generate_embedding(self, text: str, metadata: dict[str, Any] | None = None) -> tuple[list[float], dict[str, Any]]:
         """
         Generate embedding vector for given text
 
@@ -38,7 +38,7 @@ class EmbeddingProvider(ABC):
         pass
 
     @abstractmethod
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """Get provider information"""
         pass
 
@@ -61,7 +61,7 @@ class FakeEmbeddingProvider(EmbeddingProvider):
         self.min_value, self.max_value = value_range
         self.provider_name = f"fake-embedding-v{dimensions}"
 
-    def generate_embedding(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> tuple[List[float], Dict[str, Any]]:
+    def generate_embedding(self, text: str, metadata: dict[str, Any] | None = None) -> tuple[list[float], dict[str, Any]]:
         """
         Generate deterministic embedding using hash-based approach
 
@@ -73,7 +73,6 @@ class FakeEmbeddingProvider(EmbeddingProvider):
             Tuple of (embedding_vector, embedding_metadata)
         """
         import hashlib
-        import time
 
         # Create content hash for consistency
         content_hash = hashlib.md5(text.encode()).hexdigest()
@@ -100,7 +99,7 @@ class FakeEmbeddingProvider(EmbeddingProvider):
 
         return embedding, embedding_metadata
 
-    def _hash_to_vector(self, content_hash: str) -> List[float]:
+    def _hash_to_vector(self, content_hash: str) -> list[float]:
         """
         Convert hash to deterministic embedding vector
 
@@ -132,7 +131,7 @@ class FakeEmbeddingProvider(EmbeddingProvider):
         logger.info("✓ Fake embedding provider test successful")
         return True
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         return {
             "provider": "fake",
             "model": self.provider_name,
@@ -165,6 +164,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         """Initialize OpenAI client"""
         try:
             from openai import OpenAI
+
             from config import get_settings
 
             settings = get_settings()
@@ -177,7 +177,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         except Exception as e:
             raise RuntimeError(f"Failed to initialize OpenAI client: {e}")
 
-    def generate_embedding(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> tuple[List[float], Dict[str, Any]]:
+    def generate_embedding(self, text: str, metadata: dict[str, Any] | None = None) -> tuple[list[float], dict[str, Any]]:
         """
         Generate embedding using OpenAI API
 
@@ -242,7 +242,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             logger.error(f"OpenAI embedding provider test failed: {e}")
             return False
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         return {
             "provider": "openai",
             "model": self.model,
@@ -258,7 +258,7 @@ class EmbeddingStrategy:
     Manages provider selection and fallback handling
     """
 
-    def __init__(self, provider: EmbeddingProvider, fallback_provider: Optional[EmbeddingProvider] = None):
+    def __init__(self, provider: EmbeddingProvider, fallback_provider: EmbeddingProvider | None = None):
         """
         Initialize embedding strategy
 
@@ -269,7 +269,7 @@ class EmbeddingStrategy:
         self.primary_provider = provider
         self.fallback_provider = fallback_provider
 
-    def generate_embedding(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> tuple[List[float], Dict[str, Any]]:
+    def generate_embedding(self, text: str, metadata: dict[str, Any] | None = None) -> tuple[list[float], dict[str, Any]]:
         """
         Generate embedding using primary provider with fallback
 
@@ -301,7 +301,7 @@ class EmbeddingStrategy:
 
             raise RuntimeError(f"All embedding providers failed for text: {text[:50]}...")
 
-    def get_strategy_info(self) -> Dict[str, Any]:
+    def get_strategy_info(self) -> dict[str, Any]:
         """Get information about current embedding strategy"""
         return {
             "primary_provider": self.primary_provider.get_provider_info(),

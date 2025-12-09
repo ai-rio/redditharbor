@@ -2,20 +2,21 @@
 Fixed comprehensive tests for Reddit extraction module using proper patching
 """
 
-import pytest
-from unittest.mock import patch, Mock, MagicMock
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from unittest.mock import MagicMock, Mock, patch
 
-# Import mock classes for testing
-from tests.mock_enhanced_praw import (
-    MockSubmission,
-    MockSubreddit,
-    MockReddit,
-    MockAuthor
-)
+import pytest
 
 # Import models (these will use real models)
 from models import RedditSubmission
+
+# Import mock classes for testing
+from tests.mock_enhanced_praw import (
+    MockAuthor,
+    MockReddit,
+    MockSubmission,
+    MockSubreddit,
+)
 
 
 @pytest.fixture

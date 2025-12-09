@@ -4,14 +4,14 @@ Structured logging with correlation IDs for Pipeline v3
 
 import json
 import logging
-import uuid
-import time
 import threading
+import time
 import traceback
-from datetime import datetime, UTC
-from typing import Dict, Any, Optional
+import uuid
 from contextlib import contextmanager
+from datetime import datetime
 from functools import wraps
+from typing import Any
 
 from config import get_settings
 
@@ -32,7 +32,7 @@ class CorrelationContext:
         """Set correlation ID"""
         self._local.correlation_id = correlation_id
 
-    def get_pipeline_run_id(self) -> Optional[str]:
+    def get_pipeline_run_id(self) -> str | None:
         """Get current pipeline run ID"""
         return getattr(self._local, 'pipeline_run_id', None)
 
@@ -40,11 +40,11 @@ class CorrelationContext:
         """Set pipeline run ID"""
         self._local.pipeline_run_id = run_id
 
-    def get_stage_context(self) -> Dict[str, Any]:
+    def get_stage_context(self) -> dict[str, Any]:
         """Get current stage context"""
         return getattr(self._local, 'stage_context', {})
 
-    def set_stage_context(self, context: Dict[str, Any]) -> None:
+    def set_stage_context(self, context: dict[str, Any]) -> None:
         """Set stage context"""
         self._local.stage_context = context
 
@@ -54,7 +54,7 @@ class CorrelationContext:
         self._local.pipeline_run_id = None
         self._local.stage_context = {}
 
-    def get_all_context(self) -> Dict[str, Any]:
+    def get_all_context(self) -> dict[str, Any]:
         """Get all context information"""
         return {
             'correlation_id': self.get_correlation_id(),
@@ -88,8 +88,8 @@ class StructuredLogger:
         self,
         level: str,
         message: str,
-        extra: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        extra: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create structured log entry"""
         context = _correlation_context.get_all_context()
 
@@ -133,7 +133,7 @@ class StructuredLogger:
         """Log warning message"""
         self._log('warning', message, **kwargs)
 
-    def error(self, message: str, error: Optional[Exception] = None, **kwargs) -> None:
+    def error(self, message: str, error: Exception | None = None, **kwargs) -> None:
         """Log error message with optional exception details"""
         if error:
             kwargs.update({
@@ -150,7 +150,7 @@ class StructuredLogger:
         """Log critical message"""
         self._log('critical', message, **kwargs)
 
-    def pipeline_start(self, config: Dict[str, Any]) -> None:
+    def pipeline_start(self, config: dict[str, Any]) -> None:
         """Log pipeline start"""
         self.info(
             "Pipeline started",
@@ -159,7 +159,7 @@ class StructuredLogger:
             **_correlation_context.get_stage_context()
         )
 
-    def pipeline_complete(self, results: Dict[str, Any]) -> None:
+    def pipeline_complete(self, results: dict[str, Any]) -> None:
         """Log pipeline completion"""
         self.info(
             "Pipeline completed",
@@ -168,7 +168,7 @@ class StructuredLogger:
             **_correlation_context.get_stage_context()
         )
 
-    def stage_start(self, stage: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+    def stage_start(self, stage: str, metadata: dict[str, Any] | None = None) -> None:
         """Log stage start"""
         stage_context = {'stage': stage}
         if metadata:
@@ -183,7 +183,7 @@ class StructuredLogger:
             metadata=metadata or {}
         )
 
-    def stage_complete(self, stage: str, duration: float, metadata: Optional[Dict[str, Any]] = None) -> None:
+    def stage_complete(self, stage: str, duration: float, metadata: dict[str, Any] | None = None) -> None:
         """Log stage completion"""
         stage_context = _correlation_context.get_stage_context()
         stage_context.update({
@@ -206,7 +206,7 @@ class StructuredLogger:
         subreddit: str,
         duration: float,
         status: str = 'success',
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: dict[str, Any] | None = None
     ) -> None:
         """Log Reddit API call"""
         self.info(
@@ -262,7 +262,7 @@ class StructuredLogger:
         validation_rate: float,
         average_score: float,
         high_score_rate: float,
-        trust_distribution: Dict[str, int]
+        trust_distribution: dict[str, int]
     ) -> None:
         """Log quality metrics"""
         self.info(
@@ -280,7 +280,7 @@ class StructuredLogger:
         error_type: str,
         error_message: str,
         recoverable: bool = True,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: dict[str, Any] | None = None
     ) -> None:
         """Log error occurrence"""
         self.error(
@@ -300,7 +300,7 @@ def get_structured_logger(name: str) -> StructuredLogger:
 
 
 @contextmanager
-def pipeline_context(run_id: Optional[str] = None):
+def pipeline_context(run_id: str | None = None):
     """Context manager for pipeline execution with correlation IDs"""
     if run_id:
         _correlation_context.set_pipeline_run_id(run_id)
@@ -316,7 +316,7 @@ def pipeline_context(run_id: Optional[str] = None):
 
 
 @contextmanager
-def stage_context(stage: str, metadata: Optional[Dict[str, Any]] = None):
+def stage_context(stage: str, metadata: dict[str, Any] | None = None):
     """Context manager for stage execution with structured logging"""
     stage_metadata = {'stage': stage}
     if metadata:
@@ -420,7 +420,6 @@ def setup_structured_logging():
 
     # File handler
     try:
-        from pathlib import Path
         log_path = settings.project_root / "logs"
         log_path.mkdir(exist_ok=True)
 

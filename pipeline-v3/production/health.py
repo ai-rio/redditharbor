@@ -4,10 +4,9 @@ Production health check module
 Provides HealthCheckEndpoint class for application health monitoring.
 """
 
-import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any
 
 # FastAPI is optional for production health checks
 try:
@@ -44,7 +43,7 @@ class HealthCheckEndpoint:
         """
         self.component_checks[name] = check_func
 
-    async def get_health_status(self) -> Dict[str, Any]:
+    async def get_health_status(self) -> dict[str, Any]:
         """
         Get comprehensive health status
 
@@ -93,7 +92,7 @@ class HealthCheckEndpoint:
 
         return status
 
-    async def readiness_check(self) -> Dict[str, Any]:
+    async def readiness_check(self) -> dict[str, Any]:
         """
         Check if the application is ready to serve traffic
 
@@ -107,7 +106,7 @@ class HealthCheckEndpoint:
             "timestamp": health["timestamp"]
         }
 
-    async def liveness_check(self) -> Dict[str, Any]:
+    async def liveness_check(self) -> dict[str, Any]:
         """
         Check if the application is alive
 

@@ -4,29 +4,30 @@ Performance Benchmark Tests for Agno Integration
 Phase 5 Production Testing - validates performance targets and scalability
 """
 
-import pytest
-import time
-import json
 import asyncio
-from typing import Dict, Any, List, Tuple
-from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+import json
 import statistics
-import psutil
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Tuple
 
-from models.reddit import RedditSubmission
+import psutil
+import pytest
+
 from models.analysis import AnalysisResult
-from transform.agno_analyzer import AgnoOpportunityAnalyzer
+from models.reddit import RedditSubmission
 from tests.helpers.test_data_factory import RedditSubmissionFactory
+from transform.agno_analyzer import AgnoOpportunityAnalyzer
 
 
 class PerformanceTestData:
     """Factory for creating performance test data"""
 
     @staticmethod
-    def create_latency_test_data() -> Dict[str, Any]:
+    def create_latency_test_data() -> dict[str, Any]:
         """Create data for latency benchmarking"""
         # Create sample submissions for testing
         return {
@@ -41,7 +42,7 @@ class PerformanceTestData:
         }
 
     @staticmethod
-    def create_cost_test_data() -> Dict[str, Any]:
+    def create_cost_test_data() -> dict[str, Any]:
         """Create data for cost validation testing"""
         return {
             "submissions": RedditSubmissionFactory.create_batch_submissions(50),
@@ -57,7 +58,7 @@ class PerformanceTestData:
         }
 
     @staticmethod
-    def create_throughput_test_data(duration_minutes: int = 60) -> Dict[str, Any]:
+    def create_throughput_test_data(duration_minutes: int = 60) -> dict[str, Any]:
         """Create data for throughput testing"""
         # Estimate submissions per minute for target throughput
         target_per_hour = 100
@@ -133,7 +134,7 @@ class BenchmarkResults:
     peak_cpu_percent: float
 
     # Additional metrics
-    agent_performance: Dict[str, Dict[str, float]]
+    agent_performance: dict[str, dict[str, float]]
 
 
 class TestAgnoPerformanceBenchmarks:
@@ -178,7 +179,7 @@ class TestAgnoPerformanceBenchmarks:
                     result = agno_analyzer.analyze_submission(submission)
                     end_time = time.time()
                     run_latencies.append(end_time - start_time)
-                except Exception as e:
+                except Exception:
                     # Count errors as failed runs
                     run_latencies.append(float('inf'))
 
@@ -196,7 +197,7 @@ class TestAgnoPerformanceBenchmarks:
             f"Single analysis P95 latency {p95_latency:.2f}s exceeds target {benchmark_thresholds.SINGLE_ANALYSIS_P95_TARGET}s"
 
         # Log detailed results
-        print(f"\nSingle Submission Latency Results:")
+        print("\nSingle Submission Latency Results:")
         print(f"  Average: {avg_latency:.3f}s")
         print(f"  P95: {p95_latency:.3f}s")
         print(f"  Min: {min(latencies):.3f}s")
@@ -277,7 +278,7 @@ class TestAgnoPerformanceBenchmarks:
                 pytest.fail(f"Batch processing failed for size {batch_size}: {str(e)}")
 
         # Print batch results
-        print(f"\nBatch Processing Results:")
+        print("\nBatch Processing Results:")
         for result in batch_results:
             print(f"  Batch {result.test_name}:")
             print(f"    Avg Latency: {result.avg_latency:.3f}s")
@@ -325,7 +326,7 @@ class TestAgnoPerformanceBenchmarks:
             f"Maximum cost ${max_cost:.4f} exceeds 2x target ${benchmark_thresholds.MAX_COST_PER_ANALYSIS * 2}"
 
         # Print cost breakdown
-        print(f"\nCost Validation Results:")
+        print("\nCost Validation Results:")
         print(f"  Total analyses: {len(submissions)}")
         print(f"  Total cost: ${total_cost:.4f}")
         print(f"  Average cost: ${avg_cost:.4f}")
@@ -378,7 +379,7 @@ class TestAgnoPerformanceBenchmarks:
         assert error_rate <= 0.05, f"Error rate {error_rate:.2%} exceeds maximum 5%"
 
         # Print throughput results
-        print(f"\nThroughput Stress Test Results:")
+        print("\nThroughput Stress Test Results:")
         print(f"  Submissions processed: {total_processed}")
         print(f"  Total processing time: {total_time:.1f}s")
         print(f"  Average batch time: {avg_batch_time:.3f}s")
@@ -413,7 +414,7 @@ class TestAgnoPerformanceBenchmarks:
                     try:
                         result = future.result(timeout=30)  # 30s timeout
                         results.append(result)
-                    except Exception as e:
+                    except Exception:
                         errors += 1
 
             end_time = time.time()
@@ -447,7 +448,7 @@ class TestAgnoPerformanceBenchmarks:
             f"Concurrent processing caused significant degradation: {scaling_ratio:.2f}x vs baseline {baseline_throughput:.1f}/hr"
 
         # Print concurrent results
-        print(f"\nConcurrent Processing Results:")
+        print("\nConcurrent Processing Results:")
         for result in concurrent_results:
             print(f"  {result['workers']} workers:")
             print(f"    Throughput: {result['throughput']:.1f}/hr")
@@ -503,7 +504,7 @@ class TestAgnoPerformanceBenchmarks:
                 f"Memory usage {memory_after_gc:.1f}MB exceeds limit {benchmark_thresholds.MAX_MEMORY_MB}MB"
 
         # Analyze memory growth
-        print(f"\nMemory Usage Results:")
+        print("\nMemory Usage Results:")
         print(f"  Initial memory: {initial_memory:.1f}MB")
         for snapshot in memory_snapshots:
             print(f"  Batch {snapshot['batch_size']}:")
@@ -559,7 +560,7 @@ class TestAgnoPerformanceBenchmarks:
             f"Confidence consistency CV {avg_confidence_cv:.3f} exceeds 0.1 threshold"
 
         # Print consistency results
-        print(f"\nQuality Consistency Results:")
+        print("\nQuality Consistency Results:")
         print(f"  Score CV: {avg_score_cv:.3f}")
         print(f"  Confidence CV: {avg_confidence_cv:.3f}")
         print(f"  Average score: {statistics.mean([r['score_mean'] for r in consistency_results]):.1f}")
@@ -606,13 +607,13 @@ class TestAgnoPerformanceBenchmarks:
         assert report["summary"]["all_criteria_met"], \
             f"Benchmark validation failed: {report['summary']['failed_criteria']}"
 
-        print(f"\nComprehensive Benchmark Summary:")
+        print("\nComprehensive Benchmark Summary:")
         print(f"  All criteria met: {report['summary']['all_criteria_met']}")
         print(f"  Passed: {len(report['summary']['passed_criteria'])}")
         print(f"  Failed: {len(report['summary']['failed_criteria'])}")
 
     # Helper methods
-    def _calculate_percentile(self, data: List[float], percentile: int) -> float:
+    def _calculate_percentile(self, data: list[float], percentile: int) -> float:
         """Calculate percentile value"""
         if not data:
             return 0.0
@@ -626,7 +627,7 @@ class TestAgnoPerformanceBenchmarks:
         process = psutil.Process()
         return process.memory_info().rss / 1024 / 1024
 
-    def _run_single_latency_test(self, analyzer) -> Dict[str, float]:
+    def _run_single_latency_test(self, analyzer) -> dict[str, float]:
         """Run single submission latency test"""
         test_data = PerformanceTestData().create_latency_test_data()["submissions"]
         latencies = []
@@ -646,7 +647,7 @@ class TestAgnoPerformanceBenchmarks:
             "max": max(latencies)
         }
 
-    def _run_batch_processing_test(self, analyzer) -> Dict[str, Any]:
+    def _run_batch_processing_test(self, analyzer) -> dict[str, Any]:
         """Run batch processing test"""
         test_data = PerformanceTestData().create_latency_test_data()
         results = {}
@@ -666,7 +667,7 @@ class TestAgnoPerformanceBenchmarks:
 
         return results
 
-    def _run_cost_validation_test(self, analyzer) -> Dict[str, float]:
+    def _run_cost_validation_test(self, analyzer) -> dict[str, float]:
         """Run cost validation test"""
         test_data = PerformanceTestData().create_cost_test_data()
         submissions = test_data["submissions"]
@@ -685,7 +686,7 @@ class TestAgnoPerformanceBenchmarks:
             "total_analyses": len(submissions)
         }
 
-    def _run_throughput_test(self, analyzer) -> Dict[str, float]:
+    def _run_throughput_test(self, analyzer) -> dict[str, float]:
         """Run throughput test"""
         test_data = PerformanceTestData().create_throughput_test_data(duration_minutes=5)
         submissions = test_data["submissions"]
@@ -704,7 +705,7 @@ class TestAgnoPerformanceBenchmarks:
             "throughput_per_second": len(submissions) / duration if duration > 0 else 0
         }
 
-    def _run_memory_usage_test(self, analyzer) -> Dict[str, Any]:
+    def _run_memory_usage_test(self, analyzer) -> dict[str, Any]:
         """Run memory usage test"""
         initial_memory = self._get_memory_usage()
 
@@ -730,7 +731,7 @@ class TestAgnoPerformanceBenchmarks:
             "final_increase_mb": memory_after_gc - initial_memory
         }
 
-    def _run_quality_consistency_test(self, analyzer) -> Dict[str, float]:
+    def _run_quality_consistency_test(self, analyzer) -> dict[str, float]:
         """Run quality consistency test"""
         submissions = RedditSubmissionFactory.create_batch_submissions(10)
         all_score_variances = []
@@ -758,9 +759,9 @@ class TestAgnoPerformanceBenchmarks:
 
     def _generate_benchmark_summary(
         self,
-        test_results: Dict[str, Any],
+        test_results: dict[str, Any],
         thresholds: BenchmarkThresholds
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate benchmark summary with pass/fail criteria"""
         passed_criteria = []
         failed_criteria = []
@@ -802,7 +803,7 @@ class TestAgnoPerformanceBenchmarks:
             "total_criteria": len(passed_criteria) + len(failed_criteria)
         }
 
-    def _save_benchmark_report(self, report: Dict[str, Any], filename: str):
+    def _save_benchmark_report(self, report: dict[str, Any], filename: str):
         """Save benchmark report to file"""
         with open(filename, 'w') as f:
             json.dump(report, f, indent=2)

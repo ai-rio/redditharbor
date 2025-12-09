@@ -7,23 +7,19 @@ for Jina Market Research Integration Phase 3.7
 
 import asyncio
 import hashlib
-import hmac
 import json
 import logging
-import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple, Union
-from dataclasses import dataclass, field
-from enum import Enum
-import secrets
-import jwt
-from cryptography.fernet import Fernet
 import re
+import secrets
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
 from functools import wraps
+from typing import Any
+
+from cryptography.fernet import Fernet
 
 # Import monitoring and other components
-from transform.market_research_monitoring import get_monitor
-from transform.market_research_resilience import get_resilience_manager
 
 # PII detection and anonymization (with fallback)
 try:
@@ -62,15 +58,15 @@ class PIIType(Enum):
 @dataclass
 class SecurityContext:
     """Security context for operations"""
-    user_id: Optional[str] = None
-    api_key_id: Optional[str] = None
-    request_id: Optional[str] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    user_id: str | None = None
+    api_key_id: str | None = None
+    request_id: str | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
     security_level: SecurityLevel = SecurityLevel.PUBLIC
-    permissions: List[str] = field(default_factory=list)
+    permissions: list[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
-    additional_claims: Dict[str, Any] = field(default_factory=dict)
+    additional_claims: dict[str, Any] = field(default_factory=dict)
 
     def has_permission(self, permission: str) -> bool:
         """Check if context has specific permission"""
@@ -89,7 +85,7 @@ class PIIEntity:
     start: int
     end: int
     confidence: float
-    additional_info: Dict[str, Any] = field(default_factory=dict)
+    additional_info: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if isinstance(self.pii_type, str):
@@ -101,22 +97,22 @@ class APIKeyManager:
 
     def __init__(
         self,
-        encryption_key: Optional[bytes] = None,
+        encryption_key: bytes | None = None,
         key_rotation_days: int = 90
     ):
         self.encryption_key = encryption_key or Fernet.generate_key()
         self.cipher_suite = Fernet(self.encryption_key)
         self.key_rotation_days = key_rotation_days
-        self.api_keys: Dict[str, Dict[str, Any]] = {}
-        self.usage_log: List[Dict[str, Any]] = []
+        self.api_keys: dict[str, dict[str, Any]] = {}
+        self.usage_log: list[dict[str, Any]] = []
 
     def generate_api_key(
         self,
         name: str,
-        permissions: List[str],
-        expires_days: Optional[int] = None,
-        rate_limit: Optional[int] = None
-    ) -> Tuple[str, str]:
+        permissions: list[str],
+        expires_days: int | None = None,
+        rate_limit: int | None = None
+    ) -> tuple[str, str]:
         """
         Generate new API key
 
@@ -157,7 +153,7 @@ class APIKeyManager:
         logger.info(f"Generated API key: {name} (ID: {key_id})")
         return api_key, key_id
 
-    def validate_api_key(self, api_key: str) -> Optional[SecurityContext]:
+    def validate_api_key(self, api_key: str) -> SecurityContext | None:
         """
         Validate API key and return security context
 
@@ -271,7 +267,7 @@ class APIKeyManager:
 
         return False
 
-    def rotate_keys(self) -> List[str]:
+    def rotate_keys(self) -> list[str]:
         """
         Rotate keys that are due for rotation
 
@@ -317,7 +313,7 @@ class PIIAnonymizer:
         self,
         model_name: str = "en_core_web_lg",
         enabled: bool = True,
-        custom_patterns: Optional[Dict[str, str]] = None
+        custom_patterns: dict[str, str] | None = None
     ):
         self.enabled = enabled
         self.nlp = None
@@ -361,7 +357,7 @@ class PIIAnonymizer:
             logger.error(f"Failed to initialize basic text processing: {e}")
             self.nlp = None
 
-    def detect_pii(self, text: str) -> List[PIIEntity]:
+    def detect_pii(self, text: str) -> list[PIIEntity]:
         """
         Detect PII in text
 
@@ -430,7 +426,7 @@ class PIIAnonymizer:
         text: str,
         method: str = "mask",
         preserve_length: bool = False
-    ) -> Tuple[str, List[PIIEntity]]:
+    ) -> tuple[str, list[PIIEntity]]:
         """
         Anonymize PII in text
 
@@ -469,9 +465,9 @@ class PIIAnonymizer:
 
     def anonymize_json(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         method: str = "mask"
-    ) -> Tuple[Dict[str, Any], Dict[str, List[PIIEntity]]]:
+    ) -> tuple[dict[str, Any], dict[str, list[PIIEntity]]]:
         """
         Anonymize PII in JSON data
 
@@ -526,7 +522,7 @@ class AuditLogger:
 
     def __init__(
         self,
-        log_file: Optional[str] = None,
+        log_file: str | None = None,
         retention_days: int = 1095,
         enable_file_logging: bool = True,
         enable_remote_logging: bool = False
@@ -567,14 +563,14 @@ class AuditLogger:
     def log_event(
         self,
         event_type: str,
-        user_id: Optional[str] = None,
-        api_key_id: Optional[str] = None,
-        resource: Optional[str] = None,
-        action: Optional[str] = None,
+        user_id: str | None = None,
+        api_key_id: str | None = None,
+        resource: str | None = None,
+        action: str | None = None,
         outcome: str = "success",
-        details: Optional[Dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None
     ):
         """
         Log security/compliance event
@@ -616,7 +612,7 @@ class AuditLogger:
             # (e.g., Splunk, ELK Stack, CloudWatch Logs)
             asyncio.create_task(self._send_remote_log(event_data))
 
-    async def _send_remote_log(self, event_data: Dict[str, Any]):
+    async def _send_remote_log(self, event_data: dict[str, Any]):
         """Send log to remote logging system"""
         # Implementation depends on your logging infrastructure
         pass
@@ -627,8 +623,8 @@ class AuditLogger:
         method: str,
         status_code: int,
         response_time_ms: float,
-        security_context: Optional[SecurityContext] = None,
-        request_details: Optional[Dict[str, Any]] = None
+        security_context: SecurityContext | None = None,
+        request_details: dict[str, Any] | None = None
     ):
         """Log API access event"""
         self.log_event(
@@ -651,8 +647,8 @@ class AuditLogger:
         self,
         operation: str,
         resource_type: str,
-        resource_id: Optional[str] = None,
-        security_context: Optional[SecurityContext] = None,
+        resource_id: str | None = None,
+        security_context: SecurityContext | None = None,
         pii_detected: bool = False
     ):
         """Log data access event"""
@@ -673,8 +669,8 @@ class AuditLogger:
         event_type: str,
         severity: str,
         description: str,
-        security_context: Optional[SecurityContext] = None,
-        additional_details: Optional[Dict[str, Any]] = None
+        security_context: SecurityContext | None = None,
+        additional_details: dict[str, Any] | None = None
     ):
         """Log security-related event"""
         self.log_event(
@@ -693,9 +689,9 @@ class AuditLogger:
     def get_recent_logs(
         self,
         limit: int = 100,
-        event_type: Optional[str] = None,
-        user_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        event_type: str | None = None,
+        user_id: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get recent logs from in-memory buffer
 
@@ -734,7 +730,7 @@ class SecurityManager:
 
     def __init__(
         self,
-        encryption_key: Optional[bytes] = None,
+        encryption_key: bytes | None = None,
         enable_pii_anonymization: bool = True,
         enable_audit_logging: bool = True
     ):
@@ -748,18 +744,18 @@ class SecurityManager:
         self.audit_logger = AuditLogger(enable_file_logging=enable_audit_logging)
 
         # Rate limiting
-        self.rate_limits: Dict[str, Dict[str, Any]] = {}
+        self.rate_limits: dict[str, dict[str, Any]] = {}
 
         # Security monitoring
         self.security_events = deque(maxlen=1000)
-        self.failed_attempts: Dict[str, List[datetime]] = defaultdict(list)
+        self.failed_attempts: dict[str, list[datetime]] = defaultdict(list)
 
     def authenticate_request(
         self,
         api_key: str,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
-    ) -> Optional[SecurityContext]:
+        ip_address: str | None = None,
+        user_agent: str | None = None
+    ) -> SecurityContext | None:
         """
         Authenticate API request
 
@@ -835,7 +831,7 @@ class SecurityManager:
         self,
         security_context: SecurityContext,
         required_permission: str,
-        resource: Optional[str] = None
+        resource: str | None = None
     ) -> bool:
         """
         Authorize operation based on security context
@@ -874,10 +870,10 @@ class SecurityManager:
 
     def process_sensitive_data(
         self,
-        data: Union[str, Dict[str, Any]],
+        data: str | dict[str, Any],
         operation: str,
-        security_context: Optional[SecurityContext] = None
-    ) -> Tuple[Union[str, Dict[str, Any]], bool]:
+        security_context: SecurityContext | None = None
+    ) -> tuple[str | dict[str, Any], bool]:
         """
         Process sensitive data with PII protection
 
@@ -927,7 +923,7 @@ class SecurityManager:
     def _check_rate_limit(
         self,
         security_context: SecurityContext,
-        ip_address: Optional[str] = None
+        ip_address: str | None = None
     ) -> bool:
         """Check if request exceeds rate limits"""
         # Get rate limit from security context
@@ -1000,7 +996,7 @@ class SecurityManager:
             return wrapper
         return decorator
 
-    def get_security_stats(self) -> Dict[str, Any]:
+    def get_security_stats(self) -> dict[str, Any]:
         """Get security statistics"""
         active_api_keys = sum(
             1 for key_info in self.api_key_manager.api_keys.values()
@@ -1060,7 +1056,7 @@ class SecurityManager:
 
 
 # Global security manager instance
-_security_manager: Optional[SecurityManager] = None
+_security_manager: SecurityManager | None = None
 
 
 def get_security_manager() -> SecurityManager:

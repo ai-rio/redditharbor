@@ -6,31 +6,46 @@ comparing mapping speeds, memory usage, CPU utilization, and overall
 efficiency across different data volumes and complexity levels.
 """
 
-import pytest
-import time
 import asyncio
-import psutil
 import gc
-from datetime import datetime, UTC, timedelta
-from typing import List, Dict, Any, Optional
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-import threading
 import multiprocessing
+import threading
+import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from models import (
-    AnalysisResult, AppIdea, MarketMetrics, RedditSubmission, RedditComment
-)
-from models.database import Opportunity, OpportunityCreate
-from load.database import DatabaseLoader
-
-# Import OnlyMaps components (assuming they exist)
-from onlymaps import OnlyMapsMapper, OnlyMapsConfig, PerformanceBenchmarkError
+import psutil
+import pytest
 
 # Import SQLAlchemy for comparison
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, JSON, Boolean
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    create_engine,
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, declarative_base as sqlalchemy_declarative_base
+from sqlalchemy.orm import declarative_base as sqlalchemy_declarative_base
+from sqlalchemy.orm import sessionmaker
+
+from load.database import DatabaseLoader
+from models import (
+    AnalysisResult,
+    AppIdea,
+    MarketMetrics,
+    RedditComment,
+    RedditSubmission,
+)
+from models.database import Opportunity, OpportunityCreate
+
+# Import OnlyMaps components (assuming they exist)
+from onlymaps import OnlyMapsConfig, OnlyMapsMapper, PerformanceBenchmarkError
 
 
 class TestOnlyMapsPerformanceComparison:
@@ -268,8 +283,6 @@ class TestOnlyMapsPerformanceComparison:
 
     def test_memory_usage_comparison(self, onlymaps_mapper, performance_metrics_fixture):
         """Test memory usage comparison between OnlyMaps and SQLAlchemy."""
-        import psutil
-        import gc
 
         # Generate large dataset
         batch_size = 1000
@@ -485,7 +498,6 @@ class TestOnlyMapsPerformanceComparison:
 
     def test_thread_safety(self, onlymaps_mapper, performance_metrics_fixture):
         """Test thread safety of OnlyMaps operations."""
-        import threading
 
         # Generate test records
         records = []

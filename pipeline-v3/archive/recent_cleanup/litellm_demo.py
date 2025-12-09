@@ -5,11 +5,13 @@ Shows cost tracking capabilities and model management
 """
 
 import sys
-import os
+
 sys.path.append('.')
 
-from models.cost_tracking import CostTracking, CostSummary, ModelCostConfig
 from datetime import datetime
+
+from models.cost_tracking import CostTracking, ModelCostConfig
+
 
 def demonstrate_cost_tracking():
     """Demonstrate cost tracking functionality"""

@@ -4,13 +4,15 @@ Standalone test suite for Phase 2: AgentOps integration with Pipeline v3
 Following TDD methodology - these tests will fail initially, then drive implementation
 """
 
-import pytest
 import os
 import sys
 import time
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
 
 # Mock the models to avoid dependency issues during RED phase
 class MockRedditSubmission:
@@ -62,8 +64,8 @@ class MockCostSummary:
 # Test if real AgentOps implementation is available
 AGENTOPS_IMPLEMENTATION_AVAILABLE = False
 try:
-    import sys
     import os
+    import sys
     # Add parent directory to path for monitoring module
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if parent_dir not in sys.path:
@@ -78,8 +80,8 @@ try:
         'config': unittest.mock.MagicMock(),
         'sqlalchemy': unittest.mock.MagicMock()
     }):
-        from monitoring.agentops_tracker import AgentOpsTracker, AgentOpsConfig
-        from monitoring.agentops_decorators import trace, tool
+        from monitoring.agentops_decorators import tool, trace
+        from monitoring.agentops_tracker import AgentOpsConfig, AgentOpsTracker
         AGENTOPS_IMPLEMENTATION_AVAILABLE = True
         print("✅ Real AgentOps implementation found and imported")
 except Exception as e:
@@ -174,7 +176,7 @@ class MockAgentOpsTracker:
         raise NotImplementedError("Fallback tracking not yet implemented")
 
 
-def trace(name: str = None, tags: List[str] = None):
+def trace(name: str = None, tags: list[str] = None):
     """Mock @trace decorator - will fail until implementation"""
     def decorator(func):
         def wrapper(*args, **kwargs):
@@ -247,7 +249,7 @@ class TestAgentOpsSessionManagement:
         if AGENTOPS_IMPLEMENTATION_AVAILABLE:
             # Test real implementation
             try:
-                from monitoring.agentops_tracker import AgentOpsTracker, AgentOpsConfig
+                from monitoring.agentops_tracker import AgentOpsConfig, AgentOpsTracker
                 config = AgentOpsConfig(enabled=True, api_key="test_key")
                 tracker = AgentOpsTracker(config)
 

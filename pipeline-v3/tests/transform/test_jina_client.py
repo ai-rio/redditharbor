@@ -12,28 +12,29 @@ Tests include:
 - Rate limiting
 """
 
-import pytest
 import asyncio
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Dict, Any
+
+import pytest
 
 # Import test configuration
 from config.settings import Settings, get_settings
 
 # Import Jina components
 try:
-    from transform.jina_client import (
-        JinaClient,
-        SearchResult,
-        JinaResponse,
-        CostTracking,
-        JinaClientConfig
-    )
     from transform.caching.jina_cache import JinaCache, get_jina_cache
+    from transform.jina_client import (
+        CostTracking,
+        JinaClient,
+        JinaClientConfig,
+        JinaResponse,
+        SearchResult,
+    )
     from transform.validation_evidence_pydantic import (
         CompetitorPricing,
         MarketSizeData,
-        ProductLaunchData
+        ProductLaunchData,
     )
     JINA_AVAILABLE = True
 except ImportError:

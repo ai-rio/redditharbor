@@ -3,16 +3,15 @@ Database loading module with repository pattern and clean separation of concerns
 """
 
 import logging
-from typing import List, Optional
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
 
 from config import get_settings
 from models import AnalysisResult, Opportunity, RedditSubmission
-from .repositories import SQLAlchemyOpportunityRepository
+
 from .data_mappers import AnalysisToOpportunityMapper
+from .repositories import SQLAlchemyOpportunityRepository
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +24,8 @@ class DatabaseLoader:
 
     def __init__(
         self,
-        repository: Optional[SQLAlchemyOpportunityRepository] = None,
-        data_mapper: Optional[AnalysisToOpportunityMapper] = None,
+        repository: SQLAlchemyOpportunityRepository | None = None,
+        data_mapper: AnalysisToOpportunityMapper | None = None,
         settings=None
     ):
         """
@@ -116,8 +115,8 @@ class DatabaseLoader:
 
     def store_analyses(
         self,
-        analyses: List[AnalysisResult],
-        reddit_submissions: Optional[List[RedditSubmission]] = None
+        analyses: list[AnalysisResult],
+        reddit_submissions: list[RedditSubmission] | None = None
     ) -> dict:
         """
         Store multiple analysis results using repository pattern
@@ -156,9 +155,9 @@ class DatabaseLoader:
         self,
         limit: int = 100,
         min_score: float = 0.0,
-        trust_levels: Optional[List[str]] = None,
-        subreddits: Optional[List[str]] = None
-    ) -> List[Opportunity]:
+        trust_levels: list[str] | None = None,
+        subreddits: list[str] | None = None
+    ) -> list[Opportunity]:
         """
         Retrieve opportunities with filtering using repository
 
@@ -175,10 +174,10 @@ class DatabaseLoader:
 
     def find_similar_opportunities(
         self,
-        embedding: List[float],
+        embedding: list[float],
         similarity_threshold: float = 0.8,
         limit: int = 10
-    ) -> List[Opportunity]:
+    ) -> list[Opportunity]:
         """
         Find opportunities similar to the given embedding using repository
 

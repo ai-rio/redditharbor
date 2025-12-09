@@ -10,11 +10,12 @@ Validation Requirements:
 4. Performance Metrics Validation - Validate calculations
 """
 
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from pathlib import Path
+from typing import Any, Dict, List
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -50,7 +51,7 @@ class MetricsIntegrityValidator:
             print(f"✗ Database connection failed: {e}")
             return False
 
-    def validate_data_completeness(self, time_window_hours: int = 1) -> Dict[str, Any]:
+    def validate_data_completeness(self, time_window_hours: int = 1) -> dict[str, Any]:
         """
         Validation 1: Data Completeness Check
         Verify all critical fields are populated and no data loss
@@ -142,7 +143,7 @@ class MetricsIntegrityValidator:
                 "details": dict(result)
             }
 
-    def validate_data_consistency(self, time_window_hours: int = 1) -> Dict[str, Any]:
+    def validate_data_consistency(self, time_window_hours: int = 1) -> dict[str, Any]:
         """
         Validation 2: Data Consistency Verification
         Check format consistency for all fields
@@ -204,7 +205,7 @@ class MetricsIntegrityValidator:
 
             # Validate formats
             print(f"Unique opportunities: {opp_result['unique_opportunities']}")
-            print(f"Opportunity format validation:")
+            print("Opportunity format validation:")
             print(f"  ✓ Valid format (opp-xxxxx): {opp_result['valid_format']}")
             if opp_result['invalid_format'] > 0:
                 print(f"  ✗ Invalid format: {opp_result['invalid_format']}")
@@ -259,7 +260,7 @@ class MetricsIntegrityValidator:
                 }
             }
 
-    def validate_relationship_integrity(self, time_window_hours: int = 1) -> Dict[str, Any]:
+    def validate_relationship_integrity(self, time_window_hours: int = 1) -> dict[str, Any]:
         """
         Validation 3: Relationship Integrity
         Verify opportunity tracking completeness and phase order
@@ -374,7 +375,7 @@ class MetricsIntegrityValidator:
                 }
             }
 
-    def validate_performance_metrics(self, time_window_hours: int = 1) -> Dict[str, Any]:
+    def validate_performance_metrics(self, time_window_hours: int = 1) -> dict[str, Any]:
         """
         Validation 4: Performance Metrics Validation
         Validate duration and cost calculations
@@ -433,7 +434,7 @@ class MetricsIntegrityValidator:
 
             cost_result = cur.fetchone()
 
-            print(f"Time window analysis:")
+            print("Time window analysis:")
             if timestamp_result['first_execution']:
                 duration_span = timestamp_result['total_seconds']
                 print(f"  First execution: {timestamp_result['first_execution']}")
@@ -454,7 +455,7 @@ class MetricsIntegrityValidator:
                 print(f"    Median: {dur['median_duration']:.3f}s")
                 print(f"    P95: {dur['p95_duration']:.3f}s")
 
-            print(f"\nCost analysis:")
+            print("\nCost analysis:")
             print(f"  Total cost: ${cost_result['total_cost']:.6f}")
             print(f"  Average cost per execution: ${cost_result['avg_cost']:.6f}")
             print(f"  Non-zero cost records: {cost_result['non_zero_costs']}/{cost_result['total_records']}")
@@ -497,7 +498,7 @@ class MetricsIntegrityValidator:
                 }
             }
 
-    def run_validation(self, time_window_hours: int = 1) -> Dict[str, Any]:
+    def run_validation(self, time_window_hours: int = 1) -> dict[str, Any]:
         """
         Run all validation checks and generate comprehensive report
         """
@@ -563,7 +564,7 @@ class MetricsIntegrityValidator:
 
         return self.results
 
-    def _generate_recommendations(self, results: Dict[str, Any]):
+    def _generate_recommendations(self, results: dict[str, Any]):
         """Generate recommendations based on validation results"""
         recommendations = []
 

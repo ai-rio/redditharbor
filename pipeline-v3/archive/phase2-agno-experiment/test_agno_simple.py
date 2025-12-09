@@ -3,8 +3,8 @@
 Simple test to verify Agno analyzer imports and initialization without Jina
 """
 
-import sys
 import os
+import sys
 
 # Add pipeline-v3 to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,10 +19,10 @@ def test_imports():
         print("✓ AgnoOpportunityAnalyzer imported successfully")
 
         from transform.agno_agents import (
-            WillingnessToPayAgent,
             MarketSegmentAgent,
+            PaymentBehaviorAgent,
             PricePointAgent,
-            PaymentBehaviorAgent
+            WillingnessToPayAgent,
         )
         print("✓ All core agents imported successfully")
 
@@ -40,10 +40,10 @@ def test_agent_initialization():
 
     try:
         from transform.agno_agents import (
-            WillingnessToPayAgent,
             MarketSegmentAgent,
+            PaymentBehaviorAgent,
             PricePointAgent,
-            PaymentBehaviorAgent
+            WillingnessToPayAgent,
         )
 
         model = "test-model"
@@ -145,13 +145,13 @@ def test_mock_team():
     print("\nTesting MockTeam with 4 agents...")
 
     try:
-        from transform.agno_analyzer import MockTeam
         from transform.agno_agents import (
-            WillingnessToPayAgent,
             MarketSegmentAgent,
+            PaymentBehaviorAgent,
             PricePointAgent,
-            PaymentBehaviorAgent
+            WillingnessToPayAgent,
         )
+        from transform.agno_analyzer import MockTeam
 
         # Create agents
         agents = [

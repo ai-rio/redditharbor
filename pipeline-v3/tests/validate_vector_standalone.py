@@ -4,14 +4,14 @@ Standalone Vector Similarity Fix Validation
 Validates the vector similarity functionality without external dependencies
 """
 
-import sys
 import os
+import sys
 import time
-from datetime import datetime, UTC
-from typing import List, Dict, Any
+from datetime import UTC, datetime
+from typing import Any, Dict, List
 
 
-def calculate_cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
+def calculate_cosine_similarity(vec1: list[float], vec2: list[float]) -> float:
     """Calculate cosine similarity between two vectors"""
     if len(vec1) != len(vec2):
         raise ValueError("Vectors must have the same dimension")
@@ -46,7 +46,7 @@ def calculate_cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
         return dot_product / (magnitude1 * magnitude2)
 
 
-def generate_similar_embedding(base_embedding: List[float], similarity: float = 0.8) -> List[float]:
+def generate_similar_embedding(base_embedding: list[float], similarity: float = 0.8) -> list[float]:
     """Generate an embedding with specified similarity to base embedding"""
     try:
         import numpy as np
@@ -74,7 +74,7 @@ def validate_fixtures_implementation():
         return False
 
     try:
-        with open(test_file_path, 'r') as f:
+        with open(test_file_path) as f:
             test_content = f.read()
 
         # Check for required fixtures
@@ -485,9 +485,9 @@ def main():
         print("  ✓ test_repository_pattern_integration")
         print("  ✓ Plus additional integration and performance tests")
 
-        print(f"\n🎯 DEBT-008 STATUS: FULLY RESOLVED")
-        print(f"🎯 All original failing test scenarios now pass")
-        print(f"🎯 Vector similarity functionality is production-ready")
+        print("\n🎯 DEBT-008 STATUS: FULLY RESOLVED")
+        print("🎯 All original failing test scenarios now pass")
+        print("🎯 Vector similarity functionality is production-ready")
 
         return True
     else:

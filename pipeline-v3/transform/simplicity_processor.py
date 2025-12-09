@@ -8,7 +8,7 @@ Implements the proven methodology from agent_tools/opportunity_analyzer_agent.py
 """
 
 import logging
-from typing import List
+
 from models import AnalysisResult, AppIdea
 
 logger = logging.getLogger(__name__)
@@ -162,9 +162,9 @@ class SimplicityProcessor:
 
     def _adjust_functions_by_score(
         self,
-        core_functions: List[str],
+        core_functions: list[str],
         final_score: float
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Adjust core functions based on opportunity score.
 

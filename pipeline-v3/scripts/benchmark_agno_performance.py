@@ -4,13 +4,13 @@ Performance benchmark for RedditHarbor Agno analyzer
 Tests both sequential and parallel execution
 """
 
+import asyncio
+import json
 import os
 import sys
 import time
-import asyncio
-import json
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List
 
 sys.path.append('.')
 
@@ -25,7 +25,7 @@ class PerformanceBenchmark:
     def __init__(self):
         self.results = {}
 
-    def create_test_submissions(self, count: int = 10) -> List[RedditSubmission]:
+    def create_test_submissions(self, count: int = 10) -> list[RedditSubmission]:
         """Create test submissions for benchmarking"""
         submissions = []
 
@@ -52,7 +52,7 @@ class PerformanceBenchmark:
 
         return submissions
 
-    async def benchmark_sequential_execution(self, analyzer, submissions: List[RedditSubmission]):
+    async def benchmark_sequential_execution(self, analyzer, submissions: list[RedditSubmission]):
         """Benchmark sequential agent execution"""
         print("\n=== Sequential Execution Benchmark ===")
         start_time = time.time()
@@ -79,7 +79,7 @@ class PerformanceBenchmark:
             'results': results
         }
 
-    async def benchmark_parallel_execution(self, analyzer, submissions: List[RedditSubmission]):
+    async def benchmark_parallel_execution(self, analyzer, submissions: list[RedditSubmission]):
         """Benchmark parallel agent execution"""
         print("\n=== Parallel Execution Benchmark ===")
 
@@ -103,7 +103,7 @@ class PerformanceBenchmark:
             'results': results
         }
 
-    async def benchmark_embedding_providers(self, submissions: List[RedditSubmission]):
+    async def benchmark_embedding_providers(self, submissions: list[RedditSubmission]):
         """Benchmark different embedding providers"""
         print("\n=== Embedding Provider Benchmark ===")
 
@@ -143,7 +143,7 @@ class PerformanceBenchmark:
 
         return results
 
-    async def benchmark_batch_embeddings(self, analyzer, texts: List[str]):
+    async def benchmark_batch_embeddings(self, analyzer, texts: list[str]):
         """Benchmark batch embedding processing"""
         print("\n=== Batch Embedding Benchmark ===")
 
@@ -289,22 +289,29 @@ class PerformanceBenchmark:
 
 async def main():
     """Run benchmark suite"""
-    benchmark = PerformanceBenchmark()
+    import argparse
 
     # Parse command line args
-    count = 10
-    if len(sys.argv) > 1:
-        try:
-            count = int(sys.argv[1])
-            count = max(1, min(50, count))  # Limit to 50 submissions
-        except ValueError:
-            print("Invalid count, using default (10)")
+    parser = argparse.ArgumentParser(description='Benchmark Agno analyzer performance')
+    parser.add_argument('count', nargs='?', type=int, default=10,
+                        help='Number of submissions to test (1-50, default: 10)')
+    parser.add_argument('--with-agentops', action='store_true',
+                        help='Enable AgentOps tracking for performance monitoring')
+    args = parser.parse_args()
+
+    # Validate count
+    count = max(1, min(50, args.count))
+
+    benchmark = PerformanceBenchmark()
 
     print(f"Running benchmark with {count} submissions...")
-    print("Note: Using fake embeddings for consistent performance measurement")
+    if args.with_agentops:
+        print("Note: AgentOps tracking enabled")
+    else:
+        print("Note: Using fake embeddings for consistent performance measurement")
 
     # Run the benchmark
-    results = await benchmark.run_full_benchmark(count)
+    results = await benchmark.run_full_benchmark(count, enable_agentops=args.with_agentops)
 
     # Print summary
     print("\n📊 BENCHMARK SUMMARY:")
@@ -317,6 +324,8 @@ async def main():
     if 'scaling_estimate' in results:
         workers = results['scaling_estimate']['workers_needed']
         print(f"  • Workers needed for 1K/min: {workers:.0f}")
+    if args.with_agentops:
+        print("  • AgentOps tracking: Enabled")
 
 
 if __name__ == "__main__":

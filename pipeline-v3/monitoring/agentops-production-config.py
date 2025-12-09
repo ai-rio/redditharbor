@@ -6,15 +6,15 @@ This module provides production-ready configuration for AgentOps monitoring
 including comprehensive session management, cost tracking, and performance metrics.
 """
 
-import os
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
-from enum import Enum
+import os
 import time
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any
 
 # AgentOps imports (with fallback)
 try:
@@ -25,8 +25,8 @@ except ImportError:
     logging.warning("AgentOps not available, using local tracking fallback")
 
 # Local imports
-from .agentops_tracker import AgentOpsTracker, AgentOpsConfig
-from .agentops_decorators import trace, tool, llm_call
+from .agentops_decorators import trace
+from .agentops_tracker import AgentOpsConfig, AgentOpsTracker
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class AgentOpsProductionConfig:
     event_retry_delay: int = 1  # second
 
     # Tags for all events
-    default_tags: List[str] = None
+    default_tags: list[str] = None
 
     # Cost tracking
     enable_cost_tracking: bool = True
@@ -93,9 +93,9 @@ class AgentOpsProductionManager:
 
     def __init__(self, config: AgentOpsProductionConfig):
         self.config = config
-        self.tracker: Optional[AgentOpsTracker] = None
-        self.session_id: Optional[str] = None
-        self.metrics: Dict[str, Any] = {
+        self.tracker: AgentOpsTracker | None = None
+        self.session_id: str | None = None
+        self.metrics: dict[str, Any] = {
             "sessions": {},
             "costs": {"hourly": {}, "daily": {}},
             "performance": {"latencies": [], "success_rates": []},
@@ -134,7 +134,7 @@ class AgentOpsProductionManager:
             os.makedirs(self.config.local_storage_path, exist_ok=True)
             logger.info(f"Local storage setup at {self.config.local_storage_path}")
 
-    async def start_session(self, session_name: str = None, metadata: Dict = None) -> str:
+    async def start_session(self, session_name: str = None, metadata: dict = None) -> str:
         """Start a new monitoring session"""
         if not self.tracker:
             logger.warning("No tracker available, session not started")
@@ -172,7 +172,7 @@ class AgentOpsProductionManager:
             logger.error(f"Failed to start AgentOps session: {e}")
             return None
 
-    async def end_session(self, status: str = "success", reason: str = None) -> Dict:
+    async def end_session(self, status: str = "success", reason: str = None) -> dict:
         """End the current monitoring session"""
         if not self.tracker or not self.session_id:
             logger.warning("No active session to end")
@@ -251,8 +251,8 @@ class AgentOpsProductionManager:
 
     async def track_agent_execution(self,
                                   agent_name: str,
-                                  input_data: Dict,
-                                  output_data: Dict,
+                                  input_data: dict,
+                                  output_data: dict,
                                   execution_time_ms: float,
                                   success: bool = True,
                                   error: str = None) -> None:
@@ -284,9 +284,9 @@ class AgentOpsProductionManager:
     async def track_submission_analysis(self,
                                      submission_id: str,
                                      subreddit: str,
-                                     analysis_results: Dict,
+                                     analysis_results: dict,
                                      total_time_ms: float,
-                                     costs: Dict[str, float],
+                                     costs: dict[str, float],
                                      success: bool = True) -> None:
         """Track complete submission analysis"""
         if not self.tracker:
@@ -414,7 +414,7 @@ class AgentOpsProductionManager:
                 }
             )
 
-    async def _send_alert(self, alert_type: str, message: str, severity: str, metadata: Dict = None):
+    async def _send_alert(self, alert_type: str, message: str, severity: str, metadata: dict = None):
         """Send alert through various channels"""
         alert_data = {
             "alert_type": alert_type,
@@ -447,7 +447,7 @@ class AgentOpsProductionManager:
         # TODO: Add integration with PagerDuty, Slack, etc.
         # This would be implemented based on your alerting infrastructure
 
-    def get_metrics_summary(self) -> Dict:
+    def get_metrics_summary(self) -> dict:
         """Get comprehensive metrics summary"""
         now = datetime.now()
 
@@ -588,7 +588,7 @@ def track_submission_function(func):
 
             return result
 
-        except Exception as e:
+        except Exception:
             execution_time = (time.time() - start_time) * 1000
 
             manager = getattr(wrapper, '_agentops_manager', None)

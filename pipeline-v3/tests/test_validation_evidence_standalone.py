@@ -4,13 +4,15 @@ Standalone test runner for ValidationEvidence data structures
 This bypasses the conftest.py issues and tests our implementation directly.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 # Import our validation evidence module directly to avoid dependency issues
 import importlib.util
-spec = importlib.util.spec_from_file_location("validation_evidence", "transform/validation_evidence.py")
+
+spec = importlib.util.spec_from_file_location("validation_evidence", os.path.join(os.path.dirname(__file__), "..", "transform", "validation_evidence.py"))
 validation_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validation_module)
 

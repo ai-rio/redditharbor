@@ -3,16 +3,17 @@ Test suite for staging layer implementation - TDD approach
 Tests will fail initially, then drive implementation
 """
 
-import pytest
-import tempfile
 import json
+import tempfile
 import time
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import List
 
+import pytest
+
 from models.reddit import RedditSubmission
-from staging.staging_layer import StagingLayer, StagingConfig, CheckpointManager
+from staging.staging_layer import CheckpointManager, StagingConfig, StagingLayer
 
 
 class TestStagingLayer:

@@ -3,9 +3,11 @@ Test suite for AgnoAnalyzerFactory integration following TDD principles
 Phase 2: Factory Pattern Integration
 """
 
+from typing import Any, Dict, Optional
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any, Optional
+
 
 # Test that AgnoAnalyzerFactory doesn't exist yet (RED phase)
 def test_agno_analyzer_factory_class_exists():
@@ -22,7 +24,7 @@ def test_agno_factory_create_analyzer_method():
     """Test that AgnoAnalyzerFactory has create_analyzer method"""
     from transform.analyzer_factory import AgnoAnalyzerFactory
     assert hasattr(AgnoAnalyzerFactory, 'create_analyzer')
-    assert callable(getattr(AgnoAnalyzerFactory, 'create_analyzer'))
+    assert callable(AgnoAnalyzerFactory.create_analyzer)
 
 def test_agno_factory_initialization():
     """Test AgnoAnalyzerFactory initialization with configuration"""
@@ -43,8 +45,8 @@ def test_agno_factory_initialization():
 
 def test_agno_factory_creates_agno_analyzer():
     """Test that factory creates AgnoOpportunityAnalyzer instance"""
-    from transform.analyzer_factory import AgnoAnalyzerFactory
     from transform.agno_analyzer import AgnoOpportunityAnalyzer
+    from transform.analyzer_factory import AgnoAnalyzerFactory
 
     factory = AgnoAnalyzerFactory()
     analyzer = factory.create_analyzer()
@@ -120,7 +122,6 @@ def test_factory_provider_creates_agno_analyzer():
 def test_factory_provider_auto_detection_for_agno():
     """Test factory provider auto-detects Agno analyzer based on settings"""
     from transform.analyzer_factory import AnalyzerFactoryProvider
-    from unittest.mock import Mock
 
     # Mock settings to prefer Agno
     mock_settings = Mock()
@@ -177,7 +178,7 @@ def test_agno_factory_backward_compatibility():
     from transform.analyzer_factory import AgnoAnalyzerFactory, AnalyzerFactory
 
     # Should be usable wherever AnalyzerFactory is expected
-    def create_any_analyzer(factory: AnalyzerFactory, config: Optional[Dict] = None):
+    def create_any_analyzer(factory: AnalyzerFactory, config: dict | None = None):
         return factory.create_analyzer(config)
 
     agno_factory = AgnoAnalyzerFactory()
@@ -218,8 +219,9 @@ def test_agno_factory_configuration_override():
 
 def test_agno_factory_environment_variable_integration():
     """Test Agno factory respects environment variables"""
-    from transform.analyzer_factory import AgnoAnalyzerFactory
     import os
+
+    from transform.analyzer_factory import AgnoAnalyzerFactory
 
     # Set environment variable
     os.environ['AGNO_MODEL'] = 'anthropic/claude-opus-4'
