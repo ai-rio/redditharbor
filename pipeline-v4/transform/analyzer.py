@@ -8,7 +8,7 @@ import json
 from typing import Any
 import litellm
 from models.reddit import RedditSubmission
-from models.analysis import AnalysisResult
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
 from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -32,17 +32,18 @@ class OpportunityAnalyzer:
         self.system_prompt = """You are an expert product opportunity analyst.
 Analyze Reddit submissions to identify SaaS product opportunities.
 
-For each submission, provide:
-1. WTP Score (0-100): Willingness-to-pay based on pain severity
-2. Final Score (0-100): Overall opportunity score
-3. Confidence Score (0-100): Analysis confidence level
-4. Core Functions: 3-5 key features the product should have
-5. Pricing Strategy: Initial pricing recommendation
-6. Target Segment: Primary user persona
-7. Pain Points: Key problems mentioned
-8. Trust Level: LOW/MEDIUM/HIGH based on post quality
+For each submission, provide a complete analysis matching the AnalysisResult schema:
+- app_idea: title, app_concept, problem_statement, core_functions (1-3), target_audience
+- market_metrics: market_demand, pain_intensity, monetization_potential, competition_level (0-100, higher=less competition), technical_feasibility
+- final_score: Overall opportunity score (0-100)
+- wtp_score: Willingness-to-pay score (0-100)
+- confidence_score: Analysis confidence level (0-100)
+- trust_level: LOW/MEDIUM/HIGH
+- content_quality_score: AI content quality (0-100)
+- is_spam: boolean
+- spam_indicators: list of spam indicators if any
 
-Return valid JSON matching the AnalysisResult schema."""
+Ensure all scores are between 0-100 and the response is valid JSON."""
 
     def analyze(self, submission: RedditSubmission) -> AnalysisResult:
         """
@@ -98,17 +99,32 @@ Return valid JSON matching the AnalysisResult schema."""
 
 SUBREDDIT: r/{submission.subreddit}
 TITLE: {submission.title}
-CONTENT: {submission.selftext[:1000]}
-ENGAGEMENT: {submission.score} upvotes, {submission.num_comments} comments
+CONTENT: {submission.selftext[:1000] if hasattr(submission, 'selftext') else submission.text[:1000]}
+ENGAGEMENT: {submission.score} upvotes, {submission.num_comments if hasattr(submission, 'num_comments') else submission.comments_count} comments
+AUTHOR: {submission.author}
+URL: {submission.permalink}
 
-Provide a JSON analysis matching this structure:
+Provide a complete JSON analysis with this structure:
 {{
-    "wtp_score": <0-100>,
+    "app_idea": {{
+        "title": "App Title (Title Case)",
+        "app_concept": "Detailed app concept description (10-500 chars)",
+        "problem_statement": "Specific problem this solves (10-1000 chars)",
+        "core_functions": ["feature1", "feature2", "feature3"],
+        "target_audience": "Specific target audience description (10-500 chars)"
+    }},
+    "market_metrics": {{
+        "market_demand": <0-100>,
+        "pain_intensity": <0-100>,
+        "monetization_potential": <0-100>,
+        "competition_level": <0-100>,  // Higher = less competition
+        "technical_feasibility": <0-100>
+    }},
     "final_score": <0-100>,
+    "wtp_score": <0-100>,
     "confidence_score": <0-100>,
-    "core_functions": ["feature1", "feature2", ...],
-    "pricing_strategy": {{"tier": "...", "price": "..."}},
-    "target_segment": "description",
-    "pain_points": ["pain1", "pain2", ...],
-    "trust_level": "LOW|MEDIUM|HIGH"
+    "trust_level": "LOW|MEDIUM|HIGH",
+    "content_quality_score": <0-100>,
+    "is_spam": false,
+    "spam_indicators": []
 }}"""

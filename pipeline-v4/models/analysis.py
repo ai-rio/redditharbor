@@ -291,6 +291,8 @@ class AnalysisResult(BaseModel):
 
     # Source data
     submission_id: str = Field(..., description="Source Reddit submission ID")
+    subreddit: str = Field(..., description="Source subreddit name")
+    title: str = Field(..., description="Submission title")
     analyzed_at: datetime = Field(default_factory=datetime.utcnow, description="Analysis timestamp")
 
     # App idea analysis
@@ -303,6 +305,14 @@ class AnalysisResult(BaseModel):
         ge=0.0,
         le=100.0,
         description="Final opportunity score (0-100)"
+    )
+
+    # Willingness to pay score (derived from monetization_potential)
+    wtp_score: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Willingness-to-pay score (0-100)"
     )
 
     # AI content quality scoring
@@ -346,4 +356,13 @@ class AnalysisResult(BaseModel):
     )
 
     # Agno multi-agent analysis fields (Phase 2+)
-        }
+    agno_agent_scores: dict | None = Field(
+        None,
+        description="Multi-agent analysis scores from Agno framework"
+    )
+    agno_consensus_score: float | None = Field(
+        None,
+        ge=0.0,
+        le=100.0,
+        description="Consensus score from multi-agent analysis"
+    )
