@@ -6,7 +6,7 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 try:
     import instructor
@@ -144,7 +144,7 @@ class LiteLLMAnalyzer:
                  model_name: str = "anthropic/claude-haiku-4.5",
                  enable_cost_tracking: bool = True,
                  enable_agentops_tracking: bool = True,
-                 agentops_config: AgentOpsConfig | None = None):
+                 agentops_config: Optional[AgentOpsConfig] = None):
         """
         Initialize LiteLLM analyzer with cost tracking and AgentOps integration
 
