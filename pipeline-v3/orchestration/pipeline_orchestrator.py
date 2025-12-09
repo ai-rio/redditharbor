@@ -790,7 +790,7 @@ class PipelineOrchestrator:
             logger.info("")
             logger.info("Database Statistics:")
             logger.info(f"  - Total opportunities: {results.database_stats['total_opportunities']}")
-            logger.info(f"  - Average score: {results.database_stats['average_score']:.1f}")
-            logger.info(f"  - High score percentage: {results.database_stats['high_score_percentage']:.1f}%")
+            logger.info(f"  - Average score: {results.database_stats.get('avg_final_score', 0):.1f}")
+            logger.info(f"  - Max score: {results.database_stats.get('max_score', 0):.1f}")
 
         logger.info("✓ Pipeline completed successfully")

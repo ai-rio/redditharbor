@@ -8,8 +8,8 @@ from datetime import UTC, datetime
 import praw
 from prawcore import Forbidden, NotFound, ResponseException
 
-from config import get_settings
-from models import RedditSubmission
+from config.settings import get_settings
+from models.reddit import RedditSubmission
 
 logger = logging.getLogger(__name__)
 

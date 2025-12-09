@@ -54,7 +54,7 @@ class OnlyMapsDatabaseLoader:
             settings: Application settings for database URL
         """
         # Direct PostgreSQL connection settings
-        self.database_url = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+        self.database_url = "postgresql://postgres:postgres@127.0.0.1:54331/postgres"
         self.connection = None
 
         logger.info("PostgreSQL Database Loader initialized for Agno field persistence")
@@ -64,7 +64,7 @@ class OnlyMapsDatabaseLoader:
         if self.connection is None:
             self.connection = psycopg2.connect(
                 host="127.0.0.1",
-                port="54322",
+                port="54331",
                 user="postgres",
                 password="postgres",
                 database="postgres"
