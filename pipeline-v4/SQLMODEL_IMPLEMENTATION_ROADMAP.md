@@ -45,7 +45,7 @@
 **Type:** Non-TDD (Infrastructure setup)
 **Execution:** Sequential (must be first)
 **Critical Path:** ✅ YES
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 **Status:** ✅ COMPLETED (2025-12-10)
 
 **Deliverables:**
@@ -89,7 +89,7 @@ context.configure(
 **Type:** Non-TDD (Migration generation)
 **Execution:** Sequential (after Task 0.1)
 **Critical Path:** ✅ YES
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 **Status:** ✅ COMPLETED (2025-12-10) - with critical fixes applied
 
 **Deliverables:**
@@ -139,7 +139,7 @@ def downgrade():
 **Type:** Hybrid (Manual testing + verification script)
 **Execution:** Sequential (after Task 0.2)
 **Critical Path:** ✅ YES
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 **Status:** ✅ COMPLETED (2025-12-10) - all tests passed
 
 **Deliverables:**
@@ -180,7 +180,7 @@ psql -c "\d opportunities"    # Verify schema
 **Type:** Non-TDD (Documentation)
 **Execution:** Parallel with Task 0.3 (independent)
 **Critical Path:** ❌ NO
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 **Status:** ✅ COMPLETED (2025-12-10) - documentation complete
 
 **Deliverables:**
@@ -278,7 +278,7 @@ psql -c "\dt"               # Should show no tables (except alembic_version)
 **Type:** Non-TDD (Infrastructure setup)
 **Execution:** Sequential (blocks all other tasks)
 **Critical Path:** ✅ YES
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 
 **Deliverables:**
 - `pipeline-v4/database.py` with:
@@ -320,7 +320,7 @@ with next(get_session()) as session:
 **Type:** Non-TDD (Verification)
 **Execution:** Sequential (after Task 1.2)
 **Critical Path:** ✅ YES
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 
 **Deliverables:**
 - Verification script that:
@@ -414,7 +414,7 @@ with next(get_session()) as session:
 **Type:** TDD (Implementation after tests)
 **Execution:** Parallel with Task 2.2 (TDD red-green-refactor cycle)
 **Critical Path:** ✅ YES
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 
 **Deliverables:**
 - `pipeline-v4/load/sqlmodel_loader.py` with:
@@ -450,7 +450,7 @@ class SQLModelLoader:
 **Type:** Hybrid (Some tests, some refactoring)
 **Execution:** Parallel with Tasks 2.2-2.3 (independent)
 **Critical Path:** ❌ NO (can be done later if needed)
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 
 **Deliverables:**
 - Resolve nested vs flat JSON structure issues:
@@ -502,7 +502,7 @@ analysis: Dict[str, Any] = {"app_idea": {"title": "..."}}
 **Type:** Non-TDD (Configuration)
 **Execution:** Sequential (blocks Task 3.2)
 **Critical Path:** ✅ YES
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 
 **Deliverables:**
 - Update `config/settings.py`:
@@ -635,7 +635,7 @@ analysis: Dict[str, Any] = {"app_idea": {"title": "..."}}
 **Type:** Non-TDD (Cleanup)
 **Execution:** Sequential (after 7 days stable)
 **Critical Path:** ❌ NO
-**Agent:** `python-pro`
+**Agent:** `python-development:python-pro `
 
 **Deliverables:**
 - Mark `PostgresLoader` as deprecated
@@ -733,23 +733,23 @@ CHECKPOINT 4: Production stability
 
 | Task | Agent | Rationale |
 |------|-------|-----------|
-| 0.1 | `python-pro` | Alembic configuration requires SQLAlchemy/SQLModel expertise |
-| 0.2 | `python-pro` | Migration generation and review requires database schema knowledge |
-| 0.3 | `python-pro` | Testing migrations requires understanding of PostgreSQL and schema validation |
-| 0.4 | `python-pro` | Technical documentation for migration workflow |
-| 1.1 | `python-pro` | SQLModel engine setup requires deep Python/SQLAlchemy knowledge |
+| 0.1 | `python-development:python-pro ` | Alembic configuration requires SQLAlchemy/SQLModel expertise |
+| 0.2 | `python-development:python-pro ` | Migration generation and review requires database schema knowledge |
+| 0.3 | `python-development:python-pro ` | Testing migrations requires understanding of PostgreSQL and schema validation |
+| 0.4 | `python-development:python-pro ` | Technical documentation for migration workflow |
+| 1.1 | `python-development:python-pro ` | SQLModel engine setup requires deep Python/SQLAlchemy knowledge |
 | 1.2 | `test-automator` | Infrastructure testing with pytest fixtures |
-| 1.3 | `python-pro` | Model validation and round-trip testing |
+| 1.3 | `python-development:python-pro ` | Model validation and round-trip testing |
 | 2.1 | `backend-architect` | API design and architecture decisions |
 | 2.2 | `tdd-orchestrator` | TDD workflow management, test-first discipline |
-| 2.3 | `python-pro` | SQLModel ORM implementation |
-| 2.4 | `python-pro` | Data model refactoring |
-| 3.1 | `python-pro` | Configuration management |
+| 2.3 | `python-development:python-pro ` | SQLModel ORM implementation |
+| 2.4 | `python-development:python-pro ` | Data model refactoring |
+| 3.1 | `python-development:python-pro ` | Configuration management |
 | 3.2 | `backend-architect` | Design pattern implementation |
 | 3.3 | `test-automator` | Integration test suite |
 | 3.4 | `performance-engineer` | Benchmarking and optimization |
 | 4.2 | `observability-engineer` | Monitoring and alerting setup |
-| 4.3 | `python-pro` | Code cleanup and deprecation |
+| 4.3 | `python-development:python-pro ` | Code cleanup and deprecation |
 | 4.4 | `test-automator` | Test recreation and coverage |
 
 ---
@@ -896,7 +896,7 @@ CHECKPOINT 4: Production stability
 ### Available Specialized Agents
 
 **Development:**
-- `python-pro`: Python 3.12+, SQLModel, Pydantic, advanced features
+- `python-development:python-pro `: Python 3.12+, SQLModel, Pydantic, advanced features
 - `backend-architect`: API design, architecture patterns, system design
 - `database-architect`: Database design, schema optimization, query tuning
 
