@@ -50,7 +50,7 @@ class Opportunity(SQLModel, table=True):
     
     @field_validator('trust_level')
     @classmethod
-    def validate_trust_level(cls, v, info):
+    def validate_trust_level(cls, v):
         valid_levels = ['LOW', 'MEDIUM', 'HIGH']
         if v not in valid_levels:
             raise ValueError(f"Trust level must be one of {valid_levels}")
@@ -76,6 +76,12 @@ class Opportunity(SQLModel, table=True):
                     total_weight += weight
 
             data['final_score'] = score / total_weight if total_weight > 0 else 0.0
+
+        # Validate trust_level before passing to parent
+        if 'trust_level' in data:
+            valid_levels = ['LOW', 'MEDIUM', 'HIGH']
+            if data['trust_level'] not in valid_levels:
+                raise ValueError(f"Trust level must be one of {valid_levels}")
 
         super().__init__(**data)
     
