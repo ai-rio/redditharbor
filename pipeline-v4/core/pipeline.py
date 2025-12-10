@@ -114,7 +114,7 @@ class Pipeline:
                     analyzed += 1
 
                     # Checkpoint
-                    self.staging.checkpoint(submission.id)
+                    self.staging.checkpoint([submission])
 
                     # Extract WTP score from market metrics (monetization_potential is closest)
                     wtp_score = analysis.market_metrics.monetization_potential

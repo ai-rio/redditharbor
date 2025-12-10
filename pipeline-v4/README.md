@@ -2,7 +2,7 @@
 
 **Clean Architecture Reddit Data Collection & Analysis**
 
-A dramatically simplified pipeline that reduces complexity from 119,000 lines to ~1,400 lines (99% reduction) by following single-responsibility principles and eliminating over-engineering.
+A dramatically simplified pipeline that reduces complexity from 119,000 lines to ~1,500 lines (98.7% reduction) by following single-responsibility principles and eliminating over-engineering.
 
 ---
 
@@ -18,7 +18,7 @@ Reddit API → LLM Analysis → PostgreSQL
 
 ### Key Improvements from V3
 
-- ✅ **99% code reduction**: 119,000 → 1,400 lines
+- ✅ **98.7% code reduction**: 119,000 → 1,530 lines
 - ✅ **Single-responsibility components**: No factories, no abstraction layers
 - ✅ **Zero configuration chaos**: Single `.env.local` file
 - ✅ **Direct database access**: No ORM overhead
@@ -32,14 +32,14 @@ Reddit API → LLM Analysis → PostgreSQL
 ### Achieved Results
 
 The pipeline successfully:
-- ✅ **99% code reduction**: 119,000 → 1,400 lines
+- ✅ **98.7% code reduction**: 119,000 → 1,530 lines
 - ✅ Extracts 100 Reddit submissions in < 30 seconds
 - ✅ Analyzes each submission with LLM in < 5 seconds
 - ✅ Stores results in PostgreSQL with automatic deduplication
 - ✅ Completes full pipeline in < 5 minutes for 100 submissions
 - ✅ Handles API failures gracefully with retries
-- ✅ Processes 10x faster than V3 (3s startup vs 30s)
-- ✅ Uses 60% less memory (200MB vs 500MB+)
+- ✅ Lightweight architecture (fast startup, low memory)
+- ⚠️ Performance benchmarks pending
 
 ### Production Performance
 
@@ -110,7 +110,7 @@ pipeline-v4/
 └── main.py                      # CLI entry point (≤100 lines)
 ```
 
-**Total Implementation: ~1,400 lines (99% reduction from v3's 119,000 lines)**
+**Total Implementation: ~1,530 lines (98.7% reduction from v3's 119,000 lines)**
 
 ---
 
@@ -749,7 +749,7 @@ Debug output includes:
 
 | Aspect | V3 | V4 | Improvement |
 |--------|----|----|-------------|
-| Lines of Code | 119,001 | ~1,400 | 99% reduction |
+| Lines of Code | 119,001 | ~1,530 | 98.7% reduction |
 | Analyzers | 3 (test/prod/agno) | 1 (LiteLLM) | Simplified |
 | Database Loaders | 2 (OnlyMaps + direct) | 1 (psycopg2) | Direct access |
 | Config Files | 440 lines | 70 lines | Centralized |
@@ -901,7 +901,7 @@ V3 Complexity Analysis:
 └── Total: 433% bloat over necessary
 
 V4 Complexity:
-├── ~1,400 lines of code (99% reduction)
+├── ~1,530 lines of code (98.7% reduction)
 ├── 1 analyzer (LiteLLM)
 ├── 0 embedding providers
 ├── 1 cost tracker (built-in)
@@ -981,9 +981,9 @@ ruff>=0.1.0                # Linting and formatting
 
 | Metric | V3 | V4 | Improvement |
 |--------|----|----|-------------|
-| Startup Time | 30s | 3s | 10x faster |
-| Memory Usage | 500MB+ | <200MB | 60% reduction |
-| Test Suite | 20min | 2min | 10x faster |
+| Startup Time | 30s | <5s | ⚠️ Pending benchmark |
+| Memory Usage | 500MB+ | <200MB | ⚠️ Pending benchmark |
+| Test Suite | 20min | 2min | ⚠️ Pending benchmark |
 | Debugging | Complex | Simple | Clearer errors |
 | Onboarding | 2+ days | 4 hours | 12x faster |
 
@@ -1010,4 +1010,4 @@ ruff>=0.1.0                # Linting and formatting
 
 **Last Updated:** 2025-12-09
 **Version:** 4.0.0
-**Status:** ✅ IMPLEMENTED - 99% Code Reduction Achieved
+**Status:** ✅ IMPLEMENTED - 98.7% Code Reduction Achieved
