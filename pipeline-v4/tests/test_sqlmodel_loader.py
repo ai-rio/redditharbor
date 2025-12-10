@@ -134,8 +134,13 @@ class TestSQLModelLoaderBasicFunctionality:
         after_save = datetime.now(UTC)
 
         # Assert
-        assert before_save <= opp.created_at <= after_save
-        assert before_save <= opp.updated_at <= after_save
+        # Database stores timestamps as naive datetimes, so we need to compare properly
+        # Convert to naive datetimes for comparison
+        before_save_naive = before_save.replace(tzinfo=None)
+        after_save_naive = after_save.replace(tzinfo=None)
+
+        assert before_save_naive <= opp.created_at <= after_save_naive
+        assert before_save_naive <= opp.updated_at <= after_save_naive
 
 
 class TestSQLModelLoaderDuplicateHandling:
@@ -298,7 +303,7 @@ class TestSQLModelLoaderTransactionHandling:
         loader = SQLModelLoader()
 
         # Mock database to raise error during commit
-        with patch('database.get_session') as mock_get_session:
+        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
             mock_session = MagicMock()
             # Return session from generator
             mock_get_session.return_value = iter([mock_session])
@@ -334,21 +339,19 @@ class TestSQLModelLoaderTransactionHandling:
         # Arrange
         loader = SQLModelLoader()
 
-        with patch('load.sqlmodel_loader.get_db_session') as mock_get_session:
+        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
             mock_session = MagicMock()
 
-            # get_db_session is already a context manager, so we mock it directly
-            mock_get_session.return_value.__enter__.return_value = mock_session
-            mock_get_session.return_value.__exit__.return_value = None
+            # Return session from generator
+            mock_get_session.return_value = iter([mock_session])
 
             # Configure mock exec to return None (no duplicate found)
             mock_exec_result = MagicMock()
             mock_exec_result.first.return_value = None
             mock_session.exec.return_value = mock_exec_result
 
-            # Configure to raise error
+            # Configure to raise error when adding
             mock_session.add.side_effect = RuntimeError("Database error")
-            mock_session.flush.side_effect = RuntimeError("Database error")
 
             opp = Opportunity(
                 submission_id="cleanup_test",
@@ -361,15 +364,15 @@ class TestSQLModelLoaderTransactionHandling:
             with pytest.raises(RuntimeError, match="Database error"):
                 loader.save_opportunity(opp)
 
-            # Verify cleanup methods were called (they will be called by get_db_session)
-            mock_get_session.assert_called()
+            # Verify session cleanup was attempted
+            mock_session.close.assert_called_once()
 
     def test_connection_error_handling(self):
         """Test graceful handling of connection errors"""
         # Arrange
         loader = SQLModelLoader()
 
-        with patch('database.get_session') as mock_get_session:
+        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
             # Configure to raise connection error when creating session
             mock_get_session.side_effect = OperationalError(
                 "connection failed", "mock", "mock"
@@ -391,12 +394,10 @@ class TestSQLModelLoaderTransactionHandling:
         # Arrange
         loader = SQLModelLoader()
 
-        with patch('load.sqlmodel_loader.get_db_session') as mock_get_session:
+        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
             mock_session = MagicMock()
-
-            # get_db_session is already a context manager, so we mock it directly
-            mock_get_session.return_value.__enter__.return_value = mock_session
-            mock_get_session.return_value.__exit__.return_value = None
+            # Return session from generator
+            mock_get_session.return_value = iter([mock_session])
 
             # Configure mock exec to return None (no duplicate found)
             mock_exec_result = MagicMock()
@@ -491,8 +492,8 @@ class TestSQLModelLoaderConnectionPooling:
         # Arrange
         loader = SQLModelLoader()
 
-        # Mock get_db_session to raise OperationalError when called
-        with patch('load.sqlmodel_loader.get_db_session') as mock_get_session:
+        # Mock get_session to raise OperationalError when called
+        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
             mock_get_session.side_effect = OperationalError(
                 "pool timeout", "mock", "mock"
             )
@@ -755,12 +756,10 @@ class TestSQLModelLoaderLoggingAndMonitoring:
         loader = SQLModelLoader()
 
         with patch.object(loader, 'logger') as mock_logger:
-            with patch('load.sqlmodel_loader.get_db_session') as mock_get_session:
+            with patch('load.sqlmodel_loader.get_session') as mock_get_session:
                 mock_session = MagicMock()
-
-                # get_db_session is already a context manager, so we mock it directly
-                mock_get_session.return_value.__enter__.return_value = mock_session
-                mock_get_session.return_value.__exit__.return_value = None
+                # Return session from generator
+                mock_get_session.return_value = iter([mock_session])
 
                 # Configure mock exec to return None (no duplicate found)
                 mock_exec_result = MagicMock()
