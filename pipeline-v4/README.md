@@ -169,12 +169,49 @@ LLM_MODEL=openai/gpt-4o-mini
 ### 3. Database Setup
 
 ```bash
-# Create database schema
+# Option 1: Using Alembic (Recommended)
+# Initialize database with migrations
+alembic upgrade head
+
+# Option 2: Direct SQL (Legacy)
 psql -U postgres -f migrations/v4_schema.sql
 
-# Or with docker-compose:
+# Option 3: Docker Compose
 docker-compose up -d postgres
 ```
+
+---
+
+## Database Migration
+
+The project uses Alembic for database migrations. See [docs/alembic-workflow.md](docs/alembic-workflow.md) for complete documentation.
+
+### Quick Migration Commands
+
+```bash
+# Check current migration status
+alembic current
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Create new migration after model changes
+alembic revision --autogenerate -m "Description of changes"
+
+# Rollback one migration
+alembic downgrade -1
+
+# View migration history
+alembic history
+```
+
+### Migration Workflow
+
+1. Modify SQLModel models in `models/`
+2. Generate migration: `alembic revision --autogenerate -m "description"`
+3. Review generated file in `alembic/versions/`
+4. Test: `alembic upgrade head && alembic downgrade -1`
+5. Commit migration file
 
 ---
 
