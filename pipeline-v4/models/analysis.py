@@ -6,7 +6,7 @@ import math
 from datetime import UTC, datetime
 from typing import Optional, List, Dict, Any
 
-from pydantic import field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON
 
@@ -26,8 +26,18 @@ class Opportunity(SQLModel, table=True):
     
     # Core scores
     wtp_score: float = Field(ge=0.0, le=100.0, description="Willingness-to-pay score")
-    final_score: float = Field(ge=0.0, le=100.0, description="Final opportunity score")
-    confidence_score: float = Field(ge=0.0, le=100.0, description="Confidence score")
+    final_score: float = Field(
+        default_factory=lambda: 0.0,
+        ge=0.0,
+        le=100.0,
+        description="Final opportunity score"
+    )
+    confidence_score: float = Field(
+        default_factory=lambda: 75.0,
+        ge=0.0,
+        le=100.0,
+        description="Confidence score"
+    )
     
     # JSON fields
     analysis: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
@@ -40,11 +50,34 @@ class Opportunity(SQLModel, table=True):
     
     @field_validator('trust_level')
     @classmethod
-    def validate_trust_level(cls, v):
+    def validate_trust_level(cls, v, info):
         valid_levels = ['LOW', 'MEDIUM', 'HIGH']
         if v not in valid_levels:
             raise ValueError(f"Trust level must be one of {valid_levels}")
         return v
+
+    def __init__(self, **data):
+        """Initialize with automatic final score calculation"""
+        # Calculate final_score if metrics provided but final_score not explicitly set
+        if 'final_score' not in data and 'metrics' in data and data['metrics']:
+            weights = {
+                'market_demand': 0.3,
+                'pain_intensity': 0.25,
+                'monetization_potential': 0.25,
+                'technical_feasibility': 0.2
+            }
+
+            score = 0.0
+            total_weight = 0.0
+
+            for metric, weight in weights.items():
+                if metric in data['metrics']:
+                    score += data['metrics'][metric] * weight
+                    total_weight += weight
+
+            data['final_score'] = score / total_weight if total_weight > 0 else 0.0
+
+        super().__init__(**data)
     
     def calculate_final_score(self) -> float:
         """Calculate final score from metrics"""
@@ -93,6 +126,132 @@ class Opportunity(SQLModel, table=True):
     def spam_analysis(self) -> Dict[str, Any]:
         """Get spam analysis from analysis data"""
         return self.analysis.get('spam_analysis', {})
+
+
+class MarketMetrics(BaseModel):
+    """Market analysis metrics with validation"""
+
+    market_demand: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Market demand score (0-100)"
+    )
+    pain_intensity: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Pain point intensity (0-100)"
+    )
+    monetization_potential: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Monetization potential (0-100)"
+    )
+    technical_feasibility: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Technical feasibility (0-100)"
+    )
+    competition_level: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Competition level (0=high, 100=low)"
+    )
+
+    @field_validator('market_demand', 'pain_intensity', 'monetization_potential',
+                    'technical_feasibility', 'competition_level')
+    @classmethod
+    def validate_scores(cls, v):
+        """Ensure metric scores have reasonable precision"""
+        if isinstance(v, float):
+            str_val = str(v)
+            if '.' in str_val and len(str_val.split('.')[1]) > 2:
+                raise ValueError(f"Metric {v} has too many decimal places")
+        return v
+
+
+class AppIdea(BaseModel):
+    """Core app idea analysis with strict business logic validation"""
+
+    # Core concept
+    title: str = Field(
+        ...,
+        min_length=5,
+        max_length=100,
+        description="App title (5-100 characters, title case)"
+    )
+    app_concept: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="App concept description (specific and detailed)"
+    )
+    problem_statement: str = Field(
+        ...,
+        min_length=10,
+        max_length=1000,
+        description="Problem the app solves (specific pain point)"
+    )
+
+    # Core functions (strict limit: 1-3 functions max)
+    core_functions: list[str] = Field(
+        ...,
+        min_items=1,
+        max_items=3,
+        description="Core app functions (1-3 maximum, distinct and meaningful)"
+    )
+
+    # Target audience
+    target_audience: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Target audience description (specific demographic)"
+    )
+
+
+class AnalysisResult(BaseModel):
+    """Complete analysis result combining all components"""
+
+    # Core components
+    app_idea: AppIdea = Field(..., description="Core app idea analysis")
+    metrics: MarketMetrics = Field(..., description="Market metrics")
+    pain_points: list[str] = Field(
+        ...,
+        min_items=1,
+        max_items=5,
+        description="Identified pain points (1-5 maximum)"
+    )
+
+    # Summary and scoring
+    opportunity_summary: str = Field(
+        ...,
+        min_length=50,
+        max_length=500,
+        description="Opportunity summary"
+    )
+    wtp_score: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Willingness-to-pay score"
+    )
+    trust_level: str = Field(
+        default="MEDIUM",
+        description="Trust level of analysis"
+    )
+
+    @field_validator('trust_level')
+    @classmethod
+    def validate_trust_level(cls, v):
+        valid_levels = ['LOW', 'MEDIUM', 'HIGH']
+        if v not in valid_levels:
+            raise ValueError(f"Trust level must be one of {valid_levels}")
+        return v
 
 
 # Simple test
