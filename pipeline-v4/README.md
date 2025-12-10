@@ -67,6 +67,18 @@ Average per submission: 1.8 seconds
 
 ---
 
+## 📚 Documentation
+
+For detailed implementation guides, performance reports, and technical specifications, see the **[docs/](./docs/)** directory:
+
+- **Implementation Status** - Current progress and roadmap
+- **Architecture & Design** - System design and loader architecture
+- **Performance Reports** - Benchmarks and optimization results
+- **Database & Migration** - Alembic setup and migration guides
+- **Testing & Verification** - Comprehensive test reports
+
+---
+
 ## Directory Structure
 
 ```
