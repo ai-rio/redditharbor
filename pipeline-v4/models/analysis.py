@@ -223,6 +223,11 @@ class AppIdea(BaseModel):
 class AnalysisResult(BaseModel):
     """Complete analysis result combining all components"""
 
+    # Reddit metadata
+    submission_id: str = Field(..., description="Reddit submission ID")
+    subreddit: str = Field(..., description="Subreddit name")
+    title: str = Field(..., description="Submission title")
+
     # Core components
     app_idea: AppIdea = Field(..., description="Core app idea analysis")
     metrics: MarketMetrics = Field(..., description="Market metrics")
@@ -240,6 +245,18 @@ class AnalysisResult(BaseModel):
         max_length=500,
         description="Opportunity summary"
     )
+    final_score: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Final opportunity score"
+    )
+    confidence_score: float = Field(
+        default=75.0,
+        ge=0.0,
+        le=100.0,
+        description="Confidence score"
+    )
     wtp_score: float = Field(
         ...,
         ge=0.0,
@@ -250,6 +267,17 @@ class AnalysisResult(BaseModel):
         default="MEDIUM",
         description="Trust level of analysis"
     )
+
+    # Additional analysis fields
+    content_quality_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=100.0,
+        description="Content quality score"
+    )
+    is_spam: bool = Field(default=False, description="Whether the content is spam")
+    spam_indicators: list[str] = Field(default_factory=list, description="Spam indicators")
+    analyzed_at: Optional[datetime] = Field(default=None, description="Analysis timestamp")
 
     @field_validator('trust_level')
     @classmethod

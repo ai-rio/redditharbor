@@ -67,6 +67,20 @@ class SQLModelLoader:
         if opportunity.trust_level not in valid_levels:
             raise ValueError(f"Trust level must be one of {valid_levels}")
 
+        # Validate nested analysis structure (if present)
+        if opportunity.analysis and not isinstance(opportunity.analysis, dict):
+            raise ValueError("analysis field must be a dictionary")
+
+        # Check for required app_idea structure (if analysis is present)
+        if opportunity.analysis and "app_idea" in opportunity.analysis:
+            app_idea = opportunity.analysis["app_idea"]
+            if not isinstance(app_idea, dict):
+                raise ValueError("analysis['app_idea'] must be a dictionary")
+
+        # Validate metrics structure (if present)
+        if opportunity.metrics and not isinstance(opportunity.metrics, dict):
+            raise ValueError("metrics field must be a dictionary")
+
     def _handle_database_error(self, error: SQLAlchemyError, operation: str, submission_id: str = None) -> None:
         """Centralized error handling with specific error types."""
 
@@ -227,6 +241,11 @@ class SQLModelLoader:
                     select(Opportunity)
                     .where(Opportunity.submission_id == submission_id)
                 ).first()
+
+                # Detach from session so it can be used outside
+                if opportunity:
+                    session.expunge(opportunity)
+
                 return opportunity
 
         except SQLAlchemyError as e:
@@ -250,6 +269,11 @@ class SQLModelLoader:
                     .where(Opportunity.subreddit == subreddit)
                     .order_by(Opportunity.created_at.desc())
                 ).all()
+
+                # Detach all opportunities from session
+                for opp in opportunities:
+                    session.expunge(opp)
+
                 return list(opportunities)
 
         except SQLAlchemyError as e:
@@ -342,6 +366,11 @@ class SQLModelLoader:
                     .order_by(Opportunity.final_score.desc())
                     .limit(limit)
                 ).all()
+
+                # Detach all opportunities from session
+                for opp in opportunities:
+                    session.expunge(opp)
+
                 return list(opportunities)
 
         except SQLAlchemyError as e:
@@ -364,6 +393,40 @@ class SQLModelLoader:
         except SQLAlchemyError as e:
             self._handle_database_error(e, "count_opportunities")
             raise RuntimeError(f"Failed to count opportunities: {e}")
+
+    def save_analysis(self, analysis) -> bool:
+        """
+        Convert AnalysisResult to Opportunity and save it
+
+        Args:
+            analysis: AnalysisResult object to convert and save
+
+        Returns:
+            True if saved, False if duplicate skipped
+        """
+        # Convert AnalysisResult to Opportunity
+        opportunity = Opportunity(
+            submission_id=analysis.submission_id,
+            subreddit=analysis.subreddit,
+            title=analysis.title,
+            wtp_score=analysis.wtp_score,
+            final_score=analysis.final_score,
+            confidence_score=analysis.confidence_score,
+            trust_level=analysis.trust_level,
+            analysis={
+                "app_idea": analysis.app_idea.model_dump(),
+                "pain_points": analysis.pain_points,
+                "opportunity_summary": analysis.opportunity_summary,
+                "content_quality_score": analysis.content_quality_score,
+                "is_spam": analysis.is_spam,
+                "spam_indicators": analysis.spam_indicators,
+                "analyzed_at": analysis.analyzed_at.isoformat() if analysis.analyzed_at else None
+            },
+            metrics=analysis.metrics.model_dump()
+        )
+
+        # Use the existing save_opportunity method
+        return self.save_opportunity(opportunity)
 
     def close(self):
         """Close any resources (placeholder for consistency)."""
