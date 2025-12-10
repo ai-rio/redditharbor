@@ -8,9 +8,9 @@ from typing import Generator, Optional
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine, Engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Session
 
 from config.settings import get_settings
 
@@ -103,7 +103,8 @@ def get_session() -> Generator[Session, None, None]:
         _SessionLocal = sessionmaker(
             autocommit=False,
             autoflush=False,
-            bind=engine
+            bind=engine,
+            class_=Session
         )
 
     session = _SessionLocal()
