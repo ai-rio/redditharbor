@@ -56,17 +56,33 @@ class PostgresLoader:
                     INSERT INTO opportunities (
                         submission_id,
                         subreddit,
-                        title,
-                        wtp_score,
+                        reddit_title,
+                        reddit_url,
+                        reddit_author,
+                        reddit_upvotes,
+                        reddit_comments_count,
+                        reddit_created_at,
+                        app_title,
+                        app_concept,
+                        problem_statement,
+                        target_audience,
+                        core_functions,
+                        market_demand,
+                        pain_intensity,
+                        monetization_potential,
+                        competition_level,
+                        technical_feasibility,
                         final_score,
                         confidence_score,
-                        core_functions,
-                        pricing_strategy,
-                        target_segment,
+                        trust_level,
+                        content_quality_score,
+                        is_spam,
+                        spam_indicators,
                         pain_points,
-                        trust_level
+                        pricing_strategy,
+                        wtp_score
                     ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                     ON CONFLICT (submission_id) DO NOTHING
                     RETURNING id
@@ -74,15 +90,31 @@ class PostgresLoader:
                     (
                         analysis.submission_id,
                         analysis.subreddit,
-                        analysis.title,
-                        analysis.wtp_score,
-                        analysis.final_score,
-                        analysis.confidence_score,
-                        Json(analysis.core_functions),
-                        Json(analysis.pricing_strategy),
-                        analysis.target_segment,
-                        Json(analysis.pain_points),
-                        analysis.trust_level
+                        analysis.title,  # reddit_title
+                        f"https://reddit.com/r/{analysis.subreddit}/comments/{analysis.submission_id.split('_')[1] if '_' in analysis.submission_id else analysis.submission_id}",  # reddit_url
+                        "anonymous",  # reddit_author (PII protection)
+                        0,  # reddit_upvotes
+                        0,  # reddit_comments_count
+                        analysis.analyzed_at,  # reddit_created_at
+                        analysis.app_idea.title,  # app_title
+                        analysis.app_idea.app_concept,  # app_concept
+                        analysis.app_idea.problem_statement,  # problem_statement
+                        analysis.app_idea.target_audience,  # target_audience
+                        Json(analysis.app_idea.core_functions),  # core_functions
+                        analysis.market_metrics.market_demand,  # market_demand
+                        analysis.market_metrics.pain_intensity,  # pain_intensity
+                        analysis.market_metrics.monetization_potential,  # monetization_potential
+                        analysis.market_metrics.competition_level,  # competition_level
+                        analysis.market_metrics.technical_feasibility,  # technical_feasibility
+                        analysis.final_score,  # final_score
+                        analysis.confidence_score,  # confidence_score
+                        analysis.trust_level,  # trust_level
+                        analysis.content_quality_score,  # content_quality_score
+                        analysis.is_spam,  # is_spam
+                        Json(analysis.spam_indicators),  # spam_indicators
+                        Json([{"pain_point": "TODO"}]),  # pain_points
+                        Json({"pricing_strategy": "TODO", "tier": "basic", "price": "$10/mo"}),  # pricing_strategy
+                        analysis.wtp_score  # wtp_score
                     )
                 )
 

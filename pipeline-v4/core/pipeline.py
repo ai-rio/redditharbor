@@ -102,7 +102,7 @@ class Pipeline:
 
             for submission in submissions:
                 # Check deduplication
-                if self.staging.is_duplicate(submission.id):
+                if self.staging.is_duplicate(submission):
                     logger.info(f"⊘ Skipping duplicate: {submission.id}")
                     skipped += 1
                     continue
