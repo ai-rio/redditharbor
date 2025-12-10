@@ -4,13 +4,14 @@ No ORM, no abstraction layers
 """
 
 import logging
-from typing import Any
+
 import psycopg2
-from psycopg2 import pool, sql
-from psycopg2.extras import Json
-from models.analysis import Opportunity
-from config.settings import get_settings
+import psycopg2.pool
 from load.loader_factory import BaseLoader
+from psycopg2.extras import Json
+
+from config.settings import get_settings
+from models.analysis import Opportunity
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,25 @@ class PostgresLoader(BaseLoader):
 
         logger.info("✓ PostgreSQL connection pool initialized")
 
+    def _validate_opportunity(self, opportunity: Opportunity) -> None:
+        """
+        Validate opportunity before saving.
+
+        Args:
+            opportunity: Opportunity instance to validate
+
+        Raises:
+            ValueError: If opportunity is invalid
+        """
+        # Check for empty/None submission_id
+        if opportunity.submission_id is None or opportunity.submission_id.strip() == "":
+            raise ValueError("submission_id cannot be empty")
+
+        # Validate trust_level
+        valid_levels = ['LOW', 'MEDIUM', 'HIGH']
+        if opportunity.trust_level not in valid_levels:
+            raise ValueError(f"Trust level must be one of {valid_levels}")
+
     def save_opportunity(self, opportunity: Opportunity) -> bool:
         """
         Save Opportunity object to opportunities table
@@ -44,8 +64,12 @@ class PostgresLoader(BaseLoader):
             True if saved, False if duplicate skipped
 
         Raises:
+            ValueError: If opportunity is invalid
             RuntimeError: If database operation fails
         """
+        # Validate the opportunity
+        self._validate_opportunity(opportunity)
+
         conn = None
         try:
             conn = self.pool.getconn()
@@ -102,6 +126,71 @@ class PostgresLoader(BaseLoader):
                 conn.rollback()
             logger.error(f"Failed to save opportunity: {e}")
             raise RuntimeError(f"Database save failed: {e}")
+        finally:
+            if conn:
+                self.pool.putconn(conn)
+
+    def get_opportunity(self, submission_id: str):
+        """
+        Retrieve an opportunity by submission_id.
+
+        Args:
+            submission_id: Reddit submission ID
+
+        Returns:
+            Optional[Opportunity]: Found record or None
+
+        Raises:
+            RuntimeError: If database operation fails
+        """
+        conn = None
+        try:
+            conn = self.pool.getconn()
+
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        id, submission_id, subreddit, title, wtp_score,
+                        final_score, confidence_score, trust_level,
+                        analysis, metrics, created_at, updated_at
+                    FROM opportunities
+                    WHERE submission_id = %s
+                    """,
+                    (submission_id,)
+                )
+
+                result = cur.fetchone()
+
+                if result:
+                    # Unpack the result
+                    (id, submission_id, subreddit, title, wtp_score,
+                     final_score, confidence_score, trust_level,
+                     analysis, metrics, created_at, updated_at) = result
+
+                    # Create Opportunity object from database row
+                    opportunity = Opportunity(
+                        submission_id=submission_id,
+                        subreddit=subreddit,
+                        title=title,
+                        wtp_score=wtp_score,
+                        final_score=final_score,
+                        confidence_score=confidence_score,
+                        trust_level=trust_level,
+                        analysis=analysis,
+                        metrics=metrics
+                    )
+                    opportunity.id = id
+                    opportunity.created_at = created_at
+                    opportunity.updated_at = updated_at
+
+                    return opportunity
+                else:
+                    return None
+
+        except Exception as e:
+            logger.error(f"Failed to retrieve opportunity: {e}")
+            raise RuntimeError(f"Database retrieval failed: {e}")
         finally:
             if conn:
                 self.pool.putconn(conn)

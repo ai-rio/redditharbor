@@ -7,20 +7,16 @@ ORM for type safety and maintainability.
 """
 
 import logging
-from datetime import datetime, UTC
-from typing import Optional, List, Dict, Any
+from datetime import UTC, datetime
+from typing import Any
 
-from sqlmodel import Session, select
-from sqlalchemy.exc import (
-    SQLAlchemyError,
-    IntegrityError,
-    OperationalError
-)
-
-from models.analysis import Opportunity
 from database import get_db_session, get_engine, get_session
-from config.settings import get_settings
 from load.loader_factory import BaseLoader
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+from sqlmodel import Session, select
+
+from config.settings import get_settings
+from models.analysis import Opportunity
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +158,7 @@ class SQLModelLoader(BaseLoader):
             self.logger.error(f"Unexpected error saving opportunity {opportunity.submission_id}: {e}")
             raise
 
-    def save_opportunities(self, opportunities: List[Opportunity]) -> int:
+    def save_opportunities(self, opportunities: list[Opportunity]) -> int:
         """
         Save multiple opportunities in a single transaction.
 
@@ -226,7 +222,7 @@ class SQLModelLoader(BaseLoader):
             logger.error(f"Unexpected error in batch save: {e}")
             raise
 
-    def get_opportunity(self, submission_id: str) -> Optional[Opportunity]:
+    def get_opportunity(self, submission_id: str) -> Opportunity | None:
         """
         Retrieve an opportunity by submission_id.
 
@@ -243,8 +239,23 @@ class SQLModelLoader(BaseLoader):
                     .where(Opportunity.submission_id == submission_id)
                 ).first()
 
-                # Detach from session so it can be used outside
                 if opportunity:
+                    # Eagerly access all attributes to load them before detaching
+                    # This prevents DetachedInstanceError when accessing attributes later
+                    _ = opportunity.id
+                    _ = opportunity.submission_id
+                    _ = opportunity.subreddit
+                    _ = opportunity.title
+                    _ = opportunity.wtp_score
+                    _ = opportunity.final_score
+                    _ = opportunity.confidence_score
+                    _ = opportunity.trust_level
+                    _ = opportunity.analysis
+                    _ = opportunity.metrics
+                    _ = opportunity.created_at
+                    _ = opportunity.updated_at
+
+                    # Now detach from session so it can be used outside
                     session.expunge(opportunity)
 
                 return opportunity
@@ -253,7 +264,7 @@ class SQLModelLoader(BaseLoader):
             self._handle_database_error(e, "get_opportunity", submission_id)
             raise RuntimeError(f"Failed to retrieve opportunity {submission_id}: {e}")
 
-    def get_opportunities_by_subreddit(self, subreddit: str) -> List[Opportunity]:
+    def get_opportunities_by_subreddit(self, subreddit: str) -> list[Opportunity]:
         """
         Get all opportunities for a specific subreddit.
 
@@ -271,8 +282,13 @@ class SQLModelLoader(BaseLoader):
                     .order_by(Opportunity.created_at.desc())
                 ).all()
 
-                # Detach all opportunities from session
+                # Eagerly load attributes and detach all opportunities from session
                 for opp in opportunities:
+                    # Access all attributes to load them
+                    _ = (opp.id, opp.submission_id, opp.subreddit, opp.title,
+                         opp.wtp_score, opp.final_score, opp.confidence_score,
+                         opp.trust_level, opp.analysis, opp.metrics,
+                         opp.created_at, opp.updated_at)
                     session.expunge(opp)
 
                 return list(opportunities)
@@ -281,7 +297,7 @@ class SQLModelLoader(BaseLoader):
             self._handle_database_error(e, "get_opportunities_by_subreddit", subreddit)
             raise RuntimeError(f"Failed to retrieve opportunities for {subreddit}: {e}")
 
-    def update_opportunity(self, submission_id: str, updates: Dict[str, Any]) -> bool:
+    def update_opportunity(self, submission_id: str, updates: dict[str, Any]) -> bool:
         """
         Update an opportunity with new values.
 
@@ -346,7 +362,7 @@ class SQLModelLoader(BaseLoader):
 
     def get_opportunities_by_score_range(
         self, min_score: float = 0.0, max_score: float = 100.0, limit: int = 100
-    ) -> List[Opportunity]:
+    ) -> list[Opportunity]:
         """
         Get opportunities within a score range.
 
@@ -368,8 +384,13 @@ class SQLModelLoader(BaseLoader):
                     .limit(limit)
                 ).all()
 
-                # Detach all opportunities from session
+                # Eagerly load attributes and detach all opportunities from session
                 for opp in opportunities:
+                    # Access all attributes to load them
+                    _ = (opp.id, opp.submission_id, opp.subreddit, opp.title,
+                         opp.wtp_score, opp.final_score, opp.confidence_score,
+                         opp.trust_level, opp.analysis, opp.metrics,
+                         opp.created_at, opp.updated_at)
                     session.expunge(opp)
 
                 return list(opportunities)
