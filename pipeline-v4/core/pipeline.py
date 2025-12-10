@@ -6,11 +6,12 @@ Coordinates Reddit extraction, LLM analysis, and database storage
 import logging
 import time
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
 from extract.reddit_client import RedditClient
 from transform.analyzer import OpportunityAnalyzer
 from load.postgres_loader import PostgresLoader
+from load.sqlmodel_loader import SQLModelLoader
 from core.staging import StagingLayer
 from models.reddit import RedditSubmission
 from models.analysis import AnalysisResult
@@ -40,7 +41,7 @@ class Pipeline:
         self,
         reddit_client: RedditClient | None = None,
         analyzer: OpportunityAnalyzer | None = None,
-        loader: PostgresLoader | None = None,
+        loader: Union[PostgresLoader, SQLModelLoader] | None = None,
         staging: StagingLayer | None = None,
         settings = None
     ):
@@ -50,10 +51,20 @@ class Pipeline:
         # Initialize components (or use provided)
         self.reddit = reddit_client or RedditClient()
         self.analyzer = analyzer or OpportunityAnalyzer(self.settings)
-        self.loader = loader or PostgresLoader(self.settings)
+
+        # Initialize loader based on feature flag
+        if loader is not None:
+            self.loader = loader
+        elif self.settings.use_sqlmodel_loader:
+            self.loader = SQLModelLoader(self.settings)
+            logger.info("✓ Pipeline initialized with SQLModel loader")
+        else:
+            self.loader = PostgresLoader(self.settings)
+            logger.info("✓ Pipeline initialized with psycopg2 loader")
+
         self.staging = staging or StagingLayer()
 
-        logger.info("✓ Pipeline initialized")
+        logger.info(f"Database loader: {'SQLModel' if self.settings.use_sqlmodel_loader else 'psycopg2'}")
 
     def run(
         self,

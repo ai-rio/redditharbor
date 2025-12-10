@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     enable_deduplication: bool = Field(default=True)
     checkpoint_interval: int = Field(default=25)
 
+    # ===== SQLModel Migration =====
+    use_sqlmodel_loader: bool = Field(
+        default=False,
+        description="Enable SQLModel-based database loader (Phase 3 migration)",
+        alias="USE_SQLMODEL_LOADER"
+    )
+
     # ===== Logging =====
     log_level: str = Field(default="INFO")
 
