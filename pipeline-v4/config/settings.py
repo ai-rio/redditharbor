@@ -62,7 +62,16 @@ class Settings(BaseSettings):
         "env_file": ".env.local",
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
+        "extra": "allow",
     }
+
+    def __init__(self, **kwargs):
+        """Initialize settings, handling both field name and alias for use_sqlmodel_loader."""
+        # Special handling for use_sqlmodel_loader to support both field name and alias
+        if "use_sqlmodel_loader" in kwargs and "USE_SQLMODEL_LOADER" not in kwargs:
+            # If passed with field name, also set it with alias for BaseSettings
+            kwargs["USE_SQLMODEL_LOADER"] = kwargs["use_sqlmodel_loader"]
+        super().__init__(**kwargs)
 
 
 # Global singleton

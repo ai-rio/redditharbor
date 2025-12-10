@@ -10,8 +10,7 @@ from typing import List, Union
 
 from extract.reddit_client import RedditClient
 from transform.analyzer import OpportunityAnalyzer
-from load.postgres_loader import PostgresLoader
-from load.sqlmodel_loader import SQLModelLoader
+from load.loader_factory import BaseLoader, get_loader
 from core.staging import StagingLayer
 from models.reddit import RedditSubmission
 from models.analysis import AnalysisResult
@@ -41,7 +40,7 @@ class Pipeline:
         self,
         reddit_client: RedditClient | None = None,
         analyzer: OpportunityAnalyzer | None = None,
-        loader: Union[PostgresLoader, SQLModelLoader] | None = None,
+        loader: BaseLoader | None = None,
         staging: StagingLayer | None = None,
         settings = None
     ):
@@ -52,15 +51,8 @@ class Pipeline:
         self.reddit = reddit_client or RedditClient()
         self.analyzer = analyzer or OpportunityAnalyzer(self.settings)
 
-        # Initialize loader based on feature flag
-        if loader is not None:
-            self.loader = loader
-        elif self.settings.use_sqlmodel_loader:
-            self.loader = SQLModelLoader(self.settings)
-            logger.info("✓ Pipeline initialized with SQLModel loader")
-        else:
-            self.loader = PostgresLoader(self.settings)
-            logger.info("✓ Pipeline initialized with psycopg2 loader")
+        # Initialize loader using factory pattern
+        self.loader = get_loader(self.settings, loader)
 
         self.staging = staging or StagingLayer()
 

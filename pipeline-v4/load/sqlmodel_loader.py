@@ -20,11 +20,12 @@ from sqlalchemy.exc import (
 from models.analysis import Opportunity
 from database import get_db_session, get_engine, get_session
 from config.settings import get_settings
+from load.loader_factory import BaseLoader
 
 logger = logging.getLogger(__name__)
 
 
-class SQLModelLoader:
+class SQLModelLoader(BaseLoader):
     """
     SQLModel-based database loader for Opportunity records.
 

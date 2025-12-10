@@ -10,11 +10,12 @@ from psycopg2 import pool, sql
 from psycopg2.extras import Json
 from models.analysis import Opportunity
 from config.settings import get_settings
+from load.loader_factory import BaseLoader
 
 logger = logging.getLogger(__name__)
 
 
-class PostgresLoader:
+class PostgresLoader(BaseLoader):
     """
     Direct PostgreSQL loader with connection pooling
     """
