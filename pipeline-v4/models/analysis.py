@@ -4,11 +4,11 @@ AI analysis data models with SQLModel and Pydantic validation for LLM output
 
 import math
 from datetime import UTC, datetime
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
-from sqlalchemy import Column, JSON
 
 
 class Opportunity(SQLModel, table=True):
