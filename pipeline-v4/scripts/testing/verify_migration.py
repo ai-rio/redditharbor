@@ -4,10 +4,12 @@ Migration verification script for RedditHarbor Pipeline V4
 Tests alembic migration up/down and validates schema
 """
 
+from datetime import datetime
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from config.settings import get_settings
-from datetime import datetime
 
 
 def get_db_connection():
@@ -141,7 +143,7 @@ def main():
     print("1. Checking Alembic Version:")
     alembic_info = check_alembic_version()
     if alembic_info['table_exists']:
-        print(f"   ✓ alembic_version table exists")
+        print("   ✓ alembic_version table exists")
         if alembic_info['current_version']:
             print(f"   ✓ Current version: {alembic_info['current_version']}")
         else:

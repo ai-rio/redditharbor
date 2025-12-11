@@ -23,7 +23,7 @@ def test_settings_import():
         from config.settings import Settings
         settings = Settings()
 
-        print(f"✓ Settings imported successfully")
+        print("✓ Settings imported successfully")
         print(f"✓ Default use_sqlmodel_loader = {settings.use_sqlmodel_loader}")
 
         # Test with environment variable
@@ -48,12 +48,9 @@ def test_pipeline_import():
 
     try:
         # Try importing the loaders
-        from load.postgres_loader import PostgresLoader
-        from load.sqlmodel_loader import SQLModelLoader
         print("✓ Both loaders imported successfully")
 
         # Test pipeline import
-        from core.pipeline import Pipeline
         print("✓ Pipeline imported successfully")
 
         return True

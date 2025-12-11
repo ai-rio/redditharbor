@@ -20,11 +20,11 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
-from database import get_session
-from load.loader_factory import get_loader
 from sqlmodel import select
 
 from config.settings import Settings
+from database import get_session
+from load.loader_factory import get_loader
 from models.analysis import Opportunity
 
 

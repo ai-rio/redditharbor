@@ -8,10 +8,8 @@ import logging
 import os
 import sys
 import time
-from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import psutil
 
@@ -20,10 +18,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Import from pipeline-v4 modules
 from config.settings import get_settings
-from models.analysis import Opportunity
+from database import get_engine
 from load.postgres_loader import PostgresLoader
 from load.sqlmodel_loader import SQLModelLoader
-from database import get_engine
+from models.analysis import Opportunity
 
 # Configure logging
 logging.basicConfig(
@@ -67,7 +65,7 @@ class BenchmarkResult:
             return 0.0
         return sum(values) / len(values)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary for JSON export"""
         return {
             'loader_name': self.loader_name,
@@ -89,7 +87,7 @@ class BenchmarkResult:
 class LoaderBenchmark:
     """Comprehensive loader performance benchmark suite"""
 
-    def __init__(self, data_volumes: List[int] = None):
+    def __init__(self, data_volumes: list[int] = None):
         """
         Initialize benchmark suite
 
@@ -153,7 +151,7 @@ class LoaderBenchmark:
         mem_info = self.process.memory_info()
         return mem_info.rss / (1024 * 1024)  # Convert to MB
 
-    def get_pool_stats(self, loader) -> Tuple[int, int]:
+    def get_pool_stats(self, loader) -> tuple[int, int]:
         """Get connection pool statistics"""
         try:
             if isinstance(loader, SQLModelLoader):
@@ -384,7 +382,7 @@ class LoaderBenchmark:
 
         return result
 
-    def run_benchmarks(self) -> Dict[str, BenchmarkResult]:
+    def run_benchmarks(self) -> dict[str, BenchmarkResult]:
         """Run benchmarks for both loaders"""
         logger.info("Starting loader performance benchmarks...")
         logger.info(f"Data volumes: {self.data_volumes}")
@@ -403,7 +401,7 @@ class LoaderBenchmark:
 
         return self.results
 
-    def compare_results(self) -> Dict:
+    def compare_results(self) -> dict:
         """Generate comparison analysis"""
         logger.info("\n" + "=" * 70)
         logger.info("Performance Comparison")
@@ -451,13 +449,13 @@ class LoaderBenchmark:
 
         return comparison
 
-    def print_results(self, comparison: Dict):
+    def print_results(self, comparison: dict):
         """Print formatted results"""
         print("\n" + "=" * 80)
         print("LOADER PERFORMANCE BENCHMARK RESULTS")
         print("=" * 80)
 
-        print(f"\nTest Configuration:")
+        print("\nTest Configuration:")
         print(f"  Data Volumes: {comparison['data_volumes']}")
         print(f"  Timestamp: {comparison['timestamp']}")
 
@@ -497,17 +495,17 @@ class LoaderBenchmark:
                     failing_metrics.append(f"{metric}: {diff:+.2f}%")
 
         if failing_metrics:
-            print(f"\n❌ FAIL: SQLModelLoader exceeds 10% threshold")
-            print(f"\nFailing Metrics:")
+            print("\n❌ FAIL: SQLModelLoader exceeds 10% threshold")
+            print("\nFailing Metrics:")
             for metric in failing_metrics:
                 print(f"  - {metric}")
         else:
-            print(f"\n✅ PASS: SQLModelLoader within 10% performance threshold")
+            print("\n✅ PASS: SQLModelLoader within 10% performance threshold")
             print(f"\nMaximum difference: {max_diff:+.2f}%")
 
         print("\n" + "=" * 80)
 
-    def save_results(self, comparison: Dict, output_dir: str = "."):
+    def save_results(self, comparison: dict, output_dir: str = "."):
         """Save results to JSON file"""
         output_path = Path(output_dir) / "benchmark_results.json"
 

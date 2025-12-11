@@ -8,9 +8,8 @@ This script shows:
 3. How to use the feature flag
 """
 
-import os
-import sys
 from pathlib import Path
+
 
 def show_settings_implementation():
     """Show the feature flag in settings.py"""
@@ -19,7 +18,7 @@ def show_settings_implementation():
     print("=" * 60)
 
     settings_file = Path(__file__).parent.parent / "config" / "settings.py"
-    with open(settings_file, 'r') as f:
+    with open(settings_file) as f:
         lines = f.readlines()
 
     # Show the SQLModel migration section
@@ -40,7 +39,7 @@ def show_pipeline_implementation():
     print("=" * 60)
 
     pipeline_file = Path(__file__).parent.parent / "core" / "pipeline.py"
-    with open(pipeline_file, 'r') as f:
+    with open(pipeline_file) as f:
         content = f.read()
 
     # Show imports

@@ -6,7 +6,6 @@ Uses JSON file for state persistence with in-memory caching
 import json
 import logging
 from pathlib import Path
-from typing import Set
 
 from models.reddit import RedditSubmission
 
@@ -40,7 +39,7 @@ class StagingLayer:
         self.state_file = self.staging_dir / "processed.json"
 
         # In-memory cache for fast lookups
-        self.processed_ids: Set[str] = set()
+        self.processed_ids: set[str] = set()
 
         # Load existing state if available
         self._load_state()
@@ -51,7 +50,7 @@ class StagingLayer:
         """Load processed IDs from JSON file"""
         try:
             if self.state_file.exists():
-                with open(self.state_file, 'r', encoding='utf-8') as f:
+                with open(self.state_file, encoding='utf-8') as f:
                     state_data = json.load(f)
                     self.processed_ids = set(state_data.get('processed_ids', []))
                 logger.info(f"✓ Loaded {len(self.processed_ids)} processed IDs from {self.state_file}")
@@ -105,7 +104,7 @@ class StagingLayer:
             self._save_state()
             logger.info(f"✓ Checkpointed {len(new_ids)} new submissions (total: {len(self.processed_ids)})")
         else:
-            logger.debug(f"✓ No new submissions to checkpoint")
+            logger.debug("✓ No new submissions to checkpoint")
 
     def checkpoint_single(self, submission: RedditSubmission) -> None:
         """

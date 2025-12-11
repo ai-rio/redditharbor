@@ -4,13 +4,13 @@ SQLModel database configuration and session management for RedditHarbor
 """
 
 import logging
-from typing import Generator, Optional
+from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
-from sqlmodel import SQLModel, Session
+from sqlmodel import Session, SQLModel
 
 from config.settings import get_settings
 
@@ -18,8 +18,8 @@ from config.settings import get_settings
 logger = logging.getLogger(__name__)
 
 # Global engine singleton
-_engine: Optional[Engine] = None
-_SessionLocal: Optional[sessionmaker] = None
+_engine: Engine | None = None
+_SessionLocal: sessionmaker | None = None
 
 
 def get_engine() -> Engine:
@@ -52,7 +52,7 @@ def get_engine() -> Engine:
             **engine_kwargs
         )
 
-        logger.info(f"Created database engine for PostgreSQL")
+        logger.info("Created database engine for PostgreSQL")
 
     return _engine
 

@@ -7,10 +7,10 @@ import logging
 
 import psycopg2
 import psycopg2.pool
-from load.loader_factory import BaseLoader
 from psycopg2.extras import Json
 
 from config.settings import get_settings
+from load.loader_factory import BaseLoader
 from models.analysis import Opportunity
 
 logger = logging.getLogger(__name__)

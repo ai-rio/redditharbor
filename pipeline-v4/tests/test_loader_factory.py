@@ -4,20 +4,20 @@ Tests for the Loader Factory Pattern implementation.
 Tests ensure proper factory behavior, loader selection, and error handling.
 """
 
-import pytest
-from unittest.mock import Mock, patch
-from typing import Optional
+from unittest.mock import patch
 
+import pytest
+
+from config.settings import Settings
 from load.loader_factory import (
     BaseLoader,
-    get_loader,
     LoaderType,
-    create_loader_by_type
+    create_loader_by_type,
+    get_loader,
 )
 from load.postgres_loader import PostgresLoader
 from load.sqlmodel_loader import SQLModelLoader
 from models.analysis import Opportunity
-from config.settings import Settings
 
 
 class MockLoader(BaseLoader):

@@ -10,10 +10,10 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.pipeline import Pipeline, PipelineResults
+from datetime import UTC, datetime
+
+from core.pipeline import Pipeline
 from models.reddit import RedditSubmission
-from models.analysis import AnalysisResult, AppIdea, MarketMetrics
-from datetime import datetime, UTC
 
 # Configure logging
 logging.basicConfig(
@@ -51,7 +51,7 @@ def test_pipeline_with_mock_data():
         )
 
         logger.info(f"Created mock submission: {mock_submission.title}")
-        logger.info(f"✓ Mock submission validation passed")
+        logger.info("✓ Mock submission validation passed")
         return True
     except Exception as e:
         logger.error(f"✗ Mock submission test failed: {e}")

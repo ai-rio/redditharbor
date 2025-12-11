@@ -1,9 +1,8 @@
-from logging.config import fileConfig
 import sys
+from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
@@ -12,7 +11,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 # Import SQLModel and the Opportunity model
 from sqlmodel import SQLModel
-from models.analysis import Opportunity
+
 from config.settings import get_settings
 
 # Get settings to access database URL

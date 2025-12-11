@@ -9,16 +9,15 @@ ORM for type safety and maintainability.
 import logging
 import threading
 from datetime import UTC, datetime
-from typing import Any, Optional
+from typing import Any
 
-from database import get_db_session, get_engine, get_session
-from load.loader_factory import BaseLoader
 from sqlalchemy import bindparam
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
-from sqlalchemy.orm import joinedload
 from sqlmodel import Session, select
 
 from config.settings import get_settings
+from database import get_db_session, get_engine, get_session
+from load.loader_factory import BaseLoader
 from models.analysis import Opportunity
 
 logger = logging.getLogger(__name__)

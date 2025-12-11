@@ -3,17 +3,17 @@
 Example usage of the staging layer for deduplication
 """
 
-import sys
-from pathlib import Path
 import logging
+import sys
 from datetime import UTC, datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from models.reddit import RedditSubmission
 from core.staging import StagingLayer
+from models.reddit import RedditSubmission
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -82,7 +82,7 @@ def main():
 
     # Show statistics
     stats = staging.get_statistics()
-    logger.info(f"\nStaging Statistics:")
+    logger.info("\nStaging Statistics:")
     logger.info(f"  Total processed: {stats['processed_count']}")
     logger.info(f"  State file: {stats['state_file']}")
     logger.info(f"  Directory: {stats['staging_directory']}")
@@ -111,7 +111,7 @@ def main():
 
     # Final statistics
     final_stats = staging.get_statistics()
-    logger.info(f"\nFinal Statistics:")
+    logger.info("\nFinal Statistics:")
     logger.info(f"  Total processed: {final_stats['processed_count']}")
 
     # Uncomment to clear the staging state

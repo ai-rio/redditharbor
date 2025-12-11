@@ -4,13 +4,13 @@ Tests for staging layer deduplication
 
 import json
 import tempfile
-from pathlib import Path
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
-from models.reddit import RedditSubmission
 from core.staging import StagingLayer
+from models.reddit import RedditSubmission
 
 
 @pytest.fixture
@@ -91,7 +91,7 @@ def test_checkpoint_single(staging_layer, sample_submission):
     assert state_file.exists()
 
     # Verify state file content
-    with open(state_file, 'r') as f:
+    with open(state_file) as f:
         state_data = json.load(f)
         assert sample_submission.id in state_data['processed_ids']
         assert state_data['count'] == 1
@@ -124,7 +124,7 @@ def test_checkpoint_multiple(staging_layer):
         assert sub.id in staging_layer.processed_ids
 
     # Verify state file
-    with open(staging_layer.state_file, 'r') as f:
+    with open(staging_layer.state_file) as f:
         state_data = json.load(f)
         assert state_data['count'] == 5
 

@@ -3,13 +3,14 @@ LLM-based opportunity analyzer using LiteLLM
 Supports OpenAI, Anthropic, OpenRouter, and other providers
 """
 
-import logging
 import json
-from typing import Any
+import logging
+
 import litellm
-from models.reddit import RedditSubmission
-from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+
 from config.settings import get_settings
+from models.analysis import AnalysisResult
+from models.reddit import RedditSubmission
 
 logger = logging.getLogger(__name__)
 

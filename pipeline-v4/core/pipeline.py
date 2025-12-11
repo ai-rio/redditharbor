@@ -6,15 +6,13 @@ Coordinates Reddit extraction, LLM analysis, and database storage
 import logging
 import time
 from dataclasses import dataclass
-from typing import List, Union
 
-from extract.reddit_client import RedditClient
-from transform.analyzer import OpportunityAnalyzer
-from load.loader_factory import BaseLoader, get_loader
-from core.staging import StagingLayer
-from models.reddit import RedditSubmission
-from models.analysis import AnalysisResult
 from config.settings import get_settings
+from core.staging import StagingLayer
+from extract.reddit_client import RedditClient
+from load.loader_factory import BaseLoader, get_loader
+from models.analysis import AnalysisResult
+from transform.analyzer import OpportunityAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +58,7 @@ class Pipeline:
 
     def run(
         self,
-        subreddits: List[str] | None = None,
+        subreddits: list[str] | None = None,
         limit: int | None = None
     ) -> PipelineResults:
         """
@@ -101,7 +99,7 @@ class Pipeline:
 
             # STAGE 2: Transform with LLM
             logger.info("Stage 2: Analyzing with LLM...")
-            analyses: List[AnalysisResult] = []
+            analyses: list[AnalysisResult] = []
 
             for submission in submissions:
                 # Check deduplication

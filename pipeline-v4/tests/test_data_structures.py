@@ -12,8 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import only the specific classes we need
 from dataclasses import dataclass
-from typing import List
-from datetime import datetime, UTC
+
 
 # Define PipelineResults inline to avoid dependency issues
 @dataclass
@@ -46,7 +45,7 @@ def test_pipeline_results():
             errors=1
         )
 
-        logger.info(f"✓ PipelineResults created successfully:")
+        logger.info("✓ PipelineResults created successfully:")
         logger.info(f"  Total Time: {results.total_time}s")
         logger.info(f"  Submissions Fetched: {results.submissions_fetched}")
         logger.info(f"  Analyses Completed: {results.analyses_completed}")

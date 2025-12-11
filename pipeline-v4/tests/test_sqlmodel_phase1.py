@@ -2,8 +2,10 @@
 Comprehensive tests for SQLModel Phase 1 implementation
 """
 
-import pytest
 from datetime import UTC, datetime
+
+import pytest
+
 from models.analysis import Opportunity
 
 

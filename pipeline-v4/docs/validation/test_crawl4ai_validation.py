@@ -3,10 +3,11 @@ Test web research validation using crawl4ai
 Final version with proper error handling
 """
 
-import json
-import httpx
 import asyncio
+import json
 from datetime import datetime
+
+import httpx
 
 CRAWL4AI_API = "http://localhost:11235"
 
@@ -55,12 +56,12 @@ async def crawl_urls(urls: list) -> dict:
                     "remove_overlay_elements": True
                 }
             }
-            
+
             response = await client.post(
                 f"{CRAWL4AI_API}/crawl",
                 json=payload
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return {
@@ -84,15 +85,15 @@ async def validate_metric(metric: str, urls: list, llm_score: int) -> dict:
     print(f"🔍 {metric.upper()} (LLM Score: {llm_score}/100)")
     print(f"{'='*70}")
     print(f"Crawling {len(urls)} URLs...")
-    
+
     result = await crawl_urls(urls)
-    
+
     if result["success"]:
         results = result.get("results", [])
         successful = [r for r in results if r.get("success", False)]
-        
+
         print(f"✅ Crawl completed: {len(successful)}/{len(results)} successful")
-        
+
         analysis = {
             "metric": metric,
             "llm_score": llm_score,
@@ -101,11 +102,11 @@ async def validate_metric(metric: str, urls: list, llm_score: int) -> dict:
             "success_rate": (len(successful) / len(urls) * 100) if urls else 0,
             "findings": []
         }
-        
+
         for i, crawl_result in enumerate(successful):
             markdown = crawl_result.get("markdown", "")
             preview = markdown[:150] if isinstance(markdown, str) else ""
-            
+
             finding = {
                 "url": crawl_result.get("url", ""),
                 "title": crawl_result.get("metadata", {}).get("title", ""),
@@ -114,7 +115,7 @@ async def validate_metric(metric: str, urls: list, llm_score: int) -> dict:
             }
             analysis["findings"].append(finding)
             print(f"  ✓ {crawl_result.get('url', '')} ({finding['content_length']} chars)")
-        
+
         return analysis
     else:
         print(f"❌ Crawl failed: {result.get('error')}")
@@ -132,28 +133,28 @@ async def run_validation():
     print("="*80)
     print(f"Opportunity: {opportunity['title']}")
     print(f"Started: {datetime.now().isoformat()}")
-    print(f"Tool: crawl4ai (Docker API on port 11235)")
-    
+    print("Tool: crawl4ai (Docker API on port 11235)")
+
     all_results = {
         "opportunity": opportunity,
         "validation_started": datetime.now().isoformat(),
         "metrics": {}
     }
-    
+
     # Validate each metric
     for metric, urls in research_urls.items():
         llm_score = opportunity["llm_scores"][metric]
         result = await validate_metric(metric, urls, llm_score)
         all_results["metrics"][metric] = result
-    
+
     # Summary
     print("\n" + "="*80)
     print("VALIDATION SUMMARY")
     print("="*80)
-    
+
     total_urls = sum(len(urls) for urls in research_urls.values())
     total_successful = sum(r.get("successful_crawls", 0) for r in all_results["metrics"].values())
-    
+
     for metric, result in all_results["metrics"].items():
         if result.get("success", False):
             success_rate = result["success_rate"]
@@ -161,15 +162,15 @@ async def run_validation():
             print(f"{status} {metric:25s} | LLM: {result['llm_score']:2d}/100 | Coverage: {success_rate:5.1f}%")
         else:
             print(f"❌ {metric:25s} | Error: {result.get('error', 'Unknown')}")
-    
+
     print(f"\n📊 OVERALL: {total_successful}/{total_urls} URLs successfully crawled ({total_successful/total_urls*100:.1f}%)")
-    
+
     # Save results
     with open("/tmp/web_research_results_final.json", "w") as f:
         json.dump(all_results, f, indent=2)
-    
-    print(f"📁 Detailed results saved to: /tmp/web_research_results_final.json")
-    
+
+    print("📁 Detailed results saved to: /tmp/web_research_results_final.json")
+
     # Show findings summary
     print("\n" + "="*80)
     print("VALIDATION FINDINGS")
@@ -183,7 +184,7 @@ This test demonstrates:
 
 What was validated:
 - Market Demand:         Wikipedia + Reddit docs on moderation
-- Pain Intensity:        r/modhelp discussions + toolbox repos  
+- Pain Intensity:        r/modhelp discussions + toolbox repos
 - Monetization Potential: ProductHunt + competitors
 - Technical Feasibility: spaCy + NLTK libraries
 - Competition Level:     GitHub + AlternativeTo
@@ -204,4 +205,3 @@ Each metric would get a "validation_confidence" score based on:
 
 if __name__ == "__main__":
     asyncio.run(run_validation())
-

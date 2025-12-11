@@ -1,0 +1,78 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: debug-statements
+      - id: detect-private-key
+      # Prevent Python cache files from being committed
+      - id: check-ast
+      - id: check-byte-order-marker
+      # Prevent .pyc files and __pycache__ directories
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: prevent-cache-commits
+        name: Prevent Python cache commits
+        entry: |
+          bash -c '
+          echo "Checking for Python cache files..."
+          if git diff --cached --name-only | grep -E "(\.pyc$|__pycache__)" > /dev/null; then
+            echo "ERROR: Python cache files (.pyc, __pycache__) detected in staged files!"
+            echo "Please remove them from your commit:"
+            echo "  find . -name \"*.pyc\" -delete"
+            echo "  find . -type d -name \"__pycache__\" -exec rm -rf {} + 2>/dev/null || true"
+            exit 1
+          else
+            echo "No Python cache files found. ✓"
+          fi
+          '
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: prevent-env-commits
+        name: Prevent environment file commits
+        entry: |
+          bash -c '
+          echo "Checking for environment files..."
+          if git diff --cached --name-only | grep -E "(\.env\.|\.key$|\.pem$|secrets\.py|credentials\.py)" > /dev/null; then
+            echo "ERROR: Sensitive files detected in staged files!"
+            echo "Environment files, keys, and credentials should not be committed."
+            exit 1
+          else
+            echo "No sensitive files found. ✓"
+          fi
+          '
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+# Global configuration
+default_language_version:
+  python: python3.12
+
+# Fail fast - stop on first hook failure
+fail_fast: false
+
+# Minimum pre-commit version
+minimum_pre_commit_version: 3.0.0

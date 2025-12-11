@@ -3,12 +3,11 @@ Loader Factory Pattern Implementation
 Provides clean abstraction and decoupling for database loaders following SOLID principles.
 """
 
-from abc import ABC, abstractmethod
-from typing import Union
 import logging
+from abc import ABC, abstractmethod
 
-from models.analysis import Opportunity
 from config.settings import Settings, get_settings
+from models.analysis import Opportunity
 
 logger = logging.getLogger(__name__)
 
@@ -155,11 +154,11 @@ def create_loader_by_type(loader_type: str, settings: Settings = None) -> BaseLo
 
     try:
         if loader_type == LoaderType.SQLMODEL:
-            logger.info(f"Creating SQLModel loader by type request")
+            logger.info("Creating SQLModel loader by type request")
             from load.sqlmodel_loader import SQLModelLoader
             return SQLModelLoader(settings)
         else:  # POSTGRES
-            logger.info(f"Creating PostgreSQL loader by type request")
+            logger.info("Creating PostgreSQL loader by type request")
             from load.postgres_loader import PostgresLoader
             return PostgresLoader(settings)
 

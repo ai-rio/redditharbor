@@ -3,7 +3,7 @@ Pipeline V4 Configuration
 Centralized settings with environment variable support
 """
 
-from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings
 

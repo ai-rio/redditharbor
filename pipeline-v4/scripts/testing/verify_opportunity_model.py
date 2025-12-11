@@ -9,8 +9,8 @@ with the SQLModel database integration.
 
 import logging
 import sys
-from datetime import datetime, UTC
-from typing import Dict, Any
+from datetime import UTC, datetime
+from typing import Any
 
 # Configure logging
 logging.basicConfig(
@@ -24,7 +24,7 @@ def test_imports():
     logger.info("Testing imports...")
 
     try:
-        from database import get_db_session, create_db_and_tables, init_db
+        from database import create_db_and_tables, get_db_session, init_db
         logger.info("✓ Database module imported successfully")
     except ImportError as e:
         logger.error(f"✗ Failed to import database module: {e}")
@@ -44,8 +44,9 @@ def test_database_connection():
     logger.info("Testing database connection...")
 
     try:
-        from database import init_db, get_engine
         from sqlalchemy import text
+
+        from database import get_engine, init_db
 
         # Initialize database with tables
         init_db(echo=False, use_alembic=False)
@@ -64,7 +65,7 @@ def test_database_connection():
         logger.error(f"✗ Database connection failed: {e}")
         return False
 
-def create_test_opportunity_data() -> Dict[str, Any]:
+def create_test_opportunity_data() -> dict[str, Any]:
     """Create comprehensive test data for Opportunity model"""
     return {
         "submission_id": "test_opp_12345",
@@ -286,8 +287,8 @@ def test_edge_cases():
     logger.info("Testing edge cases...")
 
     try:
-        from models.analysis import Opportunity
         from database import get_db_session
+        from models.analysis import Opportunity
 
         # Test minimal opportunity (wtp_score is required)
         minimal_opp = Opportunity(
@@ -323,7 +324,7 @@ def test_edge_cases():
             )
             # If we get here, validation didn't work
             logger.warning("⚠ Trust level validation not triggered (known SQLModel/Pydantic issue)")
-        except ValueError as e:
+        except ValueError:
             logger.info("✓ Trust level validation working correctly")
 
         return True
@@ -337,8 +338,8 @@ def test_json_serialization():
     logger.info("Testing JSON serialization...")
 
     try:
-        from models.analysis import Opportunity
         from database import get_db_session
+        from models.analysis import Opportunity
 
         # Create opportunity with complex nested JSON
         complex_opp = Opportunity(

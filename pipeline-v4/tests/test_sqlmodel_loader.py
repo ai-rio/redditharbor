@@ -11,30 +11,29 @@ These tests are written following TDD methodology:
 Test Count Target: Minimum 17 tests covering all requirements
 """
 
-import pytest
+import logging
 import threading
 import time
-import logging
-from datetime import datetime, UTC
-from typing import List, Optional
-from unittest.mock import Mock, patch, MagicMock
+from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 logger = logging.getLogger(__name__)
 
 # SQLModel and database imports
-from sqlmodel import Session, SQLModel, create_engine, select
-from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
-from sqlalchemy.pool import QueuePool
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+from sqlmodel import Session, SQLModel, create_engine, select
 
-# Project imports
-from models.analysis import Opportunity, MarketMetrics, AppIdea
-from database import get_db_session, get_engine, get_session
+from database import get_db_session, get_engine
 
 # This import WILL FAIL because SQLModelLoader doesn't exist yet
 # This is INTENTIONAL - TDD RED phase
 from load.sqlmodel_loader import SQLModelLoader
+
+# Project imports
+from models.analysis import Opportunity
 
 
 class TestSQLModelLoaderBasicFunctionality:

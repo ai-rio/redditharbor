@@ -10,10 +10,11 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from models.reddit import RedditSubmission
-from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from datetime import UTC, datetime
+
 from core.pipeline import PipelineResults
-from datetime import datetime, UTC
+from models.analysis import AnalysisResult, AppIdea, MarketMetrics
+from models.reddit import RedditSubmission
 
 # Configure logging
 logging.basicConfig(
@@ -35,7 +36,7 @@ def test_pipeline_results():
             errors=1
         )
 
-        logger.info(f"✓ PipelineResults created:")
+        logger.info("✓ PipelineResults created:")
         logger.info(f"  Time: {results.total_time}s")
         logger.info(f"  Fetched: {results.submissions_fetched}")
         logger.info(f"  Analyzed: {results.analyses_completed}")
@@ -64,7 +65,7 @@ def test_mock_submission():
             permalink="https://reddit.com/r/productivity/abc123"
         )
 
-        logger.info(f"✓ Mock submission created:")
+        logger.info("✓ Mock submission created:")
         logger.info(f"  ID: {submission.id}")
         logger.info(f"  Title: {submission.title}")
         logger.info(f"  Score: {submission.score}")
@@ -109,7 +110,7 @@ def test_mock_analysis():
             analyzed_at=datetime.now(UTC)
         )
 
-        logger.info(f"✓ Mock analysis created:")
+        logger.info("✓ Mock analysis created:")
         logger.info(f"  Final Score: {analysis.final_score}")
         logger.info(f"  WTP Score: {analysis.wtp_score}")
         logger.info(f"  Trust Level: {analysis.trust_level}")

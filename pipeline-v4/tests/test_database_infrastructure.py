@@ -5,31 +5,26 @@ Comprehensive tests for database engine creation, session management,
 connection pooling, and transaction handling.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, call
-from contextlib import contextmanager
-from datetime import datetime, UTC
+from unittest.mock import MagicMock, patch
 
+import pytest
 import sqlalchemy
-from sqlalchemy import create_engine, text, inspect
-from sqlalchemy.exc import OperationalError, TimeoutError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import QueuePool
 from sqlmodel import SQLModel
 
 import database
+from config.settings import Settings
 from database import (
-    get_engine,
     create_db_and_tables,
-    get_session,
     get_db_session,
+    get_engine,
+    get_session,
     get_session_dependency,
     init_db,
-    _engine,
-    _SessionLocal
 )
 from models.analysis import Opportunity
-from config.settings import Settings
 
 
 @pytest.fixture

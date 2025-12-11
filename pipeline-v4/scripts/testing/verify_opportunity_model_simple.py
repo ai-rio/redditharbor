@@ -9,8 +9,7 @@ with the SQLModel database integration.
 
 import logging
 import sys
-from datetime import datetime, UTC
-from typing import Dict, Any
+from datetime import UTC, datetime
 
 # Configure logging
 logging.basicConfig(
@@ -24,7 +23,7 @@ def test_imports():
     logger.info("Testing imports...")
 
     try:
-        from database import get_db_session, create_db_and_tables, init_db
+        from database import create_db_and_tables, get_db_session, init_db
         logger.info("✓ Database module imported successfully")
     except ImportError as e:
         logger.error(f"✗ Failed to import database module: {e}")
@@ -44,8 +43,9 @@ def test_database_connection():
     logger.info("Testing database connection...")
 
     try:
-        from database import init_db, get_engine
         from sqlalchemy import text
+
+        from database import get_engine, init_db
 
         # Initialize database with tables
         init_db(echo=False, use_alembic=False)
@@ -221,8 +221,8 @@ def test_edge_cases():
     logger.info("Testing edge cases...")
 
     try:
-        from models.analysis import Opportunity
         from database import get_db_session
+        from models.analysis import Opportunity
 
         # Test minimal opportunity
         minimal_opp = Opportunity(
@@ -260,8 +260,8 @@ def test_json_serialization():
     logger.info("Testing JSON serialization...")
 
     try:
-        from models.analysis import Opportunity
         from database import get_db_session
+        from models.analysis import Opportunity
 
         # Create opportunity with complex nested JSON
         complex_opp = Opportunity(
@@ -343,8 +343,8 @@ def run_existing_tests():
     logger.info("Running existing SQLModel tests...")
 
     try:
-        import subprocess
         import os
+        import subprocess
 
         # Run SQLModel Phase 1 tests
         result = subprocess.run(
