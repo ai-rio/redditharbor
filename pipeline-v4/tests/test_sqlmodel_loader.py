@@ -50,7 +50,7 @@ class TestSQLModelLoaderBasicFunctionality:
             wtp_score=75.0,
             trust_level="HIGH",
             analysis={"app_idea": {"title": "Test App"}},
-            metrics={"market_demand": 85.0}
+            metrics={"market_demand": 85.0},
         )
 
         # Act
@@ -68,7 +68,7 @@ class TestSQLModelLoaderBasicFunctionality:
             # Missing submission_id
             subreddit="test",
             title="Test",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
 
         # Act & Assert
@@ -80,10 +80,7 @@ class TestSQLModelLoaderBasicFunctionality:
         # Arrange
         loader = SQLModelLoader()
         opp = Opportunity(
-            submission_id="test_456",
-            subreddit="test",
-            title="Test",
-            wtp_score=50.0
+            submission_id="test_456", subreddit="test", title="Test", wtp_score=50.0
         )
         opp.trust_level = "INVALID"  # Set invalid trust level after creation
 
@@ -104,15 +101,15 @@ class TestSQLModelLoaderBasicFunctionality:
                 "market_demand": 80.0,
                 "pain_intensity": 70.0,
                 "monetization_potential": 90.0,
-                "technical_feasibility": 60.0
-            }
+                "technical_feasibility": 60.0,
+            },
         )
 
         # Act
         loader.save_opportunity(opp)
 
         # Assert - Final score should be weighted average
-        expected_final = (80.0 * 0.3 + 70.0 * 0.25 + 90.0 * 0.25 + 60.0 * 0.2)
+        expected_final = 80.0 * 0.3 + 70.0 * 0.25 + 90.0 * 0.25 + 60.0 * 0.2
         assert opp.final_score == expected_final
 
     def test_save_opportunity_updates_timestamps(self):
@@ -125,7 +122,7 @@ class TestSQLModelLoaderBasicFunctionality:
             submission_id="test_timestamps",
             subreddit="test",
             title="Test",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
 
         # Act
@@ -153,7 +150,7 @@ class TestSQLModelLoaderDuplicateHandling:
             submission_id="duplicate_test",
             subreddit="test",
             title="First Save",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
 
         # Save first opportunity
@@ -165,7 +162,7 @@ class TestSQLModelLoaderDuplicateHandling:
             submission_id="duplicate_test",  # Same ID
             subreddit="test",
             title="Second Save",
-            wtp_score=60.0
+            wtp_score=60.0,
         )
 
         # Act
@@ -183,7 +180,7 @@ class TestSQLModelLoaderDuplicateHandling:
             submission_id="CaseSensitive",
             subreddit="test",
             title="First",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
         loader.save_opportunity(opp1)
 
@@ -191,7 +188,7 @@ class TestSQLModelLoaderDuplicateHandling:
             submission_id="casesensitive",  # Different case
             subreddit="test",
             title="Second",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
 
         # Act
@@ -208,10 +205,7 @@ class TestSQLModelLoaderDuplicateHandling:
 
         # Save first
         opp1 = Opportunity(
-            submission_id=submission_id,
-            subreddit="test",
-            title="First",
-            wtp_score=50.0
+            submission_id=submission_id, subreddit="test", title="First", wtp_score=50.0
         )
         loader.save_opportunity(opp1)
 
@@ -220,7 +214,7 @@ class TestSQLModelLoaderDuplicateHandling:
             submission_id=submission_id,
             subreddit="test",
             title="Second",
-            wtp_score=60.0
+            wtp_score=60.0,
         )
         loader.save_opportunity(opp2)
 
@@ -247,7 +241,7 @@ class TestSQLModelLoaderDuplicateHandling:
             submission_id="cross_subreddit",
             subreddit="programming",
             title="In Programming",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
         loader.save_opportunity(opp1)
 
@@ -255,7 +249,7 @@ class TestSQLModelLoaderDuplicateHandling:
             submission_id="cross_subreddit",  # Same ID
             subreddit="productivity",  # Different subreddit
             title="In Productivity",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
 
         # Act
@@ -271,18 +265,12 @@ class TestSQLModelLoaderDuplicateHandling:
 
         # Test None
         opp_none = Opportunity(
-            submission_id=None,
-            subreddit="test",
-            title="Test",
-            wtp_score=50.0
+            submission_id=None, subreddit="test", title="Test", wtp_score=50.0
         )
 
         # Test empty string
         opp_empty = Opportunity(
-            submission_id="",
-            subreddit="test",
-            title="Test",
-            wtp_score=50.0
+            submission_id="", subreddit="test", title="Test", wtp_score=50.0
         )
 
         # Act & Assert
@@ -302,7 +290,7 @@ class TestSQLModelLoaderTransactionHandling:
         loader = SQLModelLoader()
 
         # Mock database to raise error during commit
-        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
+        with patch("load.sqlmodel_loader.get_session") as mock_get_session:
             mock_session = MagicMock()
             # Return session from generator
             mock_get_session.return_value = iter([mock_session])
@@ -317,7 +305,7 @@ class TestSQLModelLoaderTransactionHandling:
                 submission_id="rollback_test",
                 subreddit="test",
                 title="Should Roll Back",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
 
             # Act & Assert
@@ -338,7 +326,7 @@ class TestSQLModelLoaderTransactionHandling:
         # Arrange
         loader = SQLModelLoader()
 
-        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
+        with patch("load.sqlmodel_loader.get_session") as mock_get_session:
             mock_session = MagicMock()
 
             # Return session from generator
@@ -356,7 +344,7 @@ class TestSQLModelLoaderTransactionHandling:
                 submission_id="cleanup_test",
                 subreddit="test",
                 title="Test",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
 
             # Act & Assert
@@ -371,7 +359,7 @@ class TestSQLModelLoaderTransactionHandling:
         # Arrange
         loader = SQLModelLoader()
 
-        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
+        with patch("load.sqlmodel_loader.get_session") as mock_get_session:
             # Configure to raise connection error when creating session
             mock_get_session.side_effect = OperationalError(
                 "connection failed", "mock", "mock"
@@ -381,7 +369,7 @@ class TestSQLModelLoaderTransactionHandling:
                 submission_id="connection_error_test",
                 subreddit="test",
                 title="Test",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
 
             # Act & Assert
@@ -393,7 +381,7 @@ class TestSQLModelLoaderTransactionHandling:
         # Arrange
         loader = SQLModelLoader()
 
-        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
+        with patch("load.sqlmodel_loader.get_session") as mock_get_session:
             mock_session = MagicMock()
             # Return session from generator
             mock_get_session.return_value = iter([mock_session])
@@ -410,7 +398,7 @@ class TestSQLModelLoaderTransactionHandling:
                 submission_id="sqlalchemy_error_test",
                 subreddit="test",
                 title="Test",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
 
             # Act & Assert
@@ -432,7 +420,7 @@ class TestSQLModelLoaderBatchOperations:
                 submission_id=f"batch_test_{i}",
                 subreddit="test",
                 title=f"Batch Test {i}",
-                wtp_score=float(50 + i * 10)
+                wtp_score=float(50 + i * 10),
             )
             opportunities.append(opp)
 
@@ -473,7 +461,7 @@ class TestSQLModelLoaderBatchOperations:
                 submission_id=f"perf_test_{i}",
                 subreddit="test",
                 title=f"Performance Test {i}",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
             loader.save_opportunity(opp)
 
@@ -492,7 +480,7 @@ class TestSQLModelLoaderConnectionPooling:
         loader = SQLModelLoader()
 
         # Mock get_session to raise OperationalError when called
-        with patch('load.sqlmodel_loader.get_session') as mock_get_session:
+        with patch("load.sqlmodel_loader.get_session") as mock_get_session:
             mock_get_session.side_effect = OperationalError(
                 "pool timeout", "mock", "mock"
             )
@@ -501,7 +489,7 @@ class TestSQLModelLoaderConnectionPooling:
                 submission_id="pool_exhaustion_test",
                 subreddit="test",
                 title="Test",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
 
             # Act & Assert
@@ -523,7 +511,7 @@ class TestSQLModelLoaderConnectionPooling:
                 submission_id=f"multi_conn_{i}",
                 subreddit="test",
                 title=f"Multi Connection Test {i}",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
             for i in range(3)
         ]
@@ -564,7 +552,7 @@ class TestSQLModelLoaderConcurrentWrites:
                     submission_id=submission_id,
                     subreddit="test",
                     title=f"Thread {thread_id}",
-                    wtp_score=50.0 + thread_id
+                    wtp_score=50.0 + thread_id,
                 )
                 result = loader.save_opportunity(opp)
                 results.append((thread_id, result))
@@ -594,7 +582,9 @@ class TestSQLModelLoaderConcurrentWrites:
         failed_results = [r for r in results if r[1] is False]
 
         # At least one should succeed
-        assert len(successful) >= 1, f"Expected at least one successful write, got: {len(successful)}"
+        assert (
+            len(successful) >= 1
+        ), f"Expected at least one successful write, got: {len(successful)}"
 
         # Verify total outcomes = 5 (successes + failures + exceptions)
         total_outcomes = len(successful) + len(failed_results) + len(errors)
@@ -603,9 +593,7 @@ class TestSQLModelLoaderConcurrentWrites:
         # Verify only one record in database
         with get_db_session() as session:
             records = session.exec(
-                select(Opportunity).where(
-                    Opportunity.submission_id == submission_id
-                )
+                select(Opportunity).where(Opportunity.submission_id == submission_id)
             ).all()
         assert len(records) == 1
 
@@ -623,7 +611,7 @@ class TestSQLModelLoaderConcurrentWrites:
                     submission_id=f"concurrent_diff_{thread_id}",
                     subreddit="test",
                     title=f"Thread {thread_id}",
-                    wtp_score=50.0
+                    wtp_score=50.0,
                 )
                 result = loader.save_opportunity(opp)
                 results.append((thread_id, result))
@@ -672,7 +660,7 @@ class TestSQLModelLoaderConcurrentWrites:
                 submission_id=f"shared_loader_{thread_id}",
                 subreddit="test",
                 title=f"Shared Loader {thread_id}",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
             result = shared_loader.save_opportunity(opp)
             results.append(result)
@@ -703,12 +691,12 @@ class TestSQLModelLoaderLoggingAndMonitoring:
         loader = SQLModelLoader()
 
         # Patch the logger directly
-        with patch.object(loader, 'logger') as mock_logger:
+        with patch.object(loader, "logger") as mock_logger:
             opp = Opportunity(
                 submission_id="log_test_success",
                 subreddit="test",
                 title="Test",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
 
             # Act
@@ -730,17 +718,17 @@ class TestSQLModelLoaderLoggingAndMonitoring:
             submission_id="log_test_duplicate",
             subreddit="test",
             title="First",
-            wtp_score=50.0
+            wtp_score=50.0,
         )
         loader.save_opportunity(opp1)
 
         # Try to save duplicate
-        with patch.object(loader, 'logger') as mock_logger:
+        with patch.object(loader, "logger") as mock_logger:
             opp2 = Opportunity(
                 submission_id="log_test_duplicate",
                 subreddit="test",
                 title="Second",
-                wtp_score=50.0
+                wtp_score=50.0,
             )
 
             # Act
@@ -758,8 +746,8 @@ class TestSQLModelLoaderLoggingAndMonitoring:
         # Arrange
         loader = SQLModelLoader()
 
-        with patch.object(loader, 'logger') as mock_logger:
-            with patch('load.sqlmodel_loader.get_session') as mock_get_session:
+        with patch.object(loader, "logger") as mock_logger:
+            with patch("load.sqlmodel_loader.get_session") as mock_get_session:
                 mock_session = MagicMock()
                 # Return session from generator
                 mock_get_session.return_value = iter([mock_session])
@@ -776,7 +764,7 @@ class TestSQLModelLoaderLoggingAndMonitoring:
                     submission_id="log_test_error",
                     subreddit="test",
                     title="Test",
-                    wtp_score=50.0
+                    wtp_score=50.0,
                 )
 
                 # Act
@@ -800,7 +788,7 @@ class TestSQLModelLoaderConfiguration:
 
         # Assert
         assert loader.engine is not None
-        assert hasattr(loader, 'session_factory')
+        assert hasattr(loader, "session_factory")
 
     def test_custom_configuration_support(self):
         """Test that loader accepts custom configuration"""
@@ -861,7 +849,7 @@ def test_database():
     SQLModel.metadata.create_all(engine)
 
     # Patch the database module to use test engine
-    with patch('database.get_engine', return_value=engine):
+    with patch("database.get_engine", return_value=engine):
         yield engine
 
     # Cleanup
@@ -881,15 +869,15 @@ def sample_opportunity():
             "app_idea": {
                 "title": "Sample App",
                 "concept": "Test concept",
-                "problem": "Test problem"
+                "problem": "Test problem",
             }
         },
         metrics={
             "market_demand": 85.0,
             "pain_intensity": 70.0,
             "monetization_potential": 90.0,
-            "technical_feasibility": 80.0
-        }
+            "technical_feasibility": 80.0,
+        },
     )
 
 
