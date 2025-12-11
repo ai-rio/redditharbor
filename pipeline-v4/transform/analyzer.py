@@ -34,7 +34,9 @@ Analyze Reddit submissions to identify SaaS product opportunities.
 
 For each submission, provide a complete analysis matching the AnalysisResult schema:
 - app_idea: title, app_concept, problem_statement, core_functions (1-3), target_audience
-- market_metrics: market_demand, pain_intensity, monetization_potential, competition_level (0-100, higher=less competition), technical_feasibility
+- metrics: market_demand, pain_intensity, monetization_potential, competition_level (0-100, higher=less competition), technical_feasibility
+- pain_points: list of identified pain points (1-5 items)
+- opportunity_summary: Brief opportunity summary (50-500 chars)
 - final_score: Overall opportunity score (0-100)
 - wtp_score: Willingness-to-pay score (0-100)
 - confidence_score: Analysis confidence level (0-100)
@@ -113,13 +115,15 @@ Provide a complete JSON analysis with this structure:
         "core_functions": ["feature1", "feature2", "feature3"],
         "target_audience": "Specific target audience description (10-500 chars)"
     }},
-    "market_metrics": {{
+    "metrics": {{
         "market_demand": <0-100>,
         "pain_intensity": <0-100>,
         "monetization_potential": <0-100>,
         "competition_level": <0-100>,  // Higher = less competition
         "technical_feasibility": <0-100>
     }},
+    "pain_points": ["pain point 1", "pain point 2", "pain point 3"],
+    "opportunity_summary": "Brief summary of the opportunity (50-500 chars)",
     "final_score": <0-100>,
     "wtp_score": <0-100>,
     "confidence_score": <0-100>,
