@@ -33,11 +33,11 @@ from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlmodel import Session, select
 
 from database import get_db_session, get_engine
-from models.analysis import Opportunity
 
 # This import WILL FAIL because Loader doesn't exist yet
 # This is INTENTIONAL - TDD RED phase
 from load.loader import Loader
+from models.analysis import Opportunity
 
 logger = logging.getLogger(__name__)
 
@@ -454,7 +454,7 @@ class TestLoaderSaveAnalysis:
         loader = Loader()
 
         # Create a mock AnalysisResult object
-        from models.analysis import MarketMetrics, AppIdea
+        from models.analysis import AppIdea, MarketMetrics
 
         class MockAnalysisResult:
             def __init__(self):
