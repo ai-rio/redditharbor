@@ -35,6 +35,10 @@ ruff>=0.14.8
 typing-extensions>=4.15.0
 typing-inspection>=0.4.2
 annotated-types>=0.7.0
+pandas>=2.2.0
+
+# Dashboard & Visualization
+streamlit>=1.31.0
 
 # Utilities
 click>=8.3.1
