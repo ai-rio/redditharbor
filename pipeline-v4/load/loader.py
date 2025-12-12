@@ -1,9 +1,9 @@
 """
-SQLModel Loader for RedditHarbor Pipeline V4
-SQLModel-based database loader for Opportunity records
+Unified OpportunityLoader for RedditHarbor Pipeline V4
+Consolidated database loader for Opportunity records
 
-Provides the same interface as PostgresLoader while using SQLModel
-ORM for type safety and maintainability.
+This is the single, unified loader that consolidates all functionality from
+SQLModelLoader and provides a clean, production-ready interface.
 """
 
 import logging
@@ -17,32 +17,38 @@ from sqlmodel import Session, select
 
 from config.settings import get_settings
 from database import get_db_session, get_engine, get_session
-from load.loader_factory import BaseLoader
+from load.base import BaseLoader
 from models.analysis import Opportunity
 
 logger = logging.getLogger(__name__)
 
 
-class SQLModelLoader(BaseLoader):
+class Loader(BaseLoader):
     """
-    SQLModel-based database loader for Opportunity records.
+    Unified database loader for Opportunity records (OpportunityLoader).
 
-    Provides the same interface as PostgresLoader while using SQLModel
-    ORM for type safety and maintainability.
-
-    Performance optimizations:
+    This class consolidates all loader functionality with performance optimizations:
     - Session pooling/reuse to reduce session creation overhead
     - Eager attribute loading using SQLAlchemy options
     - Pre-compiled query patterns for common operations
+    - Comprehensive validation and error handling
+    - Transaction management with rollback support
+    - Thread-safe concurrent operations
+
+    This replaces both PostgresLoader and SQLModelLoader with a single,
+    production-ready implementation.
     """
 
     def __init__(self, settings=None):
         """Initialize the loader with database session management."""
         self.settings = settings or get_settings()
         self.engine = get_engine()
+
         # Create session factory for tests that expect it
         from sqlalchemy.orm import sessionmaker
+
         self.session_factory = sessionmaker(bind=self.engine, class_=Session)
+
         # Add logger attribute for tests
         self.logger = logger
 
@@ -54,18 +60,20 @@ class SQLModelLoader(BaseLoader):
         # Performance optimization: Pre-compiled queries
         self._init_compiled_queries()
 
-        logger.info("✓ SQLModel Loader initialized with performance optimizations")
+        logger.info(
+            "✓ Unified OpportunityLoader initialized with performance optimizations"
+        )
 
     def _init_compiled_queries(self):
         """Initialize pre-compiled query patterns for common operations."""
         # Pre-compile query for submission_id lookup
         self._select_by_submission_id = select(Opportunity).where(
-            Opportunity.submission_id == bindparam('submission_id')
+            Opportunity.submission_id == bindparam("submission_id")
         )
 
         # Pre-compile query for submission_id list lookup (duplicate detection)
         self._select_by_submission_ids = select(Opportunity).where(
-            Opportunity.submission_id.in_(bindparam('submission_ids', expanding=True))
+            Opportunity.submission_id.in_(bindparam("submission_ids", expanding=True))
         )
 
     def _get_or_create_session(self) -> Session:
@@ -111,7 +119,7 @@ class SQLModelLoader(BaseLoader):
 
         # Validate trust_level (Opportunity model already does this in __init__)
         # But we need to check again in case of direct instantiation
-        valid_levels = ['LOW', 'MEDIUM', 'HIGH']
+        valid_levels = ["LOW", "MEDIUM", "HIGH"]
         if opportunity.trust_level not in valid_levels:
             raise ValueError(f"Trust level must be one of {valid_levels}")
 
@@ -129,7 +137,9 @@ class SQLModelLoader(BaseLoader):
         if opportunity.metrics and not isinstance(opportunity.metrics, dict):
             raise ValueError("metrics field must be a dictionary")
 
-    def _handle_database_error(self, error: SQLAlchemyError, operation: str, submission_id: str = None) -> None:
+    def _handle_database_error(
+        self, error: SQLAlchemyError, operation: str, submission_id: str = None
+    ) -> None:
         """Centralized error handling with specific error types."""
 
         context = f" in {operation}"
@@ -151,7 +161,9 @@ class SQLModelLoader(BaseLoader):
                 logger.error(f"Database operation error{context}: {error}")
 
         else:
-            logger.error(f"Unexpected database error{context}: {type(error).__name__}: {error}")
+            logger.error(
+                f"Unexpected database error{context}: {type(error).__name__}: {error}"
+            )
 
     def save_opportunity(self, opportunity: Opportunity) -> bool:
         """
@@ -188,7 +200,9 @@ class SQLModelLoader(BaseLoader):
             # Check for duplicate using pre-compiled query
             self.logger.debug(f"Checking for duplicate: {opportunity.submission_id}")
             existing = session.exec(
-                self._select_by_submission_id.params(submission_id=opportunity.submission_id)
+                self._select_by_submission_id.params(
+                    submission_id=opportunity.submission_id
+                )
             ).first()
 
             if existing:
@@ -205,24 +219,34 @@ class SQLModelLoader(BaseLoader):
             # Detach object from session so we can access it after
             session.expunge(opportunity)
 
-            self.logger.info(f"✓ Saved opportunity {opportunity.submission_id} (ID: {opp_id})")
+            self.logger.info(
+                f"✓ Saved opportunity {opportunity.submission_id} (ID: {opp_id})"
+            )
             return True
 
         except IntegrityError as e:
             if session:
                 session.rollback()
             # Re-raise IntegrityError for tests
-            self._handle_database_error(e, "save_opportunity", opportunity.submission_id)
+            self._handle_database_error(
+                e, "save_opportunity", opportunity.submission_id
+            )
             raise
         except SQLAlchemyError as e:
             if session:
                 session.rollback()
-            self._handle_database_error(e, "save_opportunity", opportunity.submission_id)
-            raise RuntimeError(f"Failed to save opportunity {opportunity.submission_id}: {e}")
+            self._handle_database_error(
+                e, "save_opportunity", opportunity.submission_id
+            )
+            raise RuntimeError(
+                f"Failed to save opportunity {opportunity.submission_id}: {e}"
+            )
         except Exception as e:
             if session:
                 session.rollback()
-            self.logger.error(f"Unexpected error saving opportunity {opportunity.submission_id}: {e}")
+            self.logger.error(
+                f"Unexpected error saving opportunity {opportunity.submission_id}: {e}"
+            )
             raise
         finally:
             if session:
@@ -257,15 +281,17 @@ class SQLModelLoader(BaseLoader):
                 # Check all submission_ids at once using pre-compiled query
                 # Note: For expanding parameters, we need to use a slightly different approach
                 existing = session.exec(
-                    select(Opportunity)
-                    .where(Opportunity.submission_id.in_(submission_ids))
+                    select(Opportunity).where(
+                        Opportunity.submission_id.in_(submission_ids)
+                    )
                 ).all()
 
                 existing_ids = {opp.submission_id for opp in existing}
 
                 # Filter out duplicates
                 new_opportunities = [
-                    opp for opp in opportunities
+                    opp
+                    for opp in opportunities
                     if opp.submission_id not in existing_ids
                 ]
 
@@ -282,10 +308,14 @@ class SQLModelLoader(BaseLoader):
                     # Detach all opportunities so we can access them after session closes
                     for opp in new_opportunities:
                         session.expunge(opp)
-                        logger.debug(f"Saved opportunity {opp.submission_id} (ID: {opp.id})")
+                        logger.debug(
+                            f"Saved opportunity {opp.submission_id} (ID: {opp.id})"
+                        )
 
                     saved_count = len(new_opportunities)
-                    logger.info(f"✓ Batch saved {saved_count}/{len(opportunities)} opportunities")
+                    logger.info(
+                        f"✓ Batch saved {saved_count}/{len(opportunities)} opportunities"
+                    )
                 else:
                     logger.info("All opportunities were duplicates, none saved")
 
@@ -354,10 +384,20 @@ class SQLModelLoader(BaseLoader):
                 # Eagerly load attributes and detach all opportunities from session
                 for opp in opportunities:
                     # Access all attributes to load them
-                    _ = (opp.id, opp.submission_id, opp.subreddit, opp.title,
-                         opp.wtp_score, opp.final_score, opp.confidence_score,
-                         opp.trust_level, opp.analysis, opp.metrics,
-                         opp.created_at, opp.updated_at)
+                    _ = (
+                        opp.id,
+                        opp.submission_id,
+                        opp.subreddit,
+                        opp.title,
+                        opp.wtp_score,
+                        opp.final_score,
+                        opp.confidence_score,
+                        opp.trust_level,
+                        opp.analysis,
+                        opp.metrics,
+                        opp.created_at,
+                        opp.updated_at,
+                    )
                     session.expunge(opp)
 
                 return list(opportunities)
@@ -380,8 +420,9 @@ class SQLModelLoader(BaseLoader):
         try:
             with get_db_session() as session:
                 opportunity = session.exec(
-                    select(Opportunity)
-                    .where(Opportunity.submission_id == submission_id)
+                    select(Opportunity).where(
+                        Opportunity.submission_id == submission_id
+                    )
                 ).first()
 
                 if not opportunity:
@@ -414,8 +455,9 @@ class SQLModelLoader(BaseLoader):
         try:
             with get_db_session() as session:
                 opportunity = session.exec(
-                    select(Opportunity)
-                    .where(Opportunity.submission_id == submission_id)
+                    select(Opportunity).where(
+                        Opportunity.submission_id == submission_id
+                    )
                 ).first()
 
                 if not opportunity:
@@ -456,10 +498,20 @@ class SQLModelLoader(BaseLoader):
                 # Eagerly load attributes and detach all opportunities from session
                 for opp in opportunities:
                     # Access all attributes to load them
-                    _ = (opp.id, opp.submission_id, opp.subreddit, opp.title,
-                         opp.wtp_score, opp.final_score, opp.confidence_score,
-                         opp.trust_level, opp.analysis, opp.metrics,
-                         opp.created_at, opp.updated_at)
+                    _ = (
+                        opp.id,
+                        opp.submission_id,
+                        opp.subreddit,
+                        opp.title,
+                        opp.wtp_score,
+                        opp.final_score,
+                        opp.confidence_score,
+                        opp.trust_level,
+                        opp.analysis,
+                        opp.metrics,
+                        opp.created_at,
+                        opp.updated_at,
+                    )
                     session.expunge(opp)
 
                 return list(opportunities)
@@ -478,7 +530,8 @@ class SQLModelLoader(BaseLoader):
         try:
             with get_db_session() as session:
                 from sqlmodel import func
-                count = session.exec(select(func.count(Opportunity.id))).scalar()
+
+                count = session.exec(select(func.count(Opportunity.id))).one()
                 return count or 0
 
         except SQLAlchemyError as e:
@@ -511,9 +564,11 @@ class SQLModelLoader(BaseLoader):
                 "content_quality_score": analysis.content_quality_score,
                 "is_spam": analysis.is_spam,
                 "spam_indicators": analysis.spam_indicators,
-                "analyzed_at": analysis.analyzed_at.isoformat() if analysis.analyzed_at else None
+                "analyzed_at": analysis.analyzed_at.isoformat()
+                if analysis.analyzed_at
+                else None,
             },
-            metrics=analysis.metrics.model_dump()
+            metrics=analysis.metrics.model_dump(),
         )
 
         # Use the existing save_opportunity method
@@ -523,4 +578,8 @@ class SQLModelLoader(BaseLoader):
         """Close any resources and cleanup session pool."""
         # Close reusable session if exists
         self._close_session()
-        logger.info("SQLModel Loader closed")
+        logger.info("Unified OpportunityLoader closed")
+
+
+# Export alias for backward compatibility and clearer naming
+OpportunityLoader = Loader

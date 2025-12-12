@@ -1,8 +1,8 @@
 """
-Loader Comparison Tests for RedditHarbor Pipeline V4
+OpportunityLoader Integration Tests for RedditHarbor Pipeline V4
 
-This module tests the behavioral consistency between PostgresLoader and SQLModelLoader
-to ensure they produce identical results when given the same input data.
+This module provides comprehensive integration tests for the unified OpportunityLoader,
+verifying correct behavior for production workloads.
 
 Tests follow the TDD approach and verify:
 - Data persistence consistency
@@ -59,18 +59,9 @@ def test_db_url():
 
 
 @pytest.fixture
-def postgres_loader(test_db_url):
-    """Create PostgresLoader instance for testing"""
-    settings = Settings(database_url=test_db_url, use_sqlmodel_loader=False)
-    loader = get_loader(settings)
-    yield loader
-    loader.close()
-
-
-@pytest.fixture
-def sqlmodel_loader(test_db_url):
-    """Create SQLModelLoader instance for testing"""
-    settings = Settings(database_url=test_db_url, use_sqlmodel_loader=True)
+def opportunity_loader(test_db_url):
+    """Create OpportunityLoader instance for testing"""
+    settings = Settings(database_url=test_db_url)
     loader = get_loader(settings)
     yield loader
     loader.close()
@@ -193,16 +184,14 @@ def clean_test_data(loader, submission_id):
 
 
 class TestLoaderBasicFunctionality:
-    """Test basic functionality of both loaders"""
+    """Test basic functionality of OpportunityLoader"""
 
-    @pytest.mark.parametrize("loader", ["postgres_loader", "sqlmodel_loader"])
-    def test_loader_can_be_initialized(self, loader, request):
-        """Test that both loaders can be properly initialized"""
-        loader_instance = request.getfixturevalue(loader)
-        assert loader_instance is not None
-        assert hasattr(loader_instance, 'save_opportunity')
-        assert hasattr(loader_instance, 'save_analysis')
-        assert hasattr(loader_instance, 'close')
+    def test_loader_can_be_initialized(self, opportunity_loader):
+        """Test that OpportunityLoader can be properly initialized"""
+        assert opportunity_loader is not None
+        assert hasattr(opportunity_loader, 'save_opportunity')
+        assert hasattr(opportunity_loader, 'save_analysis')
+        assert hasattr(opportunity_loader, 'close')
 
     def test_opportunity_model_validation(self, sample_opportunity_data):
         """Test that Opportunity model validation works correctly"""
@@ -212,37 +201,25 @@ class TestLoaderBasicFunctionality:
         assert opportunity.trust_level == sample_opportunity_data["trust_level"]
         assert opportunity.final_score > 0  # Should be calculated from metrics
 
-    def test_save_opportunity_basic_flow(self, postgres_loader, sqlmodel_loader, sample_opportunity_data):
-        """Test basic save/retrieve flow for both loaders"""
-        # Create Opportunity instances with different submission IDs
-        postgres_data = sample_opportunity_data.copy()
-        postgres_data['submission_id'] = 'postgres_test_123'
-        postgres_opportunity = Opportunity(**postgres_data)
+    def test_save_opportunity_basic_flow(self, opportunity_loader, sample_opportunity_data):
+        """Test basic save/retrieve flow for OpportunityLoader"""
+        # Create Opportunity instance
+        test_data = sample_opportunity_data.copy()
+        test_data['submission_id'] = f'basic_flow_{datetime.now().timestamp()}'
+        test_opportunity = Opportunity(**test_data)
 
-        sqlmodel_data = sample_opportunity_data.copy()
-        sqlmodel_data['submission_id'] = 'sqlmodel_test_123'
-        sqlmodel_opportunity = Opportunity(**sqlmodel_data)
-
-        # Test PostgresLoader (only save method available)
-        with clean_test_data(postgres_loader, postgres_opportunity.submission_id):
-            saved = postgres_loader.save_opportunity(postgres_opportunity)
+        # Test save and retrieve
+        with clean_test_data(opportunity_loader, test_opportunity.submission_id):
+            saved = opportunity_loader.save_opportunity(test_opportunity)
             assert saved is True
 
-            # Verify save completed successfully
-            # Note: PostgresLoader doesn't have get_opportunity method
-
-        # Test SQLModelLoader
-        with clean_test_data(sqlmodel_loader, sqlmodel_opportunity.submission_id):
-            saved = sqlmodel_loader.save_opportunity(sqlmodel_opportunity)
-            assert saved is True
-
-            retrieved = sqlmodel_loader.get_opportunity(sqlmodel_opportunity.submission_id)
+            retrieved = opportunity_loader.get_opportunity(test_opportunity.submission_id)
             assert retrieved is not None
-            assert retrieved.submission_id == sqlmodel_opportunity.submission_id
-            assert retrieved.subreddit == sqlmodel_opportunity.subreddit
-            assert retrieved.title == sqlmodel_opportunity.title
-            assert retrieved.wtp_score == sqlmodel_opportunity.wtp_score
-            assert retrieved.final_score == sqlmodel_opportunity.final_score
+            assert retrieved.submission_id == test_opportunity.submission_id
+            assert retrieved.subreddit == test_opportunity.subreddit
+            assert retrieved.title == test_opportunity.title
+            assert retrieved.wtp_score == test_opportunity.wtp_score
+            assert retrieved.final_score == test_opportunity.final_score
 
 
 class TestLoaderConsistency:

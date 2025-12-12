@@ -54,7 +54,7 @@ class Pipeline:
 
         self.staging = staging or StagingLayer()
 
-        logger.info(f"Database loader: {'SQLModel' if self.settings.use_sqlmodel_loader else 'psycopg2'}")
+        logger.info("Database loader: OpportunityLoader (unified SQLModel implementation)")
 
     def run(
         self,
