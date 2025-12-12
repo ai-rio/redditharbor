@@ -128,17 +128,17 @@ PASSED in 18.21s
 psql postgresql://postgres:postgres@127.0.0.1:54331/postgres
 
 # View test results
-SELECT 
-    submission_id, 
-    subreddit, 
-    title, 
-    wtp_score, 
-    final_score, 
+SELECT
+    submission_id,
+    subreddit,
+    title,
+    wtp_score,
+    final_score,
     trust_level,
     created_at
-FROM opportunities 
+FROM opportunities
 WHERE subreddit = 'productivity'
-ORDER BY created_at DESC 
+ORDER BY created_at DESC
 LIMIT 10;
 ```
 
